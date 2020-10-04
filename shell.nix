@@ -18,9 +18,6 @@ let
     rust-specific = (pkgs.rustChannelOf { date = "2020-08-28"; channel = "nightly"; }).rust;
     # to use the project's rust-toolchain file:
     rust-toolchain = (pkgs.rustChannelOf { rustToolchain = ./rust-toolchain; }).rust;
-in
-  pkgs.stdenv.mkDerivation {
-    name = "rust";
     buildInputs = [
       (rust-stable.override {
         extensions = [
@@ -31,8 +28,22 @@ in
           "clippy-preview"
         ];
       })
-      pkgs.gnuplot # for criterion plot generation
+
+      # for criterion plot generation
+      pkgs.gnuplot
+
+      # for kiss3d visualization
+      pkgs.xorg.libX11
+      pkgs.xorg.libXcursor
+      pkgs.xorg.libXrandr
+      pkgs.xorg.libXi
+      pkgs.libGL
     ];
-    #RA_LOG = "info";
-#   RUST_BAfCKTRACE = 1;
+in
+  pkgs.stdenv.mkDerivation {
+    name = "rust";
+    buildInputs = buildInputs;
+    LD_LIBRARY_PATH = "${pkgs.stdenv.lib.makeLibraryPath buildInputs}";
+    # RA_LOG = "info";
+    # RUST_BAfCKTRACE = 1;
   }
