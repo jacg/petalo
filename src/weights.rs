@@ -237,7 +237,7 @@ mod test {
 
         let p1 = Point::new(p1.0, p1.1, 0.0);
         let p2 = Point::new(p2.0, p2.1, 0.0);
-        let vbox = VoxelBox::new((size.0, size.1), (n.0, n.1));
+        let vbox = VoxelBox::new((size.0, size.1, 0.0), (n.0, n.1, 1));
 
         //crate::visualize::lor_weights(p1, p2, vbox.clone());
 
@@ -271,28 +271,31 @@ mod test {
             r        in  200.0..(300.0 as Length),
             p1_angle in 0.0..(1.0 as Length), // around the circle
             p2_delta in 0.1..(0.9 as Length), // relative to p1_angle
-            //p1_z     in -200.0..200.0,
-            //p2_z     in -200.0..200.0,
+            p1_z     in -200.0..(200.0 as Length),
+            p2_z     in -200.0..(200.0 as Length),
             // Voxel box
             dx in  100.0..(150.0 as Length),
-            dy in  100.0..(150.0 as Length), //dz in  100.0..180.0,
+            dy in  100.0..(150.0 as Length),
+            dz in  100.0..(190.0 as Length),
             nx in  5..50_usize,
-            ny in  5..50_usize,              //nz in  5..50,
+            ny in  5..50_usize,
+            nz in  5..90_usize,
         ) {
             let p1_theta: Length = p1_angle * TWOPI;
             let p2_theta: Length = p1_theta + (p2_delta * TWOPI);
-            let p1 = Point::new(r * p1_theta.cos(), r * p1_theta.sin(), 0.0);
-            let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin(), 0.0);
-            let vbox = VoxelBox::new((dx, dy), (nx, ny));
+            let p1 = Point::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
+            let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
+            let vbox = VoxelBox::new((dx, dy, dz), (nx, ny, nz));
 
             // // Values to plug in to visualizer:
-            // println!("let p1 = Point::new({}, {});", p1.x, p1.y);
-            // println!("let p2 = Point::new({}, {});", p2.x, p2.y);
-            // println!("let vbox = VoxelBox::new(({}, {}), ({}, {}));",
-            //          vbox.aabb.half_extents.x, vbox.aabb.half_extents.y, vbox.n.x, vbox.n.y);
+            // println!("let p1 = Point::new({}, {}, {});", p1.x, p1.y, p1.z);
+            // println!("let p2 = Point::new({}, {}, {});", p2.x, p2.y, p2.z);
+            // println!("let vbox = VoxelBox::new(({}, {}, {}), ({}, {}, {}));",
+            //          vbox.aabb.half_extents.x, vbox.aabb.half_extents.y, vbox.aabb.half_extents.z,
+            //          vbox.n.x, vbox.n.y, vbox.n.z);
 
             let summed: Length = WeightsAlongLOR::new(p1, p2, vbox.clone())
-                .inspect(|(is, l)| println!("  ({} {}) {}", is.x, is.y, l))
+                .inspect(|(i, l)| println!("  ({} {} {}) {}", i.x, i.y, i.z, l))
                 .map(|(_index, weight)| weight)
                 .sum();
 
@@ -326,10 +329,10 @@ pub struct VoxelBox {
 
 impl VoxelBox {
 
-    pub fn new((dx, dy): (Length, Length), (nx, ny): (usize, usize)) -> Self {
+    pub fn new((dx, dy, dz): (Length, Length, Length), (nx, ny, nz): (usize, usize, usize)) -> Self {
         Self {
-            aabb: Cuboid::new(Vector::new(dx, dy, 1.0)),
-            n: BoxDim::new(nx, ny, 1)
+            aabb: Cuboid::new(Vector::new(dx, dy, dz)),
+            n: BoxDim::new(nx, ny, nz)
         }
     }
 
