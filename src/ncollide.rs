@@ -154,8 +154,8 @@ impl Iterator for WeightsAlongLOR {
                 // client's original coordinate system).
                 let mut true_index = Index::zeros();
                 for n in 0..index.len() {
-                    if flipped[n] { true_index[n] = n_voxels[n] - index[n]; }
-                    else          { true_index[n] =               index[n]; }
+                    if flipped[n] { true_index[n] = n_voxels[n] - 1 - index[n]; }
+                    else          { true_index[n] =                   index[n]; }
                 }
 
                 // Which boundary will be hit next, and how soon
