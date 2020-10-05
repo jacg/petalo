@@ -1,2 +1,2 @@
-pub mod ncollide;
+pub mod weights;
 pub mod visualize;

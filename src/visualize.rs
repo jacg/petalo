@@ -5,7 +5,7 @@ use kiss3d::light::Light;
 use kiss3d::window::Window;
 use na::{Point3, Translation3};
 
-use crate::ncollide as pet;
+use crate::weights as pet;
 
 // TODO: x-axis is flipped on the display: fix it!
 

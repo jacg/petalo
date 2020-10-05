@@ -1,4 +1,4 @@
-use petalo::ncollide::{Point, VoxelBox};
+use petalo::weights::{Point, VoxelBox};
 use petalo::visualize;
 
 fn main() {
