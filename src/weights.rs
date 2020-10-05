@@ -1,5 +1,5 @@
 use nalgebra   as na;
-use ncollide2d as nc;
+use ncollide3d as nc;
 use nc::query::RayCast;
 
 // TODO: no thought has been given to what should be public or private.
@@ -235,8 +235,8 @@ mod test {
                    length: Length,
                    expected_voxels: Vec<(usize, usize)>) {
 
-        let p1 = Point::new(p1.0, p1.1);
-        let p2 = Point::new(p2.0, p2.1);
+        let p1 = Point::new(p1.0, p1.1, 0.0);
+        let p2 = Point::new(p2.0, p2.1, 0.0);
         let vbox = VoxelBox::new((size.0, size.1), (n.0, n.1));
 
         //crate::visualize::lor_weights(p1, p2, vbox.clone());
@@ -281,8 +281,8 @@ mod test {
         ) {
             let p1_theta: Length = p1_angle * TWOPI;
             let p2_theta: Length = p1_theta + (p2_delta * TWOPI);
-            let p1 = Point::new(r * p1_theta.cos(), r * p1_theta.sin());
-            let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin());
+            let p1 = Point::new(r * p1_theta.cos(), r * p1_theta.sin(), 0.0);
+            let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin(), 0.0);
             let vbox = VoxelBox::new((dx, dy), (nx, ny));
 
             // // Values to plug in to visualizer:
@@ -328,15 +328,15 @@ impl VoxelBox {
 
     pub fn new((dx, dy): (Length, Length), (nx, ny): (usize, usize)) -> Self {
         Self {
-            aabb: Cuboid::new(Vector::new(dx, dy)),
-            n: BoxDim::new(nx, ny)
+            aabb: Cuboid::new(Vector::new(dx, dy, 1.0)),
+            n: BoxDim::new(nx, ny, 1)
         }
     }
 
     pub fn voxel_size(&self) -> Vector {
         // TODO: generalize conversion of VecOf<int> -> VecOf<float>
         let n = &self.n;
-        let nl: Vector = Vector::new(n.x as Length, n.y as Length);
+        let nl: Vector = Vector::new(n.x as Length, n.y as Length, n.z as Length);
         (self.aabb.half_extents * 2.0).component_div(&nl)
     }
 
