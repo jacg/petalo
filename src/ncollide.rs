@@ -107,7 +107,13 @@ impl WeightsAlongLOR {
         entry_point += vbox.aabb.half_extents;
 
         // Express entry point in voxel coordinates: floor(position) = index of voxel.
-        let entry_point: Vector = entry_point.coords.component_div(&vbox.voxel_size());
+        let mut entry_point: Vector = entry_point.coords.component_div(&vbox.voxel_size());
+
+        // Floating-point subtractions which should give zero, usually miss very
+        // slightly: if this error is negative, the next step (which uses floor)
+        // will pick the wrong voxel. Work around this problem by assuming that
+        // anything very close to zero is exactly zero.
+        entry_point.iter_mut().for_each(|x| if x.abs() < 1e-7 { *x = 0.0 });
 
         // Find N-dimensional index of voxel at entry point.
         let index: Index = entry_point.map(|x| x.floor() as usize);
