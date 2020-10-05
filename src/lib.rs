@@ -1,1 +1,2 @@
-mod ncollide;
+pub mod ncollide;
+pub mod visualize;

@@ -2,16 +2,18 @@ use nalgebra   as na;
 use ncollide2d as nc;
 use nc::query::RayCast;
 
-type Length = f64;
+// TODO: no thought has been given to what should be public or private.
+
+pub type Length = f64;
 type Vector = nc::math ::Vector<Length>;
-type Point  = nc::math ::Point <Length>;
+pub type Point  = nc::math ::Point <Length>;
 type Cuboid = nc::shape::Cuboid<Length>;
 type Ray    = nc::query::Ray   <Length>;
 type Isometry = nc::math::Isometry<Length>;
 
 type VecOf<T> = nc::math::Vector<T>;
 
-type Index = VecOf<usize>;
+pub type Index = VecOf<usize>;
 type BoxDim = VecOf<usize>;
 
 /// ```
@@ -64,7 +66,7 @@ pub enum WeightsAlongLOR {
 }
 
 impl WeightsAlongLOR {
-    fn new(mut p1: Point, mut p2: Point, vbox: VoxelBox) -> Self {
+    pub fn new(mut p1: Point, mut p2: Point, vbox: VoxelBox) -> Self {
 
         // This function works in an arbitrary number of dimensions. In order to
         // iterate over all dimensions, we need to know how many there are.
@@ -233,11 +235,15 @@ mod test {
                    length: Length,
                    expected_voxels: Vec<(usize, usize)>) {
 
+        let p1 = Point::new(p1.0, p1.1);
+        let p2 = Point::new(p2.0, p2.1);
+        let vbox = VoxelBox::new((size.0, size.1), (n.0, n.1));
+
+        //crate::visualize::lor_weights(p1, p2, vbox.clone());
+
         // Collect hits
         let hits: Vec<(Index, Length)> =
-            WeightsAlongLOR::new(Point::new(p1.0, p1.1),
-                                 Point::new(p2.0, p2.1),
-                                 VoxelBox::new((size.0, size.1), (n.0, n.1)))
+            WeightsAlongLOR::new(p1, p2, vbox)
             .inspect(|(is, l)| println!("  ({} {})   {}", is.x, is.y, l))
             .collect();
 
@@ -274,6 +280,13 @@ mod test {
             let p1 = Point::new(r * p1_theta.cos(), r * p1_theta.sin());
             let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin());
             let vbox = VoxelBox::new((dx, dy), (nx, ny));
+
+            // // Values to plug in to visualizer:
+            // println!("let p1 = Point::new({}, {});", p1.x, p1.y);
+            // println!("let p2 = Point::new({}, {});", p2.x, p2.y);
+            // println!("let vbox = VoxelBox::new(({}, {}), ({}, {}));",
+            //          vbox.aabb.half_extents.x, vbox.aabb.half_extents.y, vbox.n.x, vbox.n.y);
+
             let summed: Length = WeightsAlongLOR::new(p1, p2, vbox.clone())
                 .inspect(|(is, l)| println!("  ({} {}) {}", is.x, is.y, l))
                 .map(|(_index, weight)| weight)
@@ -301,10 +314,10 @@ mod test {
     }
 }
 //--------------------------------------------------------------------------------
-#[derive(Clone)]
-struct VoxelBox {
-    aabb: Cuboid, // Axis-Aligned Bounding Box
-    n: BoxDim,
+#[derive(Clone, Debug)]
+pub struct VoxelBox {
+    pub aabb: Cuboid, // Axis-Aligned Bounding Box
+    pub n: BoxDim,
 }
 
 impl VoxelBox {
