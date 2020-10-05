@@ -269,14 +269,18 @@ mod test {
         fn sum_of_weights_equals_length_through_box(
             // Activated sensor positions
             r        in  200.0..300.0,
-            p1_theta in    0.0..TWOPI,  //p1_z     in -200.0..200.0,
-            p2_theta in    0.0..TWOPI,  //p2_z     in -200.0..200.0,
+            p1_angle in 0.0..1.0, // around the circle
+            p2_delta in 0.1..0.9, // relative to p1_angle
+            //p1_z     in -200.0..200.0,
+            //p2_z     in -200.0..200.0,
             // Voxel box
             dx in  100.0..180.0,
             dy in  100.0..180.0,        //dz in  100.0..180.0,
             nx in  5..50_usize,
             ny in  5..50_usize,         //nz in  5..50,
         ) {
+            let p1_theta: f64 = p1_angle * TWOPI;
+            let p2_theta: f64 = p1_theta + (p2_delta * TWOPI);
             let p1 = Point::new(r * p1_theta.cos(), r * p1_theta.sin());
             let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin());
             let vbox = VoxelBox::new((dx, dy), (nx, ny));
