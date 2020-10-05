@@ -7,11 +7,10 @@ use na::{Point3, Translation3};
 
 use crate::weights as pet;
 
-// TODO: x-axis is flipped on the display: fix it!
 
 pub fn lor_weights(p1: pet::Point, p2: pet::Point, vbox: pet::VoxelBox) {
-    let p13 = Point3::new(p1.x as f32, p1.y as f32, -1.0001);
-    let p23 = Point3::new(p2.x as f32, p2.y as f32, -1.0001);
+    let p13 = Point3::new(p1.x as f32, p1.y as f32, 1.0001);
+    let p23 = Point3::new(p2.x as f32, p2.y as f32, 1.0001);
 
     let active_voxels = pet::WeightsAlongLOR::new(p1, p2, vbox.clone())
         .map(|(i, w)| ((i.x, i.y), w))
@@ -63,9 +62,21 @@ pub fn lor_weights(p1: pet::Point, p2: pet::Point, vbox: pet::VoxelBox) {
     let y_axis_lo = Point3::new(  0.0, -90.0, 0.0);
     let y_axis_hi = Point3::new(  0.0,  90.0, 0.0);
     let axis_colour = Point3::new(0.0, 0.0, 1.0);
-    while window.render() {
-        window.draw_line (&x_axis_lo, &x_axis_hi, &  axis_colour);
-        window.draw_line (&y_axis_lo, &y_axis_hi, &  axis_colour);
-        window.draw_line (&p13, &p23, &  lor_colour);
+
+    let biggest = vbox.aabb.half_extents.x.max(vbox.aabb.half_extents.y) as f32;
+    let distance = 4.0 * biggest;
+    let zfar  = distance * 2.0;
+    let znear = distance / 2.0;
+    let fov = (biggest / distance).atan() * 2.2 as f32;
+    let mut camera = kiss3d::camera::FirstPerson::new_with_frustrum(
+        fov, znear, zfar,
+        Point3::new(0.0, 0.0, distance), // eye
+        Point3::new(0.0, 0.0,      0.0), // at
+    );
+
+    while window.render_with_camera(&mut camera) {
+        window.draw_line (&x_axis_lo, &x_axis_hi, &axis_colour);
+        window.draw_line (&y_axis_lo, &y_axis_hi, &axis_colour);
+        window.draw_line (&p13, &p23,             & lor_colour);
     }
 }
