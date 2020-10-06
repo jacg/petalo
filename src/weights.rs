@@ -65,6 +65,15 @@ pub enum WeightsAlongLOR {
     }
 }
 
+pub fn entry(p1: &Point, p2: &Point, vbox: &VoxelBox) -> Option<Point> {
+    let lor_direction: Vector = (p2-p1).normalize();
+    let lor_length: Length = (p2 - p1).norm();
+    let iso: Isometry = Isometry::identity();
+    let lor: Ray = Ray::new(*p1, lor_direction);
+    vbox.aabb.toi_with_ray(&iso, &lor, lor_length, true)
+        .map(|toi| lor.origin + lor.dir * toi)
+}
+
 impl WeightsAlongLOR {
     pub fn new(mut p1: Point, mut p2: Point, vbox: VoxelBox) -> Self {
 
@@ -89,14 +98,8 @@ impl WeightsAlongLOR {
         }
 
         // Find if and where LOR enters voxel box.
-        let lor_direction: Vector = (p2-p1).normalize();
-        let mut entry_point: Point = match {
-            let lor_length: Length = (p2 - p1).norm();
-            let iso: Isometry = Isometry::identity();
-            let lor: Ray = Ray::new(p1, lor_direction);
-            vbox.aabb.toi_with_ray(&iso, &lor, lor_length, true)
-                .map(|toi| lor.origin + lor.dir * toi)
-        } { // If LOR misses the box, immediately return an iterator which will
+        let mut entry_point: Point = match entry(&p1, &p2, &vbox) {
+            // If LOR misses the box, immediately return an iterator which will
             // generate no hits.
             None => return Self::Outside,
             // Otherwise, unwrap the point and continue calculating a more
@@ -109,7 +112,7 @@ impl WeightsAlongLOR {
         entry_point += vbox.aabb.half_extents;
 
         // Express entry point in voxel coordinates: floor(position) = index of voxel.
-        let mut entry_point: Vector = entry_point.coords.component_div(&vbox.voxel_size());
+        let mut entry_point: Vector = entry_point.coords.component_div(&vbox.voxel_size);
 
         // Floating-point subtractions which should give zero, usually miss very
         // slightly: if this error is negative, the next step (which uses floor)
@@ -122,7 +125,8 @@ impl WeightsAlongLOR {
 
         // Voxel size in LOR length units: how far must we move along LOR to
         // traverse one voxel, in any dimension.
-        let voxel_size: Vector = vbox.voxel_size().component_div(&lor_direction);
+        let lor_direction = (p2-p1).normalize();
+        let voxel_size: Vector = vbox.voxel_size.component_div(&lor_direction);
 
         // What fraction of the voxel has already been traversed at the entry
         // point, along any axis.
@@ -325,22 +329,26 @@ mod test {
 pub struct VoxelBox {
     pub aabb: Cuboid, // Axis-Aligned Bounding Box
     pub n: BoxDim,
+    pub voxel_size: Vector,
 }
 
 impl VoxelBox {
 
     pub fn new((dx, dy, dz): (Length, Length, Length), (nx, ny, nz): (usize, usize, usize)) -> Self {
-        Self {
-            aabb: Cuboid::new(Vector::new(dx, dy, dz)),
-            n: BoxDim::new(nx, ny, nz)
-        }
+        let aabb = Cuboid::new(Vector::new(dx, dy, dz));
+        let n = BoxDim::new(nx, ny, nz);
+        let voxel_size =  Self::voxel_size(n, aabb);
+            Self { aabb, n, voxel_size, }
     }
 
-    pub fn voxel_size(&self) -> Vector {
+    fn voxel_size(n: BoxDim, aabb: Cuboid) -> Vector {
         // TODO: generalize conversion of VecOf<int> -> VecOf<float>
-        let n = &self.n;
         let nl: Vector = Vector::new(n.x as Length, n.y as Length, n.z as Length);
-        (self.aabb.half_extents * 2.0).component_div(&nl)
+        (aabb.half_extents * 2.0).component_div(&nl)
+    }
+
+    pub fn voxel_centre(&self, i: Index) -> Point {
+        i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
     }
 
 }
