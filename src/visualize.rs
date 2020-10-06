@@ -14,7 +14,7 @@ pub fn lor_weights(p1: pet::Point, p2: pet::Point, vbox: pet::VoxelBox) {
         .map(|(i, w)| ((i.x, i.y, i.z), w))
         .collect::<std::collections::HashMap<(usize, usize, usize), pet::Length>>();
 
-    let max_weight = active_voxels
+    let &max_weight = active_voxels
         .iter()
         .map(|(_, w)| w)
         .max_by(|a,b| a.partial_cmp(b).expect("Weights contained NaN"))
@@ -31,29 +31,19 @@ pub fn lor_weights(p1: pet::Point, p2: pet::Point, vbox: pet::VoxelBox) {
     let (bdx, bdy, bdz) = (bsize.x as f32, bsize.y as f32, bsize.z as f32);
     let (vdx, vdy, vdz) = (vsize.x as f32, vsize.y as f32, vsize.z as f32);
     let mut voxels = Vec::with_capacity(vbox.n.x * vbox.n.y);
-    {
-        let half_vbox = Translation3::new(-bdx, -bdy, -bdz);
-        let half_voxel = Translation3::new(vdx / 2.0,
-                                           vdy / 2.0,
-                                           vdz / 2.0);
-        let s = 0.99;
-        for x in 0..vbox.n.x {
-            for y in 0..vbox.n.y {
-                for z in 0..vbox.n.z {
-                    if let Some(weight) = active_voxels.get(&(x,y,z)) {
-                        let mut v = window.add_cube(vdx * s, vdy * s, vdy * s);
-                        v.append_translation(&half_vbox);
-                        v.append_translation(&half_voxel);
-                        v.append_translation(&Translation3::new(x as f32 * vdx, y as f32 * vdy, z as f32 * vdz));
-                        v.set_color((*weight / max_weight) as f32, 0.0, 0.0);
-                        voxels.push(v);
-                        //v.set_material(material);
-                    } else {
-                        //v.set_color(0.1, 0.1, 0.1);
-                    }
-                }
-            }
-        }
+    let half_vbox = Translation3::new(-bdx, -bdy, -bdz);
+    let half_voxel = Translation3::new(vdx / 2.0,
+                                       vdy / 2.0,
+                                       vdz / 2.0);
+    let s = 0.99;
+    for ((x,y,z), weight) in active_voxels {
+        let mut v = window.add_cube(vdx * s, vdy * s, vdy * s);
+        v.append_translation(&half_vbox);
+        v.append_translation(&half_voxel);
+        v.append_translation(&Translation3::new(x as f32 * vdx, y as f32 * vdy, z as f32 * vdz));
+        v.set_color((weight / max_weight) as f32, 0.0, 0.0);
+        voxels.push(v);
+        //v.set_material(material);
     }
 
     let x_axis_lo = Point3::new(-bdx,   0.0, 0.0) * 1.5;
