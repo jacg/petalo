@@ -7,7 +7,6 @@ use nc::query::RayCast;
 pub type Length = f64;
 type Vector = nc::math ::Vector<Length>;
 pub type Point  = nc::math ::Point <Length>;
-type Cuboid = nc::shape::Cuboid<Length>;
 type Ray    = nc::query::Ray   <Length>;
 type Isometry = nc::math::Isometry<Length>;
 
@@ -65,15 +64,6 @@ pub enum WeightsAlongLOR {
     }
 }
 
-pub fn entry(p1: &Point, p2: &Point, vbox: &VoxelBox) -> Option<Point> {
-    let lor_direction: Vector = (p2-p1).normalize();
-    let lor_length: Length = (p2 - p1).norm();
-    let iso: Isometry = Isometry::identity();
-    let lor: Ray = Ray::new(*p1, lor_direction);
-    vbox.aabb.toi_with_ray(&iso, &lor, lor_length, true)
-        .map(|toi| lor.origin + lor.dir * toi)
-}
-
 impl WeightsAlongLOR {
     pub fn new(mut p1: Point, mut p2: Point, vbox: VoxelBox) -> Self {
 
@@ -109,7 +99,7 @@ impl WeightsAlongLOR {
 
         // Transform coordinates to align box with axes: making the lower
         // boundaries of the box lie on the zero-planes.
-        entry_point += vbox.aabb.half_extents;
+        entry_point += vbox.half_width;
 
         // Express entry point in voxel coordinates: floor(position) = index of voxel.
         let mut entry_point: Vector = entry_point.coords.component_div(&vbox.voxel_size);
@@ -303,17 +293,8 @@ mod test {
                 .map(|(_index, weight)| weight)
                 .sum();
 
-            let entry_point = |p1: Point, p2:Point| {
-                let lor_direction: Vector = (p2-p1).normalize();
-                let lor_length: Length = (p2 - p1).norm();
-                let iso: Isometry = Isometry::identity();
-                let lor: Ray = Ray::new(p1, lor_direction);
-                vbox.aabb.toi_with_ray(&iso, &lor, lor_length, true)
-                    .map(|toi| lor.origin + lor.dir * toi)
-            };
-
-            let a = entry_point(p1, p2);
-            let b = entry_point(p2, p1);
+            let a = entry(&p1, &p2, &vbox);
+            let b = entry(&p2, &p1, &vbox);
 
             let in_one_go = match (a,b) {
                 (Some(a), Some(b)) => (a - b).magnitude(),
@@ -327,7 +308,7 @@ mod test {
 //--------------------------------------------------------------------------------
 #[derive(Clone, Debug)]
 pub struct VoxelBox {
-    pub aabb: Cuboid, // Axis-Aligned Bounding Box
+    pub half_width: Vector,
     pub n: BoxDim,
     pub voxel_size: Vector,
 }
@@ -335,20 +316,34 @@ pub struct VoxelBox {
 impl VoxelBox {
 
     pub fn new((dx, dy, dz): (Length, Length, Length), (nx, ny, nz): (usize, usize, usize)) -> Self {
-        let aabb = Cuboid::new(Vector::new(dx, dy, dz));
+        let half_width = Vector::new(dx, dy, dz);
         let n = BoxDim::new(nx, ny, nz);
-        let voxel_size =  Self::voxel_size(n, aabb);
-            Self { aabb, n, voxel_size, }
+        let voxel_size =  Self::voxel_size(n, half_width);
+            Self { half_width, n, voxel_size, }
     }
 
-    fn voxel_size(n: BoxDim, aabb: Cuboid) -> Vector {
+    fn voxel_size(n: BoxDim, half_width: Vector) -> Vector {
         // TODO: generalize conversion of VecOf<int> -> VecOf<float>
         let nl: Vector = Vector::new(n.x as Length, n.y as Length, n.z as Length);
-        (aabb.half_extents * 2.0).component_div(&nl)
+        (half_width * 2.0).component_div(&nl)
     }
 
     pub fn voxel_centre(&self, i: Index) -> Point {
         i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
     }
 
+}
+
+pub fn entry(p1: &Point, p2: &Point, vbox: &VoxelBox) -> Option<Point> {
+    let lor_direction: Vector = (p2-p1).normalize();
+    let lor_length: Length = (p2 - p1).norm();
+    let lor: Ray = Ray::new(*p1, lor_direction);
+    toi_with_ray(&vbox.half_width, &lor, lor_length)
+}
+
+fn toi_with_ray(half_width: &Vector, ray: &Ray, limit: Length) -> Option<Point> {
+    let iso: Isometry = Isometry::identity();
+    nc::shape::Cuboid::new(*half_width)
+        .toi_with_ray(&iso, &ray, limit, true)
+        .map(|toi| ray.origin + ray.dir * toi)
 }

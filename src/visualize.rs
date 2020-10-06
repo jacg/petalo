@@ -68,7 +68,7 @@ pub fn lor_weights(t1: Time, t2: Time, p1: Point, p2: Point, vbox: VoxelBox) {
 
 
     let vsize = vbox.voxel_size;
-    let bsize = vbox.aabb.half_extents;
+    let bsize = vbox.half_width;
     let (bdx, bdy, bdz) = (bsize.x as f32, bsize.y as f32, bsize.z as f32);
     let (vdx, vdy, vdz) = (vsize.x as f32, vsize.y as f32, vsize.z as f32);
     let mut voxels = Vec::with_capacity(vbox.n.x * vbox.n.y);
@@ -95,7 +95,7 @@ pub fn lor_weights(t1: Time, t2: Time, p1: Point, p2: Point, vbox: VoxelBox) {
     let y_axis_hi = Point3::new(  0.0,  bdy, 0.0) * 1.5;
     let axis_colour = Point3::new(0.0, 0.0, 1.0);
 
-    let biggest = vbox.aabb.half_extents.x.max(vbox.aabb.half_extents.y) as f32;
+    let biggest = vbox.half_width.x.max(vbox.half_width.y) as f32;
     let distance = 4.0 * biggest;
     let zfar  = distance * 2.0;
     let znear = 0.1; //distance / 2.0;
