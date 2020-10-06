@@ -49,7 +49,7 @@ pub fn lor_weights(t1: Time, t2: Time, p1: Point, p2: Point, vbox: VoxelBox) {
     let mu = 0.0;
     let sigma = 10.0;
 
-    let active_voxels = pet::WeightsAlongLOR::new(p1, p2, vbox.clone())
+    let active_voxels = pet::WeightsAlongLOR::new(p1, p2, &vbox)
         .map(|(i, w)| ((i.x, i.y, i.z), w))
         .scan(None, tof(&vbox, t1, t2, p1, p2, mu, sigma))
         .filter(|(_, w)| w > &0.01)

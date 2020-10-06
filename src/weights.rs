@@ -65,7 +65,7 @@ pub enum WeightsAlongLOR {
 }
 
 impl WeightsAlongLOR {
-    pub fn new(mut p1: Point, mut p2: Point, vbox: VoxelBox) -> Self {
+    pub fn new(mut p1: Point, mut p2: Point, vbox: &VoxelBox) -> Self {
 
         // This function works in an arbitrary number of dimensions. In order to
         // iterate over all dimensions, we need to know how many there are.
@@ -237,7 +237,7 @@ mod test {
 
         // Collect hits
         let hits: Vec<(Index, Length)> =
-            WeightsAlongLOR::new(p1, p2, vbox)
+            WeightsAlongLOR::new(p1, p2, &vbox)
             .inspect(|(is, l)| println!("  ({} {})   {}", is.x, is.y, l))
             .collect();
 
@@ -288,7 +288,7 @@ mod test {
             //          vbox.aabb.half_extents.x, vbox.aabb.half_extents.y, vbox.aabb.half_extents.z,
             //          vbox.n.x, vbox.n.y, vbox.n.z);
 
-            let summed: Length = WeightsAlongLOR::new(p1, p2, vbox.clone())
+            let summed: Length = WeightsAlongLOR::new(p1, p2, &vbox)
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i.x, i.y, i.z, l))
                 .map(|(_index, weight)| weight)
                 .sum();
