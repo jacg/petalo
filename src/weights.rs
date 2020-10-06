@@ -2,9 +2,15 @@ use nalgebra   as na;
 use ncollide3d as nc;
 use nc::query::RayCast;
 
+// TODO: have another go at getting nalgebra to work with uom.
+const c : Length = 3e3; // cm / ns
+
 // TODO: no thought has been given to what should be public or private.
 
+
 pub type Length = f64;
+pub type Time = f64;
+
 type Vector = nc::math ::Vector<Length>;
 pub type Point  = nc::math ::Point <Length>;
 type Ray    = nc::query::Ray   <Length>;
@@ -14,10 +20,6 @@ type VecOf<T> = nc::math::Vector<T>;
 
 pub type Index = VecOf<usize>;
 type BoxDim = VecOf<usize>;
-
-/// ```
-/// assert_eq!(2+3, 5);
-/// ```
 
 // This algorithm is centred around two key simplifications:
 //
@@ -346,4 +348,79 @@ fn toi_with_ray(half_width: &Vector, ray: &Ray, limit: Length) -> Option<Point> 
     nc::shape::Cuboid::new(*half_width)
         .toi_with_ray(&iso, &ray, limit, true)
         .map(|toi| ray.origin + ray.dir * toi)
+}
+//--------------------------------------------------------------------------------
+
+type N = f64;
+fn make_gauss(sigma: N) -> impl Fn(N) -> N {
+    let mu = 0.0;
+    let root_two_pi = std::f64::consts::PI.sqrt();
+    let a = 1.0 / (sigma * root_two_pi);
+    move |x| {
+        let y = (x - mu) / sigma;
+        let z = y * y;
+        a * (-0.5 * z).exp()
+    }
+}
+
+type S = (Index, Length);
+
+
+/// Returns a closure which keeps track of progress along LOR and adjusts voxel
+/// weight according to Gaussian TOF distribution. To be mapped over the stream
+/// produced by WeightsAlongLOR, as shown in this example:
+///
+/// ```
+/// # use petalo::weights::{Point, VoxelBox, Length, Index, tof_gaussian, WeightsAlongLOR};
+/// // A highly symmetric system for easy testing of features
+/// let (t1, t2) = (10.0, 10.0);
+/// let p1 = Point::new(-100.0, 0.0, 0.0);
+/// let p2 = Point::new( 100.0, 0.0, 0.0);
+/// let vbox = VoxelBox::new((30.0, 30.0, 30.0), (5,5,5));
+/// let sigma = 10.0;
+///
+/// // Generate geometry-dependent voxel weights
+/// let active_voxels = WeightsAlongLOR::new(p1, p2, &vbox)
+///     // Adjust weights with gaussian TOF factor
+///     .map(tof_gaussian(p1, t1, p2, t2, &vbox, sigma))
+///     // Make index more human-friendly (tuple rather than vector)
+///     .map(|(i,w)| ((i.x, i.y, i.z), w))
+///     // Store weights in hash map, keyed on voxel index, for easy retrieval
+///     .collect::<std::collections::HashMap<(usize, usize, usize), Length>>();
+///
+/// // Gaussian centred on origin is symmetric about origin
+/// assert_eq!(active_voxels.get(&(0,2,2)) , active_voxels.get(&(4,2,2)));
+/// assert_eq!(active_voxels.get(&(1,2,2)) , active_voxels.get(&(3,2,2)));
+///
+/// // Highest probability in the centre
+/// assert!   (active_voxels.get(&(0,2,2)) < active_voxels.get(&(1,2,2)));
+/// assert!   (active_voxels.get(&(1,2,2)) < active_voxels.get(&(2,2,2)));
+/// ```
+pub fn tof_gaussian(p1: Point, t1: Time,
+       p2: Point, t2: Time,
+       vbox: &VoxelBox,
+       sigma: Length
+) -> Box<dyn FnMut (S) -> S> {
+    match entry(&p1, &p2, &vbox).map(|ep| (ep-p1).norm()) {
+        // If LOR misses the voxel box, we should never receive any voxels
+        // weights to adjust.
+        None => Box::new(|_| panic!("Cannot adjust for TOF on LOR that misses image volume.")),
+        // If LOR does hit some voxels, find the first hit's distance from p1 ...
+        Some(p1_to_entry) => {
+            // ... and the TOF peak's distance from p1
+            let p1_to_peak = 0.5 * ((p1 - p2).norm() + c * (t1 - t2));
+            // Will keep track of how far we are from the TOF peak
+            let mut distance_to_peak = p1_to_peak - p1_to_entry;
+            // Specialize gaussian on given sigma
+            let gauss = make_gauss(sigma);
+            Box::new(move |(index, weight)| {
+                // Use the LOR's half-way point in the voxel, for the TOF factor
+                let midpoint = distance_to_peak - weight / 2.0;
+                // Update distance for next voxel
+                distance_to_peak -= weight;
+                // Return the weight suppressed by the gaussian TOF factor
+                (index, weight * gauss(midpoint))
+            })
+        },
+    }
 }
