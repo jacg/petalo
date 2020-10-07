@@ -29,6 +29,8 @@ let
         ];
       })
 
+      pkgs.pkgconfig
+
       # for criterion plot generation
       pkgs.gnuplot
 
