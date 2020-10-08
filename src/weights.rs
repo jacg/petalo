@@ -435,80 +435,76 @@ fn make_gauss(sigma: N) -> impl Fn(N) -> N {
 type S = (Index, Length);
 
 
-/// Returns a closure which keeps track of progress along LOR and adjusts voxel
-/// weight according to Gaussian TOF distribution. To be mapped over the stream
-/// produced by WeightsAlongLOR, as shown in this example:
-///
-/// ```
-/// # use petalo::weights::{Point, VoxelBox, Length, Index, tof_gaussian, WeightsAlongLOR};
-/// // A highly symmetric system for easy testing of features
-/// let (t1, t2) = (10.0, 10.0);
-/// let p1 = Point::new(-100.0, 0.0, 0.0);
-/// let p2 = Point::new( 100.0, 0.0, 0.0);
-/// let vbox = VoxelBox::new((30.0, 30.0, 30.0), (5,5,5));
-/// let sigma = 10.0;
-///
-/// // Generate geometry-dependent voxel weights
-/// let active_voxels = WeightsAlongLOR::new(p1, p2, &vbox)
-///     // Adjust weights with gaussian TOF factor
-///     .map(tof_gaussian(p1, t1, p2, t2, &vbox, sigma))
-///     // Make index more human-friendly (tuple rather than vector)
-///     .map(|(i,w)| ((i.x, i.y, i.z), w))
-///     // Store weights in hash map, keyed on voxel index, for easy retrieval
-///     .collect::<std::collections::HashMap<(usize, usize, usize), Length>>();
-///
-/// // Gaussian centred on origin is symmetric about origin
-/// assert_eq!(active_voxels.get(&(0,2,2)) , active_voxels.get(&(4,2,2)));
-/// assert_eq!(active_voxels.get(&(1,2,2)) , active_voxels.get(&(3,2,2)));
-///
-/// // Highest probability in the centre
-/// assert!   (active_voxels.get(&(0,2,2)) < active_voxels.get(&(1,2,2)));
-/// assert!   (active_voxels.get(&(1,2,2)) < active_voxels.get(&(2,2,2)));
-/// ```
-pub fn tof_gaussian(p1: Point, t1: Time,
-       p2: Point, t2: Time,
-       vbox: &VoxelBox,
-       sigma: Length
-) -> Box<dyn FnMut (S) -> S> {
-    match vbox.entry(&p1, &p2).map(|ep| (ep-p1).norm()) {
-        // If LOR misses the voxel box, we should never receive any voxels
-        // weights to adjust.
-        None => Box::new(|_| panic!("Cannot adjust for TOF on LOR that misses image volume.")),
-        // If LOR does hit some voxels, find the first hit's distance from p1 ...
-        Some(p1_to_entry) => {
-            // ... and the TOF peak's distance from p1
-            let p1_to_peak = 0.5 * ((p1 - p2).norm() + c * (t1 - t2));
-            // Will keep track of how far we are from the TOF peak
-            let mut distance_to_peak = p1_to_peak - p1_to_entry;
-            // Specialize gaussian on given sigma
-            let gauss = make_gauss(sigma);
-            Box::new(move |(index, weight)| {
-                // Use the LOR's half-way point in the voxel, for the TOF factor
-                let midpoint = distance_to_peak - weight / 2.0;
-                // Update distance for next voxel
-                distance_to_peak -= weight;
-                // Return the weight suppressed by the gaussian TOF factor
-                (index, weight * gauss(midpoint))
-            })
-        },
-    }
-}
 
 pub struct TOF {
-    t1: Time,
-    t2: Time,
+    t1_minus_t2: Time,
     sigma: Length,
 }
 
 impl TOF {
-    pub fn new(t1: Time, t2: Time, sigma: Length) -> Self { Self{t1, t2, sigma} }
+    pub fn new(t1: Time, t2: Time, sigma: Length) -> Self { Self{ t1_minus_t2: t1 - t2, sigma} }
+    /// Returns a closure which keeps track of progress along LOR and adjusts voxel
+    /// weight according to Gaussian TOF distribution. To be mapped over the stream
+    /// produced by WeightsAlongLOR, as shown in this example:
+    ///
+    /// ```
+    /// # use petalo::weights::{Point, VoxelBox, Length, Index, WeightsAlongLOR, TOF};
+    /// // A highly symmetric system for easy testing of features
+    /// let p1 = Point::new(-100.0, 0.0, 0.0);
+    /// let p2 = Point::new( 100.0, 0.0, 0.0);
+    /// let vbox = VoxelBox::new((30.0, 30.0, 30.0), (5,5,5));
+    /// let (t1, t2, sigma) = (12.3, 12.3, 10.0);
+    ///
+    /// // Generate geometry-dependent voxel weights
+    /// let active_voxels = WeightsAlongLOR::new(p1, p2, &vbox)
+    ///     // Adjust weights with gaussian TOF factor
+    ///     .map(TOF::new(t1, t2, sigma).gaussian(p1, p2, &vbox))
+    ///     // Make index more human-friendly (tuple rather than vector)
+    ///     .map(|(i,w)| ((i.x, i.y, i.z), w))
+    ///     // Store weights in hash map, keyed on voxel index, for easy retrieval
+    ///     .collect::<std::collections::HashMap<(usize, usize, usize), Length>>();
+    ///
+    /// // Gaussian centred on origin is symmetric about origin
+    /// assert_eq!(active_voxels.get(&(0,2,2)) , active_voxels.get(&(4,2,2)));
+    /// assert_eq!(active_voxels.get(&(1,2,2)) , active_voxels.get(&(3,2,2)));
+    ///
+    /// // Highest probability in the centre
+    /// assert!   (active_voxels.get(&(0,2,2)) < active_voxels.get(&(1,2,2)));
+    /// assert!   (active_voxels.get(&(1,2,2)) < active_voxels.get(&(2,2,2)));
+    /// ```
+    // TODO: This test is symmetric in t1,t2; need an asymmetric test.
+    pub fn gaussian(&self, p1: Point, p2: Point, vbox: &VoxelBox) -> Box<dyn FnMut (S) -> S> {
+        match vbox.entry(&p1, &p2).map(|ep| (ep-p1).norm()) {
+            // If LOR misses the voxel box, we should never receive any voxels
+            // weights to adjust.
+            None => Box::new(|_| panic!("Cannot adjust for TOF on LOR that misses image volume.")),
+            // If LOR does hit some voxels, find the first hit's distance from p1 ...
+            Some(p1_to_entry) => {
+                // ... and the TOF peak's distance from p1
+                let p1_to_peak = 0.5 * ((p1 - p2).norm() + c * (self.t1_minus_t2));
+                // Will keep track of how far we are from the TOF peak
+                let mut distance_to_peak = p1_to_peak - p1_to_entry;
+                // Specialize gaussian on given sigma
+                let gauss = make_gauss(self.sigma);
+                Box::new(move |(index, weight)| {
+                    // Use the LOR's half-way point in the voxel, for the TOF factor
+                    let midpoint = distance_to_peak - weight / 2.0;
+                    // Update distance for next voxel
+                    distance_to_peak -= weight;
+                    // Return the weight suppressed by the gaussian TOF factor
+                    (index, weight * gauss(midpoint))
+                })
+            },
+        }
+    }
 }
 
 pub fn active_voxels(p1: Point, p2: Point, vbox: &VoxelBox, tof: Option<TOF>, threshold: Option<Length>) -> impl Iterator<Item = (Index, Length)> {
 
+    //
     let tof_adjustment = match tof {
-        Some(TOF{t1, t2, sigma}) => tof_gaussian(p1, t1, p2, t2, vbox, sigma),
-        None                     => Box::new(|x| x),
+        Some(tof) => tof.gaussian(p1, p2, vbox),
+        None      => Box::new(|x| x),
     };
 
     // Should we ignore voxels with very low contribution?
@@ -520,7 +516,6 @@ pub fn active_voxels(p1: Point, p2: Point, vbox: &VoxelBox, tof: Option<TOF>, th
     WeightsAlongLOR::new(p1, p2, vbox)
         .map(tof_adjustment)
         .filter(threshold)
-        //.collect::<std::collections::HashMap<Index, Length>>()
 }
 
 
