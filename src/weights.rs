@@ -493,3 +493,39 @@ pub fn tof_gaussian(p1: Point, t1: Time,
         },
     }
 }
+
+pub struct TOF {
+    t1: Time,
+    t2: Time,
+    sigma: Length,
+}
+
+impl TOF {
+    pub fn new(t1: Time, t2: Time, sigma: Length) -> Self { Self{t1, t2, sigma} }
+}
+
+pub fn active_voxels(p1: Point, p2: Point, vbox: &VoxelBox, tof: Option<TOF>, threshold: Option<Length>) -> impl Iterator<Item = (Index, Length)> {
+
+    let tof_adjustment = match tof {
+        Some(TOF{t1, t2, sigma}) => tof_gaussian(p1, t1, p2, t2, vbox, sigma),
+        None                     => Box::new(|x| x),
+    };
+
+    // Should we ignore voxels with very low contribution?
+    let threshold: Box<dyn FnMut(&(Index, Length)) -> bool> = match threshold {
+        Some(thresh) => Box::new(move |(_, w)| w > &thresh),
+        None         => Box::new(     |  _   |  true      ),
+    };
+
+    WeightsAlongLOR::new(p1, p2, vbox)
+        .map(tof_adjustment)
+        .filter(threshold)
+        //.collect::<std::collections::HashMap<Index, Length>>()
+}
+
+
+// i: LOR; j: Voxel
+
+// (LOR, (optional dt), vbox) -> A_j       (WeightsAlongLOR, tof_gaussian) already done in visualization
+// (A_j, image, noise) -> P_i
+// (all LORs) ->

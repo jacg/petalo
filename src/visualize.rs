@@ -106,21 +106,10 @@ impl Scene {
     }
 
     fn place_voxels(&mut self, args: &Cli) {
-        // Did the user ask for TOF refinement
-        let tof = match args.sigma {
-            Some(sigma) => pet::tof_gaussian(self.p1, self.t1, self.p2, self.t2, &self.vbox, sigma),
-            None        => Box::new(|x| x),
-        };
 
-        // Did the user ask to ignore low-weight voxels
-        let threshold: Box<dyn FnMut(&(Index, Length)) -> bool> = match args.threshold {
-            Some(thresh) => Box::new(move |(_, w)| w > &thresh),
-            None         => Box::new(     |  _   |  true      ),
-        };
+        let tof = args.sigma.map(|sigma| pet::TOF::new(self.t1, self.t1, sigma));
 
-        let active_voxels = pet::WeightsAlongLOR::new(self.p1, self.p2, &self.vbox)
-            .map(tof)
-            .filter(threshold)
+        let active_voxels = pet::active_voxels(self.p1, self.p2, &self.vbox, tof, args.threshold)
             .collect::<std::collections::HashMap<Index, Length>>();
 
         let &max_weight = active_voxels
