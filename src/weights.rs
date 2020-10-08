@@ -1,4 +1,3 @@
-use nalgebra   as na;
 use ncollide3d as nc;
 use nc::query::RayCast;
 
@@ -204,6 +203,7 @@ mod test {
 
     const TWOPI: Length = std::f64::consts::PI as Length * 2.0;
 
+    // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
     // test performs two checks:
     //
@@ -256,6 +256,7 @@ mod test {
         assert_eq!(voxels, expected_voxels)
     }
 
+    // --------------------------------------------------------------------------------
     use proptest::prelude::*;
     // This property-based test generates random test cases and verifies that
     // the total length of the LOR in the voxel box equals the sum of its
