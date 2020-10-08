@@ -12,7 +12,7 @@ use kiss3d::camera::{ArcBall};
 use na::{Point3, Translation3};
 
 use crate::weights as pet;
-use crate::weights::{Length, Time, Point, VoxelBox, Index};
+use crate::weights::{Length, Time, Point, VoxelBox, Index, LOR, TOF};
 
 arg_enum! {
     #[derive(Debug)]
@@ -50,20 +50,17 @@ struct Scene {
     // Helper
     //draw_lines: Box<dyn FnMut(&Window) -> ()>,
     // Parameters which define the scene
-    p1: Point,
-    p2: Point,
-    t1: Time,
-    t2: Time,
+    lor: LOR,
     vbox: VoxelBox,
     lines: Vec<(Point3<f32>, Point3<f32>, Point3<f32>)>,
 }
 
 impl Scene {
-    fn new(t1: Time, t2: Time, p1: Point, p2: Point, vbox: VoxelBox) -> Self {
+    fn new(lor: LOR, vbox: VoxelBox) -> Self {
         let mut window = Window::new("LOR weights");
         window.set_light(Light::StickToCamera);
 
-        // Define axis lines
+        // Axis lines
         let bsize = vbox.half_width;
         let (bdx, bdy, bdz) = (bsize.x as f32, bsize.y as f32, bsize.z as f32);
         let x_axis_lo = Point3::new(-bdx,   0.0, 0.0) * 1.5;
@@ -76,9 +73,9 @@ impl Scene {
         let y_axis_colour = Point3::new(1.0, 1.0, 0.0);
         let z_axis_colour = Point3::new(0.0, 0.0, 1.0);
 
-        // Define LOR
-        let p1_f32 = Point3::new(p1.x as f32, p1.y as f32, p1.z as f32);
-        let p2_f32 = Point3::new(p2.x as f32, p2.y as f32, p2.z as f32);
+        // LOR line
+        let p1_f32 = Point3::new(lor.p1.x as f32, lor.p1.y as f32, lor.p1.z as f32);
+        let p2_f32 = Point3::new(lor.p2.x as f32, lor.p2.y as f32, lor.p2.z as f32);
         let lor_colour = Point3::new(0.0, 1.0, 0.0);
 
         let lines = vec![(x_axis_lo, x_axis_hi, x_axis_colour),
@@ -91,7 +88,7 @@ impl Scene {
             voxels: vec![],
             camera: Self::init_camera(&vbox),
             //draw_lines,
-            p1, p2, t1, t2,
+            lor,
             vbox,
             lines,
         }
@@ -107,9 +104,7 @@ impl Scene {
 
     fn place_voxels(&mut self, args: &Cli) {
 
-        let tof = args.sigma.map(|sigma| pet::TOF::new(self.t1, self.t1, sigma));
-
-        let active_voxels = pet::active_voxels(self.p1, self.p2, &self.vbox, tof, args.threshold)
+        let active_voxels = pet::active_voxels(self.lor, &self.vbox, self.lor.tof, args.threshold)
             .collect::<std::collections::HashMap<Index, Length>>();
 
         let &max_weight = active_voxels
@@ -197,7 +192,9 @@ pub fn lor_weights(t1: Time, t2: Time, p1: Point, p2: Point, vbox: VoxelBox) {
 
     let args = Cli::from_args();
 
-    let mut scene = Scene::new(t1, t2, p1, p2, vbox);
+    let tof = args.sigma.map(|sigma| TOF::new(t1, t2, sigma));
+    let lor = LOR::new(p1, p2, tof);
+    let mut scene = Scene::new(lor, vbox);
     scene.place_voxels(&args);
     scene.main_loop();
 }

@@ -435,7 +435,7 @@ fn make_gauss(sigma: N) -> impl Fn(N) -> N {
 type S = (Index, Length);
 
 
-
+#[derive(Clone, Copy)]
 pub struct TOF {
     t1_minus_t2: Time,
     sigma: Length,
@@ -499,11 +499,24 @@ impl TOF {
     }
 }
 
-pub fn active_voxels(p1: Point, p2: Point, vbox: &VoxelBox, tof: Option<TOF>, threshold: Option<Length>) -> impl Iterator<Item = (Index, Length)> {
+#[derive(Clone, Copy)]
+pub struct LOR {
+    pub p1: Point,
+    pub p2: Point,
+    pub tof: Option<TOF>
+}
+
+impl LOR {
+    pub fn new(p1: Point, p2: Point, tof: Option<TOF>) -> Self {
+        Self { p1, p2, tof }
+    }
+}
+
+pub fn active_voxels(lor: LOR, vbox: &VoxelBox, tof: Option<TOF>, threshold: Option<Length>) -> impl Iterator<Item = (Index, Length)> {
 
     //
     let tof_adjustment = match tof {
-        Some(tof) => tof.gaussian(p1, p2, vbox),
+        Some(tof) => tof.gaussian(lor.p1, lor.p2, vbox),
         None      => Box::new(|x| x),
     };
 
@@ -513,14 +526,18 @@ pub fn active_voxels(p1: Point, p2: Point, vbox: &VoxelBox, tof: Option<TOF>, th
         None         => Box::new(     |  _   |  true      ),
     };
 
-    WeightsAlongLOR::new(p1, p2, vbox)
+    WeightsAlongLOR::new(lor.p1, lor.p2, vbox)
         .map(tof_adjustment)
         .filter(threshold)
 }
 
+// fn I_need_a_name(lor: LOR,
+//                  image: X,
+//                  noise: ())
+
 
 // i: LOR; j: Voxel
 
-// (LOR, (optional dt), vbox) -> A_j       (WeightsAlongLOR, tof_gaussian) already done in visualization
-// (A_j, image, noise) -> P_i
+// (LOR, (optional dt), vbox) -> A_j       DONE: active_voxels (iterator)
+// (LOR, image, noise) -> P_i
 // (all LORs) ->
