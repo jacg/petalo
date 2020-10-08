@@ -335,6 +335,19 @@ impl VoxelBox {
         i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
     }
 
+    fn index3_to_1(&self, i: Index) -> usize {
+        let n = self.n;
+        i.x + n.x * i.y + (n.x * n.y) * i.z
+    }
+
+    fn index1_to_3(&self, i: usize) -> Index {
+        let n = self.n;
+        let z = i / (n.x * n.y);
+        let r = i % (n.x * n.y);
+        let y = r / n.x;
+        let x = r % n.x;
+        Index::new(x,y,z)
+    }
 
     pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
         let lor_direction: Vector = (p2 - p1).normalize();
@@ -346,6 +359,64 @@ impl VoxelBox {
             .map(|toi| lor.origin + lor.dir * toi)
     }
 
+}
+
+#[cfg(test)]
+mod test_vbox {
+    use super::*;
+    use rstest::rstest;
+
+    type I3 = (usize, usize, usize);
+
+    // -------------------- Some hand-picked examples ------------------------------
+    #[rstest(/**/    size   , index3 , index1,
+             // 1-d examples
+             case(( 1, 1, 1), (0,0,0),   0),
+             case(( 9, 1, 1), (3,0,0),   3),
+             case(( 1, 8, 1), (0,4,0),   4),
+             case(( 1, 1, 7), (0,0,5),   5),
+             // Counting in binary: note digit reversal
+             case(( 2, 2, 2), (0,0,0),   0),
+             case(( 2, 2, 2), (1,0,0),   1),
+             case(( 2, 2, 2), (0,1,0),   2),
+             case(( 2, 2, 2), (1,1,0),   3),
+             case(( 2, 2, 2), (0,0,1),   4),
+             case(( 2, 2, 2), (1,0,1),   5),
+             case(( 2, 2, 2), (0,1,1),   6),
+             case(( 2, 2, 2), (1,1,1),   7),
+             // Relation to decimal: note reversal
+             case((10,10,10), (1,2,3), 321),
+             case((10,10,10), (7,9,6), 697),
+    )]
+    fn hand_picked(size: I3, index3: I3, index1: usize) {
+        let irrelevant = (10.0, 10.0, 10.0);
+        let vbox = VoxelBox::new(irrelevant, (size.0, size.1, size.2));
+        let index3 = BoxDim::new(index3.0, index3.1, index3.2);
+        assert_eq!(vbox.index3_to_1(index3), index1);
+        assert_eq!(vbox.index1_to_3(index1), index3);
+    }
+
+    // -------------------- Exhaustive roundtrip testing ------------------------------
+    use proptest::prelude::*;
+
+    // A strategy that picks 3-d index limits, and a 1-d index guaranteed to lie
+    // within those bounds.
+    fn size_and_in_range_index() -> impl Strategy<Value = (I3, usize)> {
+        (1..200_usize, 1..200_usize, 1..200_usize)
+            .prop_flat_map(|i| (Just(i), 1..(i.0 * i.1 * i.2)))
+    }
+
+    proptest! {
+        #[test]
+        fn index_roundtrip((size, index) in size_and_in_range_index()) {
+            let irrelevant = (10.0, 10.0, 10.0);
+            let vbox = VoxelBox::new(irrelevant, size);
+            let there = vbox.index1_to_3(index);
+            let back  = vbox.index3_to_1(there);
+            assert_eq!(back, index)
+        }
+
+    }
 }
 //--------------------------------------------------------------------------------
 
