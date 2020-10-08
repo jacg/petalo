@@ -104,7 +104,7 @@ impl Scene {
 
     fn place_voxels(&mut self, args: &Cli) {
 
-        let active_voxels = pet::active_voxels(self.lor, &self.vbox, self.lor.tof, args.threshold)
+        let active_voxels = self.lor.active_voxels(&self.vbox, args.threshold)
             .collect::<std::collections::HashMap<Index, Length>>();
 
         let &max_weight = active_voxels

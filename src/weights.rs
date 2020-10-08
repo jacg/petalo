@@ -510,27 +510,27 @@ impl LOR {
     pub fn new(p1: Point, p2: Point, tof: Option<TOF>) -> Self {
         Self { p1, p2, tof }
     }
+
+    pub fn active_voxels(&self, vbox: &VoxelBox, threshold: Option<Length>) -> impl Iterator<Item = (Index, Length)> {
+
+        //
+        let tof_adjustment = match self.tof {
+            Some(tof) => tof.gaussian(self.p1, self.p2, vbox),
+            None      => Box::new(|x| x),
+        };
+
+        // Should we ignore voxels with very low contribution?
+        let threshold: Box<dyn FnMut(&(Index, Length)) -> bool> = match threshold {
+            Some(thresh) => Box::new(move |(_, w)| w > &thresh),
+            None         => Box::new(     |  _   |  true      ),
+        };
+
+        WeightsAlongLOR::new(self.p1, self.p2, vbox)
+            .map(tof_adjustment)
+            .filter(threshold)
+    }
+
 }
-
-pub fn active_voxels(lor: LOR, vbox: &VoxelBox, tof: Option<TOF>, threshold: Option<Length>) -> impl Iterator<Item = (Index, Length)> {
-
-    //
-    let tof_adjustment = match tof {
-        Some(tof) => tof.gaussian(lor.p1, lor.p2, vbox),
-        None      => Box::new(|x| x),
-    };
-
-    // Should we ignore voxels with very low contribution?
-    let threshold: Box<dyn FnMut(&(Index, Length)) -> bool> = match threshold {
-        Some(thresh) => Box::new(move |(_, w)| w > &thresh),
-        None         => Box::new(     |  _   |  true      ),
-    };
-
-    WeightsAlongLOR::new(lor.p1, lor.p2, vbox)
-        .map(tof_adjustment)
-        .filter(threshold)
-}
-
 // fn I_need_a_name(lor: LOR,
 //                  image: X,
 //                  noise: ())
