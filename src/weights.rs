@@ -90,7 +90,7 @@ impl WeightsAlongLOR {
         }
 
         // Find if and where LOR enters voxel box.
-        let mut entry_point: Point = match entry(&p1, &p2, &vbox) {
+        let mut entry_point: Point = match vbox.entry(&p1, &p2) {
             // If LOR misses the box, immediately return an iterator which will
             // generate no hits.
             None => return Self::Outside,
@@ -295,8 +295,8 @@ mod test {
                 .map(|(_index, weight)| weight)
                 .sum();
 
-            let a = entry(&p1, &p2, &vbox);
-            let b = entry(&p2, &p1, &vbox);
+            let a = vbox.entry(&p1, &p2);
+            let b = vbox.entry(&p2, &p1);
 
             let in_one_go = match (a,b) {
                 (Some(a), Some(b)) => (a - b).magnitude(),
@@ -334,20 +334,17 @@ impl VoxelBox {
         i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
     }
 
-}
 
-pub fn entry(p1: &Point, p2: &Point, vbox: &VoxelBox) -> Option<Point> {
-    let lor_direction: Vector = (p2-p1).normalize();
-    let lor_length: Length = (p2 - p1).norm();
-    let lor: Ray = Ray::new(*p1, lor_direction);
-    toi_with_ray(&vbox.half_width, &lor, lor_length)
-}
+    pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
+        let lor_direction: Vector = (p2 - p1).normalize();
+        let lor_length   : Length = (p2 - p1).norm();
+        let lor: Ray = Ray::new(*p1, lor_direction);
+        let iso: Isometry = Isometry::identity();
+        nc::shape::Cuboid::new(self.half_width)
+            .toi_with_ray(&iso, &lor, lor_length, true)
+            .map(|toi| lor.origin + lor.dir * toi)
+    }
 
-fn toi_with_ray(half_width: &Vector, ray: &Ray, limit: Length) -> Option<Point> {
-    let iso: Isometry = Isometry::identity();
-    nc::shape::Cuboid::new(*half_width)
-        .toi_with_ray(&iso, &ray, limit, true)
-        .map(|toi| ray.origin + ray.dir * toi)
 }
 //--------------------------------------------------------------------------------
 
@@ -401,7 +398,7 @@ pub fn tof_gaussian(p1: Point, t1: Time,
        vbox: &VoxelBox,
        sigma: Length
 ) -> Box<dyn FnMut (S) -> S> {
-    match entry(&p1, &p2, &vbox).map(|ep| (ep-p1).norm()) {
+    match vbox.entry(&p1, &p2).map(|ep| (ep-p1).norm()) {
         // If LOR misses the voxel box, we should never receive any voxels
         // weights to adjust.
         None => Box::new(|_| panic!("Cannot adjust for TOF on LOR that misses image volume.")),
