@@ -207,7 +207,7 @@ mod test {
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
 
-    const TWOPI: Length = std::f64::consts::PI as Length * 2.0;
+    const TWOPI: Length = std::f64::consts::TAU as Length;
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
