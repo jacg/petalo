@@ -9,6 +9,7 @@ const c : Length = 3e3; // cm / ns
 
 pub type Length = f64;
 pub type Time = f64;
+pub type Weight = f64;
 
 type Vector = nc::math ::Vector<Length>;
 pub type Point  = nc::math ::Point <Length>;
@@ -17,8 +18,13 @@ type Isometry = nc::math::Isometry<Length>;
 
 type VecOf<T> = nc::math::Vector<T>;
 
-pub type Index = VecOf<usize>;
+pub type Index3 = VecOf<usize>;
+pub type Index1 = usize;
 type BoxDim = VecOf<usize>;
+
+// TODO: propably want to use Index1 as much as possible
+type Index3Weight = (Index3, Weight);
+type Index1Weight = (Index1, Weight);
 
 // This algorithm is centred around two key simplifications:
 //
@@ -56,7 +62,7 @@ pub enum WeightsAlongLOR {
 
         // The flipped index of the voxel we have just entered. Must be flipped
         // back before yielding to client.
-        index: Index,
+        index: Index3,
 
         // We exploit the symmetries of the system by flipping some axes. Here
         // we record which axes have been flipped and must be adjusted when
@@ -112,7 +118,7 @@ impl WeightsAlongLOR {
         entry_point.iter_mut().for_each(|x| if x.abs() < 1e-7 { *x = 0.0 });
 
         // Find N-dimensional index of voxel at entry point.
-        let index: Index = entry_point.map(|x| x.floor() as usize);
+        let index: Index3 = entry_point.map(|x| x.floor() as usize);
 
         // Voxel size in LOR length units: how far must we move along LOR to
         // traverse one voxel, in any dimension.
@@ -139,7 +145,7 @@ impl Iterator for WeightsAlongLOR {
     // Generate one item for each voxel crossed by the LOR. Each item contains
     // the N-dimensional index of the voxel, and the length of the LOR within
     // that voxel.
-    type Item = (Index, Length);
+    type Item = Index3Weight;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -155,7 +161,7 @@ impl Iterator for WeightsAlongLOR {
                 // Remember index of the voxel we are about to cross (flipped
                 // back from our algorithm's internal coordinate system, to the
                 // client's original coordinate system).
-                let mut true_index = Index::zeros();
+                let mut true_index = Index3::zeros();
                 for n in 0..index.len() {
                     if flipped[n] { true_index[n] = n_voxels[n] - 1 - index[n]; }
                     else          { true_index[n] =                   index[n]; }
@@ -238,7 +244,7 @@ mod test {
         //crate::visualize::lor_weights(p1, p2, vbox.clone());
 
         // Collect hits
-        let hits: Vec<(Index, Length)> =
+        let hits: Vec<Index3Weight> =
             WeightsAlongLOR::new(p1, p2, &vbox)
             .inspect(|(is, l)| println!("  ({} {})   {}", is.x, is.y, l))
             .collect();
@@ -309,6 +315,102 @@ mod test {
     }
 }
 //--------------------------------------------------------------------------------
+type Intensity = f64;
+
+struct Image {
+    vbox: VoxelBox,
+    data: Vec<Intensity>,
+}
+
+impl core::ops::IndexMut<Index1> for Image {
+    fn index_mut(&mut self, _: Index1) -> &mut Self::Output { todo!() }
+}
+
+impl core::ops::Index<Index1> for Image {
+    type Output = Intensity;
+    fn index(&self, _: Index1) -> &Self::Output { todo!() }
+}
+
+#[allow(nonstandard_style)]
+impl Image {
+
+    fn iterate(&mut self, measured_lors: impl Iterator<Item = LOR> + Clone, noise: &Noise) {
+        let S = self.sensitivity_matrix(measured_lors.clone());
+        let however_many = 3;
+        for n in 0..however_many {
+            let BP = self.backproject(measured_lors.clone(), noise);
+            for (i, _) in BP.iter().enumerate() { // TODO see if it's any better with iterators
+                if S[i] > 0.0 { self[i] *= BP[i] / S[i] }
+                else          { self[0]  = 0.0          }
+            }
+            // TODO: write out as often as required
+            self.write_to_persistent_storage();
+        }
+    }
+
+    fn backproject(&self, measured_lors: impl Iterator<Item = LOR>, noise: &Noise) -> Self {
+        // Accumulator for all backprojection contributions in this iteration
+        let mut BP = self.same_shape_zeros();
+
+        // For each measured LOR ...
+        for (i, LOR_i) in measured_lors.enumerate() {
+
+            // Weights of all voxels contributing to this LOR
+            let A_ijs: Vec<Index1Weight> = LOR_i.active_voxels(&self.vbox, None).collect();
+
+            // Projection of current image into this LOR
+            let P_i = self.project(A_ijs.iter().copied(), noise, i);
+
+            // This LOR's contribution to the backprojection
+            for (j, A_ij) in A_ijs {
+                BP[j] += A_ij / P_i;
+            }
+        }
+
+        // Return the total backprojection
+        BP
+    }
+
+    fn sensitivity_matrix(&self, measured_lors: impl Iterator<Item = LOR>) -> Self {
+        // Very similar to backproject: BP needs to be calculated once per
+        // iteration; S only once for the whole reconstruction.
+        let mut S = self.same_shape_zeros();
+        for LOR_i in measured_lors {
+            for (j, A_ij) in LOR_i.active_voxels(&self.vbox, None) {
+                S[j] += A_ij;
+            }
+        }
+        S
+    }
+
+    fn project(&self, A_ijs: impl Iterator<Item = Index1Weight>, b: &Noise, i: usize) -> Weight {
+        let lambda = self;
+        A_ijs.map(move |(j, A_ij)|  A_ij * lambda[j] + b[i])
+            .sum()
+    }
+
+    // A new empty image with the same dimensions as this one
+    fn same_shape_zeros(&self) -> Self { todo!() }
+
+    fn write_to_persistent_storage(&self) { todo!() }
+
+    fn iter(&self) -> std::slice::Iter<Intensity> { self.data.iter() }
+
+}
+
+//--------------------------------------------------------------------------------
+struct Noise; // TODO
+
+impl core::ops::Index<Index1> for Noise {
+    type Output = Intensity;
+    fn index(&self, _: Index1) -> &Self::Output {
+        // TODO: no noise for now
+        &0.0
+    }
+}
+
+
+//--------------------------------------------------------------------------------
 #[derive(Clone, Debug)]
 pub struct VoxelBox {
     pub half_width: Vector,
@@ -331,22 +433,22 @@ impl VoxelBox {
         (half_width * 2.0).component_div(&nl)
     }
 
-    pub fn voxel_centre(&self, i: Index) -> Point {
+    pub fn voxel_centre(&self, i: Index3) -> Point {
         i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
     }
 
-    fn index3_to_1(&self, i: Index) -> usize {
+    pub fn index3_to_1(&self, i: Index3) -> Index1 {
         let n = self.n;
         i.x + n.x * i.y + (n.x * n.y) * i.z
     }
 
-    fn index1_to_3(&self, i: usize) -> Index {
+    pub fn index1_to_3(&self, i: Index1) -> Index3 {
         let n = self.n;
         let z = i / (n.x * n.y);
         let r = i % (n.x * n.y);
         let y = r / n.x;
         let x = r % n.x;
-        Index::new(x,y,z)
+        Index3::new(x,y,z)
     }
 
     pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
@@ -422,17 +524,14 @@ mod test_vbox {
 
 type N = f64;
 fn make_gauss(sigma: N) -> impl Fn(N) -> N {
-    let mu = 0.0;
     let root_two_pi = std::f64::consts::PI.sqrt();
     let a = 1.0 / (sigma * root_two_pi);
     move |x| {
-        let y = (x - mu) / sigma;
+        let y = x / sigma;
         let z = y * y;
         a * (-0.5 * z).exp()
     }
 }
-
-type S = (Index, Length);
 
 
 #[derive(Clone, Copy)]
@@ -448,7 +547,7 @@ impl TOF {
     /// produced by WeightsAlongLOR, as shown in this example:
     ///
     /// ```
-    /// # use petalo::weights::{Point, VoxelBox, Length, Index, WeightsAlongLOR, TOF};
+    /// # use petalo::weights::{Point, VoxelBox, Length, WeightsAlongLOR, TOF};
     /// // A highly symmetric system for easy testing of features
     /// let p1 = Point::new(-100.0, 0.0, 0.0);
     /// let p2 = Point::new( 100.0, 0.0, 0.0);
@@ -473,7 +572,7 @@ impl TOF {
     /// assert!   (active_voxels.get(&(1,2,2)) < active_voxels.get(&(2,2,2)));
     /// ```
     // TODO: This test is symmetric in t1,t2; need an asymmetric test.
-    pub fn gaussian(&self, p1: Point, p2: Point, vbox: &VoxelBox) -> Box<dyn FnMut (S) -> S> {
+    pub fn gaussian(&self, p1: Point, p2: Point, vbox: &VoxelBox) -> Box<dyn FnMut (Index3Weight) -> Index3Weight> {
         match vbox.entry(&p1, &p2).map(|ep| (ep-p1).norm()) {
             // If LOR misses the voxel box, we should never receive any voxels
             // weights to adjust.
@@ -511,7 +610,7 @@ impl LOR {
         Self { p1, p2, tof }
     }
 
-    pub fn active_voxels(&self, vbox: &VoxelBox, threshold: Option<Length>) -> impl Iterator<Item = (Index, Length)> {
+    pub fn active_voxels<'a>(&self, vbox: &'a VoxelBox, threshold: Option<Length>) -> impl Iterator<Item = Index1Weight> + 'a {
 
         //
         let tof_adjustment = match self.tof {
@@ -520,7 +619,7 @@ impl LOR {
         };
 
         // Should we ignore voxels with very low contribution?
-        let threshold: Box<dyn FnMut(&(Index, Length)) -> bool> = match threshold {
+        let threshold: Box<dyn FnMut(&Index3Weight) -> bool> = match threshold {
             Some(thresh) => Box::new(move |(_, w)| w > &thresh),
             None         => Box::new(     |  _   |  true      ),
         };
@@ -528,16 +627,7 @@ impl LOR {
         WeightsAlongLOR::new(self.p1, self.p2, vbox)
             .map(tof_adjustment)
             .filter(threshold)
+            .map(move |(i, w)| (vbox.index3_to_1(i), w))
     }
 
 }
-// fn I_need_a_name(lor: LOR,
-//                  image: X,
-//                  noise: ())
-
-
-// i: LOR; j: Voxel
-
-// (LOR, (optional dt), vbox) -> A_j       DONE: active_voxels (iterator)
-// (LOR, image, noise) -> P_i
-// (all LORs) ->
