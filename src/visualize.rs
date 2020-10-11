@@ -12,7 +12,7 @@ use kiss3d::camera::{ArcBall};
 use na::{Point3, Translation3};
 
 use crate::weights as pet;
-use crate::weights::{Length, Time, Point, VoxelBox, Index1, LOR, TOF};
+use crate::weights::{Length, Time, Point, VoxelBox, Index1, LOR};
 
 arg_enum! {
     #[derive(Debug)]
@@ -104,7 +104,7 @@ impl Scene {
 
     fn place_voxels(&mut self, args: &Cli) {
 
-        let active_voxels = self.lor.active_voxels(&self.vbox, args.threshold)
+        let active_voxels = self.lor.active_voxels(&self.vbox, args.threshold, args.sigma)
             .collect::<std::collections::HashMap<Index1, Length>>();
 
         let &max_weight = active_voxels
@@ -193,8 +193,7 @@ pub fn lor_weights(t1: Time, t2: Time, p1: Point, p2: Point, vbox: VoxelBox) {
 
     let args = Cli::from_args();
 
-    let tof = args.sigma.map(|sigma| TOF::new(t1, t2, sigma));
-    let lor = LOR::new(p1, p2, tof);
+    let lor = LOR::new(t1, t2, p1, p2);
     let mut scene = Scene::new(lor, vbox);
     scene.place_voxels(&args);
     scene.main_loop();

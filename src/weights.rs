@@ -317,9 +317,11 @@ mod test {
 //--------------------------------------------------------------------------------
 type Intensity = f64;
 
+type ImageData = Vec<Intensity>;
+
 struct Image {
     vbox: VoxelBox,
-    data: Vec<Intensity>,
+    data: ImageData,
 }
 
 impl core::ops::IndexMut<Index1> for Image {
@@ -334,29 +336,39 @@ impl core::ops::Index<Index1> for Image {
 #[allow(nonstandard_style)]
 impl Image {
 
-    fn iterate(&mut self, measured_lors: impl Iterator<Item = LOR> + Clone, noise: &Noise) {
-        let S = self.sensitivity_matrix(measured_lors.clone());
+    fn mlem(vbox: VoxelBox, measured_lors: impl Iterator<Item = LOR> + Clone/*, noise: &Noise*/) {
+        // TODO: sensitivity matrix, all ones for now
+        let S = Self::ones(vbox.clone()).data;
+        // TODO: noise
+        let noise = Noise;
+        // TODO: decide how long to iterate
         let however_many = 3;
+
+        // Start off with a uniform image
+        let mut image = Self::ones(vbox);
+
         for n in 0..however_many {
-            let BP = self.backproject(measured_lors.clone(), noise);
+            let BP = image.backproject(measured_lors.clone(), &noise);
             for (i, _) in BP.iter().enumerate() { // TODO see if it's any better with iterators
-                if S[i] > 0.0 { self[i] *= BP[i] / S[i] }
-                else          { self[0]  = 0.0          }
+                if S[i] > 0.0 { image[i] *= BP[i] / S[i] }
+                else          { image[0]  = 0.0          }
             }
-            // TODO: write out as often as required
-            self.write_to_persistent_storage();
         }
+        println!("iteration complete");
     }
 
-    fn backproject(&self, measured_lors: impl Iterator<Item = LOR>, noise: &Noise) -> Self {
+    fn backproject<'a>(&'a self, measured_lors: impl Iterator<Item = LOR>, noise: &Noise) -> ImageData {
+        // TODO: tof sigma
+        let sigma = None;
+
         // Accumulator for all backprojection contributions in this iteration
-        let mut BP = self.same_shape_zeros();
+        let mut BP = self.zeros_buffer();
 
         // For each measured LOR ...
         for (i, LOR_i) in measured_lors.enumerate() {
 
             // Weights of all voxels contributing to this LOR
-            let A_ijs: Vec<Index1Weight> = LOR_i.active_voxels(&self.vbox, None).collect();
+            let A_ijs: Vec<Index1Weight> = LOR_i.active_voxels(&self.vbox, None, sigma).collect();
 
             // Projection of current image into this LOR
             let P_i = self.project(A_ijs.iter().copied(), noise, i);
@@ -371,26 +383,15 @@ impl Image {
         BP
     }
 
-    fn sensitivity_matrix(&self, measured_lors: impl Iterator<Item = LOR>) -> Self {
-        // Very similar to backproject: BP needs to be calculated once per
-        // iteration; S only once for the whole reconstruction.
-        let mut S = self.same_shape_zeros();
-        for LOR_i in measured_lors {
-            for (j, A_ij) in LOR_i.active_voxels(&self.vbox, None) {
-                S[j] += A_ij;
-            }
-        }
-        S
-    }
-
     fn project(&self, A_ijs: impl Iterator<Item = Index1Weight>, b: &Noise, i: usize) -> Weight {
         let lambda = self;
         A_ijs.map(move |(j, A_ij)|  A_ij * lambda[j] + b[i])
             .sum()
     }
 
-    // A new empty image with the same dimensions as this one
-    fn same_shape_zeros(&self) -> Self { todo!() }
+    // A new empty data store with matching size
+    fn zeros_buffer(&self) -> ImageData { vec![0.0; self.vbox.n_voxels()] }
+    fn ones(vbox: VoxelBox) -> Self { Image { data: vec![1.0; vbox.n_voxels()], vbox} }
 
     fn write_to_persistent_storage(&self) { todo!() }
 
@@ -461,6 +462,9 @@ impl VoxelBox {
             .map(|toi| lor.origin + lor.dir * toi)
     }
 
+    fn n_voxels(&self) -> usize {
+        self.n.sum()
+    }
 }
 
 #[cfg(test)]
@@ -533,89 +537,82 @@ fn make_gauss(sigma: N) -> impl Fn(N) -> N {
     }
 }
 
-
-#[derive(Clone, Copy)]
-pub struct TOF {
-    t1_minus_t2: Time,
-    sigma: Length,
-}
-
-impl TOF {
-    pub fn new(t1: Time, t2: Time, sigma: Length) -> Self { Self{ t1_minus_t2: t1 - t2, sigma} }
-    /// Returns a closure which keeps track of progress along LOR and adjusts voxel
-    /// weight according to Gaussian TOF distribution. To be mapped over the stream
-    /// produced by WeightsAlongLOR, as shown in this example:
-    ///
-    /// ```
-    /// # use petalo::weights::{Point, VoxelBox, Length, WeightsAlongLOR, TOF};
-    /// // A highly symmetric system for easy testing of features
-    /// let p1 = Point::new(-100.0, 0.0, 0.0);
-    /// let p2 = Point::new( 100.0, 0.0, 0.0);
-    /// let vbox = VoxelBox::new((30.0, 30.0, 30.0), (5,5,5));
-    /// let (t1, t2, sigma) = (12.3, 12.3, 10.0);
-    ///
-    /// // Generate geometry-dependent voxel weights
-    /// let active_voxels = WeightsAlongLOR::new(p1, p2, &vbox)
-    ///     // Adjust weights with gaussian TOF factor
-    ///     .map(TOF::new(t1, t2, sigma).gaussian(p1, p2, &vbox))
-    ///     // Make index more human-friendly (tuple rather than vector)
-    ///     .map(|(i,w)| ((i.x, i.y, i.z), w))
-    ///     // Store weights in hash map, keyed on voxel index, for easy retrieval
-    ///     .collect::<std::collections::HashMap<(usize, usize, usize), Length>>();
-    ///
-    /// // Gaussian centred on origin is symmetric about origin
-    /// assert_eq!(active_voxels.get(&(0,2,2)) , active_voxels.get(&(4,2,2)));
-    /// assert_eq!(active_voxels.get(&(1,2,2)) , active_voxels.get(&(3,2,2)));
-    ///
-    /// // Highest probability in the centre
-    /// assert!   (active_voxels.get(&(0,2,2)) < active_voxels.get(&(1,2,2)));
-    /// assert!   (active_voxels.get(&(1,2,2)) < active_voxels.get(&(2,2,2)));
-    /// ```
-    // TODO: This test is symmetric in t1,t2; need an asymmetric test.
-    pub fn gaussian(&self, p1: Point, p2: Point, vbox: &VoxelBox) -> Box<dyn FnMut (Index3Weight) -> Index3Weight> {
-        match vbox.entry(&p1, &p2).map(|ep| (ep-p1).norm()) {
-            // If LOR misses the voxel box, we should never receive any voxels
-            // weights to adjust.
-            None => Box::new(|_| panic!("Cannot adjust for TOF on LOR that misses image volume.")),
-            // If LOR does hit some voxels, find the first hit's distance from p1 ...
-            Some(p1_to_entry) => {
-                // ... and the TOF peak's distance from p1
-                let p1_to_peak = 0.5 * ((p1 - p2).norm() + c * (self.t1_minus_t2));
-                // Will keep track of how far we are from the TOF peak
-                let mut distance_to_peak = p1_to_peak - p1_to_entry;
-                // Specialize gaussian on given sigma
-                let gauss = make_gauss(self.sigma);
-                Box::new(move |(index, weight)| {
-                    // Use the LOR's half-way point in the voxel, for the TOF factor
-                    let midpoint = distance_to_peak - weight / 2.0;
-                    // Update distance for next voxel
-                    distance_to_peak -= weight;
-                    // Return the weight suppressed by the gaussian TOF factor
-                    (index, weight * gauss(midpoint))
-                })
-            },
-        }
+/// Returns a closure which keeps track of progress along LOR and adjusts voxel
+/// weight according to Gaussian TOF distribution. To be mapped over the stream
+/// produced by WeightsAlongLOR, as shown in this example:
+///
+/// ```
+/// # use petalo::weights::{VoxelBox, Point, Length, LOR, WeightsAlongLOR, gaussian};
+/// // A highly symmetric system for easy testing of features
+/// let vbox = VoxelBox::new((30.0, 30.0, 30.0), (5,5,5));
+/// let p1 = Point::new(-100.0, 0.0, 0.0);
+/// let p2 = Point::new( 100.0, 0.0, 0.0);
+/// let (t1, t2) = (12.3, 12.3);
+/// let lor = LOR::new(t1, t2, p1, p2);
+/// let sigma = 10.0;
+///
+/// // Generate geometry-dependent voxel weights
+/// let active_voxels = WeightsAlongLOR::new(p1, p2, &vbox)
+///     // Adjust weights with gaussian TOF factor
+///     .map(gaussian(sigma, &lor, &vbox))
+///     // Make index more human-friendly (tuple rather than vector)
+///     .map(|(i,w)| ((i.x, i.y, i.z), w))
+///     // Store weights in hash map, keyed on voxel index, for easy retrieval
+///     .collect::<std::collections::HashMap<(usize, usize, usize), Length>>();
+///
+/// // Gaussian centred on origin is symmetric about origin
+/// assert_eq!(active_voxels.get(&(0,2,2)) , active_voxels.get(&(4,2,2)));
+/// assert_eq!(active_voxels.get(&(1,2,2)) , active_voxels.get(&(3,2,2)));
+///
+/// // Highest probability in the centre
+/// assert!   (active_voxels.get(&(0,2,2)) < active_voxels.get(&(1,2,2)));
+/// assert!   (active_voxels.get(&(1,2,2)) < active_voxels.get(&(2,2,2)));
+/// ```
+// TODO: This test is symmetric in t1,t2; need an asymmetric test.
+pub fn gaussian(sigma: Length, lor: &LOR, vbox: &VoxelBox) -> Box<dyn FnMut (Index3Weight) -> Index3Weight> {
+    let t1_minus_t2 = lor.t1 - lor.t2;
+    match vbox.entry(&lor.p1, &lor.p2).map(|ep| (ep-lor.p1).norm()) {
+        // If LOR misses the voxel box, we should never receive any voxels
+        // weights to adjust.
+        None => Box::new(|_| panic!("Cannot adjust for TOF on LOR that misses image volume.")),
+        // If LOR does hit some voxels, find the first hit's distance from p1 ...
+        Some(p1_to_entry) => {
+            // ... and the TOF peak's distance from p1
+            let p1_to_peak = 0.5 * ((lor.p1 - lor.p2).norm() + c * (t1_minus_t2));
+            // Will keep track of how far we are from the TOF peak
+            let mut distance_to_peak = p1_to_peak - p1_to_entry;
+            // Specialize gaussian on given sigma
+            let gauss = make_gauss(sigma);
+            Box::new(move |(index, weight)| {
+                // Use the LOR's half-way point in the voxel, for the TOF factor
+                let midpoint = distance_to_peak - weight / 2.0;
+                // Update distance for next voxel
+                distance_to_peak -= weight;
+                // Return the weight suppressed by the gaussian TOF factor
+                (index, weight * gauss(midpoint))
+            })
+        },
     }
 }
+
 
 #[derive(Clone, Copy)]
 pub struct LOR {
     pub p1: Point,
     pub p2: Point,
-    pub tof: Option<TOF>
+    pub t1: Time,
+    pub t2: Time,
 }
 
 impl LOR {
-    pub fn new(p1: Point, p2: Point, tof: Option<TOF>) -> Self {
-        Self { p1, p2, tof }
-    }
+    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self { Self { t1, t2, p1, p2 } }
 
-    pub fn active_voxels<'a>(&self, vbox: &'a VoxelBox, threshold: Option<Length>) -> impl Iterator<Item = Index1Weight> + 'a {
+    pub fn active_voxels<'a>(&self, vbox: &'a VoxelBox, threshold: Option<Length>, tof: Option<Length>) -> impl Iterator<Item = Index1Weight> + 'a {
 
         //
-        let tof_adjustment = match self.tof {
-            Some(tof) => tof.gaussian(self.p1, self.p2, vbox),
-            None      => Box::new(|x| x),
+        let tof_adjustment = match tof {
+            Some(sigma) => gaussian(sigma, &self, vbox),
+            None        => Box::new(|x| x),
         };
 
         // Should we ignore voxels with very low contribution?
