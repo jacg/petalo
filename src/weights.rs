@@ -319,24 +319,25 @@ type Intensity = f64;
 
 type ImageData = Vec<Intensity>;
 
-struct Image {
+pub struct Image {
     vbox: VoxelBox,
     data: ImageData,
 }
 
 impl core::ops::IndexMut<Index1> for Image {
-    fn index_mut(&mut self, _: Index1) -> &mut Self::Output { todo!() }
+    fn index_mut(&mut self, i: Index1) -> &mut Self::Output { &mut self.data[i] }
 }
 
 impl core::ops::Index<Index1> for Image {
     type Output = Intensity;
-    fn index(&self, _: Index1) -> &Self::Output { todo!() }
+    fn index(&self, i: Index1) -> &Self::Output { &self.data[i] }
 }
 
 #[allow(nonstandard_style)]
 impl Image {
 
-    fn mlem(vbox: VoxelBox, measured_lors: impl Iterator<Item = LOR> + Clone/*, noise: &Noise*/) {
+    pub fn mlem<'a>(vbox: VoxelBox, measured_lors: &Vec<LOR>/*, noise: &Noise*/) {
+        println!("Entered mlem");
         // TODO: sensitivity matrix, all ones for now
         let S = Self::ones(vbox.clone()).data;
         // TODO: noise
@@ -348,7 +349,7 @@ impl Image {
         let mut image = Self::ones(vbox);
 
         for n in 0..however_many {
-            let BP = image.backproject(measured_lors.clone(), &noise);
+            let BP = image.backproject(measured_lors, &noise);
             for (i, _) in BP.iter().enumerate() { // TODO see if it's any better with iterators
                 if S[i] > 0.0 { image[i] *= BP[i] / S[i] }
                 else          { image[0]  = 0.0          }
@@ -357,7 +358,8 @@ impl Image {
         println!("iteration complete");
     }
 
-    fn backproject<'a>(&'a self, measured_lors: impl Iterator<Item = LOR>, noise: &Noise) -> ImageData {
+    fn backproject<'a>(&'a self, measured_lors: &Vec<LOR>, noise: &Noise) -> ImageData {
+        println!("Entered backproject with vbox {:?} and data size {}", self.vbox, self.data.len());
         // TODO: tof sigma
         let sigma = None;
 
@@ -365,7 +367,7 @@ impl Image {
         let mut BP = self.zeros_buffer();
 
         // For each measured LOR ...
-        for (i, LOR_i) in measured_lors.enumerate() {
+        for (i, LOR_i) in measured_lors.iter().enumerate() {
 
             // Weights of all voxels contributing to this LOR
             let A_ijs: Vec<Index1Weight> = LOR_i.active_voxels(&self.vbox, None, sigma).collect();
@@ -391,9 +393,12 @@ impl Image {
 
     // A new empty data store with matching size
     fn zeros_buffer(&self) -> ImageData { vec![0.0; self.vbox.n_voxels()] }
-    fn ones(vbox: VoxelBox) -> Self { Image { data: vec![1.0; vbox.n_voxels()], vbox} }
+    fn ones(vbox: VoxelBox) -> Self {
+        println!("ones vbox: {:?}", vbox);
+        Self { data: vec![1.0; vbox.n_voxels()], vbox}
+    }
 
-    fn write_to_persistent_storage(&self) { todo!() }
+    fn write_to_persistent_storage(&self) { todo!("Write image to disk") }
 
     fn iter(&self) -> std::slice::Iter<Intensity> { self.data.iter() }
 
@@ -463,7 +468,8 @@ impl VoxelBox {
     }
 
     fn n_voxels(&self) -> usize {
-        self.n.sum()
+        let n = &self.n;
+        n.x * n.y * n.z
     }
 }
 
