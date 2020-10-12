@@ -1,7 +1,7 @@
 use ncollide3d as nc;
 use nc::query::RayCast;
 
-use ndarray as nda;
+use ndarray::{Array3, Zip};
 
 // TODO: have another go at getting nalgebra to work with uom.
 const c : Length = 3e3; // cm / ns
@@ -22,11 +22,9 @@ type VecOf<T> = nc::math::Vector<T>;
 
 pub type Index3 = [usize; 3];
 pub type Index1 = usize;
-type BoxDim = VecOf<usize>;
+type BoxDim = [usize; 3];
 
-// TODO: propably want to use Index1 as much as possible
 type Index3Weight = (Index3, Weight);
-type Index1Weight = (Index1, Weight);
 
 // This algorithm is centred around two key simplifications:
 //
@@ -321,44 +319,47 @@ mod test {
 //--------------------------------------------------------------------------------
 type Intensity = f64;
 
-//type ImageData = nda::Array3<Intensity>;
-type ImageData = Vec<Intensity>;
+type ImageData = Array3<Intensity>;
 
 pub struct Image {
     vbox: VoxelBox,
     data: ImageData,
 }
 
-impl core::ops::IndexMut<Index1> for Image {
-    fn index_mut(&mut self, i: Index1) -> &mut Self::Output { &mut self.data[i] }
+impl core::ops::IndexMut<Index3> for Image {
+    fn index_mut(&mut self, i: Index3) -> &mut Self::Output { &mut self.data[i] }
 }
 
-impl core::ops::Index<Index1> for Image {
+impl core::ops::Index<Index3> for Image {
     type Output = Intensity;
-    fn index(&self, i: Index1) -> &Self::Output { &self.data[i] }
+    fn index(&self, i: Index3) -> &Self::Output { &self.data[i] }
 }
 
 #[allow(nonstandard_style)]
 impl Image {
 
     pub fn mlem<'a>(vbox: VoxelBox, measured_lors: &Vec<LOR>/*, noise: &Noise*/) {
+
+        // Start off with a uniform image
+        let mut image = Self::ones(vbox.clone());
+
         println!("Entered mlem");
         // TODO: sensitivity matrix, all ones for now
-        let S = Self::ones(vbox.clone()).data;
+        let S = Self::ones(vbox).data;
         // TODO: noise
         let noise = Noise;
         // TODO: decide how long to iterate
         let however_many = 3;
 
-        // Start off with a uniform image
-        let mut image = Self::ones(vbox);
-
         for n in 0..however_many {
             let BP = image.backproject(measured_lors, &noise);
-            for (i, _) in BP.iter().enumerate() { // TODO see if it's any better with iterators
-                if S[i] > 0.0 { image[i] *= BP[i] / S[i] }
-                else          { image[0]  = 0.0          }
-            }
+            Zip::from(&mut image.data)
+                .and(&BP)
+                .and(&S)
+                .apply(|v, &b, &s| {
+                    if s > 0.0 { *v *= b / s }
+                    else       { *v  = 0.0   }
+                })
         }
         println!("iteration complete");
     }
@@ -375,7 +376,7 @@ impl Image {
         for (i, LOR_i) in measured_lors.iter().enumerate() {
 
             // Weights of all voxels contributing to this LOR
-            let A_ijs: Vec<Index1Weight> = LOR_i.active_voxels(&self.vbox, None, sigma).collect();
+            let A_ijs: Vec<Index3Weight> = LOR_i.active_voxels(&self.vbox, None, sigma).collect();
 
             // Projection of current image into this LOR
             let P_i = self.project(A_ijs.iter().copied(), noise, i);
@@ -390,22 +391,21 @@ impl Image {
         BP
     }
 
-    fn project(&self, A_ijs: impl Iterator<Item = Index1Weight>, b: &Noise, i: usize) -> Weight {
+    fn project(&self, A_ijs: impl Iterator<Item = Index3Weight>, b: &Noise, i: usize) -> Weight {
         let lambda = self;
         A_ijs.map(move |(j, A_ij)|  A_ij * lambda[j] + b[i])
             .sum()
     }
 
     // A new empty data store with matching size
-    fn zeros_buffer(&self) -> ImageData { vec![0.0; self.vbox.n_voxels()] }
+    fn zeros_buffer(&self) -> ImageData {  Array3::zeros( self.vbox.n  ) }
     fn ones(vbox: VoxelBox) -> Self {
-        println!("ones vbox: {:?}", vbox);
-        Self { data: vec![1.0; vbox.n_voxels()], vbox}
+        Self { data: Array3::ones( vbox.n  ), vbox}
     }
 
     fn write_to_persistent_storage(&self) { todo!("Write image to disk") }
 
-    fn iter(&self) -> std::slice::Iter<Intensity> { self.data.iter() }
+    fn iter(&self) -> ndarray::iter::Iter<Intensity, ndarray::Dim<Index3>> { self.data.iter() }
 
 }
 
@@ -433,14 +433,14 @@ impl VoxelBox {
 
     pub fn new((dx, dy, dz): (Length, Length, Length), (nx, ny, nz): (usize, usize, usize)) -> Self {
         let half_width = Vector::new(dx, dy, dz);
-        let n = BoxDim::new(nx, ny, nz);
+        let n = [nx, ny, nz];
         let voxel_size =  Self::voxel_size(n, half_width);
             Self { half_width, n, voxel_size, }
     }
 
     fn voxel_size(n: BoxDim, half_width: Vector) -> Vector {
         // TODO: generalize conversion of VecOf<int> -> VecOf<float>
-        let nl: Vector = Vector::new(n.x as Length, n.y as Length, n.z as Length);
+        let nl: Vector = Vector::new(n[0] as Length, n[1] as Length, n[2] as Length);
         (half_width * 2.0).component_div(&nl)
     }
 
@@ -459,10 +459,10 @@ impl VoxelBox {
 
     pub fn index1_to_3(&self, i: Index1) -> Index3 {
         let n = self.n;
-        let z = i / (n.x * n.y);
-        let r = i % (n.x * n.y);
-        let y = r / n.x;
-        let x = r % n.x;
+        let z = i / (n[0] * n[1]);
+        let r = i % (n[0] * n[1]);
+        let y = r / n[0];
+        let x = r % n[0];
         [x,y,z]
     }
 
@@ -477,8 +477,7 @@ impl VoxelBox {
     }
 
     fn n_voxels(&self) -> usize {
-        let n = &self.n;
-        n.x * n.y * n.z
+        self.n.iter().product()
     }
 }
 
@@ -622,7 +621,7 @@ pub struct LOR {
 impl LOR {
     pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self { Self { t1, t2, p1, p2 } }
 
-    pub fn active_voxels<'a>(&self, vbox: &'a VoxelBox, threshold: Option<Length>, tof: Option<Length>) -> impl Iterator<Item = Index1Weight> + 'a {
+    pub fn active_voxels<'a>(&self, vbox: &'a VoxelBox, threshold: Option<Length>, tof: Option<Length>) -> impl Iterator<Item = Index3Weight> + 'a {
 
         //
         let tof_adjustment = match tof {
@@ -639,7 +638,6 @@ impl LOR {
         WeightsAlongLOR::new(self.p1, self.p2, vbox)
             .map(tof_adjustment)
             .filter(threshold)
-            .map(move |(i, w)| (vbox.index3_to_1(i), w))
     }
 
 }

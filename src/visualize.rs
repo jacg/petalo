@@ -12,7 +12,7 @@ use kiss3d::camera::{ArcBall};
 use na::{Point3, Translation3};
 
 use crate::weights as pet;
-use crate::weights::{Length, Time, Point, VoxelBox, Index1, LOR};
+use crate::weights::{Length, Time, Point, VoxelBox, Index3, LOR};
 
 arg_enum! {
     #[derive(Debug)]
@@ -105,7 +105,7 @@ impl Scene {
     fn place_voxels(&mut self, args: &Cli) {
 
         let active_voxels = self.lor.active_voxels(&self.vbox, args.threshold, args.sigma)
-            .collect::<std::collections::HashMap<Index1, Length>>();
+            .collect::<std::collections::HashMap<Index3, Length>>();
 
         let &max_weight = active_voxels
             .iter()
@@ -117,7 +117,7 @@ impl Scene {
         let bsize = self.vbox.half_width;
         let (bdx, bdy, bdz) = (bsize.x as f32, bsize.y as f32, bsize.z as f32);
         let (vdx, vdy, vdz) = (vsize.x as f32, vsize.y as f32, vsize.z as f32);
-        let mut voxels = Vec::with_capacity(self.vbox.n.x * self.vbox.n.y);
+        let mut voxels = Vec::with_capacity(self.vbox.n[0] * self.vbox.n[1]);
         let half_vbox = Translation3::new(-bdx, -bdy, -bdz);
         let half_voxel = Translation3::new(vdx / 2.0,
                                            vdy / 2.0,
@@ -125,8 +125,7 @@ impl Scene {
 
         // Add voxel representations to the scene
         let s = 0.99;
-        for (i1d, weight) in active_voxels {
-            let i = self.vbox.index1_to_3(i1d);
+        for (i, weight) in active_voxels {
             let relative_weight = (weight / max_weight) as f32;
             let mut v = match args.shape {
                 Shape::Box  => self.window.add_cube(vdx * s, vdy * s, vdy * s),
