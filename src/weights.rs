@@ -1,6 +1,8 @@
 use ncollide3d as nc;
 use nc::query::RayCast;
 
+use ndarray as nda;
+
 // TODO: have another go at getting nalgebra to work with uom.
 const c : Length = 3e3; // cm / ns
 
@@ -18,7 +20,7 @@ type Isometry = nc::math::Isometry<Length>;
 
 type VecOf<T> = nc::math::Vector<T>;
 
-pub type Index3 = VecOf<usize>;
+pub type Index3 = [usize; 3];
 pub type Index1 = usize;
 type BoxDim = VecOf<usize>;
 
@@ -118,7 +120,9 @@ impl WeightsAlongLOR {
         entry_point.iter_mut().for_each(|x| if x.abs() < 1e-7 { *x = 0.0 });
 
         // Find N-dimensional index of voxel at entry point.
-        let index: Index3 = entry_point.map(|x| x.floor() as usize);
+        let index: Index3 = [entry_point.x.floor() as usize,
+                             entry_point.y.floor() as usize,
+                             entry_point.z.floor() as usize];//entry_point.map(|x| x.floor() as usize);
 
         // Voxel size in LOR length units: how far must we move along LOR to
         // traverse one voxel, in any dimension.
@@ -161,8 +165,8 @@ impl Iterator for WeightsAlongLOR {
                 // Remember index of the voxel we are about to cross (flipped
                 // back from our algorithm's internal coordinate system, to the
                 // client's original coordinate system).
-                let mut true_index = Index3::zeros();
-                for n in 0..index.len() {
+                let mut true_index = [0; 3];
+                for n in 0..3 {
                     if flipped[n] { true_index[n] = n_voxels[n] - 1 - index[n]; }
                     else          { true_index[n] =                   index[n]; }
                 }
@@ -246,7 +250,7 @@ mod test {
         // Collect hits
         let hits: Vec<Index3Weight> =
             WeightsAlongLOR::new(p1, p2, &vbox)
-            .inspect(|(is, l)| println!("  ({} {})   {}", is.x, is.y, l))
+            .inspect(|(is, l)| println!("  ({} {})   {}", is[0], is[1], l))
             .collect();
 
         // Check total length through voxel box
@@ -257,7 +261,7 @@ mod test {
 
         // Check voxels hit
         let voxels: Vec<(usize, usize)> = hits.into_iter()
-            .map(|(index, _weight)| (index.x, index.y))
+            .map(|(index, _weight)| (index[0], index[1]))
             .collect();
         assert_eq!(voxels, expected_voxels)
     }
@@ -298,7 +302,7 @@ mod test {
             //          vbox.n.x, vbox.n.y, vbox.n.z);
 
             let summed: Length = WeightsAlongLOR::new(p1, p2, &vbox)
-                .inspect(|(i, l)| println!("  ({} {} {}) {}", i.x, i.y, i.z, l))
+                .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
                 .map(|(_index, weight)| weight)
                 .sum();
 
@@ -317,6 +321,7 @@ mod test {
 //--------------------------------------------------------------------------------
 type Intensity = f64;
 
+//type ImageData = nda::Array3<Intensity>;
 type ImageData = Vec<Intensity>;
 
 pub struct Image {
@@ -440,12 +445,16 @@ impl VoxelBox {
     }
 
     pub fn voxel_centre(&self, i: Index3) -> Point {
-        i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
+        //i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
+        let s = self.voxel_size;
+        Point::new((i[0] as f64 + 0.5) * s.x,
+                   (i[1] as f64 + 0.5) * s.y,
+                   (i[2] as f64 + 0.5) * s.z,)
     }
 
     pub fn index3_to_1(&self, i: Index3) -> Index1 {
         let n = self.n;
-        i.x + n.x * i.y + (n.x * n.y) * i.z
+        i[0] + n[0] * i[1] + (n[0] * n[1]) * i[2]
     }
 
     pub fn index1_to_3(&self, i: Index1) -> Index3 {
@@ -454,7 +463,7 @@ impl VoxelBox {
         let r = i % (n.x * n.y);
         let y = r / n.x;
         let x = r % n.x;
-        Index3::new(x,y,z)
+        [x,y,z]
     }
 
     pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
@@ -503,7 +512,7 @@ mod test_vbox {
     fn hand_picked(size: I3, index3: I3, index1: usize) {
         let irrelevant = (10.0, 10.0, 10.0);
         let vbox = VoxelBox::new(irrelevant, (size.0, size.1, size.2));
-        let index3 = BoxDim::new(index3.0, index3.1, index3.2);
+        let index3 = [index3.0, index3.1, index3.2];
         assert_eq!(vbox.index3_to_1(index3), index1);
         assert_eq!(vbox.index1_to_3(index1), index3);
     }
@@ -562,7 +571,7 @@ fn make_gauss(sigma: N) -> impl Fn(N) -> N {
 ///     // Adjust weights with gaussian TOF factor
 ///     .map(gaussian(sigma, &lor, &vbox))
 ///     // Make index more human-friendly (tuple rather than vector)
-///     .map(|(i,w)| ((i.x, i.y, i.z), w))
+///     .map(|(i,w)| ((i[0], i[1], i[2]), w))
 ///     // Store weights in hash map, keyed on voxel index, for easy retrieval
 ///     .collect::<std::collections::HashMap<(usize, usize, usize), Length>>();
 ///
