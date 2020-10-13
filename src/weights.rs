@@ -321,9 +321,10 @@ type Intensity = f64;
 
 type ImageData = Array3<Intensity>;
 
+#[derive(Clone)]
 pub struct Image {
     vbox: VoxelBox,
-    data: ImageData,
+    pub data: ImageData,
 }
 
 impl core::ops::IndexMut<Index3> for Image {
@@ -338,34 +339,30 @@ impl core::ops::Index<Index3> for Image {
 #[allow(nonstandard_style)]
 impl Image {
 
-    pub fn mlem<'a>(vbox: VoxelBox, measured_lors: &Vec<LOR>/*, noise: &Noise*/) {
+    pub fn mlem<'a>(vbox: VoxelBox, measured_lors: &'a Vec<LOR>, S: &'a ImageData, noise: &'a Noise) ->  impl Iterator<Item = Image> + 'a {
 
         // Start off with a uniform image
         let mut image = Self::ones(vbox.clone());
 
-        println!("Entered mlem");
-        // TODO: sensitivity matrix, all ones for now
-        let S = Self::ones(vbox).data;
-        // TODO: noise
-        let noise = Noise;
-        // TODO: decide how long to iterate
-        let however_many = 3;
+        std::iter::from_fn(move || {
+            image.one_iteration(measured_lors, S, noise);
+            Some(image.clone()) // TODO see if we can sensibly avoid cloning
+        })
+    }
 
-        for n in 0..however_many {
-            let BP = image.backproject(measured_lors, &noise);
-            Zip::from(&mut image.data)
-                .and(&BP)
-                .and(&S)
-                .apply(|v, &b, &s| {
-                    if s > 0.0 { *v *= b / s }
-                    else       { *v  = 0.0   }
-                })
-        }
-        println!("iteration complete");
+    fn one_iteration(&mut self, measured_lors: &Vec<LOR>, S: &ImageData, noise: &Noise) {
+        let BP = self.backproject(measured_lors, noise);
+        Zip::from(&mut self.data)
+            .and(&BP)
+            .and(S)
+            .apply(|voxel, &b, &s| {
+                if s > 0.0 { *voxel *= b / s }
+                else       { *voxel  = 0.0   }
+            })
     }
 
     fn backproject<'a>(&'a self, measured_lors: &Vec<LOR>, noise: &Noise) -> ImageData {
-        println!("Entered backproject with vbox {:?} and data size {}", self.vbox, self.data.len());
+
         // TODO: tof sigma
         let sigma = None;
 
@@ -399,7 +396,7 @@ impl Image {
 
     // A new empty data store with matching size
     fn zeros_buffer(&self) -> ImageData {  Array3::zeros( self.vbox.n  ) }
-    fn ones(vbox: VoxelBox) -> Self {
+    pub fn ones(vbox: VoxelBox) -> Self {
         Self { data: Array3::ones( vbox.n  ), vbox}
     }
 
@@ -410,7 +407,7 @@ impl Image {
 }
 
 //--------------------------------------------------------------------------------
-struct Noise; // TODO
+pub struct Noise; // TODO
 
 impl core::ops::Index<Index1> for Noise {
     type Output = Intensity;
@@ -422,7 +419,7 @@ impl core::ops::Index<Index1> for Noise {
 
 
 //--------------------------------------------------------------------------------
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct VoxelBox {
     pub half_width: Vector,
     pub n: BoxDim,

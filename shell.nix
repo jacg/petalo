@@ -40,6 +40,11 @@ let
       pkgs.xorg.libXrandr
       pkgs.xorg.libXi
       pkgs.libGL
+
+      # for plotters
+      pkgs.cmake
+      pkgs.freetype
+      pkgs.expat
     ];
 in
   pkgs.stdenv.mkDerivation {
