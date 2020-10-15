@@ -1,3 +1,6 @@
+[workspace]
+members = ["cffi"]
+
 [package]
 name = "petalo"
 version = "0.1.0"
