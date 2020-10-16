@@ -4,7 +4,7 @@ use nc::query::RayCast;
 use ndarray::{Array3, Zip};
 
 // TODO: have another go at getting nalgebra to work with uom.
-const c : Length = 3e3; // cm / ns
+const c: Length = 2997.92458; // cm / ns
 
 // TODO: no thought has been given to what should be public or private.
 
