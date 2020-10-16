@@ -1,7 +1,8 @@
 use ncollide3d as nc;
 use nc::query::RayCast;
 
-use ndarray::{Array3, Zip};
+use ndarray::azip;
+use ndarray::Array3;
 
 // TODO: have another go at getting nalgebra to work with uom.
 const c: Length = 2997.92458; // cm / ns
@@ -352,13 +353,10 @@ impl Image {
 
     fn one_iteration(&mut self, measured_lors: &Vec<LOR>, S: &ImageData, noise: &Noise) {
         let BP = self.backproject(measured_lors, noise);
-        Zip::from(&mut self.data)
-            .and(&BP)
-            .and(S)
-            .apply(|voxel, &b, &s| {
-                if s > 0.0 { *voxel *= b / s }
-                else       { *voxel  = 0.0   }
-            })
+        azip!((voxel in &mut self.data, &b in &BP, &s in S) {
+            if s > 0.0 { *voxel *= b / s }
+            else       { *voxel  = 0.0   }
+        })
     }
 
     fn backproject<'a>(&'a self, measured_lors: &Vec<LOR>, noise: &Noise) -> ImageData {
