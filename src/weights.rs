@@ -5,6 +5,7 @@ use ndarray::azip;
 use ndarray::Array3;
 
 // TODO: have another go at getting nalgebra to work with uom.
+#[allow(nonstandard_style)]
 const c: Length = 2997.92458; // cm / ns
 
 // TODO: no thought has been given to what should be public or private.
@@ -398,10 +399,6 @@ impl Image {
         Self { data: Array3::ones( vbox.n  ), vbox}
     }
 
-    fn write_to_persistent_storage(&self) { todo!("Write image to disk") }
-
-    fn iter(&self) -> ndarray::iter::Iter<Intensity, ndarray::Dim<Index3>> { self.data.iter() }
-
 }
 
 //--------------------------------------------------------------------------------
@@ -471,9 +468,6 @@ impl VoxelBox {
             .map(|toi| lor.origin + lor.dir * toi)
     }
 
-    fn n_voxels(&self) -> usize {
-        self.n.iter().product()
-    }
 }
 
 #[cfg(test)]

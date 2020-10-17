@@ -11,7 +11,6 @@ use kiss3d::scene::{SceneNode};
 use kiss3d::camera::{ArcBall};
 use na::{Point3, Translation3};
 
-use crate::weights as pet;
 use crate::weights::{Length, Time, Point, VoxelBox, Index3, LOR};
 
 arg_enum! {
