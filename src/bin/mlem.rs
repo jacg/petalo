@@ -1,6 +1,4 @@
 use std::error::Error;
-use std::io;
-use std::process;
 
 use csv;
 
@@ -20,13 +18,6 @@ struct Event {
     true_r2: F, true_phi2: F, true_z2: F, true_t2: F,
     reco_r1: F, reco_phi1: F, reco_z1: F,
     reco_r2: F, reco_phi2: F, reco_z2: F,
-}
-
-type VEC = Vec<F>;
-
-struct Events {
-    x1: VEC, y1: VEC, z1: VEC, t1: VEC,
-    x2: VEC, y2: VEC, z2: VEC, t2: VEC,
 }
 
     fn event_to_lor(
