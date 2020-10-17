@@ -42,6 +42,9 @@ struct Event {
 
 
 fn main() -> Result<(), Box<dyn Error>> {
+
+    println!("Float precision: {} bits", petalo::weights::PRECISION);
+
     use std::time::Instant;
 
     let mut now = Instant::now();

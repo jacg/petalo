@@ -25,3 +25,6 @@ rstest = "0.6.4"
 pretty_assertions = "0.6.1"
 assert_approx_eq = "1.1"
 proptest = "0.10.1"
+
+[features]
+f32 = []
