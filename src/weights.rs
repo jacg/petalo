@@ -373,19 +373,22 @@ impl Image {
         let mut BP = self.zeros_buffer();
 
         // For each measured LOR ...
-        for (i, LOR_i) in measured_lors.iter().enumerate() {
+        measured_lors
+            .iter()
+            .enumerate()
+            .for_each(|(i, LOR_i)| {
 
-            // Weights of all voxels contributing to this LOR
-            let A_ijs: Vec<Index3Weight> = LOR_i.active_voxels(&self.vbox, None, sigma).collect();
+                // Weights of all voxels contributing to this LOR
+                let A_ijs: Vec<Index3Weight> = LOR_i.active_voxels(&self.vbox, None, sigma).collect();
 
-            // Projection of current image into this LOR
-            let P_i = self.project(A_ijs.iter().copied(), noise, i);
+                // Projection of current image into this LOR
+                let P_i = self.project(A_ijs.iter().copied(), noise, i);
 
-            // This LOR's contribution to the backprojection
-            for (j, A_ij) in A_ijs {
-                BP[j] += A_ij / P_i;
-            }
-        }
+                // This LOR's contribution to the backprojection
+                for (j, A_ij) in A_ijs {
+                    BP[j] += A_ij / P_i;
+                }
+            });
 
         // Return the total backprojection
         BP
