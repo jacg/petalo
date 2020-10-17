@@ -12,8 +12,8 @@ const c: Length = 2997.92458; // cm / ns
 
 
 pub type Length = f64;
-pub type Time = f64;
-pub type Weight = f64;
+pub type Time   = Length;
+pub type Weight = Length;
 
 type Vector = nc::math ::Vector<Length>;
 pub type Point  = nc::math ::Point <Length>;
@@ -319,7 +319,7 @@ mod test {
     }
 }
 //--------------------------------------------------------------------------------
-type Intensity = f64;
+type Intensity = Length;
 
 type ImageData = Array3<Intensity>;
 
@@ -439,9 +439,9 @@ impl VoxelBox {
     pub fn voxel_centre(&self, i: Index3) -> Point {
         //i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
         let s = self.voxel_size;
-        Point::new((i[0] as f64 + 0.5) * s.x,
-                   (i[1] as f64 + 0.5) * s.y,
-                   (i[2] as f64 + 0.5) * s.z,)
+        Point::new((i[0] as Length + 0.5) * s.x,
+                   (i[1] as Length + 0.5) * s.y,
+                   (i[2] as Length + 0.5) * s.z,)
     }
 
     pub fn index3_to_1(&self, i: Index3) -> Index1 {
@@ -529,9 +529,8 @@ mod test_vbox {
 }
 //--------------------------------------------------------------------------------
 
-type N = f64;
-fn make_gauss(sigma: N) -> impl Fn(N) -> N {
-    let root_two_pi = std::f64::consts::PI.sqrt();
+fn make_gauss(sigma: Length) -> impl Fn(Length) -> Length {
+    let root_two_pi = std::f64::consts::PI.sqrt() as Length;
     let a = 1.0 / (sigma * root_two_pi);
     move |x| {
         let y = x / sigma;

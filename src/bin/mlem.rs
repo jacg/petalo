@@ -4,7 +4,7 @@ use csv;
 
 
 use serde::Deserialize;
-type F = f64;
+type F = petalo::weights::Length;
 
 
 use ndarray::prelude::*;
@@ -77,7 +77,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .take(8)
         .enumerate() {
         report_time("iteration");
-        let data: ndarray::Array3<f64> = image.data;
+        let data: ndarray::Array3<F> = image.data;
         plotit(&data, n).unwrap();
         report_time("Plotted");
         // TODO: step_by for print every
@@ -90,12 +90,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 use plotters::prelude::*;
 
 
-fn plotit(image: &ndarray::Array3<f64>, n: usize) -> Result<(), Box<dyn std::error::Error>> {
+fn plotit(image: &ndarray::Array3<F>, n: usize) -> Result<(), Box<dyn std::error::Error>> {
 
     let slice = image.slice(s![.., .., 29]);
     let size = slice.shape();
     let (nx, ny) = (size[0], size[0]);
-    let max = image.fold(0.0, |a:f64,b| a.max(*b));
+    let max = image.fold(0.0, |a:F,b| a.max(*b));
 
     let filename = format!("images/deleteme{:03}.png", n);
     let root = BitMapBackend::new(&filename, (nx as u32, ny as u32)).into_drawing_area();
@@ -120,9 +120,9 @@ fn plotit(image: &ndarray::Array3<f64>, n: usize) -> Result<(), Box<dyn std::err
                 Rectangle::new(
                     [(x, y), (x + 1, y + 1)],
                     HSLColor(
-                        0.8 - 0.6 * f,
+                        (0.8 - 0.6 * f).into(),
                         0.7,
-                        0.1 + 0.9 * f,
+                        (0.1 + 0.9 * f).into(),
                     )
                         .filled(),
                 )
