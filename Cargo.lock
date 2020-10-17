@@ -1028,6 +1028,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "rawpointer",
+ "rayon",
 ]
 
 [[package]]
@@ -1254,6 +1255,7 @@ dependencies = [
  "nalgebra",
  "ncollide3d",
  "ndarray",
+ "num-traits",
  "plotters",
  "pretty_assertions",
  "proptest",

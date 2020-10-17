@@ -11,13 +11,14 @@ edition = "2018"
 
 [dependencies]
 structopt = "0.3"
-ndarray = "0.13"
+ndarray = { version = "0.13", features = ["rayon"] }
 csv = "1.1"
 serde = { version = "1.0", features = ["derive"] }
 nalgebra = "0.22"
 ncollide3d = "0.25"
 kiss3d = "0.26"
 plotters = "0.3.0"
+num-traits = "0.2"
 
 [dev-dependencies]
 rstest = "0.6.4"
