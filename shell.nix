@@ -45,6 +45,11 @@ let
       pkgs.cmake
       pkgs.freetype
       pkgs.expat
+    ]
+    ++
+    pkgs.lib.optionals pkgs.stdenv.isDarwin [
+      pkgs.darwin.apple_sdk.frameworks.AppKit
+      pkgs.darwin.apple_sdk.frameworks.CoreText
     ];
 in
   pkgs.stdenv.mkDerivation {
