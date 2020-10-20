@@ -318,7 +318,9 @@ mod test {
                 _ => 0.0
             };
 
-            assert_approx_eq!(summed, in_one_go);
+            #[cfg    (feature = "f32") ] assert_approx_eq!(summed, in_one_go, 1e-3);
+            #[cfg(not(feature = "f32"))] assert_approx_eq!(summed, in_one_go);
+
         }
     }
 }
