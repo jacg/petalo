@@ -16,6 +16,9 @@ const c: Length = 2997.92458; // cm / ns
 #[cfg    (feature = "f32") ] pub type Length = f32;
 #[cfg(not(feature = "f32"))] pub type Length = f64;
 
+#[cfg    (feature = "f32") ] const EPS: Length = 1e-5;
+#[cfg(not(feature = "f32"))] const EPS: Length = 1e-14;
+
 pub type Time   = Length;
 pub type Weight = Length;
 
@@ -121,7 +124,7 @@ impl WeightsAlongLOR {
         // slightly: if this error is negative, the next step (which uses floor)
         // will pick the wrong voxel. Work around this problem by assuming that
         // anything very close to zero is exactly zero.
-        entry_point.iter_mut().for_each(|x| if x.abs() < 1e-7 { *x = 0.0 });
+        entry_point.iter_mut().for_each(|x| if x.abs() < EPS { *x = 0.0 });
 
         // Find N-dimensional index of voxel at entry point.
         let index: Index3 = [entry_point.x.floor() as usize,
