@@ -67,6 +67,9 @@ let
     pkgs.freetype
     pkgs.expat
 
+    # HDF5
+    pkgs.hdf5
+
     # profiling
     (linux pkgs.linuxPackages.perf)
     pkgs.cargo-flamegraph
@@ -86,6 +89,7 @@ pkgs.stdenv.mkDerivation {
   name = "petalorust";
   buildInputs = buildInputs;
   LD_LIBRARY_PATH = "${pkgs.stdenv.lib.makeLibraryPath buildInputs}";
+  HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
   # RA_LOG = "info";
   # RUST_BAfCKTRACE = 1;
 }
