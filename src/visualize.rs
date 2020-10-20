@@ -77,10 +77,38 @@ impl Scene {
         let p2_f32 = Point3::new(lor.p2.x as f32, lor.p2.y as f32, lor.p2.z as f32);
         let lor_colour = Point3::new(0.0, 1.0, 0.0);
 
+        // VoxelBox frame
+        let w = vbox.half_width;
+        let (bwx, bwy, bwz) = (w.x as f32, w.y as f32, w.z as f32);
+        let box_000 = Point3::new(-bwx, -bwy, -bwz);
+        let box_001 = Point3::new(-bwx, -bwy,  bwz);
+        let box_010 = Point3::new(-bwx,  bwy, -bwz);
+        let box_011 = Point3::new(-bwx,  bwy,  bwz);
+        let box_100 = Point3::new( bwx, -bwy, -bwz);
+        let box_101 = Point3::new( bwx, -bwy,  bwz);
+        let box_110 = Point3::new( bwx,  bwy, -bwz);
+        let box_111 = Point3::new( bwx,  bwy,  bwz);
+        let box_colour = Point3::new(0.3, 0.3, 0.3);
+
+        // Turn the above endpoints into actual lines
         let lines = vec![(x_axis_lo, x_axis_hi, x_axis_colour),
                          (y_axis_lo, y_axis_hi, y_axis_colour),
                          (z_axis_lo, z_axis_hi, z_axis_colour),
-                         (p1_f32   , p2_f32  ,   lor_colour),];
+                         (p1_f32   , p2_f32  ,     lor_colour),
+                         (box_000  , box_001 ,     box_colour),
+                         (box_001  , box_011 ,     box_colour),
+                         (box_011  , box_010 ,     box_colour),
+                         (box_010  , box_000 ,     box_colour),
+                         (box_100  , box_101 ,     box_colour),
+                         (box_101  , box_111 ,     box_colour),
+                         (box_111  , box_110 ,     box_colour),
+                         (box_110  , box_100 ,     box_colour),
+                         (box_000  , box_100 ,     box_colour),
+                         (box_001  , box_101 ,     box_colour),
+                         (box_011  , box_111 ,     box_colour),
+                         (box_010  , box_110 ,     box_colour),
+
+        ];
 
         Scene {
             window,
