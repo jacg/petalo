@@ -298,12 +298,12 @@ mod test {
             let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
             let vbox = VoxelBox::new((dx, dy, dz), (nx, ny, nz));
 
-            // // Values to plug in to visualizer:
-            // println!("let p1 = Point::new({}, {}, {});", p1.x, p1.y, p1.z);
-            // println!("let p2 = Point::new({}, {}, {});", p2.x, p2.y, p2.z);
-            // println!("let vbox = VoxelBox::new(({}, {}, {}), ({}, {}, {}));",
-            //          vbox.aabb.half_extents.x, vbox.aabb.half_extents.y, vbox.aabb.half_extents.z,
-            //          vbox.n.x, vbox.n.y, vbox.n.z);
+            // Values to plug in to visualizer:
+            println!("let p1 = Point::new({:?}, {:?}, {:?});", p1.x, p1.y, p1.z);
+            println!("let p2 = Point::new({:?}, {:?}, {:?});", p2.x, p2.y, p2.z);
+            println!("let vbox = VoxelBox::new(({:?}, {:?}, {:?}), ({:?}, {:?}, {:?}));",
+                     vbox.half_width.x, vbox.half_width.y, vbox.half_width.z,
+                     vbox.n[0], vbox.n[1], vbox.n[2]);
 
             let summed: Length = WeightsAlongLOR::new(p1, p2, &vbox)
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
