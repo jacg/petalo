@@ -14,8 +14,6 @@ pub struct Cli {
 
 use std::error::Error;
 
-use csv;
-
 
 use serde::{Serialize, Deserialize};
 type F = petalo::weights::Length;
@@ -68,36 +66,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         now = Instant::now();
     };
 
-    let mut events = vec![];
-
-    // Build the CSV reader and iterate over each record.
-    let file = std::fs::File::open("run_fastfastmc_1M_events.csv")?;
-    let buf_reader = std::io::BufReader::new(file);
-    let mut rdr = csv::Reader::from_reader(buf_reader);
-    println!("Starting to read events");
-    for result in rdr.deserialize() {
-        // The iterator yields Result<StringRecord, Error>, so we check the
-        // error here.
-        let event: Event = result?;
-        events.push(event);
-    }
-    report_time("Collected events");
-
-    {
-        let mut file = std::io::BufWriter::new(std::fs::File::create("run_fastfastmc_1M_events.bin")?);
-        bincode::serialize_into(&mut file, &events)?
-    }
-    report_time("wrote bin");
-
-    let events: Vec<Event>;
-    {
-        let mut file = std::io::BufReader::new(std::fs::File::open("run_fastfastmc_1M_events.bin")?);
-        events = bincode::deserialize_from(&mut file)?
-    }
-
     let mut measured_lors = vec![];
-    for event in events {
-        measured_lors.push(event_to_lor(event.clone()));
+    {
+
+        #[cfg    (feature = "f32") ]
+        let mut file = std::io::BufReader::new(std::fs::File::open("run_fastfastmc_1M_events.bin32")?);
+        #[cfg(not(feature = "f32"))]
+        let mut file = std::io::BufReader::new(std::fs::File::open("run_fastfastmc_1M_events.bin64")?);
+        let events: Vec<Event> = bincode::deserialize_from(&mut file)?;
+        for event in events {
+            measured_lors.push(event_to_lor(event.clone()));
+        }
     }
     report_time("read bin");
 
@@ -132,7 +111,7 @@ fn plotit(image: &ndarray::Array3<F>, n: usize) -> Result<(), Box<dyn std::error
     let (nx, ny) = (size[0], size[0]);
     let max = image.fold(0.0, |a:F,b| a.max(*b));
 
-    let filename = format!("images/deleteme{:03}.png", n);
+    let filename = format!("images/deleteme{:03}.{}.png", n, pet::PRECISION);
     let root = BitMapBackend::new(&filename, (nx as u32, ny as u32)).into_drawing_area();
 
     root.fill(&WHITE)?;
