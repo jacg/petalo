@@ -1338,6 +1338,7 @@ dependencies = [
  "plotters",
  "pretty_assertions",
  "proptest",
+ "rayon",
  "rstest",
  "serde",
  "structopt",

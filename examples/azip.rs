@@ -54,9 +54,11 @@ fn calculate(b: &N, c: &N) -> N {
     (b.sin().powf(2.1) + c.cos().powf(1.9)).sqrt()
 }
 
-// Use 3-dimensional arrays of f32s in this example.
+
+#[cfg    (feature = "f64") ] type N = f64;
+#[cfg(not(feature = "f64"))] type N = f32;
+
 use ndarray::Array3;
-type N = f32;
 type A = Array3<N>;
 
 // -------------------- Utility for reporting timings --------------------
