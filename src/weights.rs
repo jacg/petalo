@@ -10,14 +10,14 @@ const c: Length = 2997.92458; // cm / ns
 
 // TODO: no thought has been given to what should be public or private.
 
-#[cfg    (feature = "f32") ] pub const PRECISION: u8 = 32;
-#[cfg(not(feature = "f32"))] pub const PRECISION: u8 = 64;
+#[cfg    (feature = "f64") ] pub const PRECISION: u8 = 64;
+#[cfg(not(feature = "f64"))] pub const PRECISION: u8 = 32;
 
-#[cfg    (feature = "f32") ] pub type Length = f32;
-#[cfg(not(feature = "f32"))] pub type Length = f64;
+#[cfg    (feature = "f64") ] pub type Length = f64;
+#[cfg(not(feature = "f64"))] pub type Length = f32;
 
-#[cfg    (feature = "f32") ] const EPS: Length = 1e-5;
-#[cfg(not(feature = "f32"))] const EPS: Length = 1e-14;
+#[cfg    (feature = "f64") ] const EPS: Length = 1e-14;
+#[cfg(not(feature = "f64"))] const EPS: Length = 1e-5;
 
 pub type Time   = Length;
 pub type Weight = Length;
@@ -321,8 +321,8 @@ mod test {
                 _ => 0.0
             };
 
-            #[cfg    (feature = "f32") ] assert_approx_eq!(summed, in_one_go, 1e-3);
-            #[cfg(not(feature = "f32"))] assert_approx_eq!(summed, in_one_go);
+            #[cfg    (feature = "f64") ] assert_approx_eq!(summed, in_one_go);
+            #[cfg(not(feature = "f64"))] assert_approx_eq!(summed, in_one_go, 1e-3);
 
         }
     }

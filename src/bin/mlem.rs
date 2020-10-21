@@ -14,43 +14,11 @@ pub struct Cli {
 
 use std::error::Error;
 
-
-use serde::{Serialize, Deserialize};
-type F = petalo::weights::Length;
-
-
 use ndarray::prelude::*;
 
 use petalo::weights as pet;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct Event {
-    event_id: usize,
-    true_r1: F, true_phi1: F, true_z1: F, true_t1: F,
-    true_r2: F, true_phi2: F, true_z2: F, true_t2: F,
-    reco_r1: F, reco_phi1: F, reco_z1: F,
-    reco_r2: F, reco_phi2: F, reco_z2: F,
-}
-
-    fn event_to_lor(
-        Event{ reco_r1: r1, reco_phi1: phi1, reco_z1: z1, true_t1: t1,
-               reco_r2: r2, reco_phi2: phi2, reco_z2: z2, true_t2: t2, .. }: Event)
-    -> pet::LOR
-{
-    let x1 = r1 * phi1.cos();
-    let y1 = r1 * phi1.sin();
-    let t1 = t1 * 1000.0; // turn into picoseconds
-
-    let x2 = r2 * phi2.cos();
-    let y2 = r2 * phi2.sin();
-    let t2 = t2 * 1000.0; // turn into picoseconds
-
-    pet::LOR::new(t1, t2,
-                  pet::Point::new(x1, y1, z1),
-                  pet::Point::new(x2, y2, z2),
-    )
-
-}
+type F = pet::Length;
 
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -66,18 +34,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         now = Instant::now();
     };
 
-    let mut measured_lors = vec![];
-    {
+    #[cfg(not(feature = "f64"))]
+    let filename = "run_fastfastmc_1M_events.bin32";
+    #[cfg    (feature = "f64") ]
+    let filename = "run_fastfastmc_1M_events.bin64";
 
-        #[cfg    (feature = "f32") ]
-        let mut file = std::io::BufReader::new(std::fs::File::open("run_fastfastmc_1M_events.bin32")?);
-        #[cfg(not(feature = "f32"))]
-        let mut file = std::io::BufReader::new(std::fs::File::open("run_fastfastmc_1M_events.bin64")?);
-        let events: Vec<Event> = bincode::deserialize_from(&mut file)?;
-        for event in events {
-            measured_lors.push(event_to_lor(event.clone()));
-        }
-    }
+    let measured_lors = petalo::io::read_lors(filename)?;
     report_time("read bin");
 
     let vbox = pet::VoxelBox::new((90.0, 90.0, 90.0), (60, 60, 60));
@@ -92,7 +54,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .enumerate() {
         report_time("iteration");
         let data: ndarray::Array3<F> = image.data;
-        plotit(&data, n).unwrap();
+        plotit(&data, n)?;
         report_time("Plotted");
         // TODO: step_by for print every
     }
