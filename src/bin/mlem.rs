@@ -17,7 +17,7 @@ use std::error::Error;
 use csv;
 
 
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 type F = petalo::weights::Length;
 
 
@@ -25,7 +25,7 @@ use ndarray::prelude::*;
 
 use petalo::weights as pet;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Event {
     event_id: usize,
     true_r1: F, true_phi1: F, true_z1: F, true_t1: F,
@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         now = Instant::now();
     };
 
-    let mut measured_lors = vec![];
+    let mut events = vec![];
 
     // Build the CSV reader and iterate over each record.
     let file = std::fs::File::open("run_fastfastmc_1M_events.csv")?;
@@ -77,11 +77,29 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Starting to read events");
     for result in rdr.deserialize() {
         // The iterator yields Result<StringRecord, Error>, so we check the
-        // error here..
+        // error here.
         let event: Event = result?;
-        measured_lors.push(event_to_lor(event));
+        events.push(event);
     }
     report_time("Collected events");
+
+    {
+        let mut file = std::io::BufWriter::new(std::fs::File::create("run_fastfastmc_1M_events.bin")?);
+        bincode::serialize_into(&mut file, &events)?
+    }
+    report_time("wrote bin");
+
+    let events: Vec<Event>;
+    {
+        let mut file = std::io::BufReader::new(std::fs::File::open("run_fastfastmc_1M_events.bin")?);
+        events = bincode::deserialize_from(&mut file)?
+    }
+
+    let mut measured_lors = vec![];
+    for event in events {
+        measured_lors.push(event_to_lor(event.clone()));
+    }
+    report_time("read bin");
 
     let vbox = pet::VoxelBox::new((90.0, 90.0, 90.0), (60, 60, 60));
 
