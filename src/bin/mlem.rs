@@ -1,3 +1,17 @@
+// ----------------------------------- CLI -----------------------------------
+use structopt::StructOpt;
+
+#[derive(StructOpt, Debug)]
+#[structopt(name = "mlem", about = "TODO: describe what this does")]
+pub struct Cli {
+
+    /// Number of MLEM iterations to perform
+    #[structopt(default_value = "5")]
+    n: usize,
+
+}
+// --------------------------------------------------------------------------------
+
 use std::error::Error;
 
 use csv;
@@ -77,7 +91,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let noise = pet::Noise;
 
     for (n, image) in (pet::Image::mlem(vbox, &measured_lors, &sensitivity_matrix, &noise))
-        .take(8)
+        .take(Cli::from_args().n)
         .enumerate() {
         report_time("iteration");
         let data: ndarray::Array3<F> = image.data;
