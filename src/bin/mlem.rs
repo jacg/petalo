@@ -6,10 +6,28 @@ use structopt::StructOpt;
 pub struct Cli {
 
     /// Number of MLEM iterations to perform
-    #[structopt(default_value = "5")]
-    n: usize,
+    #[structopt(short, long, default_value = "5")]
+    iterations: usize,
+
+    /// Voxel box half-widths
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<F>), default_value = "180,180,180")]
+    pub size: (F, F, F),
+
+    /// Number of voxels in each dimension
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
+    pub n_voxels: (usize, usize, usize),
 
 }
+
+fn parse_triplet<T: std::str::FromStr>(s: &str) -> Result<(T,T,T), <T as std::str::FromStr>::Err> {
+    let v = s.split(",").collect::<Vec<_>>();
+    assert!(v.len() == 3);
+    let x = v[0].parse()?;
+    let y = v[1].parse()?;
+    let z = v[2].parse()?;
+    Ok((x, y, z))
+}
+
 // --------------------------------------------------------------------------------
 
 use std::error::Error;
@@ -49,9 +67,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let measured_lors = petalo::io::read_lors(filename)?;
     report_time("Loaded LOR data from local disk");
 
+    let args = Cli::from_args();
     // Define extent and granularity of voxels
-    let vbox = pet::VoxelBox::new((90.0, 90.0, 90.0), (60, 60, 60));
-
+    let vbox;
+    {
+        let size = (args.size.0 / 2.0, args.size.1 / 2.0, args.size.2 / 2.0);
+        vbox = pet::VoxelBox::new(size, args.n_voxels);
+    }
     // TODO: sensitivity matrix, all ones for now
     let sensitivity_matrix = pet::Image::ones(vbox).data;
     // TODO: noise
@@ -59,7 +81,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Perform MLEM iterations
     for (n, image) in (pet::Image::mlem(vbox, &measured_lors, &sensitivity_matrix, &noise))
-        .take(Cli::from_args().n)
+        .take(args.iterations)
         .enumerate() {
         report_time("iteration");
         let data: ndarray::Array3<F> = image.data;
