@@ -3,16 +3,13 @@ use serde::{Serialize, Deserialize};
 
 use crate::weights as pet;
 
-type F = pet::Length;
-
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Event {
     event_id: usize,
-    true_r1: F, true_phi1: F, true_z1: F, true_t1: F,
-    true_r2: F, true_phi2: F, true_z2: F, true_t2: F,
-    reco_r1: F, reco_phi1: F, reco_z1: F,
-    reco_r2: F, reco_phi2: F, reco_z2: F,
+    true_r1: f32, true_phi1: f32, true_z1: f32, true_t1: f32,
+    true_r2: f32, true_phi2: f32, true_z2: f32, true_t2: f32,
+    reco_r1: f32, reco_phi1: f32, reco_z1: f32,
+    reco_r2: f32, reco_phi2: f32, reco_z2: f32,
 }
 
     fn event_to_lor(
@@ -28,9 +25,9 @@ struct Event {
     let y2 = r2 * phi2.sin();
     let t2 = t2 * 1000.0; // turn into picoseconds
 
-    pet::LOR::new(t1, t2,
-                  pet::Point::new(x1, y1, z1),
-                  pet::Point::new(x2, y2, z2),
+    pet::LOR::new(t1.into(), t2.into(),
+                  pet::Point::new(x1.into(), y1.into(), z1.into()),
+                  pet::Point::new(x2.into(), y2.into(), z2.into()),
     )
 
 }

@@ -34,10 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         now = Instant::now();
     };
 
-    #[cfg(not(feature = "f64"))]
     let filename = "run_fastfastmc_1M_events.bin32";
-    #[cfg    (feature = "f64") ]
-    let filename = "run_fastfastmc_1M_events.bin64";
 
     let measured_lors = petalo::io::read_lors(filename)?;
     report_time("read bin");
