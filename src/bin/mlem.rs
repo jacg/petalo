@@ -25,8 +25,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Float precision: {} bits", petalo::weights::PRECISION);
 
+    // Set up progress reporting and timing
     use std::time::Instant;
-
     let mut now = Instant::now();
 
     let mut report_time = |message| {
@@ -34,11 +34,22 @@ fn main() -> Result<(), Box<dyn Error>> {
         now = Instant::now();
     };
 
+    // If LOR data file not present, download it.
     let filename = "run_fastfastmc_1M_events.bin32";
+    if !std::path::Path::new(&filename).exists() {
+        println!("Fetching data file containing LORs: It will be saved as '{}'.", filename);
+        let wget = std::process::Command::new("wget")
+            .args(&["https://gateway.pinata.cloud/ipfs/QmQN54iQZWtkcJ24T3NHZ78d9dKkpbymdpP5sfvHo628S2/run_fastfastmc_1M_events.bin32"])
+            .output()?;
+        println!("wget status: {}", wget.status);
+        report_time("Downloaded LOR data");
+    }
 
+    // Read event data from disk into memory
     let measured_lors = petalo::io::read_lors(filename)?;
-    report_time("read bin");
+    report_time("Loaded LOR data from local disk");
 
+    // Define extent and granularity of voxels
     let vbox = pet::VoxelBox::new((90.0, 90.0, 90.0), (60, 60, 60));
 
     // TODO: sensitivity matrix, all ones for now
@@ -46,6 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // TODO: noise
     let noise = pet::Noise;
 
+    // Perform MLEM iterations
     for (n, image) in (pet::Image::mlem(vbox, &measured_lors, &sensitivity_matrix, &noise))
         .take(Cli::from_args().n)
         .enumerate() {

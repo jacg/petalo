@@ -83,6 +83,8 @@ let
     (darwin darwin-frameworks.AppKit)
     (darwin darwin-frameworks.CoreText)
 
+    # Downoad LOR data file
+    pkgs.wget
   ];
 in
 pkgs.stdenv.mkDerivation {
