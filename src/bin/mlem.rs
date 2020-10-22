@@ -41,6 +41,8 @@ type F = pet::Length;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
+    let args = Cli::from_args();
+
     println!("Float precision: {} bits", petalo::weights::PRECISION);
 
     // Set up progress reporting and timing
@@ -67,7 +69,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let measured_lors = petalo::io::read_lors(filename)?;
     report_time("Loaded LOR data from local disk");
 
-    let args = Cli::from_args();
     // Define extent and granularity of voxels
     let vbox;
     {
