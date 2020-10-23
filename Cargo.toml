@@ -1,5 +1,5 @@
 [workspace]
-members = ["cffi"]
+members = ["mlem"]
 
 [package]
 name = "petalo"

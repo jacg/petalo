@@ -208,10 +208,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed67cbde08356238e75fc4656be4749481eeffb09e19f320a25237d5221c985d"
 
 [[package]]
-name = "cffi"
-version = "0.1.0"
-
-[[package]]
 name = "cfg-if"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1033,6 +1029,10 @@ dependencies = [
  "adler",
  "autocfg 1.0.1",
 ]
+
+[[package]]
+name = "mlem"
+version = "0.1.0"
 
 [[package]]
 name = "nalgebra"
