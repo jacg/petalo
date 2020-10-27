@@ -3,7 +3,7 @@
 # commit that passes all the tests for any release. Unless there is an
 # overriding reason, pick the latest stable NixOS release, at the time of
 # writing this is nixos-20.09.
-{ nixpkgs-commit-id ? "7badbf18c45b7490d893452beb8950d966327831" # nixos-20.09 on 2020-10-07
+{ nixpkgs-commit-id ? "95d26c9a9f2a102e25cf318a648de44537f42e09" # nixos-20.09 on 2020-10-24
 , py ? "38" # To override the default python version:  nix-shell shell.nix --argstr py 37
 }:
 let
@@ -76,7 +76,7 @@ let
 
     # python
     pypkgs.cffi
-    #pypkgs.jupyter
+    pypkgs.jupyter
     pypkgs.matplotlib
 
     # Needed for compilation to succeed on Macs
