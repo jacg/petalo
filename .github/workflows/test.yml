@@ -1,0 +1,29 @@
+name: Build and Test
+on:
+  pull_request:
+  push:
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.allow-fail }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-10.15]
+        py: [38]
+        allow-fail: [false]
+        include:
+          - os: ubuntu-latest
+            py: 39
+            allow-fail: true
+          - os: macos-10.15
+            py: 39
+            allow-fail: true
+    steps:
+      - uses: actions/checkout@v2
+      - uses: cachix/install-nix-action@v11
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - uses: Swatinem/rust-cache@v1
+      - run: nix-shell --argstr py ${{ matrix.py }}
+      - run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test"
