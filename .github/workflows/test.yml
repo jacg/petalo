@@ -26,5 +26,4 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
       - run: nix-shell
-      - run: cargo check
       - run: cargo test
