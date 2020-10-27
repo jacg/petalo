@@ -24,7 +24,7 @@ jobs:
       - name: Cache install Nix packages
         uses: nix-actions/cache-install@v1.0.6
         with:
-          key: nix-${{ hashFiles('shell.nix') }}
+          key: nix-${{ runner.os }}-${{ hashFiles('shell.nix') }}
           nix_file: 'shell.nix'
       - uses: Swatinem/rust-cache@v1
       - run: nix-shell --argstr py ${{ matrix.py }}
