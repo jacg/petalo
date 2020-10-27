@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-10.15]
-        py: [37, 38]
+        py: [38]
         allow-fail: [false]
         include:
           - os: ubuntu-latest
