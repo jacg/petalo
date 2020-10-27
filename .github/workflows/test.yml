@@ -14,16 +14,6 @@ jobs:
       - uses: cachix/install-nix-action@v11
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - name: Cache cargo registry
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-cargo-registry
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+      - uses: Swatinem/rust-cache@v1
       - run: nix-shell
       - run: cargo test
