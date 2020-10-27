@@ -76,7 +76,7 @@ let
 
     # python
     pypkgs.cffi
-    #pypkgs.jupyter
+    pypkgs.jupyter
     pypkgs.matplotlib
 
     # Needed for compilation to succeed on Macs
