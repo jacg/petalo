@@ -5,11 +5,17 @@ on:
 jobs:
   build-and-test:
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.allow-fail }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-10.15]
-        py: [37, 38, 39]
+        py: [37, 38]
+        allow-fail: [false]
+        include:
+          - os: ubuntu-latest
+            py: 39
+            allow-fail: true
     steps:
       - uses: actions/checkout@v2
       - uses: cachix/install-nix-action@v11
