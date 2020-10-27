@@ -16,6 +16,9 @@ jobs:
           - os: ubuntu-latest
             py: 39
             allow-fail: true
+          - os: macos-10.15
+            py: 39
+            allow-fail: true
     steps:
       - uses: actions/checkout@v2
       - uses: cachix/install-nix-action@v11
