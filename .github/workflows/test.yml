@@ -16,4 +16,4 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
       - uses: Swatinem/rust-cache@v1
       - run: nix-shell
-      - run: cargo test
+      - run: nix-shell --run "cargo test"
