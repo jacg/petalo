@@ -67,10 +67,8 @@ pub fn read_bin<'a>(path: &std::path::PathBuf) -> IORes<impl Iterator<Item = IOR
         use std::io::ErrorKind::UnexpectedEof;
         match file.read_exact(&mut buffer) {
             Ok(()) => Some(Ok(f32::from_be_bytes(buffer))),
-            Err(error) => match error.kind() {
-                UnexpectedEof => None,
-                _ => return Some(Err(error)),
-            }
+            Err(e) if e.kind() == UnexpectedEof => None,
+            Err(e) => return Some(Err(e)),
         }
     }))
 }
