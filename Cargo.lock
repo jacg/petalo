@@ -1342,6 +1342,7 @@ dependencies = [
  "rstest",
  "serde",
  "structopt",
+ "tempfile",
 ]
 
 [[package]]

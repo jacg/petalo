@@ -43,3 +43,53 @@ pub fn read_lors(filename: &str) -> Result<Vec<pet::LOR>, Box<dyn Error>> {
     }
     Ok(measured_lors)
 }
+
+// ----------- read/write float arrays as raw binary --------------------------
+use std::fs::File;
+use std::io::{Write, Read};
+
+pub fn write_bin(data: &Vec<f32>, path: &std::path::PathBuf) -> std::io::Result<()> {
+    let mut file = File::create(path)?;
+    for datum in data {
+        let bytes = datum.to_be_bytes();
+        file.write(&bytes)?;
+    }
+    Ok(())
+}
+
+pub fn read_bin(path: &std::path::PathBuf) -> std::io::Result<Vec<f32>> {
+    let mut file = File::open(path)?;
+    let mut data = Vec::new();
+    let mut buffer = [0; 4];
+    loop {
+        use std::io::ErrorKind::UnexpectedEof;
+        match file.read_exact(&mut buffer) {
+            Ok(()) => data.push(f32::from_be_bytes(buffer)),
+            Err(error) => match error.kind() {
+                UnexpectedEof => break,
+                _ => return Err(error),
+            }
+        }
+    }
+    Ok(data)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn bin_iter() -> std::io::Result<()> {
+        use tempfile::tempdir;
+        #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
+
+        let dir = tempdir()?;
+
+        let file_path = dir.path().join("test.bin");
+        let original_data = vec![1.23, 4.56, 7.89];
+        write_bin(&original_data, &file_path)?;
+        let reloaded_data = read_bin(&file_path)?;
+        assert_eq!(original_data, reloaded_data);
+        Ok(())
+    }
+}
