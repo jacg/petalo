@@ -78,18 +78,26 @@ mod test {
     use super::*;
 
     #[test]
-    fn bin_iter() -> std::io::Result<()> {
+    fn bin_io_roundtrip() -> std::io::Result<()> {
         use tempfile::tempdir;
         #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
 
+        // Harmless temporary location for output file
         let dir = tempdir()?;
-
         let file_path = dir.path().join("test.bin");
-        let /*mut*/ original_data = vec![1.23, 4.56, 7.89];
+
+        // Some test data
+        let original_data = vec![1.23, 4.56, 7.89];
+
+        // Write data to file
         write_bin(original_data.iter(), &file_path)?;
-        //original_data[1] = 666.66;
-        let reloaded_data: Result<Vec<f32>, _> = read_bin(&file_path)?.collect();
-        assert_eq!(original_data, reloaded_data.unwrap());
+
+        // Read data back from file
+        let reloaded_data: Vec<_> = read_bin(&file_path)?
+            .collect::<Result<_, _>>()?;
+
+        // Check that roundtrip didn't corrupt the data
+        assert_eq!(original_data, reloaded_data);
         Ok(())
     }
 }
