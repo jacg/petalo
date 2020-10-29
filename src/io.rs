@@ -48,7 +48,7 @@ pub fn read_lors(filename: &str) -> Result<Vec<pet::LOR>, Box<dyn Error>> {
 use std::fs::File;
 use std::io::{Write, Read};
 
-pub fn write_bin(data: &Vec<f32>, path: &std::path::PathBuf) -> std::io::Result<()> {
+pub fn write_bin<'a>(data: impl Iterator<Item = &'a f32>, path: &std::path::PathBuf) -> std::io::Result<()> {
     let mut file = File::create(path)?;
     for datum in data {
         let bytes = datum.to_be_bytes();
@@ -57,21 +57,22 @@ pub fn write_bin(data: &Vec<f32>, path: &std::path::PathBuf) -> std::io::Result<
     Ok(())
 }
 
-pub fn read_bin(path: &std::path::PathBuf) -> std::io::Result<Vec<f32>> {
+type IORes<T> = std::io::Result<T>;
+
+pub fn read_bin<'a>(path: &std::path::PathBuf) -> IORes<impl Iterator<Item = IORes<f32>> + 'a> {
     let mut file = File::open(path)?;
-    let mut data = Vec::new();
     let mut buffer = [0; 4];
-    loop {
+
+    Ok(std::iter::from_fn(move || {
         use std::io::ErrorKind::UnexpectedEof;
         match file.read_exact(&mut buffer) {
-            Ok(()) => data.push(f32::from_be_bytes(buffer)),
+            Ok(()) => Some(Ok(f32::from_be_bytes(buffer))),
             Err(error) => match error.kind() {
-                UnexpectedEof => break,
-                _ => return Err(error),
+                UnexpectedEof => None,
+                _ => return Some(Err(error)),
             }
         }
-    }
-    Ok(data)
+    }))
 }
 
 #[cfg(test)]
@@ -86,10 +87,11 @@ mod test {
         let dir = tempdir()?;
 
         let file_path = dir.path().join("test.bin");
-        let original_data = vec![1.23, 4.56, 7.89];
-        write_bin(&original_data, &file_path)?;
-        let reloaded_data = read_bin(&file_path)?;
-        assert_eq!(original_data, reloaded_data);
+        let /*mut*/ original_data = vec![1.23, 4.56, 7.89];
+        write_bin(original_data.iter(), &file_path)?;
+        //original_data[1] = 666.66;
+        let reloaded_data: Result<Vec<f32>, _> = read_bin(&file_path)?.collect();
+        assert_eq!(original_data, reloaded_data.unwrap());
         Ok(())
     }
 }
