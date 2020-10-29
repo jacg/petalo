@@ -51,7 +51,7 @@ use std::io::{Write, Read};
 pub fn write_bin<'a>(data: impl Iterator<Item = &'a f32>, path: &std::path::PathBuf) -> std::io::Result<()> {
     let mut file = File::create(path)?;
     for datum in data {
-        let bytes = datum.to_be_bytes();
+        let bytes = datum.to_le_bytes();
         file.write(&bytes)?;
     }
     Ok(())
@@ -66,7 +66,7 @@ pub fn read_bin<'a>(path: &std::path::PathBuf) -> IORes<impl Iterator<Item = IOR
     Ok(std::iter::from_fn(move || {
         use std::io::ErrorKind::UnexpectedEof;
         match file.read_exact(&mut buffer) {
-            Ok(()) => Some(Ok(f32::from_be_bytes(buffer))),
+            Ok(()) => Some(Ok(f32::from_le_bytes(buffer))),
             Err(e) if e.kind() == UnexpectedEof => None,
             Err(e) => return Some(Err(e)),
         }
