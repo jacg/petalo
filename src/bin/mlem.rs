@@ -84,58 +84,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     for (n, image) in (pet::Image::mlem(vbox, &measured_lors, &sensitivity_matrix, &noise))
         .take(args.iterations)
         .enumerate() {
-        report_time("iteration");
-        let data: ndarray::Array3<F> = image.data;
-        plotit(&data, n)?;
-        report_time("Plotted");
-        // TODO: step_by for print every
-    }
-
-
-    Ok(())
-}
-
-use plotters::prelude::*;
-
-
-fn plotit(image: &ndarray::Array3<F>, n: usize) -> Result<(), Box<dyn std::error::Error>> {
-
-    let slice = image.slice(s![.., .., 29]);
-    let size = slice.shape();
-    let (nx, ny) = (size[0], size[0]);
-    let max = image.fold(0.0, |a:F,b| a.max(*b));
-
-    let filename = format!("images/deleteme{:03}.{}.png", n, pet::PRECISION);
-    let root = BitMapBackend::new(&filename, (nx as u32, ny as u32)).into_drawing_area();
-
-    root.fill(&WHITE)?;
-
-
-    let mut chart = ChartBuilder::on(&root)
-        .build_cartesian_2d(0..nx, 0..ny)?;
-
-    chart
-        .configure_mesh()
-        .disable_x_mesh()
-        .disable_y_mesh()
-        .draw()?;
-
-    chart.draw_series(
-        slice
-            .indexed_iter()
-            .map(|((x,y), v)| {
-                let f = *v / max;
-                Rectangle::new(
-                    [(x, y), (x + 1, y + 1)],
-                    HSLColor(
-                        (0.8 - 0.6 * f).into(),
-                        0.7,
-                        (0.1 + 0.9 * f).into(),
-                    )
-                        .filled(),
-                )
-            }),
-    )?;
+            report_time("iteration");
+            let data: ndarray::Array3<F> = image.data;
+            let path = std::path::PathBuf::from(format!("raw_data/deleteme{:03}.raw", n));
+            petalo::io::write_bin(data.iter(), &path)?;
+            report_time("Wrote raw bin");
+            // TODO: step_by for print every
+        }
 
     Ok(())
 }
