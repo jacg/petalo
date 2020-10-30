@@ -48,13 +48,13 @@ impl Scene {
         let z_axis_lo = Point3::new(  0.0,  0.0,-bdz) * 1.5;
         let z_axis_hi = Point3::new(  0.0,  0.0, bdz) * 1.5;
         let x_axis_colour = Point3::new(1.0, 0.0, 0.0);
-        let y_axis_colour = Point3::new(1.0, 1.0, 0.0);
+        let y_axis_colour = Point3::new(0.0, 1.0, 0.0);
         let z_axis_colour = Point3::new(0.0, 0.0, 1.0);
 
         // LOR line
         let p1_f32 = Point3::new(lor.p1.x as f32, lor.p1.y as f32, lor.p1.z as f32);
         let p2_f32 = Point3::new(lor.p2.x as f32, lor.p2.y as f32, lor.p2.z as f32);
-        let lor_colour = Point3::new(0.0, 1.0, 0.0);
+        let lor_colour = Point3::new(1.0, 1.0, 0.0);
 
         // VoxelBox frame
         let w = vbox.half_width;
