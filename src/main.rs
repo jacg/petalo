@@ -4,7 +4,7 @@ use structopt::StructOpt;
 use petalo::weights::{Point, VoxelBox, Length, LOR};
 use petalo::visualize::{lor_weights, Shape};
 
-use petalo::utils::parse_triplet;
+use petalo::utils::{parse_triplet, parse_lor};
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -16,10 +16,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let vbox = VoxelBox::new(size, nvox);
     println!("vbox: {:?}", vbox);
 
-    let lor = if let Some(file) = args.file {
-        petalo::io::read_lors(file)?[args.event]
+    // LOR on CLI overrides reading LOR from file.
+    let lor = if let Some(l) = args.lor {
+        l
     } else {
-        *DEFAULT_LOR
+        if let Some(file) = args.file {
+            petalo::io::read_lors(file)?[args.event]
+        } else {
+            *DEFAULT_LOR
+        }
     };
 
     lor_weights(lor, vbox, args.shape, args.threshold, args.sigma);
@@ -67,10 +72,14 @@ pub struct Cli {
 
     /// Dimensions of voxel box in mm
     #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "180,180,180")]
-    pub vbox_size: (Length, Length, Length),
+    vbox_size: (Length, Length, Length),
 
     /// Dimensions of voxel box in voxels
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
-    pub nvoxels: (usize, usize, usize),
+    nvoxels: (usize, usize, usize),
+
+    /// LOR to visualize: 't1 t2   x1 y1 z1   x2 y2 z2'
+    #[structopt(short, long, parse(try_from_str = parse_lor))]
+    lor: Option<LOR>,
 
 }

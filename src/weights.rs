@@ -617,7 +617,7 @@ pub fn gaussian(sigma: Length, lor: &LOR, vbox: &VoxelBox) -> Box<dyn FnMut (Ind
 }
 
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct LOR {
     pub p1: Point,
     pub p2: Point,
