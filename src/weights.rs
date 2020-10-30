@@ -632,8 +632,8 @@ mod test_gaussian {
         // As one of the TOFs is reduced by this amount, while the other is
         // increased by the same amount, the total difference between the
         // arrival times, differs by 2 times delta_t.
-        let t1 = 1234.5678;
-        let t2 = t1 + 2.0 * delta_t;
+        let t1 = 1234.5678; // arbitrary choice
+        let t2 = t1 + 2.0 * delta_t; // it's the difference that matters
 
         // LOR parallel to x-axis: all voxels will have identical weights,
         // before taking TOF into consideration.
@@ -669,6 +669,11 @@ mod test_gaussian {
             [0];
 
         assert_eq!(expected_voxel_x_index, actual_voxel_x_index);
+
+        // Values to plug in to visualizer (only show when test fails)
+
+        println!("\nTo visualize this case, run:");
+        println!("{}\n", crate::visualize::cli_arg_to_visualize(&vbox, &lor));
 
     }
 
