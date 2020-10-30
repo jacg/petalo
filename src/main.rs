@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         args.lor
     };
 
-    lor_weights(lor, vbox, args.shape, args.threshold, args.tof.map(|x| x / 2.355));
+    lor_weights(lor, vbox, args.shape, args.threshold, args.sigma);
 
     Ok(())
 }
@@ -34,9 +34,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[structopt(name = "petalo", about = "Visualize LOR interaction with voxels")]
 pub struct Cli {
 
-    /// TOF resolution (FWHM) in ps. If not sepcified, TOF is ignored.
+    /// TOF sensitivity (sigma in ps). If not sepcified, TOF is ignored.
     #[structopt(short = "r", long)]
-    tof: Option<Length>,
+    sigma: Option<Length>,
 
     /// Ignore voxels with weight below this threshold.
     #[structopt(short, long)]

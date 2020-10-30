@@ -19,7 +19,7 @@ pub struct Cli {
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
     pub n_voxels: (usize, usize, usize),
 
-    /// TOF resolution (FWHM) in ps. If not sepcified, TOF is ignored.
+    /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored
     #[structopt(short = "r", long)]
     pub tof: Option<pet::Time>,
 
@@ -72,11 +72,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // TODO: noise
     let noise = pet::Noise;
 
-    // Convert FWHM into sigma
-    let sigma = args.tof.map(|x| x / 2.335);
-
     // Perform MLEM iterations
-    for (n, image) in (pet::Image::mlem(vbox, &measured_lors, sigma, &sensitivity_matrix, &noise))
+    for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, &sensitivity_matrix, &noise))
         .take(args.iterations)
         .enumerate() {
             report_time("iteration");
