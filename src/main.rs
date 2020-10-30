@@ -1,7 +1,7 @@
 use std::error::Error;
 use structopt::StructOpt;
 
-use petalo::weights::{Point, VoxelBox, Length, LOR};
+use petalo::weights::{VoxelBox, Length, LOR};
 use petalo::visualize::{lor_weights, Shape};
 
 use petalo::utils::{parse_triplet, parse_lor};
@@ -16,32 +16,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     let vbox = VoxelBox::new(size, nvox);
     println!("vbox: {:?}", vbox);
 
-    // LOR on CLI overrides reading LOR from file.
-    let lor = if let Some(l) = args.lor {
-        l
+    // TODO: reading LOR from file overrides CLI lor: make them mutually
+    // exclusive.
+    let lor = if let Some(file) = args.file {
+        petalo::io::read_lors(file)?[args.event]
     } else {
-        if let Some(file) = args.file {
-            petalo::io::read_lors(file)?[args.event]
-        } else {
-            *DEFAULT_LOR
-        }
+        args.lor
     };
 
     lor_weights(lor, vbox, args.shape, args.threshold, args.tof.map(|x| x / 2.355));
 
     Ok(())
-}
-
-#[macro_use]
-extern crate lazy_static;
-
-lazy_static! {
-    static ref DEFAULT_LOR: LOR = LOR {
-        t1: 10.00,
-        t2: 10.03,
-        p1: Point::new(242.73334, 0.0, 95.23425),
-        p2: Point::new(-236.53258, -54.5143, -94.40064),
-    };
 }
 
 
@@ -79,7 +64,7 @@ pub struct Cli {
     nvoxels: (usize, usize, usize),
 
     /// LOR to visualize: 't1 t2   x1 y1 z1   x2 y2 z2' (t: ps, xyz: mm)
-    #[structopt(short, long, parse(try_from_str = parse_lor))]
-    lor: Option<LOR>,
+    #[structopt(short, long, parse(try_from_str = parse_lor), default_value = "0 10  -100 20 -90  100 60 10")]
+    lor: LOR,
 
 }
