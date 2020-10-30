@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    lor_weights(lor, vbox, args.shape, args.threshold, args.sigma);
+    lor_weights(lor, vbox, args.shape, args.threshold, args.tof.map(|x| x / 2.355));
 
     Ok(())
 }
@@ -49,9 +49,9 @@ lazy_static! {
 #[structopt(name = "petalo", about = "Visualize LOR interaction with voxels")]
 pub struct Cli {
 
-    /// TOF sensitivity. If not sepcified, no TOF correction is performed.
-    #[structopt(short, long)]
-    sigma: Option<Length>,
+    /// TOF resolution (FWHM) in ps. If not sepcified, TOF is ignored.
+    #[structopt(short = "r", long)]
+    tof: Option<Length>,
 
     /// Ignore voxels with weight below this threshold.
     #[structopt(short, long)]
