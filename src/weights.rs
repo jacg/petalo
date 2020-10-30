@@ -228,18 +228,18 @@ mod test {
     //    expected total length of LOR in the whole voxel box.
     //
     // 2. The indices of the voxels traversed by the LOR are as expected.
-    #[rstest(/**/         p1        ,    p2       ,    size   ,   n  ,  length  , expected_voxels,
+    #[rstest(/**/      p1       ,      p2      ,    size     ,  n   ,  length  , expected_voxels,
              // symmetric 3x3, diagonal LOR under all four axis flip combinations
-             case((-30.0, -30.0), ( 30.0, 30.0), (5.0, 5.0), (3,3), 14.142135, vec![(0,0), (1,1), (2,2)]),
-             case(( 30.0, -30.0), (-30.0, 30.0), (5.0, 5.0), (3,3), 14.142135, vec![(2,0), (1,1), (0,2)]),
-             case((-30.0,  30.0), ( 30.0,-30.0), (5.0, 5.0), (3,3), 14.142135, vec![(0,2), (1,1), (2,0)]),
-             case(( 30.0,  30.0), (-30.0,-30.0), (5.0, 5.0), (3,3), 14.142135, vec![(2,2), (1,1), (0,0)]),
+             case((-30.0, -30.0), ( 30.0, 30.0), (10.0, 10.0), (3,3), 14.142135, vec![(0,0), (1,1), (2,2)]),
+             case(( 30.0, -30.0), (-30.0, 30.0), (10.0, 10.0), (3,3), 14.142135, vec![(2,0), (1,1), (0,2)]),
+             case((-30.0,  30.0), ( 30.0,-30.0), (10.0, 10.0), (3,3), 14.142135, vec![(0,2), (1,1), (2,0)]),
+             case(( 30.0,  30.0), (-30.0,-30.0), (10.0, 10.0), (3,3), 14.142135, vec![(2,2), (1,1), (0,0)]),
              // like case 1, but with asymmetric voxels
-             case((-30.0, -30.0), ( 30.0, 30.0), (5.0, 5.0), (3,2), 14.142135, vec![(0,0), (1,0), (1,1), (2,1)]),
-             case((-30.0, -30.0), ( 30.0, 30.0), (5.0, 5.0), (2,3), 14.142135, vec![(0,0), (0,1), (1,1), (1,2)]),
+             case((-30.0, -30.0), ( 30.0, 30.0), (10.0, 10.0), (3,2), 14.142135, vec![(0,0), (1,0), (1,1), (2,1)]),
+             case((-30.0, -30.0), ( 30.0, 30.0), (10.0, 10.0), (2,3), 14.142135, vec![(0,0), (0,1), (1,1), (1,2)]),
              // vertical / horizontal off-centre LOR
-             case((  5.4, -20.0), (  5.4, 10.0), (5.5, 4.5), (9,4),  9.0     , vec![(8,0), (8,1), (8,2), (8,3)]),
-             case((-15.0,  -4.0), ( 15.0, -4.0), (4.0, 5.0), (4,3),  8.0     , vec![(0,0), (1,0), (2,0), (3,0)]),
+             case((  5.4, -20.0), (  5.4, 10.0), (11.0,  9.0), (9,4),  9.0     , vec![(8,0), (8,1), (8,2), (8,3)]),
+             case((-15.0,  -4.0), ( 15.0, -4.0), ( 8.0, 10.0), (4,3),  8.0     , vec![(0,0), (1,0), (2,0), (3,0)]),
     )]
     fn hand_picked(p1:   (Length, Length),
                    p2:   (Length, Length),
@@ -350,29 +350,33 @@ impl core::ops::Index<Index3> for Image {
 #[allow(nonstandard_style)]
 impl Image {
 
-    pub fn mlem<'a>(vbox: VoxelBox, measured_lors: &'a Vec<LOR>, S: &'a ImageData, noise: &'a Noise) ->  impl Iterator<Item = Image> + 'a {
+    pub fn mlem<'a>(vbox: VoxelBox,
+                    measured_lors: &'a Vec<LOR>,
+                    sigma        :     Option<Time>,
+                    S            : &'a ImageData,
+                    noise        : &'a Noise,
+    ) -> impl Iterator<Item = Image> + 'a {
 
         // Start off with a uniform image
         let mut image = Self::ones(vbox.clone());
 
+        // Return an iterator which generates an infinite sequence of images,
+        // each one made by performing one MLEM iteration on the previous one
         std::iter::from_fn(move || {
-            image.one_iteration(measured_lors, S, noise);
+            image.one_iteration(measured_lors, S, sigma, noise);
             Some(image.clone()) // TODO see if we can sensibly avoid cloning
         })
     }
 
-    fn one_iteration(&mut self, measured_lors: &Vec<LOR>, S: &ImageData, noise: &Noise) {
-        let BP = self.backproject(measured_lors, noise);
+    fn one_iteration(&mut self, measured_lors: &Vec<LOR>, S: &ImageData, sigma: Option<Time>, noise: &Noise) {
+        let BP = self.backproject(measured_lors, sigma, noise);
         azip!((voxel in &mut self.data, &b in &BP, &s in S) {
             if s > 0.0 { *voxel *= b / s }
             else       { *voxel  = 0.0   }
         })
     }
 
-    fn backproject<'a>(&'a self, measured_lors: &Vec<LOR>, noise: &Noise) -> ImageData {
-
-        // TODO: tof sigma
-        let sigma = None;
+    fn backproject<'a>(&'a self, measured_lors: &Vec<LOR>, sigma: Option<Time>, noise: &Noise) -> ImageData {
 
         // Accumulator for all backprojection contributions in this iteration
         let mut BP = self.zeros_buffer();
@@ -435,10 +439,13 @@ pub struct VoxelBox {
 
 impl VoxelBox {
 
-    pub fn new((dx, dy, dz): (Length, Length, Length), (nx, ny, nz): (usize, usize, usize)) -> Self {
-        let half_width = Vector::new(dx, dy, dz);
+    pub fn new(
+        (dx, dy, dz): (Length, Length, Length),
+        (nx, ny, nz): (usize, usize, usize)
+    ) -> Self {
+        let half_width = Vector::new(dx/2.0, dy/2.0, dz/2.0);
         let n = [nx, ny, nz];
-        let voxel_size =  Self::voxel_size(n, half_width);
+        let voxel_size = Self::voxel_size(n, half_width);
             Self { half_width, n, voxel_size, }
     }
 

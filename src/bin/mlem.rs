@@ -1,6 +1,8 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
+use petalo::utils::parse_triplet;
+
 #[derive(StructOpt, Debug)]
 #[structopt(name = "mlem", about = "TODO: describe what this does")]
 pub struct Cli {
@@ -9,7 +11,7 @@ pub struct Cli {
     #[structopt(short, long, default_value = "5")]
     iterations: usize,
 
-    /// Voxel box half-widths
+    /// Voxel box full-widths in mm
     #[structopt(short, long, parse(try_from_str = parse_triplet::<F>), default_value = "180,180,180")]
     pub size: (F, F, F),
 
@@ -17,22 +19,16 @@ pub struct Cli {
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
     pub n_voxels: (usize, usize, usize),
 
-}
+    /// TOF XXXX
+    #[structopt(short, long)]
+    pub tof: Option<pet::Time>,
 
-fn parse_triplet<T: std::str::FromStr>(s: &str) -> Result<(T,T,T), <T as std::str::FromStr>::Err> {
-    let v = s.split(",").collect::<Vec<_>>();
-    assert!(v.len() == 3);
-    let x = v[0].parse()?;
-    let y = v[1].parse()?;
-    let z = v[2].parse()?;
-    Ok((x, y, z))
 }
 
 // --------------------------------------------------------------------------------
 
 use std::error::Error;
-
-use ndarray::prelude::*;
+use std::path::PathBuf;
 
 use petalo::weights as pet;
 
@@ -66,27 +62,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Read event data from disk into memory
-    let measured_lors = petalo::io::read_lors(filename)?;
+    let measured_lors = petalo::io::read_lors(PathBuf::from(filename))?;
     report_time("Loaded LOR data from local disk");
 
     // Define extent and granularity of voxels
-    let vbox;
-    {
-        let size = (args.size.0 / 2.0, args.size.1 / 2.0, args.size.2 / 2.0);
-        vbox = pet::VoxelBox::new(size, args.n_voxels);
-    }
+    let vbox = pet::VoxelBox::new(args.size, args.n_voxels);
     // TODO: sensitivity matrix, all ones for now
     let sensitivity_matrix = pet::Image::ones(vbox).data;
     // TODO: noise
     let noise = pet::Noise;
 
     // Perform MLEM iterations
-    for (n, image) in (pet::Image::mlem(vbox, &measured_lors, &sensitivity_matrix, &noise))
+    for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, &sensitivity_matrix, &noise))
         .take(args.iterations)
         .enumerate() {
             report_time("iteration");
             let data: ndarray::Array3<F> = image.data;
-            let path = std::path::PathBuf::from(format!("raw_data/deleteme{:03}.raw", n));
+            let path = PathBuf::from(format!("raw_data/deleteme{:03}.raw", n));
             petalo::io::write_bin(data.iter(), &path)?;
             report_time("Wrote raw bin");
             // TODO: step_by for print every

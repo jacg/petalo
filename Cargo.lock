@@ -1080,6 +1080,7 @@ dependencies = [
  "bincode",
  "hdf5",
  "kiss3d",
+ "lazy_static",
  "nalgebra",
  "ncollide3d",
  "ndarray",

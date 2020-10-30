@@ -1,4 +1,6 @@
 use std::error::Error;
+use std::path::PathBuf;
+
 use serde::{Serialize, Deserialize};
 
 use crate::weights as pet;
@@ -32,7 +34,7 @@ struct Event {
 
 }
 
-pub fn read_lors(filename: &str) -> Result<Vec<pet::LOR>, Box<dyn Error>> {
+pub fn read_lors(filename: PathBuf) -> Result<Vec<pet::LOR>, Box<dyn Error>> {
     let mut measured_lors = vec![];
     {
         let mut file = std::io::BufReader::new(std::fs::File::open(filename)?);

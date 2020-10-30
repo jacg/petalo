@@ -1,6 +1,3 @@
-use structopt::StructOpt;
-use structopt::clap::arg_enum;
-
 use kiss3d;
 use nalgebra as na;
 
@@ -11,37 +8,19 @@ use kiss3d::scene::{SceneNode};
 use kiss3d::camera::{ArcBall};
 use na::{Point3, Translation3};
 
-use crate::weights::{Length, Time, Point, VoxelBox, Index3, LOR};
+use crate::weights::{Length, VoxelBox, Index3, LOR};
+
+use structopt::clap::arg_enum;
 
 arg_enum! {
     #[derive(Debug)]
-    enum Shape {
+    pub enum Shape {
         Box,
         Ball
     }
 }
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "petalo", about = "3d PET reconstruction with TOF")]
-pub struct Cli {
-
-    /// Apply TOF correction with given sensitivity. If not sepcified, no TOF
-    /// correction is performed.
-    #[structopt(short, long)]
-    sigma: Option<Length>,
-
-    /// Ignore voxels with weight below this threshold.
-    #[structopt(short, long)]
-    threshold: Option<Length>,
-
-    /// How to represent voxels. BOX is better for viewing the geometric
-    /// weights; BALL is better for viewing TOF weights.
-    #[structopt(possible_values = &Shape::variants(), case_insensitive = true, default_value = "box")]
-    shape: Shape,
-
-}
-
-struct Scene {
+pub struct Scene {
     // Graphical state
     window: Window,
     voxels: Vec<SceneNode>,
@@ -55,7 +34,7 @@ struct Scene {
 }
 
 impl Scene {
-    fn new(lor: LOR, vbox: VoxelBox) -> Self {
+    pub fn new(lor: LOR, vbox: VoxelBox) -> Self {
         let mut window = Window::new("LOR weights");
         window.set_light(Light::StickToCamera);
 
@@ -129,9 +108,9 @@ impl Scene {
         }
     }
 
-    fn place_voxels(&mut self, args: &Cli) {
+    pub fn place_voxels(&mut self, shape: Shape, threshold: Option<Length>, sigma: Option<Length>) {
 
-        let active_voxels = self.lor.active_voxels(&self.vbox, args.threshold, args.sigma)
+        let active_voxels = self.lor.active_voxels(&self.vbox, threshold, sigma)
             .collect::<std::collections::HashMap<Index3, Length>>();
 
         let &max_weight = active_voxels
@@ -154,7 +133,7 @@ impl Scene {
         let s = 0.99;
         for (i, weight) in active_voxels {
             let relative_weight = (weight / max_weight) as f32;
-            let mut v = match args.shape {
+            let mut v = match shape {
                 Shape::Box  => self.window.add_cube(vdx * s, vdy * s, vdy * s),
                 Shape::Ball => self.window.add_sphere(vdx.min(vdy).min(vdy) * relative_weight * 0.8),
             };
@@ -211,16 +190,11 @@ impl Scene {
                 }
             }
         }
-
     }
 }
 
-pub fn lor_weights(t1: Time, t2: Time, p1: Point, p2: Point, vbox: VoxelBox) {
-
-    let args = Cli::from_args();
-
-    let lor = LOR::new(t1, t2, p1, p2);
+pub fn lor_weights(lor: LOR, vbox: VoxelBox, shape: Shape, threshold: Option<Length>, sigma: Option<Length>) {
     let mut scene = Scene::new(lor, vbox);
-    scene.place_voxels(&args);
+    scene.place_voxels(shape, threshold, sigma);
     scene.main_loop();
 }

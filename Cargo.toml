@@ -11,6 +11,7 @@ edition = "2018"
 
 [dependencies]
 structopt = "0.3"
+lazy_static = "1.4"
 ndarray = { version = "0.13", features = ["rayon"] }
 rayon = "1.4"
 serde = { version = "1.0", features = ["derive"] }
