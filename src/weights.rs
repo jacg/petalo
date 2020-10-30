@@ -616,6 +616,66 @@ pub fn gaussian(sigma: Length, lor: &LOR, vbox: &VoxelBox) -> Box<dyn FnMut (Ind
     }
 }
 
+#[cfg(test)]
+mod test_gaussian {
+
+    use super::*;
+
+    #[test]
+    fn peak_shift() {
+
+        // Arbitrarily choose to shift the peak by 40.5 mm from the midpoint
+        let delta_x = 40.5;
+
+        // That distance reduces/increases the TOF to the nearer/farther LOR
+        // endpoints by delta_t = delta_x / c.
+        let delta_t = delta_x / c;
+
+        // As one of the TOFs is reduced by this amount, while the other is
+        // increased by the same amount, the total difference between the
+        // arrival times, differs by 2 times delta_t.
+        let t1 = 1234.5678;
+        let t2 = t1 + 2.0 * delta_t;
+
+        // LOR parallel to x-axis: all voxels will have identical weights,
+        // before taking TOF into consideration.
+        let p1 = Point::new(-110.0, 0.5, 0.5);
+        let p2 = Point::new( 110.0, 0.5, 0.5);
+
+        // Vbox with width 100 mm, one voxel per mm
+        let vbox = VoxelBox::new((100.0, 100.0, 100.0), (100, 100, 100));
+
+        // The peak is at x = -40.5 mm, which has x-index 9
+        let expected_voxel_x_index = 9;
+
+        let lor = LOR::new(t1, t2, p1, p2);
+
+        // The value of sigma isn't important here. Use a sharp peak to make
+        // debugging output easy to understand.
+        let sigma = 0.7;
+
+        let actual_voxel_x_index =
+        // Generate geometry-dependent (all equal) voxel weights
+            WeightsAlongLOR::new(p1, p2, &vbox)
+            // Adjust weights with gaussian TOF factor
+            .map(gaussian(sigma, &lor, &vbox))
+            // Show values: will be hidden if test succeeds
+            .inspect(|x| println!("{:?}", x))
+            // find the index-and-weight of the peak
+            .max_by(|&(_, wa), &(_, wb)|
+                    if wa > wb { std::cmp::Ordering::Greater}
+                    else       { std::cmp::Ordering::Less }).unwrap()
+            // Throw away the weight, keep index
+            .0
+            // extract x-component from 3d-index
+            [0];
+
+        assert_eq!(expected_voxel_x_index, actual_voxel_x_index);
+
+    }
+
+    // TODO: test width of peak
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct LOR {
