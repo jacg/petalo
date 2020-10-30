@@ -6,7 +6,7 @@ use ndarray::Array3;
 
 // TODO: have another go at getting nalgebra to work with uom.
 #[allow(nonstandard_style)]
-const c: Length = 2997.92458; // cm / ns
+const c: Length = 0.299792458; // mm / ps
 
 // TODO: no thought has been given to what should be public or private.
 

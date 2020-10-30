@@ -78,7 +78,7 @@ pub struct Cli {
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
     nvoxels: (usize, usize, usize),
 
-    /// LOR to visualize: 't1 t2   x1 y1 z1   x2 y2 z2'
+    /// LOR to visualize: 't1 t2   x1 y1 z1   x2 y2 z2' (t: ps, xyz: mm)
     #[structopt(short, long, parse(try_from_str = parse_lor))]
     lor: Option<LOR>,
 
