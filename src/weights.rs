@@ -302,11 +302,9 @@ mod test {
             let vbox = VoxelBox::new((dx, dy, dz), (nx, ny, nz));
 
             // Values to plug in to visualizer:
-            println!("let p1 = Point::new({:?}, {:?}, {:?});", p1.x, p1.y, p1.z);
-            println!("let p2 = Point::new({:?}, {:?}, {:?});", p2.x, p2.y, p2.z);
-            println!("let vbox = VoxelBox::new(({:?}, {:?}, {:?}), ({:?}, {:?}, {:?}));",
-                     vbox.half_width.x, vbox.half_width.y, vbox.half_width.z,
-                     vbox.n[0], vbox.n[1], vbox.n[2]);
+            let lor = LOR::new(0.0, 0.0, p1, p2);
+            let command = crate::visualize::cli_arg_to_visualize(&vbox, &lor);
+            println!("\nTo visualize this case, run:\n{}\n", command);
 
             let summed: Length = WeightsAlongLOR::new(p1, p2, &vbox)
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))

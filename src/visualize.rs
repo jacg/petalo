@@ -198,3 +198,23 @@ pub fn lor_weights(lor: LOR, vbox: VoxelBox, shape: Shape, threshold: Option<Len
     scene.place_voxels(shape, threshold, sigma);
     scene.main_loop();
 }
+
+pub fn cli_arg_to_visualize(vbox: &VoxelBox, lor: &LOR) -> String {
+    format!(
+        "cargo run --bin petalo -- box --vbox-size {vx},{vy},{vz} --nvoxels {nx},{ny},{nz} --lor '{t1} {t2}   {x1} {y1} {z1}    {x2} {y2} {z2}'",
+        vx = vbox.half_width.x * 2.0,
+        vy = vbox.half_width.y * 2.0,
+        vz = vbox.half_width.z * 2.0,
+        nx = vbox.n[0],
+        ny = vbox.n[1],
+        nz = vbox.n[2],
+        t1 = lor.t1,
+        t2 = lor.t2,
+        x1 = lor.p1.x,
+        y1 = lor.p1.y,
+        z1 = lor.p1.z,
+        x2 = lor.p2.x,
+        y2 = lor.p2.y,
+        z2 = lor.p2.z,
+    )
+}
