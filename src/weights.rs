@@ -303,7 +303,7 @@ mod test {
 
             // Values to plug in to visualizer:
             let lor = LOR::new(0.0, 0.0, p1, p2);
-            let command = crate::visualize::cli_arg_to_visualize(&vbox, &lor);
+            let command = crate::visualize::vislor_command(&vbox, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
             let summed: Length = WeightsAlongLOR::new(p1, p2, &vbox)
@@ -673,7 +673,7 @@ mod test_gaussian {
         // Values to plug in to visualizer (only show when test fails)
 
         println!("\nTo visualize this case, run:");
-        println!("{}\n", crate::visualize::cli_arg_to_visualize(&vbox, &lor));
+        println!("{}\n", crate::visualize::vislor_command(&vbox, &lor));
 
     }
 

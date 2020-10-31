@@ -199,9 +199,9 @@ pub fn lor_weights(lor: LOR, vbox: VoxelBox, shape: Shape, threshold: Option<Len
     scene.main_loop();
 }
 
-pub fn cli_arg_to_visualize(vbox: &VoxelBox, lor: &LOR) -> String {
+pub fn vislor_command(vbox: &VoxelBox, lor: &LOR) -> String {
     format!(
-        "cargo run --bin petalo -- box --vbox-size {vx},{vy},{vz} --nvoxels {nx},{ny},{nz} --lor '{t1} {t2}   {x1} {y1} {z1}    {x2} {y2} {z2}'",
+        "cargo run --bin vislor -- box --vbox-size {vx},{vy},{vz} --nvoxels {nx},{ny},{nz} --lor '{t1} {t2}   {x1} {y1} {z1}    {x2} {y2} {z2}'",
         vx = vbox.half_width.x * 2.0,
         vy = vbox.half_width.y * 2.0,
         vz = vbox.half_width.z * 2.0,
