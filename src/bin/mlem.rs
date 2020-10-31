@@ -33,6 +33,7 @@ pub struct Cli {
 
 use std::error::Error;
 use std::path::PathBuf;
+use std::fs::create_dir_all;
 
 use petalo::weights as pet;
 
@@ -55,11 +56,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // If LOR data file not present, download it.
-    let filename = "run_fastfastmc_1M_events.bin32";
+    let filename = "mlem_input/run_fastfastmc_1M_events.bin32";
     if !std::path::Path::new(&filename).exists() {
         println!("Fetching data file containing LORs: It will be saved as '{}'.", filename);
+        create_dir_all(PathBuf::from(filename).parent().unwrap())?;
         let wget = std::process::Command::new("wget")
-            .args(&["https://gateway.pinata.cloud/ipfs/QmQN54iQZWtkcJ24T3NHZ78d9dKkpbymdpP5sfvHo628S2/run_fastfastmc_1M_events.bin32"])
+            .args(&["https://gateway.pinata.cloud/ipfs/QmQN54iQZWtkcJ24T3NHZ78d9dKkpbymdpP5sfvHo628S2/run_fastfastmc_1M_events.bin32",
+                    "-O", filename])
             .output()?;
         println!("wget status: {}", wget.status);
         report_time("Downloaded LOR data");
@@ -77,7 +80,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let noise = pet::Noise;
 
     // If the directory where results will be written does not exist yet, make it
-    std::fs::create_dir_all(PathBuf::from(format!("{}_00.raw", args.files)).parent().unwrap())?;
+    create_dir_all(PathBuf::from(format!("{}_00.raw", args.files)).parent().unwrap())?;
 
     // Perform MLEM iterations
     for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, &sensitivity_matrix, &noise))
