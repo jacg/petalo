@@ -23,6 +23,10 @@ pub struct Cli {
     #[structopt(short = "r", long)]
     pub tof: Option<pet::Time>,
 
+    /// Generated images will be stored in <files><iteration number>.raw
+    #[structopt(short, long)]
+    pub files: String,
+
 }
 
 // --------------------------------------------------------------------------------
@@ -72,13 +76,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     // TODO: noise
     let noise = pet::Noise;
 
+    // If the directory where results will be written does not exist yet, make it
+    std::fs::create_dir_all(PathBuf::from(format!("{}_00.raw", args.files)).parent().unwrap())?;
+
     // Perform MLEM iterations
     for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, &sensitivity_matrix, &noise))
         .take(args.iterations)
         .enumerate() {
             report_time("iteration");
             let data: ndarray::Array3<F> = image.data;
-            let path = PathBuf::from(format!("raw_data/deleteme{:03}.raw", n));
+            let path = PathBuf::from(format!("{}_{:02}.raw", args.files, n));
             petalo::io::write_bin(data.iter(), &path)?;
             report_time("Wrote raw bin");
             // TODO: step_by for print every
