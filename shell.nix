@@ -48,6 +48,7 @@ let
     };
 
     buildPhase = ''
+      substituteInPlace makefile --replace "CXX = g++" "CXX=$CXX"
       source tofpet3d_setup.sh
       make
     '';
