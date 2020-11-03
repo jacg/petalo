@@ -1180,6 +1180,7 @@ dependencies = [
  "assert_approx_eq",
  "bincode",
  "bindgen",
+ "cmlem",
  "hdf5",
  "kiss3d",
  "nalgebra",
