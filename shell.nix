@@ -111,6 +111,9 @@ let
 
     # C version of mlem
     tofpet3d
+
+    # Needed by bindgen, when wrapping tofpet3d
+    pkgs.llvmPackages.libclang
   ];
 
 in
