@@ -1,2 +1,5 @@
 /target
 /.direnv/
+/cmlem_output/
+/mlem_input/
+/mlem_output/
