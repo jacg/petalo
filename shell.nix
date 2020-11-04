@@ -113,8 +113,6 @@ let
     # C version of mlem
     tofpet3d
 
-    # Needed by bindgen, when wrapping tofpet3d
-    pkgs.llvmPackages.libclang
   ];
 
 in
@@ -124,6 +122,10 @@ pkgs.stdenv.mkDerivation {
   buildInputs = buildInputs;
   LD_LIBRARY_PATH = "${pkgs.stdenv.lib.makeLibraryPath buildInputs}";
   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
+
+  # Needed if using bindgen to wrap C libraries in Rust
+  LIBCLANG_PATH = "${pkgs.llvmPackages_9.libclang}/lib";
+
   # RA_LOG = "info";
   # RUST_BAfCKTRACE = 1;
 }
