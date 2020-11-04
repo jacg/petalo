@@ -98,7 +98,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 report_time("iteration");
                 let data: ndarray::Array3<F> = image.data;
                 let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
-                petalo::io::write_bin(data.iter(), &path)?;
+                petalo::io::write_bin(data.t().iter(), &path)?;
                 report_time("Wrote raw bin");
                 // TODO: step_by for print every
             }
