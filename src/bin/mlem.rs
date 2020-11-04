@@ -23,9 +23,9 @@ pub struct Cli {
     #[structopt(short = "r", long)]
     pub tof: Option<pet::Time>,
 
-    /// Generated images will be stored in <files><iteration number>.raw
+    /// Override automatic generation of image output file name
     #[structopt(short, long)]
-    pub files: String,
+    pub files: Option<String>,
 
     /// Use the C version of the MLEM algorithm
     #[structopt(short = "c", long)]
@@ -83,8 +83,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     // TODO: noise
     let noise = pet::Noise;
 
+    let file_pattern = guess_filename(&args);
+
     // If the directory where results will be written does not exist yet, make it
-    create_dir_all(PathBuf::from(format!("{}_00.raw", args.files)).parent().unwrap())?;
+    create_dir_all(PathBuf::from(format!("{}_00.raw", file_pattern)).parent().unwrap())?;
 
     // Perform MLEM iterations
     if args.use_c {
@@ -95,7 +97,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .enumerate() {
                 report_time("iteration");
                 let data: ndarray::Array3<F> = image.data;
-                let path = PathBuf::from(format!("{}_{:02}.raw", args.files, n));
+                let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
                 petalo::io::write_bin(data.iter(), &path)?;
                 report_time("Wrote raw bin");
                 // TODO: step_by for print every
@@ -104,6 +106,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn guess_filename(args: &Cli) -> String {
+    if let Some(pattern) = &args.files {
+        pattern.to_string()
+    } else {
+        let c = if args.use_c { "c" } else { "" };
+        let (nx, ny, nz) = args.n_voxels;
+        let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0}", x));
+        format!("{c}mlem_output/{nx}_{ny}_{nz}_tof_{tof}",
+                c=c, nx=nx, ny=ny, nz=nz, tof=tof)
+    }
+}
 
 // ---- Use the original tofpet3d libmlem (C version), instead of our own Rust version ---
 
@@ -142,7 +155,7 @@ fn run_cmlem(
 
     // Add underscore to separate base name from suffix (to match what happens
     // in the Rust version)
-    let mut files = args.files.clone();
+    let mut files = guess_filename(&args);
     files.push('_');
     files.push('0'); // Leading zero too!
 
