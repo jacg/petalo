@@ -96,4 +96,4 @@ def args_to_filename(args, N=None):
     TOF = tof if tof else 'OFF'
     c = 'c' if args.c else ''
     n = N if N is not None else (args.iterations - 1)
-    return f'../{c}mlem_output/{nx}_{ny}_{nz}_tof_{TOF}_{n:02}.raw'
+    return f'../data/out/{c}mlem/{nx}_{ny}_{nz}_tof_{TOF}_{n:02}.raw'

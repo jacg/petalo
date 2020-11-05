@@ -63,8 +63,8 @@ first time around around!
 
   Use a different voxel resolution (`-n 50,50,50`)
 
-By default the resulting images will be written to the `mlem_outputs` and
-`cmlem_outputs` directories.
+By default the resulting images will be written to the `data/out/mlem` and
+`data/out/cmlem` directories.
 
 To see all CLI options: `cargo run --bin mlem --release -- --help`
 
@@ -74,7 +74,7 @@ The notebook `notebooks/view_reconstructed.ipynb` compares the images generated
 by the Rust and C versions of the algorithm, over a variety of TOF resolutions
 and voxel resolutions.
 
-The notebook will look for images in the `mlem_output` and `cmlem_output`
+The notebook will look for images in the `data/out/mlem` and `data/out/cmlem`
 directories, and automatically run the code to generate any images that are
 missing.
 
@@ -103,7 +103,7 @@ This is a visualization of the voxel weights along a LOR in a 180mm / 60 voxel
 cube. The first case applies no TOF weighting, the next two apply TOF weigting
 with resolutions of 200 and 20 ps respectively.
 
-+ `cargo run --bin vislor -- ball -f mlem_input/run_fastfastmc_1M_events.bin32 -e 10`
++ `cargo run --bin vislor -- ball -f data/in/mlem/run_fastfastmc_1M_events.bin32 -e 10`
 
 Visualize the 10th event (`-e 10`) taken from the data file specified with `-f`.
 

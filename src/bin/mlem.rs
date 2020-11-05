@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // If LOR data file not present, download it.
-    let filename = "mlem_input/run_fastfastmc_1M_events.bin32";
+    let filename = "data/in/mlem/run_fastfastmc_1M_events.bin32";
     if !std::path::Path::new(&filename).exists() {
         println!("Fetching data file containing LORs: It will be saved as '{}'.", filename);
         create_dir_all(PathBuf::from(filename).parent().unwrap())?;
@@ -113,7 +113,7 @@ fn guess_filename(args: &Cli) -> String {
         let c = if args.use_c { "c" } else { "" };
         let (nx, ny, nz) = args.n_voxels;
         let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0}", x));
-        format!("{c}mlem_output/{nx}_{ny}_{nz}_tof_{tof}",
+        format!("data/out/{c}mlem/{nx}_{ny}_{nz}_tof_{tof}",
                 c=c, nx=nx, ny=ny, nz=nz, tof=tof)
     }
 }
