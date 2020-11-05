@@ -30,44 +30,48 @@ Assuming you have Nix ...
    - if you have not enabled `direnv` you will have to type `nix-shell` (inside
      this directory) to enable the environment.
 
-# Running some code
+# Running the code
 
-I suggest you try this:
+## Compilation
 
-```sh
-cargo run --bin mlem --release -- -i 6 -f mlem_output/tof_OFF
-cargo run --bin mlem --release -- -i 6 -f mlem_output/tof_200 -r 200
-cargo run --bin mlem --release -- -i 6 -f mlem_output/tof_20  -r 20
-cargo run --bin mlem --release -- -i 6 -f mlem_output/tof_50  -r 50
-jupyter notebook notebooks/view_reconstructed.ipynb
-```
+Nix has taken care of all the non-Rust dependencies, `cargo` (Rust's package
+manager) will take care of compiling our code, as well as any Rust dependencies.
 
-# What does this do?
+The first line below will have to compile a lot of Rust code (mine, and the
+libraries on which it depends) and download the data file containing 1 million
+LORs, which is used in the reconstructions: all this will take a few minutes the
+first time around around!
 
-The first line will have to compile a lot of Rust code (mine, and the libraries
-on which it depends) and download the data file containing 1 million LORs, which
-is used in the reconstructions: all this will take a few minutes the first time
-around around!
+## Some examples to try
 
-Each of the first 4 lines performs 6 MLEM iterations (`-i 6`), with different
-TOF resolutions (`-r <ps>`: No TOF, 200 ps, 20 ps, 50 ps).
++ `cargo run --bin mlem --release -- -i 6`
 
-The last line uses a Jupyter notebook to display all the generated images.
+  Perform 6 MLEM iterations (`-i 6`) without TOF.
 
-(You can view the notebook without running any code [here](https://github.com/jacg/petalo/blob/master/notebooks/view_reconstructed.ipynb))
++ `cargo run --bin mlem --release -- -i 6 -r 20`
+
+  Perform 6 MLEM iterations with TOF resolution of 20 picoseconds (`-r 20`).
+
++ `cargo run --bin mlem --release -- -i 6 -r 20 -c`
+
+  Perform 6 MLEM iterations with TOF resolution of 20 picoseconds using the C
+  implementation (`-c`) from https://github.com/jerenner/tofpet3d
+
++ `cargo run --bin mlem --release -- -i 6 -r 20 -n 50,50,50`
+
+  Use a different voxel resolution (`-n 50,50,50`)
+
+By default the resulting images will be written to the `mlem_outputs` and
+`cmlem_outputs` directories.
+
+To see all CLI options: `cargo run --bin mlem --release -- --help`
 
 # Discussion of results
 
-According to the
-[documentation](https://tofpet3d.readthedocs.io/en/latest/src/code_reconstruction.html)
-the default TOF sensitivity in `MLEMReconstructor` is 200ps, which I am told is
-to be interpreted as the sigma of the TOF gaussian. I don't understand how this
-can have any significant effect on the resulting image, as the whole image
-occupies a 180mm cube, while 200ps is around 70mm. The results that are shown
-the notebook seem to agree: by eye I cannot distinguish the no-TOF and 200ps
-case, while the 20ps case is *much* cleaner.
+Without TOF, the Rust and C result look identical, by eye.
 
-How does this compare to your results?
+With TOF enabled, the Rust version produces much less clear images. To be
+investigated.
 
 # Pretty things
 
@@ -81,7 +85,12 @@ This is a visualization of the voxel weights along a LOR in a 180mm / 60 voxel
 cube. The first case applies no TOF weighting, the next two apply TOF weigting
 with resolutions of 200 and 20 ps respectively.
 
-To me, once again, the no-TOF and 200ps cases are indistinguishable by eye.
++ `cargo run --bin vislor -- ball -f mlem_input/run_fastfastmc_1M_events.bin32 -e 10`
+
+Visualize the 10th event (`-e 10`) taken from the data file specified with `-f`.
+
+Note, currently this reads in the whole file (containing a million
+coincidences), so there is a noticeable delay.
 
 ## Extra
 
