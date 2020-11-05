@@ -99,16 +99,24 @@ Try the following
 + `cargo run --bin vislor -- ball -r 200`
 + `cargo run --bin vislor -- ball -r 20`
 
-This is a visualization of the voxel weights along a LOR in a 180mm / 60 voxel
-cube. The first case applies no TOF weighting, the next two apply TOF weigting
-with resolutions of 200 and 20 ps respectively.
+  These are visualizations of the voxel weights along a LOR in a 180mm / 60
+  voxel cube. The first case applies no TOF weighting, the next two apply TOF
+  weigting with resolutions of 200 and 20 ps respectively.
 
 + `cargo run --bin vislor -- ball -f data/in/mlem/run_fastfastmc_1M_events.bin32 -e 10`
 
-Visualize the 10th event (`-e 10`) taken from the data file specified with `-f`.
+  Visualize the 10th event (`-e 10`) taken from the data file specified with
+  `-f`.
 
-Note, currently this reads in the whole file (containing a million
-coincidences), so there is a noticeable delay.
+  Note, currently this reads in the whole file (containing a million
+  coincidences), so there is a noticeable delay.
+
++ `cargo run --bin vislor -- box --vbox-size 160,100,80 --nvoxels 8,5,5 --lor '0 32   -155 126 -33    151 -131 35'`
+
+  Specify the voxel and LOR geometries to be visualized, directly on the command
+  line. (When a property-based test of the voxel weights fails, the test output
+  includes a CLI incantation of this sort which will visualize the failing
+  case.)
 
 ## Extra
 
