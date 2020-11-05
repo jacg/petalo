@@ -32,6 +32,8 @@ Assuming you have Nix ...
 
 # Running the code
 
+**NB: the code currently fails to run on MacOS***
+
 ## Compilation
 
 Nix has taken care of all the non-Rust dependencies, `cargo` (Rust's package
