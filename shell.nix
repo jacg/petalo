@@ -113,6 +113,8 @@ let
     # C version of mlem
     tofpet3d
 
+    # Used by the Jupyter notebook stripping git filte
+    pkgs.jq
   ];
 
 in
