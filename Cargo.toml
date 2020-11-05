@@ -1,5 +1,5 @@
 [workspace]
-members = ["mlem"]
+members = ["mlem", "cmlem"]
 
 [package]
 name = "petalo"
@@ -20,6 +20,7 @@ kiss3d = "0.26"
 num-traits = "0.2"
 bincode = "1.3.1"
 hdf5 = "0.7"
+cmlem = { path = "cmlem" }
 
 [dev-dependencies]
 rstest = "0.6.4"
@@ -27,6 +28,9 @@ pretty_assertions = "0.6.1"
 assert_approx_eq = "1.1"
 proptest = "0.10.1"
 tempfile = "3.1"
+
+[build-dependencies]
+bindgen = "*"
 
 [features]
 f64 = []

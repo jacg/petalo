@@ -36,6 +36,30 @@ let
   python = builtins.getAttr ("python" + py) pkgs;
   pypkgs = python.pkgs;
 
+  # ----- tofpet3d original C version ----------------------------------------------
+  tofpet3d = pkgs.stdenv.mkDerivation {
+    name = "tofpet3d";
+    version = "2020-05-06";
+    src = pkgs.fetchFromGitHub {
+      owner = "jerenner";
+      repo = "tofpet3d";
+      rev= "a8c3fc8293fd05547f9ca752abc259173bac57af";
+      sha256= "0zimqadzva4p69ipanpxkzd9q12nm6q3qq9f5qiraxzy38px6rln";
+    };
+
+    buildPhase = ''
+      substituteInPlace makefile --replace "CXX = g++" "CXX=$CXX"
+      source tofpet3d_setup.sh
+      make
+    '';
+
+    installPhase = ''
+      mkdir -p $out/lib
+      mv lib/libmlem.so lib/libmlemORIG.so
+      mv lib/* $out/lib/
+    '';
+  };
+
   # ----- Conditional inclusion ----------------------------------------------------
   nothing = pkgs.coreutils;
   linux      = drvn: if pkgs.stdenv.isLinux  then drvn else nothing;
@@ -85,13 +109,23 @@ let
 
     # Downoad LOR data file
     pkgs.wget
+
+    # C version of mlem
+    tofpet3d
+
   ];
+
 in
+
 pkgs.stdenv.mkDerivation {
   name = "petalorust";
   buildInputs = buildInputs;
   LD_LIBRARY_PATH = "${pkgs.stdenv.lib.makeLibraryPath buildInputs}";
   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
+
+  # Needed if using bindgen to wrap C libraries in Rust
+  LIBCLANG_PATH = "${pkgs.llvmPackages_9.libclang}/lib";
+
   # RA_LOG = "info";
   # RUST_BAfCKTRACE = 1;
 }

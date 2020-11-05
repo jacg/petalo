@@ -23,9 +23,13 @@ pub struct Cli {
     #[structopt(short = "r", long)]
     pub tof: Option<pet::Time>,
 
-    /// Generated images will be stored in <files><iteration number>.raw
+    /// Override automatic generation of image output file name
     #[structopt(short, long)]
-    pub files: String,
+    pub files: Option<String>,
+
+    /// Use the C version of the MLEM algorithm
+    #[structopt(short = "c", long)]
+    use_c: bool
 
 }
 
@@ -79,20 +83,98 @@ fn main() -> Result<(), Box<dyn Error>> {
     // TODO: noise
     let noise = pet::Noise;
 
+    let file_pattern = guess_filename(&args);
+
     // If the directory where results will be written does not exist yet, make it
-    create_dir_all(PathBuf::from(format!("{}_00.raw", args.files)).parent().unwrap())?;
+    create_dir_all(PathBuf::from(format!("{}_00.raw", file_pattern)).parent().unwrap())?;
 
     // Perform MLEM iterations
-    for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, &sensitivity_matrix, &noise))
-        .take(args.iterations)
-        .enumerate() {
-            report_time("iteration");
-            let data: ndarray::Array3<F> = image.data;
-            let path = PathBuf::from(format!("{}_{:02}.raw", args.files, n));
-            petalo::io::write_bin(data.iter(), &path)?;
-            report_time("Wrote raw bin");
-            // TODO: step_by for print every
-        }
-
+    if args.use_c {
+        run_cmlem(&args, &measured_lors)
+    } else {
+        for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, &sensitivity_matrix, &noise))
+            .take(args.iterations)
+            .enumerate() {
+                report_time("iteration");
+                let data: ndarray::Array3<F> = image.data;
+                let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
+                petalo::io::write_bin(data.t().iter(), &path)?;
+                report_time("Wrote raw bin");
+                // TODO: step_by for print every
+            }
+    }
     Ok(())
+}
+
+fn guess_filename(args: &Cli) -> String {
+    if let Some(pattern) = &args.files {
+        pattern.to_string()
+    } else {
+        let c = if args.use_c { "c" } else { "" };
+        let (nx, ny, nz) = args.n_voxels;
+        let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0}", x));
+        format!("{c}mlem_output/{nx}_{ny}_{nz}_tof_{tof}",
+                c=c, nx=nx, ny=ny, nz=nz, tof=tof)
+    }
+}
+
+// ---- Use the original tofpet3d libmlem (C version), instead of our own Rust version ---
+
+// TODO: this conversion function should really live in the cmlem package, but
+// that would require cmlem to depend on the petalo package, because that's
+// where types like LOR are defined ... but this crate is currently in the
+// petalo package, and it needs to depend on cmlem to call the cmlem function,
+// which introduces a circular package dependency, which cargo does not allow.
+// The solution is to move this mlem binary crate out of the petalo package, but
+// let's just get it working at all, for the time being, and reorganize the
+// packages later
+
+use petalo::weights::{LOR};
+
+fn run_cmlem(
+    args: &Cli,
+    lors: &Vec<LOR>
+) {
+    // Image dimensions
+    let (nx, ny, nz) = args.n_voxels;
+    let (sx, sy, sz) = args.size;
+
+    // decompose LORs into separate vectors
+    let mut x1 = vec![]; let mut y1 = vec![]; let mut z1 = vec![]; let mut t1 = vec![];
+    let mut x2 = vec![]; let mut y2 = vec![]; let mut z2 = vec![]; let mut t2 = vec![];
+    for lor in lors {
+        x1.push(lor.p1.x);
+        y1.push(lor.p1.y);
+        z1.push(lor.p1.z);
+        t1.push(lor.t1);
+        x2.push(lor.p2.x);
+        y2.push(lor.p2.y);
+        z2.push(lor.p2.z);
+        t2.push(lor.t2);
+    }
+
+    // Add underscore to separate base name from suffix (to match what happens
+    // in the Rust version)
+    let mut files = guess_filename(&args);
+    files.push('_');
+    files.push('0'); // Leading zero too!
+
+    // TODO: Dummy sensitivity matrix, for now
+    let sensitivity_matrix = vec![1.0; nx * ny * nz];
+
+    cmlem::cmlem(
+        args.iterations,
+        args.tof.is_some(),
+        args.tof.unwrap_or(0.0),
+        if sx != sy { panic!("cmlem requires x and y FOVs to be equal") } else { sx },
+        sz,
+        if nx != ny { panic!("cmlem requires Nx and Ny to be equal") } else { nx },
+        nz,
+        lors.len(),
+        x1, y1, z1, t1,
+        x2, y2, z2, t2,
+        sensitivity_matrix,
+        files,
+        1, // save every iteration
+    );
 }
