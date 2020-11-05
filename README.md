@@ -68,6 +68,22 @@ By default the resulting images will be written to the `mlem_outputs` and
 
 To see all CLI options: `cargo run --bin mlem --release -- --help`
 
+# View results in Jupyter notebook
+
+The notebook `notebooks/view_reconstructed.ipynb` compares the images generated
+by the Rust and C versions of the algorithm, over a variety of TOF resolutions
+and voxel resolutions.
+
+The notebook will look for images in the `mlem_output` and `cmlem_output`
+directories, and automatically run the code to generate any images that are
+missing.
+
+I will only add stripped notebooks to the `master` branch. For now, I will try
+to keep the `notebook` branch up to date with unstripped versions of notebooks
+that are included in `master`. Thus, you should hopefully be able to view the
+results without having to run the code yourself,
+[here](https://github.com/jacg/petalo/blob/notebook/notebooks/view_reconstructed.ipynb)
+
 # Discussion of results
 
 Without TOF, the Rust and C result look identical, by eye.
