@@ -2,6 +2,7 @@
 
 use std::error::Error;
 
+#[derive(Clone)]
 pub struct Args {
     pub input_file: String,
     pub dataset: String,
@@ -77,26 +78,55 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
 }
 
 
-// TODO write a test that does not require a huge datafile. Probably best to
-// generate it in the test itself.
-#[test]
-fn read_lors_hdf5() -> hdf5::Result<()> {
+#[cfg(test)]
+mod test {
 
-    // suppress spamming stdout
-    let _suppress_errors = hdf5::silence_errors();
+    use super::*;
 
-    //let (filename, dataset) = ("data/in/full_body_phantom_reco.894.h5".into(), "reco/table".into());
-    let args = Args {
-        input_file: "data/in/full_body_phantom_reco_combined.h5".into(),
-        dataset: "reco_info/table".into(),
-        event_range: 0..100,
-        use_true: false,
-    };
-    let lors = read_lors(args).unwrap();
+    #[test]
+    fn read_lors_hdf5() -> hdf5::Result<()> {
 
-    for lor in lors.iter().take(4) {
-        println!("{:?}", lor)
+        // suppress spamming stdout
+        let _suppress_errors = hdf5::silence_errors();
+
+        // First use the reco data to construct the LORs ...
+        let args = Args {
+            input_file: "src/io/test.h5".into(),
+            dataset: "reco_info/table".into(),
+            event_range: 0..4,
+            use_true: false,
+        };
+        let lors = read_lors(args.clone()).unwrap();
+        assert_eq!(lors[2].p1.coords.x, -120.73839);
+
+        // ... then use the true data.
+        let args = Args { use_true: true, ..args };
+        let lors = read_lors(args).unwrap();
+        assert_eq!(lors[2].p1.coords.x, -120.73839);
+        Ok(())
     }
 
-    Ok(())
+    #[test]
+    fn read_hdf5() -> hdf5::Result<()> {
+
+        let args = Args {
+            input_file: "src/io/test.h5".into(),
+            dataset: "reco_info/table".into(),
+            event_range: 0..4,
+            use_true: false,
+        };
+
+        let file = ::hdf5::File::open(args.input_file)?;
+        let table = file.dataset(&args.dataset)?;
+        let events = table.read_slice_1d::<Event,_>(s![args.event_range])?;
+        assert_eq!(events[2].true_r1, 394.2929992675781);
+        assert_eq!(events[2].reco_r1, 394.3750647735979);
+
+        // let file = hdf5::File::create("test.h5")?;
+        // let reco_info = file.create_group("reco_info")?;
+        // let table = reco_info.new_dataset::<Event>().create("table", 10)?;
+        // table.write(&events)?;
+
+        Ok(())
+    }
 }
