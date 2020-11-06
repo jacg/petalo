@@ -76,21 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         now = Instant::now();
     };
 
-    // If LOR data file not present, download it.
-    let filename = "data/in/mlem/run_fastfastmc_1M_events.bin32";
-    if !std::path::Path::new(&filename).exists() {
-        println!("Fetching data file containing LORs: It will be saved as '{}'.", filename);
-        create_dir_all(PathBuf::from(filename).parent().unwrap())?;
-        let wget = std::process::Command::new("wget")
-            .args(&["https://gateway.pinata.cloud/ipfs/QmQN54iQZWtkcJ24T3NHZ78d9dKkpbymdpP5sfvHo628S2/run_fastfastmc_1M_events.bin32",
-                    "-O", filename])
-            .output()?;
-        println!("wget status: {}", wget.status);
-        report_time("Downloaded LOR data");
-    }
-
     // Read event data from disk into memory
-    //let measured_lors = io::bincode::read_lors(PathBuf::from(filename))?;
     let                      Cli{ input_file, dataset, event_range, use_true, .. } = args.clone();
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true     };
     let measured_lors = io::hdf5::read_lors(io_args)?;
