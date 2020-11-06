@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // TODO: reading LOR from file overrides CLI lor: make them mutually
     // exclusive.
     let lor = if let Some(file) = args.file {
-        petalo::io::read_lors(file)?[args.event]
+        petalo::io::bincode::read_lors(file)?[args.event]
     } else {
         args.lor
     };

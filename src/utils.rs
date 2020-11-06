@@ -1,6 +1,15 @@
 use std::error::Error;
+use std::ops::Range;
 
 use crate::weights::{LOR, Point, Time, Length};
+
+pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {
+    let v = s.split("..").collect::<Vec<_>>();
+    assert!(v.len() == 2);
+    let x = v[0].parse()?;
+    let y = v[1].parse()?;
+    Ok(x..y)
+}
 
 pub fn parse_triplet<T: std::str::FromStr>(s: &str) -> Result<(T,T,T), <T as std::str::FromStr>::Err> {
     let v = s.split(",").collect::<Vec<_>>();
