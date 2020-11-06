@@ -13,7 +13,7 @@ use crate::weights::{Length, VoxelBox, Index3, LOR};
 use structopt::clap::arg_enum;
 
 arg_enum! {
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum Shape {
         Box,
         Ball

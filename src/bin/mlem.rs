@@ -1,15 +1,15 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::utils::parse_triplet;
+use petalo::utils::{parse_triplet, parse_range};
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Debug, Clone)]
 #[structopt(name = "mlem", about = "TODO: describe what this does")]
 pub struct Cli {
 
     /// Number of MLEM iterations to perform
     #[structopt(short, long, default_value = "5")]
-    iterations: usize,
+    pub iterations: usize,
 
     /// Voxel box full-widths in mm
     #[structopt(short, long, parse(try_from_str = parse_triplet::<F>), default_value = "180,180,180")]
@@ -17,19 +17,35 @@ pub struct Cli {
 
     /// Number of voxels in each dimension
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
-    pub n_voxels: (usize, usize, usize),
+     pub n_voxels: (usize, usize, usize),
 
     /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored
     #[structopt(short = "r", long)]
-    pub tof: Option<pet::Time>,
+     pub tof: Option<pet::Time>,
 
     /// Override automatic generation of image output file name
     #[structopt(short, long)]
-    pub files: Option<String>,
+     pub out_files: Option<String>,
+
+    /// LORs to read in
+    #[structopt(short = "f", long, default_value = "data/in/full_body_phantom_reco_combined.h5")]
+    pub input_file: String,
+
+    /// The dataset location inside the input file
+    #[structopt(short, long, default_value = "reco_info/table")]
+    pub dataset: String,
+
+    /// Which rows of the input file should be loaded
+    #[structopt(short, long, parse(try_from_str = parse_range::<usize>), default_value = "0..1000000")]
+    pub event_range: std::ops::Range<usize>,
 
     /// Use the C version of the MLEM algorithm
     #[structopt(short = "c", long)]
-    use_c: bool
+    pub use_c: bool,
+
+    /// Use true rather than reco LOR data
+    #[structopt(long)]
+    use_true: bool
 
 }
 
@@ -40,6 +56,7 @@ use std::path::PathBuf;
 use std::fs::create_dir_all;
 
 use petalo::weights as pet;
+use petalo::io;
 
 type F = pet::Length;
 
@@ -59,21 +76,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         now = Instant::now();
     };
 
-    // If LOR data file not present, download it.
-    let filename = "data/in/mlem/run_fastfastmc_1M_events.bin32";
-    if !std::path::Path::new(&filename).exists() {
-        println!("Fetching data file containing LORs: It will be saved as '{}'.", filename);
-        create_dir_all(PathBuf::from(filename).parent().unwrap())?;
-        let wget = std::process::Command::new("wget")
-            .args(&["https://gateway.pinata.cloud/ipfs/QmQN54iQZWtkcJ24T3NHZ78d9dKkpbymdpP5sfvHo628S2/run_fastfastmc_1M_events.bin32",
-                    "-O", filename])
-            .output()?;
-        println!("wget status: {}", wget.status);
-        report_time("Downloaded LOR data");
-    }
-
     // Read event data from disk into memory
-    let measured_lors = petalo::io::read_lors(PathBuf::from(filename))?;
+    let                      Cli{ input_file, dataset, event_range, use_true, .. } = args.clone();
+    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true     };
+    let measured_lors = io::hdf5::read_lors(io_args)?;
     report_time("Loaded LOR data from local disk");
 
     // Define extent and granularity of voxels
@@ -98,7 +104,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 report_time("iteration");
                 let data: ndarray::Array3<F> = image.data;
                 let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
-                petalo::io::write_bin(data.t().iter(), &path)?;
+                petalo::io::raw::write(data.t().iter(), &path)?;
                 report_time("Wrote raw bin");
                 // TODO: step_by for print every
             }
@@ -107,7 +113,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn guess_filename(args: &Cli) -> String {
-    if let Some(pattern) = &args.files {
+    if let Some(pattern) = &args.out_files {
         pattern.to_string()
     } else {
         let c = if args.use_c { "c" } else { "" };

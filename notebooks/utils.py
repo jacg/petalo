@@ -10,8 +10,8 @@ from functools import reduce
 import matplotlib.pyplot as plt
 
 
-def compare_c_rust(tof=None, shape=(60,60,60), iterations=6):
-    args = Args(tof, shape, iterations, c=False)
+def compare_c_rust(*, tof=None, shape=(60,60,60), iterations=6, use_true=False, file_in=None):
+    args = Args(tof, shape, iterations, c=False, use_true=use_true, file_in=file_in)
     display_reconstructed_images(nr=1, nc=6, args=args)
     display_reconstructed_images(nr=1, nc=6, args=update_nt(args, c=True))
 
@@ -78,7 +78,7 @@ def generate_data_if_missing(args):
     os.chdir(original_dir)
 
 
-Args = namedtuple('Args', 'tof, shape, iterations, c')
+Args = namedtuple('Args', 'tof, shape, iterations, c, use_true, file_in')
 
 
 def args_to_cli(args):
@@ -87,7 +87,9 @@ def args_to_cli(args):
     i = f' -i {args.iterations}'
     c =  ' -c'                if args.c                   else ''
     r = f' -r {args.tof}'     if args.tof                 else ''
-    return f'cargo run --bin mlem --release -- {i}{r}{n}{c}'
+    t =  ' --use-true'        if args.use_true            else ''
+    f = f' -f {args.file_in}' if args.file_in             else ''
+    return f'cargo run --bin mlem --release -- {i}{r}{n}{c}{t}{f}'
 
 
 def args_to_filename(args, N=None):
