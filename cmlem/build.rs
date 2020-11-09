@@ -5,7 +5,7 @@ fn main() {
 
     // Tell cargo to tell rustc to link the tofpet3d libmlem that was installed
     // by shell.nix
-    println!("cargo:rustc-link-lib=mlemORIG");
+    println!("cargo:rustc-link-lib=mlem");
 
     // Tell cargo to invalidate the built crate whenever the headers change
     println!("cargo:rerun-if-changed=wrapper.h");
