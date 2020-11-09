@@ -48,15 +48,13 @@ let
     };
 
     buildPhase = ''
-      substituteInPlace makefile --replace "CXX = g++" "CXX=$CXX"
-      source tofpet3d_setup.sh
-      make
-    '';
+      mkdir -p $out/lib
+    	${pkgs.clang_9}/bin/clang++ -fpic -c -O2 -pg cc/mlem.cc        -o mlem.o
+	    ${pkgs.clang_9}/bin/clang++ -shared -o $out/lib/libmlemORIG.so    mlem.o
+  '';
 
     installPhase = ''
-      mkdir -p $out/lib
-      mv lib/libmlem.so lib/libmlemORIG.so
-      mv lib/* $out/lib/
+      echo "Nothing to be done here ... already done in buildPhase"
     '';
   };
 
@@ -115,6 +113,11 @@ let
 
     # Used by the Jupyter notebook stripping git filte
     pkgs.jq
+
+    # Hacking around bindgen/dyld/MacOS: a compiler that can be used in
+    # buildPhase on both Mac/Linux
+    pkgs.clang_9
+
   ];
 
 in
