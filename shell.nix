@@ -58,8 +58,8 @@ let
       mv lib/libmlem.so $out/lib/libmlem.so
     '';
 
-    fixupPhase = ''
-      install_name_tool -id $out/lib/libmlem.so $out/lib/libmlem.so || true
+    fixupPhase = darwinStr ''
+      install_name_tool -id $out/lib/libmlem.so $out/lib/libmlem.so
     '';
   };
 
@@ -69,6 +69,7 @@ let
   darwin     = drvn: if pkgs.stdenv.isDarwin then drvn else nothing;
   linuxList  = list: if pkgs.stdenv.isLinux  then list else [];
   darwinList = list: if pkgs.stdenv.isDarwin then list else [];
+  darwinStr  = str:  if pkgs.stdenv.isDarwin then str  else "";
 
   # ----- Darwin-specific ----------------------------------------------------------
   darwin-frameworks = pkgs.darwin.apple_sdk.frameworks;
