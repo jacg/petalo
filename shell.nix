@@ -48,13 +48,18 @@ let
     };
 
     buildPhase = ''
-      mkdir -p $out/lib
-    	${pkgs.clang_9}/bin/clang++ -fpic -c -O2 -pg cc/mlem.cc    -o mlem.o
-	    ${pkgs.clang_9}/bin/clang++ -shared -o $out/lib/libmlem.so    mlem.o
-  '';
+      substituteInPlace makefile --replace "CXX = g++" "CXX=$CXX"
+      source tofpet3d_setup.sh
+      make
+    '';
 
     installPhase = ''
-      echo "Nothing to be done here ... already done in buildPhase"
+      mkdir -p $out/lib
+      mv lib/libmlem.so $out/lib/libmlem.so
+    '';
+
+    fixupPhase = ''
+      install_name_tool -id $out/lib/libmlem.so $out/lib/libmlem.so || true
     '';
   };
 
