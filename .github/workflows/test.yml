@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-10.15]
         py: [38]
         allow-fail: [false]
         include:
@@ -18,9 +18,6 @@ jobs:
             allow-fail: true
           - os: macos-10.15
             py: 39
-            allow-fail: true
-          - os: macos-10.15
-            py: 38
             allow-fail: true
     steps:
       - uses: actions/checkout@v2

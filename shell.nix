@@ -55,8 +55,11 @@ let
 
     installPhase = ''
       mkdir -p $out/lib
-      mv lib/libmlem.so lib/libmlemORIG.so
-      mv lib/* $out/lib/
+      mv lib/libmlem.so $out/lib/libmlem.so
+    '';
+
+    fixupPhase = darwinStr ''
+      install_name_tool -id $out/lib/libmlem.so $out/lib/libmlem.so
     '';
   };
 
@@ -66,6 +69,7 @@ let
   darwin     = drvn: if pkgs.stdenv.isDarwin then drvn else nothing;
   linuxList  = list: if pkgs.stdenv.isLinux  then list else [];
   darwinList = list: if pkgs.stdenv.isDarwin then list else [];
+  darwinStr  = str:  if pkgs.stdenv.isDarwin then str  else "";
 
   # ----- Darwin-specific ----------------------------------------------------------
   darwin-frameworks = pkgs.darwin.apple_sdk.frameworks;
@@ -115,6 +119,11 @@ let
 
     # Used by the Jupyter notebook stripping git filte
     pkgs.jq
+
+    # Hacking around bindgen/dyld/MacOS: a compiler that can be used in
+    # buildPhase on both Mac/Linux
+    pkgs.clang_9
+
   ];
 
 in

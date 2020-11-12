@@ -33,8 +33,6 @@ Assuming you have Nix ...
 
 # Running the code
 
-**NB: the code currently fails to run on MacOS**
-
 ## Input data
 
 You will need an input data file containing a table with the following 21
