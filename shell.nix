@@ -94,7 +94,7 @@ let
     pkgs.xorg.libXi
     pkgs.libGL
     # For graphics hardware matching on non-NixOS
-    nixGL.nixGLDefault
+    (linux nixGL.nixGLDefault)
 
     # for plotters
     pkgs.cmake
