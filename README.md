@@ -118,6 +118,11 @@ graphics hardware, and these visualizations might not work: TODO!]
 
 Try the following
 
+[If your machine is not running NixOS, Nix may have trouble adapting to your
+graphics hardware, and these visualizations might not work. If that happens, try
+prepending `nixGL` to the command: i.e. replace `cargo run ...` with `nixGL
+cargo run ...`.]
+
 + `cargo run --bin vislor -- ball`
 + `cargo run --bin vislor -- ball -r 200`
 + `cargo run --bin vislor -- ball -r 20`
