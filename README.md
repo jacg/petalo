@@ -6,13 +6,16 @@
 
 
 The following instructions assume that you have
-[installed](https://github.com/jacg/IC/tree/manage-with-nix/doc/nix/install-nix)
-[Nix](https://nixos.org/) and [enabled direnv](https://github.com/jacg/IC/tree/manage-with-nix/doc/nix/home-manager#automatic-environment-switching-with-direnv).
-
-If you have not enabled direnv, you can still use this software: see the note below, at the point where you `cd petalo`.
+[installed](doc/nix/install-nix/README.md)
+[Nix](https://nixos.org/) and enabled [`direnv`](https://direnv.net/).
 
 If you haven't installed Nix ... well, it's a few orders of magnitude easier to
 install Nix, than to attempt to run this software without it.
+
+If you have not enabled `direnv`, you can still use this software: see the note
+below, at the point where you `cd petalo`. If you want to enable direnv, This
+[automated procedure](doc/nix/home-manager/README.md) will (among other things!)
+do it for you.
 
 Assuming you have Nix ...
 
@@ -20,13 +23,11 @@ Assuming you have Nix ...
 
 + `cd petalo`
 
-   - if [`direnv` is
-     enabled](https://github.com/jacg/IC/tree/manage-with-nix/doc/nix/home-manager#automatic-environment-switching-with-direnv),
-     the environment required to run this software will be enabled
-     automatically, after you have given `direnv` permission to work in this
-     directory with `direnv allow`. The first time this is done, it will have to
-     install all the required dependencies, which may take a significant amount
-     of time. Thereafter, it should be almost instantaneous.
+   - if `direnv` is enabled, the environment required to run this software will
+     be enabled automatically, after you have given `direnv` permission to work
+     in this directory direnv `with allow`. The first time this is done, it will
+     have to install all the required dependencies, which may take a significant
+     amount of time. Thereafter, it should be almost instantaneous.
 
    - if you have not enabled `direnv` you will have to type `nix-shell` (inside
      this directory) to enable the environment.
