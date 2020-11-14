@@ -58,7 +58,7 @@ jobs:
 #
 #   ssh fV3pb4MynAFQKFFsWG4W5cSVp@nyc1.tmate.io
 #
-# + Copy-paste this into a terminal
+# + Copy-paste the ssh <...> above, into a terminal
 # + press `q`
 # + type `touch /tmp/keepalive`
 # + type `nix-shell -I nixpkgs=channel:nixos-unstable`
