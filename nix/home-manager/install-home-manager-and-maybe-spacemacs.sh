@@ -12,7 +12,7 @@ echo home-manager configuration will be placed in $HM_DIR
 # Download and unpack the home-manager config template
 cd /tmp
 # TODO: change URL once this branch is merged!
-curl -L https://github.com/jacg/petalo/tarball/devrust-petalo > /tmp/petalo.tgz
+curl -L https://github.com/jacg/petalo/tarball/master > /tmp/petalo.tgz
 #curl -L https://github.com/jacg/petalo/tarball/master > /tmp/petalo.tgz
 nix-shell -p pkgs.gnutar --run "tar xvf /tmp/petalo.tgz --wildcards '*/nix/home-manager' --strip-components=2"
 mv home-manager $HM_DIR
