@@ -113,6 +113,9 @@ There are clearly some differences between the TOF runs on Rust vs C.
 
 # Pretty things
 
+[If your machine is not running NixOS, Nix may have trouble adapting to your
+graphics hardware, and these visualizations might not work: TODO!]
+
 Try the following
 
 + `cargo run --bin vislor -- ball`
