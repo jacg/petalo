@@ -1,18 +1,12 @@
 # To get more recent versions of the packages, you need to update
-# `nixpkgs-commit-id`: go to https://status.nixos.org/, which lists the latest
-# commit that passes all the tests for any release. Unless there is an
-# overriding reason, pick the latest stable NixOS release, at the time of
-# writing this is nixos-20.09.
-{ nixpkgs-commit-id ? "95d26c9a9f2a102e25cf318a648de44537f42e09" # nixos-20.09 on 2020-10-24
-, py ? "38" # To override the default python version:  nix-shell shell.nix --argstr py 37
+# nixpkgs-commit-id in `nix/sources.nix`
+{
+  py ? "38" # To override the default python version:  nix-shell shell.nix --argstr py 39
 }:
 let
-  nixpkgs-url = "https://github.com/nixos/nixpkgs/archive/${nixpkgs-commit-id}.tar.gz";
-  pkgs = import (fetchTarball nixpkgs-url) {
-      overlays = map (uri: import (fetchTarball uri)) [
-        https://github.com/mozilla/nixpkgs-mozilla/archive/master.tar.gz
-      ];
-    };
+  random_pkgs = import <nixpkgs> {};
+  sources = random_pkgs.callPackage nix/sources.nix {};
+  pkgs = sources.pkgs;
 
   # ----- Rust --------------------------------------------------------------------
   rust-stable  = pkgs.latest.rustChannels.stable .rust;
