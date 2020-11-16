@@ -12,7 +12,7 @@ in
     pkgs.bat # git-aware, intelligent, helpful, colourful version of `cat`
     pkgs.fd  # better find
     pkgs.ripgrep # better grep / grep-find
-    pkgs.dust # better du
+    pkgs.du-dust # better du
     pkgs.tldr # simplified man-pages
     #pkgs.cowsay
     # <uncomment-to-install-spacemacs> # pkgs.emacs
