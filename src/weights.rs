@@ -668,12 +668,11 @@ mod test_gaussian {
             // extract x-component from 3d-index
             [0];
 
-        assert_eq!(expected_voxel_x_index, actual_voxel_x_index);
-
         // Values to plug in to visualizer (only show when test fails)
-
         println!("\nTo visualize this case, run:");
         println!("{}\n", crate::visualize::vislor_command(&vbox, &lor));
+
+        assert_eq!(expected_voxel_x_index, actual_voxel_x_index);
 
     }
 
