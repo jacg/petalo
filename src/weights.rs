@@ -561,6 +561,9 @@ fn make_gauss(sigma: Length, width: Option<Length>) -> impl Fn(Length) -> Length
     }
 }
 
+// A doctest, just to remind us that we should have some.
+
+// TODO: This test is symmetric in t1,t2; need an asymmetric test.
 /// Returns a closure which keeps track of progress along LOR and adjusts voxel
 /// weight according to Gaussian TOF distribution. To be mapped over the stream
 /// produced by WeightsAlongLOR, as shown in this example:
@@ -592,7 +595,6 @@ fn make_gauss(sigma: Length, width: Option<Length>) -> impl Fn(Length) -> Length
 /// assert!   (active_voxels.get(&(0,2,2)) < active_voxels.get(&(1,2,2)));
 /// assert!   (active_voxels.get(&(1,2,2)) < active_voxels.get(&(2,2,2)));
 /// ```
-// TODO: This test is symmetric in t1,t2; need an asymmetric test.
 pub fn gaussian(sigma: Length, lor: &LOR, vbox: &VoxelBox, cutoff: Option<Length>) -> Box<dyn FnMut (Index3Weight) -> Index3Weight> {
     let t1_minus_t2 = lor.t1 - lor.t2;
     match vbox.entry(&lor.p1, &lor.p2).map(|ep| (ep-lor.p1).norm()) {
