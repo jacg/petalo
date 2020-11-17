@@ -3,7 +3,7 @@
 use std::fs::File;
 use std::io::{Write, Read};
 
-pub fn write<'a>(data: impl Iterator<Item = &'a f32>, path: &std::path::PathBuf) -> std::io::Result<()> {
+pub fn write(data: impl Iterator<Item = f32>, path: &std::path::PathBuf) -> std::io::Result<()> {
     let mut file = File::create(path)?;
     for datum in data {
         let bytes = datum.to_le_bytes();
@@ -45,7 +45,7 @@ mod test {
         let original_data = vec![1.23, 4.56, 7.89];
 
         // Write data to file
-        write(original_data.iter(), &file_path)?;
+        write(original_data.iter().copied(), &file_path)?;
 
         // Read data back from file
         let reloaded_data: Vec<_> = read_bin(&file_path)?

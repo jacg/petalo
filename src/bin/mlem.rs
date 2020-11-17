@@ -104,13 +104,21 @@ fn main() -> Result<(), Box<dyn Error>> {
                 report_time("iteration");
                 let data: ndarray::Array3<F> = image.data;
                 let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
-                petalo::io::raw::write(data.t().iter(), &path)?;
+                write(data, &path)?;
                 report_time("Wrote raw bin");
                 // TODO: step_by for print every
             }
     }
     Ok(())
 }
+
+fn write(data: ndarray::Array3<F>, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    use petalo::io::raw::write;
+    #[cfg(not(feature = "f64"))] write(data.t().iter().copied()          , path)?;
+    #[cfg    (feature = "f64") ] write(data.t().iter().map(|&x| x as f32), path)?;
+    Ok(())
+}
+
 
 fn guess_filename(args: &Cli) -> String {
     if let Some(pattern) = &args.out_files {
@@ -168,6 +176,7 @@ fn run_cmlem(
     // TODO: Dummy sensitivity matrix, for now
     let sensitivity_matrix = vec![1.0; nx * ny * nz];
 
+    #[cfg(not(feature = "f64"))]
     cmlem::cmlem(
         args.iterations,
         args.tof.is_some(),
