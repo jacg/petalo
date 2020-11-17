@@ -549,10 +549,15 @@ mod test_vbox {
 fn make_gauss(sigma: Length) -> impl Fn(Length) -> Length {
     let root_two_pi = std::f64::consts::PI.sqrt() as Length;
     let a = 1.0 / (sigma * root_two_pi);
+    let cutoff = 3.0 * sigma;
     move |x| {
-        let y = x / sigma;
-        let z = y * y;
-        a * (-0.5 * z).exp()
+        if x.abs() < cutoff {
+            let y = x / sigma;
+            let z = y * y;
+            a * (-0.5 * z).exp()
+        } else {
+            0.0
+        }
     }
 }
 
@@ -677,6 +682,28 @@ mod test_gaussian {
     }
 
     // TODO: test width of peak
+
+    use proptest::prelude::*;
+    use assert_approx_eq::assert_approx_eq;
+
+    proptest! {
+        #[test]
+        fn gaussian_cutoff(sigma  in 20.0..(400.0 as Length))
+        {
+            let cutoff = 3.0;
+            let gauss = make_gauss(sigma);
+            let inside  = (1.0 - EPS) * cutoff * sigma;
+            let outside = (1.0 + EPS) * cutoff * sigma;
+            let pos_in  = gauss( inside);
+            let pos_out = gauss( outside);
+            let neg_in  = gauss(-inside);
+            let neg_out = gauss(-outside);
+            assert_eq!(pos_out, 0.0);
+            assert_eq!(neg_out, 0.0);
+            assert_approx_eq!(pos_in, neg_in);
+            assert!(pos_in > 0.0);
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
