@@ -97,12 +97,12 @@ mod test {
             use_true: false,
         };
         let lors = read_lors(args.clone()).unwrap();
-        assert_eq!(lors[2].p1.coords.x, -120.73839);
+        assert_eq!(lors[2].p1.coords.x, -120.73839054997248);
 
         // ... then use the true data.
         let args = Args { use_true: true, ..args };
         let lors = read_lors(args).unwrap();
-        assert_eq!(lors[2].p1.coords.x, -120.73839);
+        assert_eq!(lors[2].p1.coords.x, -120.73839054997248);
         Ok(())
     }
 

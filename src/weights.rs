@@ -5,8 +5,8 @@ use ndarray::azip;
 use ndarray::Array3;
 
 // TODO: have another go at getting nalgebra to work with uom.
-#[allow(nonstandard_style)]
-const c: Length = 0.299792458; // mm / ps
+pub const C: Length = 0.299792458; // mm / ps
+pub const DISTANCE_AS_TOF_DELTA: Length = 2.0 / C;
 
 // TODO: no thought has been given to what should be public or private.
 
@@ -21,6 +21,7 @@ const c: Length = 0.299792458; // mm / ps
 
 pub type Time   = Length;
 pub type Weight = Length;
+pub type Dimensionless = Length;
 
 type Vector = nc::math ::Vector<Length>;
 pub type Point  = nc::math ::Point <Length>;
@@ -386,7 +387,7 @@ impl Image {
             .for_each(|(i, LOR_i)| {
 
                 // Weights of all voxels contributing to this LOR
-                let A_ijs: Vec<Index3Weight> = LOR_i.active_voxels(&self.vbox, None, sigma).collect();
+                let A_ijs: Vec<Index3Weight> = LOR_i.active_voxels(&self.vbox, Some(3.0), sigma).collect();
 
                 // Projection of current image into this LOR
                 let P_i = self.project(A_ijs.iter().copied(), noise, i);
@@ -546,10 +547,10 @@ mod test_vbox {
 }
 //--------------------------------------------------------------------------------
 
-fn make_gauss(sigma: Length) -> impl Fn(Length) -> Length {
+pub fn make_gauss(sigma: Length, width: Option<Length>) -> impl Fn(Length) -> Length {
     let root_two_pi = std::f64::consts::PI.sqrt() as Length;
     let a = 1.0 / (sigma * root_two_pi);
-    let cutoff = 3.0 * sigma;
+    let cutoff = width.map_or(std::f32::INFINITY as Length, |width| width * sigma);
     move |x| {
         if x.abs() < cutoff {
             let y = x / sigma;
@@ -561,6 +562,9 @@ fn make_gauss(sigma: Length) -> impl Fn(Length) -> Length {
     }
 }
 
+// A doctest, just to remind us that we should have some.
+
+// TODO: This test is symmetric in t1,t2; need an asymmetric test.
 /// Returns a closure which keeps track of progress along LOR and adjusts voxel
 /// weight according to Gaussian TOF distribution. To be mapped over the stream
 /// produced by WeightsAlongLOR, as shown in this example:
@@ -578,7 +582,7 @@ fn make_gauss(sigma: Length) -> impl Fn(Length) -> Length {
 /// // Generate geometry-dependent voxel weights
 /// let active_voxels = WeightsAlongLOR::new(p1, p2, &vbox)
 ///     // Adjust weights with gaussian TOF factor
-///     .map(gaussian(sigma, &lor, &vbox))
+///     .map(gaussian(sigma, &lor, &vbox, None))
 ///     // Make index more human-friendly (tuple rather than vector)
 ///     .map(|(i,w)| ((i[0], i[1], i[2]), w))
 ///     // Store weights in hash map, keyed on voxel index, for easy retrieval
@@ -592,8 +596,7 @@ fn make_gauss(sigma: Length) -> impl Fn(Length) -> Length {
 /// assert!   (active_voxels.get(&(0,2,2)) < active_voxels.get(&(1,2,2)));
 /// assert!   (active_voxels.get(&(1,2,2)) < active_voxels.get(&(2,2,2)));
 /// ```
-// TODO: This test is symmetric in t1,t2; need an asymmetric test.
-pub fn gaussian(sigma: Length, lor: &LOR, vbox: &VoxelBox) -> Box<dyn FnMut (Index3Weight) -> Index3Weight> {
+pub fn gaussian(sigma: Length, lor: &LOR, vbox: &VoxelBox, cutoff: Option<Length>) -> Box<dyn FnMut (Index3Weight) -> Index3Weight> {
     let t1_minus_t2 = lor.t1 - lor.t2;
     match vbox.entry(&lor.p1, &lor.p2).map(|ep| (ep-lor.p1).norm()) {
         // If LOR misses the voxel box, we should never receive any voxels
@@ -602,18 +605,18 @@ pub fn gaussian(sigma: Length, lor: &LOR, vbox: &VoxelBox) -> Box<dyn FnMut (Ind
         // If LOR does hit some voxels, find the first hit's distance from p1 ...
         Some(p1_to_entry) => {
             // ... and the TOF peak's distance from p1
-            let p1_to_peak = 0.5 * ((lor.p1 - lor.p2).norm() + c * (t1_minus_t2));
+            let p1_to_peak = 0.5 * ((lor.p1 - lor.p2).norm() + C * (t1_minus_t2));
             // Will keep track of how far we are from the TOF peak
             let mut distance_to_peak = p1_to_peak - p1_to_entry;
             // Specialize gaussian on given sigma
-            let gauss = make_gauss(sigma);
+            let gauss = make_gauss(sigma, cutoff);
             Box::new(move |(index, weight)| {
                 // Use the LOR's half-way point in the voxel, for the TOF factor
                 let midpoint = distance_to_peak - weight / 2.0;
                 // Update distance for next voxel
                 distance_to_peak -= weight;
                 // Return the weight suppressed by the gaussian TOF factor
-                (index, weight * gauss(midpoint))
+                (index, weight * gauss(midpoint * DISTANCE_AS_TOF_DELTA))
             })
         },
     }
@@ -632,7 +635,7 @@ mod test_gaussian {
 
         // That distance reduces/increases the TOF to the nearer/farther LOR
         // endpoints by delta_t = delta_x / c.
-        let delta_t = delta_x / c;
+        let delta_t = delta_x / C;
 
         // As one of the TOFs is reduced by this amount, while the other is
         // increased by the same amount, the total difference between the
@@ -661,7 +664,7 @@ mod test_gaussian {
         // Generate geometry-dependent (all equal) voxel weights
             WeightsAlongLOR::new(p1, p2, &vbox)
             // Adjust weights with gaussian TOF factor
-            .map(gaussian(sigma, &lor, &vbox))
+            .map(gaussian(sigma, &lor, &vbox, None))
             // Show values: will be hidden if test succeeds
             .inspect(|x| println!("{:?}", x))
             // find the index-and-weight of the peak
@@ -688,12 +691,13 @@ mod test_gaussian {
 
     proptest! {
         #[test]
-        fn gaussian_cutoff(sigma  in 20.0..(400.0 as Length))
-        {
-            let cutoff = 3.0;
-            let gauss = make_gauss(sigma);
-            let inside  = (1.0 - EPS) * cutoff * sigma;
-            let outside = (1.0 + EPS) * cutoff * sigma;
+        fn gaussian_cutoff(
+            sigma in 20.0..(400.0 as Length),
+            width in  1.0..(  4.0 as Length)
+        ) {
+            let gauss = make_gauss(sigma, Some(width));
+            let inside  = (1.0 - EPS) * width * sigma;
+            let outside = (1.0 + EPS) * width * sigma;
             let pos_in  = gauss( inside);
             let pos_out = gauss( outside);
             let neg_in  = gauss(-inside);
@@ -717,23 +721,20 @@ pub struct LOR {
 impl LOR {
     pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self { Self { t1, t2, p1, p2 } }
 
-    pub fn active_voxels<'a>(&self, vbox: &'a VoxelBox, threshold: Option<Length>, tof: Option<Length>) -> impl Iterator<Item = Index3Weight> + 'a {
+    pub fn active_voxels<'a>(&self, vbox: &'a VoxelBox, cutoff: Option<Length>, tof: Option<Length>) -> impl Iterator<Item = Index3Weight> + 'a {
 
         //
         let tof_adjustment = match tof {
-            Some(sigma) => gaussian(sigma, &self, vbox),
+            Some(sigma) => gaussian(sigma, &self, vbox, cutoff),
             None        => Box::new(|x| x),
-        };
-
-        // Should we ignore voxels with very low contribution?
-        let threshold: Box<dyn FnMut(&Index3Weight) -> bool> = match threshold {
-            Some(thresh) => Box::new(move |(_, w)| w > &thresh),
-            None         => Box::new(     |  _   |  true      ),
         };
 
         WeightsAlongLOR::new(self.p1, self.p2, vbox)
             .map(tof_adjustment)
-            .filter(threshold)
+            // Gaussian-truncation will have set some of the voxels' weights to
+            // zero. They will contribute nothing to the calculation, so keeping them
+            // will merely waste CPU cycles: filter them out
+            .filter(|(_, w)| w > &0.0)
     }
 
 }

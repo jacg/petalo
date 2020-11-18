@@ -43,6 +43,7 @@ let
 
     buildPhase = ''
       substituteInPlace makefile --replace "CXX = g++" "CXX=$CXX"
+      substituteInPlace cc/mlem.cc --replace "float ToFFunction"  "extern \"C\" float ToFFunction"
       source tofpet3d_setup.sh
       make
     '';

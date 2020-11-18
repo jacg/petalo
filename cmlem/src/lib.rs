@@ -94,3 +94,13 @@ mod test {
         assert_eq!(image.len(), image_size);
     }
 }
+
+pub fn ale_burdel(dist: f32, deltaT: f32, TOF_resolution: f32) -> f32 {
+    unsafe { ToFFunction(dist, deltaT, TOF_resolution) }
+}
+
+#[test]
+fn test_burdel() {
+    let burdel = ale_burdel(0.0, 0.0, 3.0);
+    assert_eq!(burdel, 0.8871535);
+}
