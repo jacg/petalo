@@ -581,7 +581,7 @@ fn make_gauss(sigma: Length, width: Option<Length>) -> impl Fn(Length) -> Length
 /// // Generate geometry-dependent voxel weights
 /// let active_voxels = WeightsAlongLOR::new(p1, p2, &vbox)
 ///     // Adjust weights with gaussian TOF factor
-///     .map(gaussian(sigma, &lor, &vbox, Some(3.0)))
+///     .map(gaussian(sigma, &lor, &vbox, None))
 ///     // Make index more human-friendly (tuple rather than vector)
 ///     .map(|(i,w)| ((i[0], i[1], i[2]), w))
 ///     // Store weights in hash map, keyed on voxel index, for easy retrieval
