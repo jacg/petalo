@@ -5,8 +5,7 @@ use ndarray::azip;
 use ndarray::Array3;
 
 // TODO: have another go at getting nalgebra to work with uom.
-#[allow(nonstandard_style)]
-const c: Length = 0.299792458; // mm / ps
+pub const C: Length = 0.299792458; // mm / ps
 
 // TODO: no thought has been given to what should be public or private.
 
@@ -604,7 +603,7 @@ pub fn gaussian(sigma: Length, lor: &LOR, vbox: &VoxelBox, cutoff: Option<Length
         // If LOR does hit some voxels, find the first hit's distance from p1 ...
         Some(p1_to_entry) => {
             // ... and the TOF peak's distance from p1
-            let p1_to_peak = 0.5 * ((lor.p1 - lor.p2).norm() + c * (t1_minus_t2));
+            let p1_to_peak = 0.5 * ((lor.p1 - lor.p2).norm() + C * (t1_minus_t2));
             // Will keep track of how far we are from the TOF peak
             let mut distance_to_peak = p1_to_peak - p1_to_entry;
             // Specialize gaussian on given sigma
@@ -634,7 +633,7 @@ mod test_gaussian {
 
         // That distance reduces/increases the TOF to the nearer/farther LOR
         // endpoints by delta_t = delta_x / c.
-        let delta_t = delta_x / c;
+        let delta_t = delta_x / C;
 
         // As one of the TOFs is reduced by this amount, while the other is
         // increased by the same amount, the total difference between the
