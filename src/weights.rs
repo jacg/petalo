@@ -6,6 +6,7 @@ use ndarray::Array3;
 
 // TODO: have another go at getting nalgebra to work with uom.
 pub const C: Length = 0.299792458; // mm / ps
+pub const DISTANCE_AS_TOF_DELTA: Length = 2.0 / C;
 
 // TODO: no thought has been given to what should be public or private.
 
@@ -615,7 +616,7 @@ pub fn gaussian(sigma: Length, lor: &LOR, vbox: &VoxelBox, cutoff: Option<Length
                 // Update distance for next voxel
                 distance_to_peak -= weight;
                 // Return the weight suppressed by the gaussian TOF factor
-                (index, weight * gauss(midpoint))
+                (index, weight * gauss(midpoint * DISTANCE_AS_TOF_DELTA))
             })
         },
     }
