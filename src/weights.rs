@@ -20,6 +20,7 @@ pub const C: Length = 0.299792458; // mm / ps
 
 pub type Time   = Length;
 pub type Weight = Length;
+pub type Dimensionless = Length;
 
 type Vector = nc::math ::Vector<Length>;
 pub type Point  = nc::math ::Point <Length>;
@@ -545,7 +546,7 @@ mod test_vbox {
 }
 //--------------------------------------------------------------------------------
 
-fn make_gauss(sigma: Length, width: Option<Length>) -> impl Fn(Length) -> Length {
+pub fn make_gauss(sigma: Length, width: Option<Length>) -> impl Fn(Length) -> Length {
     let root_two_pi = std::f64::consts::PI.sqrt() as Length;
     let a = 1.0 / (sigma * root_two_pi);
     let cutoff = width.map_or(std::f32::INFINITY as Length, |width| width * sigma);
