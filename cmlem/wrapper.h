@@ -24,4 +24,4 @@ MLEM_TOF_Reco(int niterations,
               const char * outfile_prefix,
               int out_niter);
 
-/* int my_function(int a, int b); */
+float ToFFunction(float dist, float deltaT, float TOF_resolution);
