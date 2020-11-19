@@ -1,13 +1,14 @@
 /// Read / write float arrays as raw binary
 
 use std::fs::File;
-use std::io::{Write, Read};
+use std::io::{Write, Read, BufWriter};
 
 pub fn write(data: impl Iterator<Item = f32>, path: &std::path::PathBuf) -> std::io::Result<()> {
-    let mut file = File::create(path)?;
+    let file = File::create(path)?;
+    let mut buf = BufWriter::new(file);
     for datum in data {
         let bytes = datum.to_le_bytes();
-        file.write(&bytes)?;
+        buf.write(&bytes)?;
     }
     Ok(())
 }
