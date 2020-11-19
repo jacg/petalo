@@ -37,3 +37,4 @@ bindgen = "*"
 
 [features]
 f64 = []
+compile-error = []
