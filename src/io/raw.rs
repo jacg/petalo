@@ -15,7 +15,7 @@ pub fn write(data: impl Iterator<Item = f32>, path: &std::path::PathBuf) -> std:
 
 type IORes<T> = std::io::Result<T>;
 
-pub fn read_bin<'a>(path: &std::path::PathBuf) -> IORes<impl Iterator<Item = IORes<f32>> + 'a> {
+pub fn read_raw<'a>(path: &std::path::PathBuf) -> IORes<impl Iterator<Item = IORes<f32>> + 'a> {
     let mut file = File::open(path)?;
     let mut buffer = [0; 4];
 
@@ -34,7 +34,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn bin_io_roundtrip() -> std::io::Result<()> {
+    fn raw_io_roundtrip() -> std::io::Result<()> {
         use tempfile::tempdir;
         #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
 
@@ -49,7 +49,7 @@ mod test {
         write(original_data.iter().copied(), &file_path)?;
 
         // Read data back from file
-        let reloaded_data: Vec<_> = read_bin(&file_path)?
+        let reloaded_data: Vec<_> = read_raw(&file_path)?
             .collect::<Result<_, _>>()?;
 
         // Check that roundtrip didn't corrupt the data
