@@ -11,7 +11,7 @@ fn sim_burdel(dist: Length, deltaT: Time, TOF_resolution: Time) -> Dimensionless
     let t = dist * 2.0 / C + deltaT ;
     let sigma = TOF_resolution;
     let cutoff = Some(3.0);
-    make_gauss(sigma, cutoff)(t) * 4.717316
+    make_gauss(sigma, cutoff)(t) * 2.0 / C
 }
 
 // Check that sim_burdel is equivalent to ale_burdel a.k.a ToFFunction

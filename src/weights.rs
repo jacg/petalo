@@ -36,6 +36,8 @@ type BoxDim = [usize; 3];
 
 type Index3Weight = (Index3, Weight);
 
+const TWOPI: Length = std::f64::consts::TAU as Length;
+
 // This algorithm is centred around two key simplifications:
 //
 // 1. Express the voxel size in terms of the LOR components. This allows trivial
@@ -218,8 +220,6 @@ mod test {
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
-
-    const TWOPI: Length = std::f64::consts::TAU as Length;
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
@@ -547,15 +547,15 @@ mod test_vbox {
 }
 //--------------------------------------------------------------------------------
 
-pub fn make_gauss(sigma: Length, width: Option<Length>) -> impl Fn(Length) -> Length {
-    let root_two_pi = std::f64::consts::PI.sqrt() as Length;
-    let a = 1.0 / (sigma * root_two_pi);
-    let cutoff = width.map_or(std::f32::INFINITY as Length, |width| width * sigma);
+pub fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> Length {
+    let root_two_pi = TWOPI.sqrt() as Length;
+    let peak_height = 1.0 / (sigma * root_two_pi);
+    let cutoff = cutoff.map_or(std::f32::INFINITY as Length, |width| width * sigma);
     move |x| {
         if x.abs() < cutoff {
             let y = x / sigma;
             let z = y * y;
-            a * (-0.5 * z).exp()
+            peak_height * (-0.5 * z).exp()
         } else {
             0.0
         }
