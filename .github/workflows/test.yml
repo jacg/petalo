@@ -32,6 +32,7 @@ jobs:
       - run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test -p cmlem"
 
   home-manager:
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
