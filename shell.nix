@@ -86,9 +86,6 @@ let
 
     pkgs.pkgconfig
 
-    # for criterion plot generation
-    pkgs.gnuplot
-
     # for kiss3d visualization
     pkgs.xorg.libX11
     pkgs.xorg.libXcursor
@@ -105,10 +102,6 @@ let
 
     # HDF5
     pkgs.hdf5
-
-    # profiling
-    (linux pkgs.linuxPackages.perf)
-    pkgs.cargo-flamegraph
 
     # python
     pypkgs.cffi
@@ -131,6 +124,26 @@ let
     # Hacking around bindgen/dyld/MacOS: a compiler that can be used in
     # buildPhase on both Mac/Linux
     pkgs.clang_9
+
+    ######## Tools for profiling, debugging, benchmarking #######
+
+    # Profiling
+    (linux pkgs.linuxPackages.perf)
+    (linux pkgs.oprofile)
+    (linux pkgs.kcachegrind)
+    (linux pkgs.graphviz) # used by kcachegrind
+    pkgs.cargo-flamegraph
+    pkgs.cargo-asm
+    pkgs.valgrind
+
+    # Benchmarking
+    pkgs.hyperfine
+    pkgs.gnuplot # for criterion plot generation
+
+    # Debugging
+    pkgs.gdbgui
+    pkgs.gdb
+    pkgs.lldb
 
   ];
 
