@@ -134,7 +134,7 @@ impl Scene {
         for (i, weight) in active_voxels {
             let relative_weight = (weight / max_weight) as f32;
             let mut v = match shape {
-                Shape::Box  => self.window.add_cube(vdx * s, vdy * s, vdy * s),
+                Shape::Box  => self.window.add_cube(vdx * s, vdy * s, vdz * s),
                 Shape::Ball => self.window.add_sphere(vdx.min(vdy).min(vdy) * relative_weight * 0.8),
             };
             v.append_translation(&half_vbox);
