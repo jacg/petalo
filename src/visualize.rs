@@ -140,7 +140,7 @@ impl Scene {
             v.append_translation(&half_vbox);
             v.append_translation(&half_voxel);
             v.append_translation(&Translation3::new(i[0] as f32 * vdx, i[1] as f32 * vdy, i[2] as f32 * vdz));
-            v.set_color(relative_weight, 0.0, 0.0);
+            v.set_color(relative_weight, 0.1, 0.0);
             voxels.push(v);
             //v.set_material(material);
         }
