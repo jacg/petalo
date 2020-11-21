@@ -12,11 +12,12 @@ let
   rust-stable  = pkgs.latest.rustChannels.stable .rust;
   rust-nightly = pkgs.latest.rustChannels.nightly.rust;
   rust-specific = (pkgs.rustChannelOf { date = "2020-10-19"; channel = "nightly"; }).rust;
+  rust-pinned-stable = (pkgs.rustChannelOf { channel = "1.47.0"; }).rust;
   # to use the project's rust-toolchain file:
   rust-toolchain = (pkgs.rustChannelOf { rustToolchain = ./rust-toolchain; }).rust;
   # Rust system to be used in buldiInputs. Choose between
   # stable/nightly/specific on the next line
-  rust = (rust-stable.override {
+  rust = (rust-pinned-stable.override {
     extensions = [
       "rust-analysis" # Rust Language Server (RLS)
       "rust-src"      # Needed by RLS? or only rust-analyzer?
