@@ -353,7 +353,7 @@ impl core::ops::Index<Index3> for Image {
 impl Image {
 
     pub fn mlem<'a>(vbox: VoxelBox,
-                    measured_lors: &'a Vec<LOR>,
+                    measured_lors: &'a [LOR],
                     sigma        :     Option<Time>,
                     S            : &'a ImageData,
                     noise        : &'a Noise,
@@ -370,7 +370,7 @@ impl Image {
         })
     }
 
-    fn one_iteration(&mut self, measured_lors: &Vec<LOR>, S: &ImageData, sigma: Option<Time>, noise: &Noise) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], S: &ImageData, sigma: Option<Time>, noise: &Noise) {
         let BP = self.backproject(measured_lors, sigma, noise);
         azip!((voxel in &mut self.data, &b in &BP, &s in S) {
             if s > 0.0 { *voxel *= b / s }
@@ -378,7 +378,7 @@ impl Image {
         })
     }
 
-    fn backproject<'a>(&'a self, measured_lors: &Vec<LOR>, sigma: Option<Time>, noise: &Noise) -> ImageData {
+    fn backproject<'a>(&'a self, measured_lors: &[LOR], sigma: Option<Time>, noise: &Noise) -> ImageData {
 
         // Accumulator for all backprojection contributions in this iteration
         let mut BP = self.zeros_buffer();
