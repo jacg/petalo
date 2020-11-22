@@ -251,9 +251,12 @@ mod test {
 
         let p1 = Point::new(p1.0, p1.1, 0.0);
         let p2 = Point::new(p2.0, p2.1, 0.0);
-        let vbox = VoxelBox::new((size.0, size.1, 0.0), (n.0, n.1, 1));
+        let vbox = VoxelBox::new((size.0, size.1, 1.0), (n.0, n.1, 1));
 
-        //crate::visualize::lor_weights(p1, p2, vbox.clone());
+        // Values to plug in to visualizer:
+        let lor = LOR::new(0.0, 0.0, p1, p2);
+        let command = crate::visualize::vislor_command(&vbox, &lor);
+        println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
         let hits: Vec<Index3Weight> =
