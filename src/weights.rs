@@ -472,6 +472,7 @@ impl VoxelBox {
         i[0] + n[0] * i[1] + (n[0] * n[1]) * i[2]
     }
 
+    #[allow(clippy::many_single_char_names)]
     pub fn index1_to_3(&self, i: Index1) -> Index3 {
         let n = self.n;
         let z = i / (n[0] * n[1]);

@@ -11,6 +11,8 @@ pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std:
     Ok(x..y)
 }
 
+
+#[allow(clippy::many_single_char_names)]
 pub fn parse_triplet<T: std::str::FromStr>(s: &str) -> Result<(T,T,T), <T as std::str::FromStr>::Err> {
     let v = s.split(',').collect::<Vec<_>>();
     assert!(v.len() == 3);
