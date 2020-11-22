@@ -1,4 +1,3 @@
-use kiss3d;
 use nalgebra as na;
 
 use kiss3d::light::Light;
