@@ -360,7 +360,7 @@ impl Image {
     ) -> impl Iterator<Item = Image> + 'a {
 
         // Start off with a uniform image
-        let mut image = Self::ones(vbox.clone());
+        let mut image = Self::ones(vbox);
 
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
