@@ -24,7 +24,7 @@ pub fn read_raw<'a>(path: &std::path::PathBuf) -> IORes<impl Iterator<Item = IOR
         match file.read_exact(&mut buffer) {
             Ok(()) => Some(Ok(f32::from_le_bytes(buffer))),
             Err(e) if e.kind() == UnexpectedEof => None,
-            Err(e) => return Some(Err(e)),
+            Err(e) => Some(Err(e)),
         }
     }))
 }
