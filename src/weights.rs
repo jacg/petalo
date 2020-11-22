@@ -5,6 +5,8 @@ use ndarray::azip;
 use ndarray::Array3;
 
 // TODO: have another go at getting nalgebra to work with uom.
+
+#[allow(clippy::excessive_precision)] // Precision needed when features=f64
 pub const C: Length = 0.299792458; // mm / ps
 pub const DISTANCE_AS_TOF_DELTA: Length = 2.0 / C;
 
