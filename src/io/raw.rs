@@ -8,6 +8,9 @@ pub fn write(data: impl Iterator<Item = f32>, path: &std::path::PathBuf) -> std:
     let mut buf = BufWriter::new(file);
     for datum in data {
         let bytes = datum.to_le_bytes();
+        // TODO: Clippy suggests write -> write_all, but that slows down the
+        // writer by a factor of 100. However, like this, we're not checking
+        // whether the whole buffer was written.
         buf.write(&bytes)?;
     }
     Ok(())
@@ -24,7 +27,7 @@ pub fn read_raw<'a>(path: &std::path::PathBuf) -> IORes<impl Iterator<Item = IOR
         match file.read_exact(&mut buffer) {
             Ok(()) => Some(Ok(f32::from_le_bytes(buffer))),
             Err(e) if e.kind() == UnexpectedEof => None,
-            Err(e) => return Some(Err(e)),
+            Err(e) => Some(Err(e)),
         }
     }))
 }

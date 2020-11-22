@@ -5,6 +5,8 @@ use ndarray::azip;
 use ndarray::Array3;
 
 // TODO: have another go at getting nalgebra to work with uom.
+
+#[allow(clippy::excessive_precision)] // Precision needed when features=f64
 pub const C: Length = 0.299792458; // mm / ps
 pub const DISTANCE_AS_TOF_DELTA: Length = 2.0 / C;
 
@@ -353,14 +355,14 @@ impl core::ops::Index<Index3> for Image {
 impl Image {
 
     pub fn mlem<'a>(vbox: VoxelBox,
-                    measured_lors: &'a Vec<LOR>,
+                    measured_lors: &'a [LOR],
                     sigma        :     Option<Time>,
                     S            : &'a ImageData,
                     noise        : &'a Noise,
     ) -> impl Iterator<Item = Image> + 'a {
 
         // Start off with a uniform image
-        let mut image = Self::ones(vbox.clone());
+        let mut image = Self::ones(vbox);
 
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
@@ -370,7 +372,7 @@ impl Image {
         })
     }
 
-    fn one_iteration(&mut self, measured_lors: &Vec<LOR>, S: &ImageData, sigma: Option<Time>, noise: &Noise) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], S: &ImageData, sigma: Option<Time>, noise: &Noise) {
         let BP = self.backproject(measured_lors, sigma, noise);
         azip!((voxel in &mut self.data, &b in &BP, &s in S) {
             if s > 0.0 { *voxel *= b / s }
@@ -378,7 +380,7 @@ impl Image {
         })
     }
 
-    fn backproject<'a>(&'a self, measured_lors: &Vec<LOR>, sigma: Option<Time>, noise: &Noise) -> ImageData {
+    fn backproject<'a>(&'a self, measured_lors: &[LOR], sigma: Option<Time>, noise: &Noise) -> ImageData {
 
         // Accumulator for all backprojection contributions in this iteration
         let mut BP = self.zeros_buffer();
@@ -470,6 +472,7 @@ impl VoxelBox {
         i[0] + n[0] * i[1] + (n[0] * n[1]) * i[2]
     }
 
+    #[allow(clippy::many_single_char_names)]
     pub fn index1_to_3(&self, i: Index1) -> Index3 {
         let n = self.n;
         let z = i / (n[0] * n[1]);
