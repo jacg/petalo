@@ -42,7 +42,7 @@ pub struct Cli {
     #[structopt(short = "r", long)]
     sigma: Option<Length>,
 
-    /// Ignore voxels with weight below this threshold.
+    /// Ignore voxels with lie further than <cutoff> from TOF peak.
     #[structopt(short = "k", long)]
     cutoff: Option<Ratio>,
 
