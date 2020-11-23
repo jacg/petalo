@@ -90,8 +90,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let vbox = pet::VoxelBox::new(args.size, args.n_voxels);
     // TODO: sensitivity matrix, all ones for now
     let sensitivity_matrix = pet::Image::ones(vbox).data;
-    // TODO: noise
-    let noise = pet::Noise;
 
     let file_pattern = guess_filename(&args);
 
@@ -102,7 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if args.use_c {
         run_cmlem(&args, &measured_lors)
     } else {
-        for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix, &noise))
+        for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix))
             .take(args.iterations)
             .enumerate() {
                 report_time("iteration");

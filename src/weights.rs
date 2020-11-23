@@ -359,7 +359,6 @@ impl Image {
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
                     S            : &'a ImageData,
-                    noise        : &'a Noise,
     ) -> impl Iterator<Item = Image> + 'a {
 
         // Start off with a uniform image
@@ -368,20 +367,20 @@ impl Image {
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
         std::iter::from_fn(move || {
-            image.one_iteration(measured_lors, S, sigma, cutoff, noise);
+            image.one_iteration(measured_lors, S, sigma, cutoff);
             Some(image.clone()) // TODO see if we can sensibly avoid cloning
         })
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], S: &ImageData, sigma: Option<Time>, cutoff: Option<Ratio>, noise: &Noise) {
-        let BP = self.backproject(measured_lors, sigma, cutoff, noise);
+    fn one_iteration(&mut self, measured_lors: &[LOR], S: &ImageData, sigma: Option<Time>, cutoff: Option<Ratio>) {
+        let BP = self.backproject(measured_lors, sigma, cutoff);
         azip!((voxel in &mut self.data, &b in &BP, &s in S) {
             if s > 0.0 { *voxel *= b / s }
             else       { *voxel  = 0.0   }
         })
     }
 
-    fn backproject<'a>(&'a self, measured_lors: &[LOR], sigma: Option<Time>, cutoff: Option<Length>, noise: &Noise) -> ImageData {
+    fn backproject<'a>(&'a self, measured_lors: &[LOR], sigma: Option<Time>, cutoff: Option<Length>) -> ImageData {
 
         // Accumulator for all backprojection contributions in this iteration
         let mut BP = self.zeros_buffer();
@@ -389,14 +388,13 @@ impl Image {
         // For each measured LOR ...
         measured_lors
             .iter()
-            .enumerate()
-            .for_each(|(i, LOR_i)| {
+            .for_each(|LOR_i| {
 
                 // Weights of all voxels contributing to this LOR
                 let A_ijs: Vec<Index3Weight> = LOR_i.active_voxels(&self.vbox, cutoff, sigma).collect();
 
                 // Projection of current image into this LOR
-                let P_i = self.project(A_ijs.iter().copied(), noise, i);
+                let P_i = self.project(A_ijs.iter().copied());
 
                 // This LOR's contribution to the backprojection
                 for (j, A_ij) in A_ijs {
@@ -408,9 +406,9 @@ impl Image {
         BP
     }
 
-    fn project(&self, A_ijs: impl Iterator<Item = Index3Weight>, b: &Noise, i: usize) -> Weight {
+    fn project(&self, A_ijs: impl Iterator<Item = Index3Weight>) -> Weight {
         let lambda = self;
-        A_ijs.map(move |(j, A_ij)|  A_ij * lambda[j] + b[i])
+        A_ijs.map(move |(j, A_ij)|  A_ij * lambda[j])
             .sum()
     }
 
@@ -421,18 +419,6 @@ impl Image {
     }
 
 }
-
-//--------------------------------------------------------------------------------
-pub struct Noise; // TODO
-
-impl core::ops::Index<Index1> for Noise {
-    type Output = Intensity;
-    fn index(&self, _: Index1) -> &Self::Output {
-        // TODO: no noise for now
-        &0.0
-    }
-}
-
 
 //--------------------------------------------------------------------------------
 #[derive(Clone, Copy, Debug)]
