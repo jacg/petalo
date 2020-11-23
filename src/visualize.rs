@@ -7,7 +7,7 @@ use kiss3d::scene::{SceneNode};
 use kiss3d::camera::{ArcBall};
 use na::{Point3, Translation3};
 
-use crate::weights::{Length, VoxelBox, Index3, LOR};
+use crate::weights::{Length, Ratio, VoxelBox, Index3, LOR};
 
 use structopt::clap::arg_enum;
 
