@@ -23,7 +23,7 @@ pub const DISTANCE_AS_TOF_DELTA: Length = 2.0 / C;
 
 pub type Time   = Length;
 pub type Weight = Length;
-pub type Dimensionless = Length;
+pub type Ratio = Length;
 
 type Vector = nc::math ::Vector<Length>;
 pub type Point  = nc::math ::Point <Length>;
