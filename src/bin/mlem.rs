@@ -21,7 +21,11 @@ pub struct Cli {
 
     /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored
     #[structopt(short = "r", long)]
-     pub tof: Option<pet::Time>,
+    pub tof: Option<pet::Time>,
+
+    /// Deactivate voxels lying more than this many sigma from TOF peak (Rust version only)
+    #[structopt(short = "k", long)]
+     pub cutoff: Option<pet::Ratio>,
 
     /// Override automatic generation of image output file name
     #[structopt(short, long)]
@@ -98,7 +102,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if args.use_c {
         run_cmlem(&args, &measured_lors)
     } else {
-        for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, &sensitivity_matrix, &noise))
+        for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix, &noise))
             .take(args.iterations)
             .enumerate() {
                 report_time("iteration");
