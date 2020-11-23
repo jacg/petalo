@@ -396,7 +396,8 @@ impl Image {
                 let A_ijs: Vec<Index3Weight> = LOR_i.active_voxels(&self.vbox, cutoff, sigma).collect();
 
                 // Projection of current image into this LOR
-                let P_i = self.project(A_ijs.iter().copied(), noise, i);
+                let b_i = noise[i];
+                let P_i = self.project(A_ijs.iter().copied(), b_i);
 
                 // This LOR's contribution to the backprojection
                 for (j, A_ij) in A_ijs {
@@ -408,9 +409,9 @@ impl Image {
         BP
     }
 
-    fn project(&self, A_ijs: impl Iterator<Item = Index3Weight>, b: &Noise, i: usize) -> Weight {
+    fn project(&self, A_ijs: impl Iterator<Item = Index3Weight>, b_i: Weight) -> Weight {
         let lambda = self;
-        A_ijs.map(move |(j, A_ij)|  A_ij * lambda[j] + b[i])
+        A_ijs.map(move |(j, A_ij)|  A_ij * lambda[j] + b_i)
             .sum()
     }
 
