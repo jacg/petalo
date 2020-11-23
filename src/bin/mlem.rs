@@ -17,7 +17,7 @@ pub struct Cli {
 
     /// Number of voxels in each dimension
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
-     pub n_voxels: (usize, usize, usize),
+    pub n_voxels: (usize, usize, usize),
 
     /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored
     #[structopt(short = "r", long)]
@@ -25,11 +25,11 @@ pub struct Cli {
 
     /// Deactivate voxels lying more than this many sigma from TOF peak (Rust version only)
     #[structopt(short = "k", long)]
-     pub cutoff: Option<pet::Ratio>,
+    pub cutoff: Option<pet::Ratio>,
 
     /// Override automatic generation of image output file name
     #[structopt(short, long)]
-     pub out_files: Option<String>,
+    pub out_files: Option<String>,
 
     /// LORs to read in
     #[structopt(short = "f", long, default_value = "data/in/full_body_phantom_reco_combined.h5")]
