@@ -1,7 +1,7 @@
 use std::error::Error;
 use structopt::StructOpt;
 
-use petalo::weights::{VoxelBox, Length, LOR};
+use petalo::weights::{VoxelBox, Length, LOR, Ratio};
 use petalo::visualize::{lor_weights, Shape};
 
 use petalo::utils::{parse_triplet, parse_lor};
@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         args.lor
     };
 
-    lor_weights(lor, vbox, args.shape, args.threshold, args.sigma);
+    lor_weights(lor, vbox, args.shape, args.cutoff, args.sigma);
 
     Ok(())
 }
@@ -42,9 +42,9 @@ pub struct Cli {
     #[structopt(short = "r", long)]
     sigma: Option<Length>,
 
-    /// Ignore voxels with weight below this threshold.
-    #[structopt(short, long)]
-    threshold: Option<Length>,
+    /// Ignore voxels with lie further than <cutoff> from TOF peak.
+    #[structopt(short = "k", long)]
+    cutoff: Option<Ratio>,
 
     /// How to represent voxels. BOX is better for viewing the geometric
     /// weights; BALL is better for viewing TOF weights.

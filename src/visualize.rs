@@ -7,7 +7,7 @@ use kiss3d::scene::{SceneNode};
 use kiss3d::camera::{ArcBall};
 use na::{Point3, Translation3};
 
-use crate::weights::{Length, VoxelBox, Index3, LOR};
+use crate::weights::{Length, Ratio, VoxelBox, Index3, LOR};
 
 use structopt::clap::arg_enum;
 
@@ -107,9 +107,9 @@ impl Scene {
         }
     }
 
-    pub fn place_voxels(&mut self, shape: Shape, threshold: Option<Length>, sigma: Option<Length>) {
+    pub fn place_voxels(&mut self, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Length>) {
 
-        let active_voxels = self.lor.active_voxels(&self.vbox, threshold, sigma)
+        let active_voxels = self.lor.active_voxels(&self.vbox, cutoff, sigma)
             .collect::<std::collections::HashMap<Index3, Length>>();
 
         let &max_weight = active_voxels
@@ -183,7 +183,7 @@ impl Scene {
                         println!("TODO: Toggle TOF / change sigma");
                     },
                     WindowEvent::Key(Key::T, Action::Press, _) => {
-                        println!("TODO: Toggle / change threshold");
+                        println!("TODO: Toggle / change cutoff");
                     },
                     _ => {}
                 }
@@ -192,9 +192,9 @@ impl Scene {
     }
 }
 
-pub fn lor_weights(lor: LOR, vbox: VoxelBox, shape: Shape, threshold: Option<Length>, sigma: Option<Length>) {
+pub fn lor_weights(lor: LOR, vbox: VoxelBox, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Length>) {
     let mut scene = Scene::new(lor, vbox);
-    scene.place_voxels(shape, threshold, sigma);
+    scene.place_voxels(shape, cutoff, sigma);
     scene.main_loop();
 }
 
