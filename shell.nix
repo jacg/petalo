@@ -95,11 +95,6 @@ let
     # For graphics hardware matching on non-NixOS
     (linux nixGL.nixGLDefault)
 
-    # for plotters
-    pkgs.cmake
-    pkgs.freetype
-    pkgs.expat
-
     # HDF5
     pkgs.hdf5
 
