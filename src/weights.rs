@@ -379,14 +379,6 @@ impl Image {
     }
 
     fn one_iteration(&mut self, measured_lors: &[LOR], S: &ImageData, sigma: Option<Time>, cutoff: Option<Ratio>) {
-        let BP = self.backproject(measured_lors, sigma, cutoff);
-        azip!((voxel in &mut self.data, &b in &BP, &s in S) {
-            if s > 0.0 { *voxel *= b / s }
-            else       { *voxel  = 0.0   }
-        })
-    }
-
-    fn backproject<'a>(&'a self, measured_lors: &[LOR], sigma: Option<Time>, cutoff: Option<Length>) -> ImageData {
 
         // Accumulator for all backprojection contributions in this iteration
         let mut BP = self.zeros_buffer();
@@ -546,8 +538,12 @@ impl Image {
 
             });
 
-        // Return the total backprojection
-        BP
+        // Apply Sensitivity matrix
+        azip!((voxel in &mut self.data, &b in &BP, &s in S) {
+            if s > 0.0 { *voxel *= b / s }
+            else       { *voxel  = 0.0   }
+        })
+
     }
 
     fn project(&self, A_ijs: impl Iterator<Item = Index3Weight>) -> Weight {
