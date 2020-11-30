@@ -267,6 +267,7 @@ mod test {
         // Collect hits
         let hits: Vec<Index3Weight> =
             WeightsAlongLOR::new(p1, p2, &vbox)
+            .filter(|(_, w)| w > &0.0)
             .inspect(|(is, l)| println!("  ({} {})   {}", is[0], is[1], l))
             .collect();
 
