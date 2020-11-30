@@ -395,12 +395,6 @@ impl Image {
             .iter()
             .for_each(|LOR_i| {
 
-                // Weights of all voxels contributing to this LOR
-                //let A_ijs: Vec<Index3Weight> = LOR_i.active_voxels(&self.vbox, cutoff, sigma).collect();
-
-                // ================================================================================
-                // fn new
-
                 let n_voxels = self.vbox.n;
                 let mut here = 0.0;
 
@@ -476,7 +470,6 @@ impl Image {
                     .component_mul(&voxel_size);
 
                 // ================================================================================
-                // fn next
                 loop {
                     // Remember index of the voxel we are about to cross (flipped
                     // back from our algorithm's internal coordinate system, to the
@@ -527,17 +520,13 @@ impl Image {
                 }
                 let projection_reciprocal = 1.0 / projection;
 
-                // This LOR's contribution to the backprojection
-                // for (j, A_ij) in A_ijs {
-                //     BP[j] += A_ij / P_i;
-                // }
                 for (w, j) in weights.iter().zip(true_indices.iter()) {
                     BP[*j] += w * projection_reciprocal;
                 }
 
-
             });
 
+        //  TODO express with Option<matrix> and mul reciprocal
         // Apply Sensitivity matrix
         azip!((voxel in &mut self.data, &b in &BP, &s in S) {
             if s > 0.0 { *voxel *= b / s }
