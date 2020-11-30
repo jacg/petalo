@@ -63,15 +63,19 @@ pub enum WeightsAlongLOR {
     // We are traversing the voxel box:
     Inside {
 
-        // How many LOR distance units must be travelled before reaching the
-        // next voxel boundary in any dimension.
-        to_boundary: Vector,
+        // Distance travelled along LOR since entering the voxel box
+        here: Length,
+
+        // Position of the next voxel boundary in any dimension, in LOR distance
+        // units from point of entry.
+
+        next_boundary: Vector,
 
         // Voxel box size, as number of voxels in each dimension
         n_voxels: BoxDim,
 
         // Dimensions of the voxels expressed in LOR distance units. Used to
-        // reset components of `to_boundary` when they reach 0.
+        // reset components of `next_boundary` when they reach 0.
         voxel_size: Vector,
 
         // The flipped index of the voxel we have just entered. Must be flipped
@@ -147,12 +151,12 @@ impl WeightsAlongLOR {
 
         // How far we must travel along LOR before hitting next voxel boundary,
         // in any dimension.
-        let to_boundary: Vector = (Vector::repeat(1.0) - vox_done_fraction)
+        let next_boundary: Vector = (Vector::repeat(1.0) - vox_done_fraction)
             .component_mul(&voxel_size);
 
         // Initial iterator state: the point where LOR enters voxel box (in
         // voxel coordinates), along with bookkeeping information.
-        Self::Inside { to_boundary, voxel_size, n_voxels: vbox.n, flipped, index }
+        Self::Inside { here: 0.0, next_boundary, voxel_size, n_voxels: vbox.n, flipped, index }
     }
 }
 
@@ -172,7 +176,7 @@ impl Iterator for WeightsAlongLOR {
             Self::Outside => None,
 
             // If we are inside the voxel box, then we are at the boundary of a voxel
-            Self::Inside { flipped, index, n_voxels, to_boundary, voxel_size } => {
+            Self::Inside { here, flipped, index, n_voxels, next_boundary, voxel_size } => {
 
                 // Remember index of the voxel we are about to cross (flipped
                 // back from our algorithm's internal coordinate system, to the
@@ -183,21 +187,21 @@ impl Iterator for WeightsAlongLOR {
                     else          { true_index[n] =                   index[n]; }
                 }
 
-                // Which boundary will be hit next, and how soon
-                let (dimension, distance) = to_boundary.argmin();
+                // Which boundary will be hit next, and where
+                let (dimension, boundary_position) = next_boundary.argmin();
 
-                // Move along LOR until we hit voxel boundary
-                *to_boundary -= Vector::repeat(distance);
+                // The weight of this voxel is the distance from where we
+                // entered the voxel to the nearest boundary
+                let weight = boundary_position - *here;
 
-                // For any dimension in which we have reached a voxel boundary
-                for dimension in 0..index.len() {
-                    if to_boundary[dimension] <= 0.0 {
-                        // Reset distance to next boundary
-                        to_boundary[dimension] = voxel_size[dimension];
-                        // Move index into next voxel
-                        index[dimension] += 1;
-                    }
-                }
+                // Move to the boundary of this voxel
+                *here = boundary_position;
+
+                // Find the next boundary in this dimension
+                next_boundary[dimension] += voxel_size[dimension];
+
+                // Change the index according to the boundary we are crossing
+                index[dimension] += 1;
 
                 // If we have traversed the whole voxel box
                 if index[dimension] >= n_voxels[dimension] {
@@ -208,7 +212,7 @@ impl Iterator for WeightsAlongLOR {
                 // Yield the N-dimensional index of the voxel we have just
                 // crossed (expressed in the client's coordinate system), along
                 // with the distance that the LOR covered in that voxel.
-                Some((true_index, distance))
+                Some((true_index, weight))
             }
         }
     }
