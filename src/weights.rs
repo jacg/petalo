@@ -9,6 +9,7 @@ use ndarray::Array3;
 #[allow(clippy::excessive_precision)] // Precision needed when features=f64
 pub const C: Length = 0.299792458; // mm / ps
 pub const DISTANCE_AS_TOF_DELTA: Length = 2.0 / C;
+pub const TOF_DT_AS_DISTANCE: Ratio = C / 2.0;
 
 // TODO: no thought has been given to what should be public or private.
 
@@ -390,6 +391,7 @@ impl Image {
         // Accumulator for all backprojection contributions in this iteration
         let mut BP = self.zeros_buffer();
 
+        let tof = sigma.map(|sigma| make_gauss(sigma * TOF_DT_AS_DISTANCE, cutoff));
 
         let [nx, ny, nz] = self.vbox.n;
         let max_number_of_active_voxels_possible = nx + ny + nz - 2;
@@ -443,6 +445,12 @@ impl Image {
                     Some(point) => point,
                 };
 
+                // ... and how far the entry point is from the TOF peak
+                let t1_minus_t2 = LOR_i.t1 - LOR_i.t2;
+                let p1_to_peak = 0.5 * ((p1 - p2).norm() + C * (t1_minus_t2));
+                let p1_to_entry = (entry_point - p1).norm();
+                let tof_peak = p1_to_peak - p1_to_entry;
+
                 // Transform coordinates to align box with axes: making the lower
                 // boundaries of the box lie on the zero-planes.
                 entry_point += self.vbox.half_width;
@@ -492,7 +500,10 @@ impl Image {
 
                     // The weight of this voxel is the distance from where we
                     // entered the voxel to the nearest boundary
-                    let weight = boundary_position - here;
+                    let mut weight = boundary_position - here;
+                    if let Some(gauss) = &tof {
+                        weight *= gauss(here - tof_peak);
+                    }
 
                     // Move to the boundary of this voxel
                     here = boundary_position;
@@ -509,8 +520,10 @@ impl Image {
                     // Store the N-dimensional index of the voxel we have just
                     // crossed (expressed in the client's coordinate system), along
                     // with the distance that the LOR covered in that voxel.
-                    true_indices.push(true_index);
-                    weights     .push(weight);
+                    if weight > 0.0 {
+                        true_indices.push(true_index);
+                        weights     .push(weight);
+                    }
                 }
                 // ================================================================================
 
