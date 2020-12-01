@@ -422,9 +422,9 @@ impl Image {
 
             // Bookkeeping information needed during traversal of voxel box
             let (
-                mut index,     // current 1d index into 3d array of voxels
-                delta_index,   // how the index changes along each dimension
-                mut remaining, // voxels until edge of vbox in each dimension
+                index,       // current 1d index into 3d array of voxels
+                delta_index, // how the index changes along each dimension
+                remaining,   // voxels until edge of vbox in each dimension
             ) = index_trackers(entry_point, flipped, self.vbox.n);
 
             // Voxel size in LOR length units: how far must we move along LOR to
@@ -433,45 +433,20 @@ impl Image {
 
             // How far we must travel along LOR before hitting next voxel boundary,
             // in any dimension.
-            let mut next_boundary = first_boundaries(entry_point, voxel_size);
-
-            // How far we have moved since entering the voxel box
-            let mut here = 0.0;
+            let next_boundary = first_boundaries(entry_point, voxel_size);
 
             // Find active voxels and their weights
-            loop {
-                // Which voxel boundary will be hit next, and its position
-                let (dimension, boundary_position) = next_boundary.argmin();
-
-                // The weight is the length of LOR in this voxel
-                let mut weight = boundary_position - here;
-
-                // If TOF enabled, adjust weight
-                if let Some(gauss) = &tof {
-                    weight *= gauss(here - tof_peak);
-                }
-
-                // Move along LOR until it leaves this voxel
-                here = boundary_position;
-
-                // Find the next boundary in this dimension
-                next_boundary[dimension] += voxel_size[dimension];
-
-                // Move index across the boundary we are crossing
-                let previous_index = index;
-                index += delta_index[dimension];
-                remaining[dimension] -= 1;
-
-                // If we have traversed the whole voxel box
-                if remaining[dimension] == 0 { break; }
-
-                // Store the index of the voxel we have just crossed, along with
-                // the distance that the LOR covered in that voxel.
-                if weight > 0.0 {
-                    indices.push(previous_index as usize);
-                    weights.push(weight);
-                }
-            }
+            find_active_voxels(
+                &mut indices,
+                &mut weights,
+                next_boundary,
+                voxel_size,
+                index,
+                delta_index,
+                remaining,
+                tof_peak,
+                &tof
+            );
 
             // Forward projection of current image into this LOR
             let projection = forward_project(&weights, &indices, self);
@@ -504,6 +479,55 @@ impl Image {
         Self { data: vec![1.0; size], vbox, size}
     }
 
+}
+
+fn find_active_voxels(
+    indices: &mut Vec<usize>,
+    weights: &mut Vec<Length>,
+    mut next_boundary: Vector,
+    voxel_size: Vector,
+    mut index: i32,
+    delta_index: [i32; 3],
+    mut remaining: [i32; 3],
+    tof_peak: Length,
+    tof: &Option<impl Fn(Length) -> Length>) {
+
+    // How far we have moved since entering the voxel box
+    let mut here = 0.0;
+
+    loop {
+        // Which voxel boundary will be hit next, and its position
+        let (dimension, boundary_position) = next_boundary.argmin();
+
+        // The weight is the length of LOR in this voxel
+        let mut weight = boundary_position - here;
+
+        // If TOF enabled, adjust weight
+        if let Some(gauss) = &tof {
+            weight *= gauss(here - tof_peak);
+        }
+
+        // Move along LOR until it leaves this voxel
+        here = boundary_position;
+
+        // Find the next boundary in this dimension
+        next_boundary[dimension] += voxel_size[dimension];
+
+        // Move index across the boundary we are crossing
+        let previous_index = index;
+        index += delta_index[dimension];
+        remaining[dimension] -= 1;
+
+        // If we have traversed the whole voxel box
+        if remaining[dimension] == 0 { break; }
+
+        // Store the index of the voxel we have just crossed, along with
+        // the distance that the LOR covered in that voxel.
+        if weight > 0.0 {
+            indices.push(previous_index as usize);
+            weights.push(weight);
+        }
+    }
 }
 
 #[inline]
