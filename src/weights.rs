@@ -426,8 +426,7 @@ impl Image {
             let mut entry_point: Point = match self.vbox.entry(&p1, &p2) {
                 // If LOR misses the box, immediately return
                 None => return,
-                // Otherwise, unwrap the point and continue calculating a more
-                // detailed iterator state
+                // Otherwise, unwrap the point and continue
                 Some(point) => point,
             };
 
@@ -452,34 +451,43 @@ impl Image {
             // Find N-dimensional index of voxel at entry point.
             let index: Index3 = [entry_point.x.floor() as usize,
                                  entry_point.y.floor() as usize,
-                                 entry_point.z.floor() as usize];//entry_point.map(|x| x.floor() as usize);
+                                 entry_point.z.floor() as usize];
 
-            let (mut index_1d, delta_index_1d, mut remaining) = {
+            // Bookkeeping information needed during traversal of voxel box
+            let (
+                mut index,     // current 1d index into 3d array of voxels
+                delta_index,   // how the index changes along each dimension
+                mut remaining, // voxels until edge of vbox in each dimension
+            ) = {
                 let [ix, iy, iz] = index;
+
+                // index is unsigned, but need signed values for delta_index
                 let [ix, iy, iz] = [ix as i32, iy as i32, iz as i32];
                 let [nx, ny, nz] = [nx as i32, ny as i32, nz as i32];
 
-                let delta = [
+                // How much the 1d index changes along each dimension
+                let delta_index = [
                     1       * if flipped[0] { -1 } else { 1 },
                     nx      * if flipped[1] { -1 } else { 1 },
                     nx * ny * if flipped[2] { -1 } else { 1 },
                 ];
 
-                let todo = [
+                // How many voxels remain before leaving vbox in each dimension
+                let remaining = [
                     nx - ix ,
                     ny - iy ,
                     nz - iz ,
                 ];
 
+                // 1d index into the 3d arrangement of voxels
                 let [ix, iy, iz] = [
                     if flipped[0] { nx - 1 - ix } else { ix },
                     if flipped[1] { ny - 1 - iy } else { iy },
                     if flipped[2] { nz - 1 - iz } else { iz },
                 ];
-
                 let index = ix + (iy + iz * ny) * nx;
 
-                (index, delta, todo)
+                (index, delta_index, remaining)
             };
 
             // Voxel size in LOR length units: how far must we move along LOR to
@@ -496,11 +504,12 @@ impl Image {
             let mut next_boundary: Vector = (Vector::repeat(1.0) - vox_done_fraction)
                 .component_mul(&voxel_size);
 
+            // How far we have moved since entering the voxel box
             let mut here = 0.0;
+
             // Find active voxels and their weights
             loop {
-
-                // Which boundary will be hit next, and where
+                // Which voxel boundary will be hit next, and its position
                 let (dimension, boundary_position) = next_boundary.argmin();
 
                 // The weight is the length of LOR in this voxel
@@ -511,25 +520,24 @@ impl Image {
                     weight *= gauss(here - tof_peak);
                 }
 
-                // Move to the boundary of this voxel
+                // Move along LOR until it leaves this voxel
                 here = boundary_position;
 
                 // Find the next boundary in this dimension
                 next_boundary[dimension] += voxel_size[dimension];
 
                 // Move index across the boundary we are crossing
-                let old_index_1d = index_1d;
-                index_1d += delta_index_1d[dimension];
+                let previous_index = index;
+                index += delta_index[dimension];
                 remaining[dimension] -= 1;
 
                 // If we have traversed the whole voxel box
                 if remaining[dimension] == 0 { break; }
 
-                // Store the N-dimensional index of the voxel we have just
-                // crossed (expressed in the client's coordinate system), along
-                // with the distance that the LOR covered in that voxel.
+                // Store the index of the voxel we have just crossed, along with
+                // the distance that the LOR covered in that voxel.
                 if weight > 0.0 {
-                    true_indices.push(old_index_1d as usize);
+                    true_indices.push(previous_index as usize);
                     weights     .push(weight);
                 }
             }
