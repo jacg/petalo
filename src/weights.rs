@@ -432,47 +432,12 @@ impl Image {
             // anything very close to zero is exactly zero.
             entry_point.iter_mut().for_each(|x| if x.abs() < EPS { *x = 0.0 });
 
-            // Find N-dimensional index of voxel at entry point.
-            let index: Index3 = [entry_point.x.floor() as usize,
-                                 entry_point.y.floor() as usize,
-                                 entry_point.z.floor() as usize];
-
             // Bookkeeping information needed during traversal of voxel box
             let (
                 mut index,     // current 1d index into 3d array of voxels
                 delta_index,   // how the index changes along each dimension
                 mut remaining, // voxels until edge of vbox in each dimension
-            ) = {
-                let [ix, iy, iz] = index;
-
-                // index is unsigned, but need signed values for delta_index
-                let [ix, iy, iz] = [ix as i32, iy as i32, iz as i32];
-                let [nx, ny, nz] = [nx as i32, ny as i32, nz as i32];
-
-                // How much the 1d index changes along each dimension
-                let delta_index = [
-                    1       * if flipped[0] { -1 } else { 1 },
-                    nx      * if flipped[1] { -1 } else { 1 },
-                    nx * ny * if flipped[2] { -1 } else { 1 },
-                ];
-
-                // How many voxels remain before leaving vbox in each dimension
-                let remaining = [
-                    nx - ix ,
-                    ny - iy ,
-                    nz - iz ,
-                ];
-
-                // 1d index into the 3d arrangement of voxels
-                let [ix, iy, iz] = [
-                    if flipped[0] { nx - 1 - ix } else { ix },
-                    if flipped[1] { ny - 1 - iy } else { iy },
-                    if flipped[2] { nz - 1 - iz } else { iz },
-                ];
-                let index = ix + (iy + iz * ny) * nx;
-
-                (index, delta_index, remaining)
-            };
+            ) = index_trackers(entry_point, flipped, self.vbox.n);
 
             // Voxel size in LOR length units: how far must we move along LOR to
             // traverse one voxel, in any dimension.
@@ -557,6 +522,43 @@ impl Image {
         Self { data: vec![1.0; size], vbox, size}
     }
 
+}
+
+#[inline]
+fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDim) -> (i32, [i32; 3], [i32; 3]) {
+
+    // Find N-dimensional index of voxel at entry point.
+    let [ix, iy, iz] = [entry_point.x.floor() as usize,
+                        entry_point.y.floor() as usize,
+                        entry_point.z.floor() as usize];
+
+    // index is unsigned, but need signed values for delta_index
+    let [ix, iy, iz] = [ix as i32, iy as i32, iz as i32];
+    let [nx, ny, nz] = [nx as i32, ny as i32, nz as i32];
+
+    // How much the 1d index changes along each dimension
+    let delta_index = [
+        1       * if flipped[0] { -1 } else { 1 },
+        nx      * if flipped[1] { -1 } else { 1 },
+        nx * ny * if flipped[2] { -1 } else { 1 },
+    ];
+
+    // How many voxels remain before leaving vbox in each dimension
+    let remaining = [
+        nx - ix ,
+        ny - iy ,
+        nz - iz ,
+    ];
+
+    // 1d index into the 3d arrangement of voxels
+    let [ix, iy, iz] = [
+        if flipped[0] { nx - 1 - ix } else { ix },
+        if flipped[1] { ny - 1 - iy } else { iy },
+        if flipped[2] { nz - 1 - iz } else { iz },
+    ];
+    let index = ix + (iy + iz * ny) * nx;
+
+    (index, delta_index, remaining)
 }
 
 #[inline]
