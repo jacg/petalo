@@ -380,6 +380,8 @@ impl Image {
 
     fn one_iteration(&mut self, measured_lors: &[LOR], S: &ImageData, sigma: Option<Time>, cutoff: Option<Ratio>) {
 
+        let [nx, ny, nz] = self.vbox.n;
+
         // Accumulator for all backprojection contributions in this iteration
         let mut backprojection = self.zeros_buffer();
 
@@ -388,7 +390,6 @@ impl Image {
 
         // Storage space for the weights and indices of the active voxels
         let (mut weights, mut true_indices) = {
-            let [nx, ny, nz] = self.vbox.n;
             let max_number_of_active_voxels_possible = nx + ny + nz - 2;
             (Vec::with_capacity(max_number_of_active_voxels_possible),
              Vec::with_capacity(max_number_of_active_voxels_possible))
@@ -455,6 +456,36 @@ impl Image {
                                      entry_point.y.floor() as usize,
                                      entry_point.z.floor() as usize];//entry_point.map(|x| x.floor() as usize);
 
+            let (mut index_1d, delta_index_1d, mut remaining) = {
+                let [ix, iy, iz] = index;
+                let [nx, ny, nz] = self.vbox.n;
+                let [ix, iy, iz] = [ix as i32, iy as i32, iz as i32];
+                let [nx, ny, nz] = [nx as i32, ny as i32, nz as i32];
+
+                let index = ix + (iy + iz * ny) * nx;
+
+                let delta = [
+                    1       * if flipped[0] { -1 } else { 1 },
+                    nx      * if flipped[1] { -1 } else { 1 },
+                    nx * ny * if flipped[2] { -1 } else { 1 },
+                ];
+
+                let todo = [
+                    nx - ix ,
+                    ny - iy ,
+                    nz - iz ,
+                ];
+
+                (index, delta, todo)
+            };
+
+            // println!("=============================");
+            // println!("entry   : {:?}", entry_point);
+            // println!("index_3d: {:?}", index);
+            // println!("index_1d: {:?}", index_1d);
+            // println!("delta_1d: {:?}", delta_index_1d);
+            // println!("remaining {:?}", remaining);
+
             // Voxel size in LOR length units: how far must we move along LOR to
             // traverse one voxel, in any dimension.
             let lor_direction = (p2-p1).normalize();
@@ -472,6 +503,7 @@ impl Image {
             let mut here = 0.0;
             // Find active voxels and their weights
             loop {
+
                 // Remember index of the voxel we are about to cross (flipped
                 // back from our algorithm's internal coordinate system, to the
                 // client's original coordinate system).
@@ -499,10 +531,16 @@ impl Image {
                 next_boundary[dimension] += voxel_size[dimension];
 
                 // Move index across the boundary we are crossing
+                let old_index_1d = index_1d;
+                index_1d += delta_index_1d[dimension];
+                remaining[dimension] -= 1;
+                // ... to be replaced
                 index[dimension] += 1;
 
                 // If we have traversed the whole voxel box
-                if index[dimension] >= n_voxels[dimension] { break; }
+                if remaining[dimension] == 0 { break; }
+
+                // println!("1d: {:?}  rem: {:?}   3d: {:?}   true: {:?}", index_1d, remaining, index, true_index);
 
                 // Store the N-dimensional index of the voxel we have just
                 // crossed (expressed in the client's coordinate system), along
