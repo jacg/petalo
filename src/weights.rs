@@ -398,29 +398,13 @@ impl Image {
         // For each measured LOR ...
         measured_lors.iter().for_each(|lor| {
 
-            let mut p1 = lor.p1;
-            let mut p2 = lor.p2;
-
             weights.clear();
             indices.clear();
-
-            let dimensions = 3;
 
             // Simplify expression of the algorithm by flipping axes so that the
             // direction from p1 to p2 is non-negative along all axes. Remember
             // which directions have been flipped, to recover correct voxel indices.
-            let original_lor_direction: Vector = p2 - p1;
-            let mut flipped = VecOf::<bool>::repeat(false);
-            let mut flip_if_necessary = |n| {
-                if original_lor_direction[n] < 0.0 {
-                    p1[n] = - p1[n];
-                    p2[n] = - p2[n];
-                    flipped[n] = true;
-                }
-            };
-            for d in 0..dimensions {
-                flip_if_necessary(d);
-            }
+            let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
 
             // Find if and where LOR enters voxel box.
             let mut entry_point: Point = match self.vbox.entry(&p1, &p2) {
@@ -573,6 +557,24 @@ impl Image {
         Self { data: vec![1.0; size], vbox, size}
     }
 
+}
+
+#[inline]
+fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, VecOf<bool>) {
+    let dimensions = 3;
+    let original_lor_direction: Vector = p2 - p1;
+    let mut flipped = VecOf::<bool>::repeat(false);
+    let mut flip_if_necessary = |n| {
+        if original_lor_direction[n] < 0.0 {
+            p1[n] = - p1[n];
+            p2[n] = - p2[n];
+            flipped[n] = true;
+        }
+    };
+    for d in 0..dimensions {
+        flip_if_necessary(d);
+    }
+    (p1, p2, flipped)
 }
 
 #[inline]
