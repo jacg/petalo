@@ -415,9 +415,7 @@ impl Image {
             };
 
             // ... and how far the entry point is from the TOF peak
-            let p1_to_peak = 0.5 * ((p1 - p2).norm() + C * (lor.t1 - lor.t2));
-            let p1_to_entry = (entry_point - p1).norm();
-            let tof_peak = p1_to_peak - p1_to_entry;
+            let tof_peak = find_tof_peak(entry_point, p1, p2, lor.t1, lor.t2);
 
             // Transform coordinates to align box with axes: making the lower
             // boundaries of the box lie on the zero-planes.
@@ -516,6 +514,13 @@ impl Image {
         Self { data: vec![1.0; size], vbox, size}
     }
 
+}
+
+#[inline]
+fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, t1: Time, t2: Time) -> Length {
+    let p1_to_peak = 0.5 * ((p1 - p2).norm() + C * (t1 - t2));
+    let p1_to_entry = (entry_point - p1).norm();
+    p1_to_peak - p1_to_entry
 }
 
 #[inline]
