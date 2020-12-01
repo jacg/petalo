@@ -389,7 +389,7 @@ impl Image {
 
         // Storage space for the weights and indices of the active voxels
         let [nx, ny, nz] = self.vbox.n;
-        let (mut weights, mut true_indices) = {
+        let (mut weights, mut indices) = {
             let max_number_of_active_voxels_possible = nx + ny + nz - 2;
             (Vec::with_capacity(max_number_of_active_voxels_possible),
              Vec::with_capacity(max_number_of_active_voxels_possible))
@@ -402,7 +402,7 @@ impl Image {
             let mut p2 = lor.p2;
 
             weights.clear();
-            true_indices.clear();
+            indices.clear();
 
             let dimensions = 3;
 
@@ -537,20 +537,20 @@ impl Image {
                 // Store the index of the voxel we have just crossed, along with
                 // the distance that the LOR covered in that voxel.
                 if weight > 0.0 {
-                    true_indices.push(previous_index as usize);
-                    weights     .push(weight);
+                    indices.push(previous_index as usize);
+                    weights.push(weight);
                 }
             }
 
             // Forward projection of current image into this LOR
             let mut projection = 0.0;
-            for (w, j) in weights.iter().zip(true_indices.iter()) {
+            for (w, j) in weights.iter().zip(indices.iter()) {
                 projection += w * self[*j]
             }
 
             // Backprojection of LOR onto image
             let projection_reciprocal = 1.0 / projection;
-            for (w, j) in weights.iter().zip(true_indices.iter()) {
+            for (w, j) in weights.iter().zip(indices.iter()) {
                 backprojection[*j] += w * projection_reciprocal;
             }
 
