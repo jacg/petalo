@@ -381,8 +381,6 @@ impl Image {
 
     fn one_iteration(&mut self, measured_lors: &[LOR], S: &ImageData, sigma: Option<Time>, cutoff: Option<Ratio>) {
 
-        let [nx, ny, nz] = self.vbox.n;
-
         // Accumulator for all backprojection contributions in this iteration
         let mut backprojection = self.zeros_buffer();
 
@@ -390,6 +388,7 @@ impl Image {
         let tof: Option<_> = sigma.map(|sigma| make_gauss(sigma * TOF_DT_AS_DISTANCE, cutoff));
 
         // Storage space for the weights and indices of the active voxels
+        let [nx, ny, nz] = self.vbox.n;
         let (mut weights, mut true_indices) = {
             let max_number_of_active_voxels_possible = nx + ny + nz - 2;
             (Vec::with_capacity(max_number_of_active_voxels_possible),
@@ -457,7 +456,6 @@ impl Image {
 
             let (mut index_1d, delta_index_1d, mut remaining) = {
                 let [ix, iy, iz] = index;
-                let [nx, ny, nz] = self.vbox.n;
                 let [ix, iy, iz] = [ix as i32, iy as i32, iz as i32];
                 let [nx, ny, nz] = [nx as i32, ny as i32, nz as i32];
 
