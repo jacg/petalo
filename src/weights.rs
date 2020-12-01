@@ -396,8 +396,6 @@ impl Image {
              Vec::with_capacity(max_number_of_active_voxels_possible))
         };
 
-        let n_voxels = self.vbox.n;
-
         // For each measured LOR ...
         measured_lors.iter().for_each(|lor| {
 
@@ -453,9 +451,9 @@ impl Image {
             entry_point.iter_mut().for_each(|x| if x.abs() < EPS { *x = 0.0 });
 
             // Find N-dimensional index of voxel at entry point.
-            let mut index: Index3 = [entry_point.x.floor() as usize,
-                                     entry_point.y.floor() as usize,
-                                     entry_point.z.floor() as usize];//entry_point.map(|x| x.floor() as usize);
+            let index: Index3 = [entry_point.x.floor() as usize,
+                                 entry_point.y.floor() as usize,
+                                 entry_point.z.floor() as usize];//entry_point.map(|x| x.floor() as usize);
 
             let (mut index_1d, delta_index_1d, mut remaining) = {
                 let [ix, iy, iz] = index;
