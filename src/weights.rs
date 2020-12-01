@@ -393,13 +393,13 @@ impl Image {
         // For each measured LOR ...
         measured_lors
             .iter()
-            .for_each(|LOR_i| {
+            .for_each(|lor| {
 
                 let n_voxels = self.vbox.n;
                 let mut here = 0.0;
 
-                let mut p1 = LOR_i.p1;
-                let mut p2 = LOR_i.p2;
+                let mut p1 = lor.p1;
+                let mut p2 = lor.p2;
 
                 weights.clear();
                 true_indices.clear();
@@ -432,7 +432,7 @@ impl Image {
                 };
 
                 // ... and how far the entry point is from the TOF peak
-                let t1_minus_t2 = LOR_i.t1 - LOR_i.t2;
+                let t1_minus_t2 = lor.t1 - lor.t2;
                 let p1_to_peak = 0.5 * ((p1 - p2).norm() + C * (t1_minus_t2));
                 let p1_to_entry = (entry_point - p1).norm();
                 let tof_peak = p1_to_peak - p1_to_entry;
