@@ -104,9 +104,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             .take(args.iterations)
             .enumerate() {
                 report_time("iteration");
-                let data: ndarray::Array3<F> = image.data;
+                let data: Vec<F> = image.data;
                 let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
-                write(data, &path)?;
+                write(data.into_iter(), &path)?;
                 report_time("Wrote raw bin");
                 // TODO: step_by for print every
             }
@@ -114,10 +114,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn write(data: ndarray::Array3<F>, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+fn write(data: impl Iterator<Item = F>, path: &PathBuf) -> Result<(), Box<dyn Error>> {
     use petalo::io::raw::write;
-    #[cfg(not(feature = "f64"))] write(data.t().iter().copied()          , path)?;
-    #[cfg    (feature = "f64") ] write(data.t().iter().map(|&x| x as f32), path)?;
+    #[cfg(not(feature = "f64"))] write(data                   , path)?;
+    #[cfg    (feature = "f64") ] write(data.map(|&x| x as f32), path)?;
     Ok(())
 }
 

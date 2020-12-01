@@ -2,7 +2,6 @@ use ncollide3d as nc;
 use nc::query::RayCast;
 
 use ndarray::azip;
-use ndarray::Array3;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
@@ -37,6 +36,7 @@ pub type Index3 = [usize; 3];
 pub type Index1 = usize;
 type BoxDim = [usize; 3];
 
+type Index1Weight = (Index1, Weight);
 type Index3Weight = (Index3, Weight);
 
 const TWOPI: Length = std::f64::consts::TAU as Length;
@@ -340,21 +340,22 @@ mod test {
 //--------------------------------------------------------------------------------
 type Intensity = Length;
 
-type ImageData = Array3<Intensity>;
+type ImageData = Vec<Intensity>;
 
 #[derive(Clone)]
 pub struct Image {
     vbox: VoxelBox,
     pub data: ImageData,
+    size: usize,
 }
 
-impl core::ops::IndexMut<Index3> for Image {
-    fn index_mut(&mut self, i: Index3) -> &mut Self::Output { &mut self.data[i] }
+impl core::ops::IndexMut<Index1> for Image {
+    fn index_mut(&mut self, i: Index1) -> &mut Self::Output { &mut self.data[i] }
 }
 
-impl core::ops::Index<Index3> for Image {
+impl core::ops::Index<Index1> for Image {
     type Output = Intensity;
-    fn index(&self, i: Index3) -> &Self::Output { &self.data[i] }
+    fn index(&self, i: Index1) -> &Self::Output { &self.data[i] }
 }
 
 #[allow(nonstandard_style)]
@@ -462,8 +463,6 @@ impl Image {
                 let [ix, iy, iz] = [ix as i32, iy as i32, iz as i32];
                 let [nx, ny, nz] = [nx as i32, ny as i32, nz as i32];
 
-                let index = ix + (iy + iz * ny) * nx;
-
                 let delta = [
                     1       * if flipped[0] { -1 } else { 1 },
                     nx      * if flipped[1] { -1 } else { 1 },
@@ -475,6 +474,14 @@ impl Image {
                     ny - iy ,
                     nz - iz ,
                 ];
+
+                let [ix, iy, iz] = [
+                    if flipped[0] { nx - 1 - ix } else { ix },
+                    if flipped[1] { ny - 1 - iy } else { iy },
+                    if flipped[2] { nz - 1 - iz } else { iz },
+                ];
+
+                let index = ix + (iy + iz * ny) * nx;
 
                 (index, delta, todo)
             };
@@ -546,7 +553,7 @@ impl Image {
                 // crossed (expressed in the client's coordinate system), along
                 // with the distance that the LOR covered in that voxel.
                 if weight > 0.0 {
-                    true_indices.push(true_index);
+                    true_indices.push(old_index_1d as usize);
                     weights     .push(weight);
                 }
             }
@@ -574,16 +581,18 @@ impl Image {
 
     }
 
-    fn project(&self, A_ijs: impl Iterator<Item = Index3Weight>) -> Weight {
+    fn project(&self, A_ijs: impl Iterator<Item = Index1Weight>) -> Weight {
         let lambda = self;
         A_ijs.map(move |(j, A_ij)|  A_ij * lambda[j])
             .sum()
     }
 
     // A new empty data store with matching size
-    fn zeros_buffer(&self) -> ImageData {  Array3::zeros( self.vbox.n  ) }
+    fn zeros_buffer(&self) -> ImageData { vec![0.0; self.size] }
     pub fn ones(vbox: VoxelBox) -> Self {
-        Self { data: Array3::ones( vbox.n  ), vbox}
+        let [x,y,z] = vbox.n;
+        let size = x * y * z;
+        Self { data: vec![1.0; size], vbox, size}
     }
 
 }
