@@ -383,19 +383,21 @@ impl Image {
         // Accumulator for all backprojection contributions in this iteration
         let mut backprojection = self.zeros_buffer();
 
-        let tof = sigma.map(|sigma| make_gauss(sigma * TOF_DT_AS_DISTANCE, cutoff));
+        // TOF adjustment to apply to the weights
+        let tof: Option<_> = sigma.map(|sigma| make_gauss(sigma * TOF_DT_AS_DISTANCE, cutoff));
 
-        let [nx, ny, nz] = self.vbox.n;
-        let max_number_of_active_voxels_possible = nx + ny + nz - 2;
-        let mut weights      = Vec::with_capacity(max_number_of_active_voxels_possible);
-        let mut true_indices = Vec::with_capacity(max_number_of_active_voxels_possible);
+        // Storage space for the weights and indices of the active voxels
+        let (mut weights, mut true_indices) = {
+            let [nx, ny, nz] = self.vbox.n;
+            let max_number_of_active_voxels_possible = nx + ny + nz - 2;
+            (Vec::with_capacity(max_number_of_active_voxels_possible),
+             Vec::with_capacity(max_number_of_active_voxels_possible))
+        };
 
         let n_voxels = self.vbox.n;
 
         // For each measured LOR ...
         measured_lors.iter().for_each(|lor| {
-
-            let mut here = 0.0;
 
             let mut p1 = lor.p1;
             let mut p2 = lor.p2;
@@ -467,7 +469,8 @@ impl Image {
             let mut next_boundary: Vector = (Vector::repeat(1.0) - vox_done_fraction)
                 .component_mul(&voxel_size);
 
-            // ================================================================================
+            let mut here = 0.0;
+            // Find active voxels and their weights
             loop {
                 // Remember index of the voxel we are about to cross (flipped
                 // back from our algorithm's internal coordinate system, to the
@@ -481,9 +484,10 @@ impl Image {
                 // Which boundary will be hit next, and where
                 let (dimension, boundary_position) = next_boundary.argmin();
 
-                // The weight of this voxel is the distance from where we
-                // entered the voxel to the nearest boundary
+                // The weight is the length of LOR in this voxel
                 let mut weight = boundary_position - here;
+
+                // If TOF enabled, adjust weight
                 if let Some(gauss) = &tof {
                     weight *= gauss(here - tof_peak);
                 }
@@ -494,7 +498,7 @@ impl Image {
                 // Find the next boundary in this dimension
                 next_boundary[dimension] += voxel_size[dimension];
 
-                // Change the index according to the boundary we are crossing
+                // Move index across the boundary we are crossing
                 index[dimension] += 1;
 
                 // If we have traversed the whole voxel box
@@ -508,16 +512,15 @@ impl Image {
                     weights     .push(weight);
                 }
             }
-            // ================================================================================
 
             // Forward projection of current image into this LOR
-            // let P_i = self.project(A_ijs.iter().copied());
             let mut projection = 0.0;
             for (w, j) in weights.iter().zip(true_indices.iter()) {
                 projection += w * self[*j]
             }
-            let projection_reciprocal = 1.0 / projection;
 
+            // Backprojection of LOR onto image
+            let projection_reciprocal = 1.0 / projection;
             for (w, j) in weights.iter().zip(true_indices.iter()) {
                 backprojection[*j] += w * projection_reciprocal;
             }
