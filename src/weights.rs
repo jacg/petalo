@@ -441,8 +441,7 @@ impl Image {
 
             // Voxel size in LOR length units: how far must we move along LOR to
             // traverse one voxel, in any dimension.
-            let lor_direction = (p2-p1).normalize();
-            let voxel_size: Vector = self.vbox.voxel_size.component_div(&lor_direction);
+            let voxel_size = voxel_size(self.vbox, p1, p2);
 
             // What fraction of the voxel has already been traversed at the entry
             // point, along any axis.
@@ -522,6 +521,12 @@ impl Image {
         Self { data: vec![1.0; size], vbox, size}
     }
 
+}
+
+#[inline]
+fn voxel_size(vbox: VoxelBox, p1: Point, p2: Point) -> Vector {
+    let lor_direction = (p2-p1).normalize();
+    vbox.voxel_size.component_div(&lor_direction)
 }
 
 #[inline]
