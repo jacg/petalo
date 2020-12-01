@@ -381,7 +381,7 @@ impl Image {
     fn one_iteration(&mut self, measured_lors: &[LOR], S: &ImageData, sigma: Option<Time>, cutoff: Option<Ratio>) {
 
         // Accumulator for all backprojection contributions in this iteration
-        let mut BP = self.zeros_buffer();
+        let mut backprojection = self.zeros_buffer();
 
         let tof = sigma.map(|sigma| make_gauss(sigma * TOF_DT_AS_DISTANCE, cutoff));
 
@@ -521,14 +521,14 @@ impl Image {
                 let projection_reciprocal = 1.0 / projection;
 
                 for (w, j) in weights.iter().zip(true_indices.iter()) {
-                    BP[*j] += w * projection_reciprocal;
+                    backprojection[*j] += w * projection_reciprocal;
                 }
 
             });
 
         //  TODO express with Option<matrix> and mul reciprocal
         // Apply Sensitivity matrix
-        azip!((voxel in &mut self.data, &b in &BP, &s in S) {
+        azip!((voxel in &mut self.data, &b in &backprojection, &s in S) {
             if s > 0.0 { *voxel *= b / s }
             else       { *voxel  = 0.0   }
         })
