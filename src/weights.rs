@@ -390,10 +390,11 @@ impl Image {
         let mut weights      = Vec::with_capacity(max_number_of_active_voxels_possible);
         let mut true_indices = Vec::with_capacity(max_number_of_active_voxels_possible);
 
+        let n_voxels = self.vbox.n;
+
         // For each measured LOR ...
         measured_lors.iter().for_each(|lor| {
 
-            let n_voxels = self.vbox.n;
             let mut here = 0.0;
 
             let mut p1 = lor.p1;
