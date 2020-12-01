@@ -443,14 +443,9 @@ impl Image {
             // traverse one voxel, in any dimension.
             let voxel_size = voxel_size(self.vbox, p1, p2);
 
-            // What fraction of the voxel has already been traversed at the entry
-            // point, along any axis.
-            let vox_done_fraction: Vector = entry_point - entry_point.map(|x| x.floor());
-
             // How far we must travel along LOR before hitting next voxel boundary,
             // in any dimension.
-            let mut next_boundary: Vector = (Vector::repeat(1.0) - vox_done_fraction)
-                .component_mul(&voxel_size);
+            let mut next_boundary = first_boundaries(entry_point, voxel_size);
 
             // How far we have moved since entering the voxel box
             let mut here = 0.0;
@@ -521,6 +516,15 @@ impl Image {
         Self { data: vec![1.0; size], vbox, size}
     }
 
+}
+
+#[inline]
+fn first_boundaries(entry_point: Vector, voxel_size: Vector) -> Vector {
+    // What fraction of the voxel has already been traversed at the entry
+    // point, along any axis.
+    let vox_done_fraction: Vector = entry_point - entry_point.map(|x| x.floor());
+    // Distances remaining to the nearest boundaries
+    (Vector::repeat(1.0) - vox_done_fraction).component_mul(&voxel_size)
 }
 
 #[inline]
