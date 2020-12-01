@@ -511,15 +511,6 @@ impl Image {
             // Find active voxels and their weights
             loop {
 
-                // Remember index of the voxel we are about to cross (flipped
-                // back from our algorithm's internal coordinate system, to the
-                // client's original coordinate system).
-                let mut true_index = [0; 3];
-                for n in 0..3 {
-                    if flipped[n] { true_index[n] = n_voxels[n] - 1 - index[n]; }
-                    else          { true_index[n] =                   index[n]; }
-                }
-
                 // Which boundary will be hit next, and where
                 let (dimension, boundary_position) = next_boundary.argmin();
 
@@ -541,8 +532,6 @@ impl Image {
                 let old_index_1d = index_1d;
                 index_1d += delta_index_1d[dimension];
                 remaining[dimension] -= 1;
-                // ... to be replaced
-                index[dimension] += 1;
 
                 // If we have traversed the whole voxel box
                 if remaining[dimension] == 0 { break; }
