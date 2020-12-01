@@ -543,16 +543,10 @@ impl Image {
             }
 
             // Forward projection of current image into this LOR
-            let mut projection = 0.0;
-            for (w, j) in weights.iter().zip(indices.iter()) {
-                projection += w * self[*j]
-            }
+            let projection = forward_project(&weights, &indices, self);
 
             // Backprojection of LOR onto image
-            let projection_reciprocal = 1.0 / projection;
-            for (w, j) in weights.iter().zip(indices.iter()) {
-                backprojection[*j] += w * projection_reciprocal;
-            }
+            back_project(&weights, &indices, &mut backprojection, projection);
 
         });
 
@@ -581,6 +575,22 @@ impl Image {
 
 }
 
+#[inline]
+fn forward_project(weights: &Vec<Length>, indices: &Vec<usize>, image: &Image) -> Length {
+    let mut projection = 0.0;
+    for (w, j) in weights.iter().zip(indices.iter()) {
+        projection += w * image[*j]
+    }
+    projection
+}
+
+#[inline]
+fn back_project(weights: &Vec<Length>, indices: &Vec<usize>, backprojection: &mut Vec<Length>, projection: Length) {
+    let projection_reciprocal = 1.0 / projection;
+    for (w, j) in weights.iter().zip(indices.iter()) {
+        backprojection[*j] += w * projection_reciprocal;
+    }
+}
 //--------------------------------------------------------------------------------
 #[derive(Clone, Copy, Debug)]
 pub struct VoxelBox {
