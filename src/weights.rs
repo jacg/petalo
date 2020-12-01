@@ -486,13 +486,6 @@ impl Image {
                 (index, delta, todo)
             };
 
-            // println!("=============================");
-            // println!("entry   : {:?}", entry_point);
-            // println!("index_3d: {:?}", index);
-            // println!("index_1d: {:?}", index_1d);
-            // println!("delta_1d: {:?}", delta_index_1d);
-            // println!("remaining {:?}", remaining);
-
             // Voxel size in LOR length units: how far must we move along LOR to
             // traverse one voxel, in any dimension.
             let lor_direction = (p2-p1).normalize();
@@ -535,8 +528,6 @@ impl Image {
 
                 // If we have traversed the whole voxel box
                 if remaining[dimension] == 0 { break; }
-
-                // println!("1d: {:?}  rem: {:?}   3d: {:?}   true: {:?}", index_1d, remaining, index, true_index);
 
                 // Store the N-dimensional index of the voxel we have just
                 // crossed (expressed in the client's coordinate system), along
