@@ -407,7 +407,7 @@ impl Image {
             let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
 
             // Find if and where LOR enters voxel box.
-            let mut entry_point: Point = match self.vbox.entry(&p1, &p2) {
+            let entry_point: Point = match self.vbox.entry(&p1, &p2) {
                 // If LOR misses the box, immediately return
                 None => return,
                 // Otherwise, unwrap the point and continue
@@ -417,18 +417,8 @@ impl Image {
             // ... and how far the entry point is from the TOF peak
             let tof_peak = find_tof_peak(entry_point, p1, p2, lor.t1, lor.t2);
 
-            // Transform coordinates to align box with axes: making the lower
-            // boundaries of the box lie on the zero-planes.
-            entry_point += self.vbox.half_width;
-
             // Express entry point in voxel coordinates: floor(position) = index of voxel.
-            let mut entry_point: Vector = entry_point.coords.component_div(&self.vbox.voxel_size);
-
-            // Floating-point subtractions which should give zero, usually miss very
-            // slightly: if this error is negative, the next step (which uses floor)
-            // will pick the wrong voxel. Work around this problem by assuming that
-            // anything very close to zero is exactly zero.
-            entry_point.iter_mut().for_each(|x| if x.abs() < EPS { *x = 0.0 });
+            let entry_point = align_entry_point(entry_point, self.vbox);
 
             // Bookkeeping information needed during traversal of voxel box
             let (
@@ -514,6 +504,23 @@ impl Image {
         Self { data: vec![1.0; size], vbox, size}
     }
 
+}
+
+#[inline]
+fn align_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
+    // Transform coordinates to align box with axes: making the lower boundaries
+    // of the box lie on the zero-planes.
+    entry_point += vbox.half_width;
+
+    // Express entry point in voxel coordinates: floor(position) = index of voxel.
+    let mut entry_point: Vector = entry_point.coords.component_div(&vbox.voxel_size);
+
+    // Floating-point subtractions which should give zero, usually miss very
+    // slightly: if this error is negative, the next step (which uses floor)
+    // will pick the wrong voxel. Work around this problem by assuming that
+    // anything very close to zero is exactly zero.
+    entry_point.iter_mut().for_each(|x| if x.abs() < EPS { *x = 0.0 });
+    entry_point
 }
 
 #[inline]
