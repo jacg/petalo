@@ -391,140 +391,137 @@ impl Image {
         let mut true_indices = Vec::with_capacity(max_number_of_active_voxels_possible);
 
         // For each measured LOR ...
-        measured_lors
-            .iter()
-            .for_each(|lor| {
+        measured_lors.iter().for_each(|lor| {
 
-                let n_voxels = self.vbox.n;
-                let mut here = 0.0;
+            let n_voxels = self.vbox.n;
+            let mut here = 0.0;
 
-                let mut p1 = lor.p1;
-                let mut p2 = lor.p2;
+            let mut p1 = lor.p1;
+            let mut p2 = lor.p2;
 
-                weights.clear();
-                true_indices.clear();
+            weights.clear();
+            true_indices.clear();
 
-                let dimensions = 3;
+            let dimensions = 3;
 
-                // Simplify expression of the algorithm by flipping axes so that the
-                // direction from p1 to p2 is non-negative along all axes. Remember
-                // which directions have been flipped, to recover correct voxel indices.
-                let original_lor_direction: Vector = p2 - p1;
-                let mut flipped = VecOf::<bool>::repeat(false);
-                let mut flip_if_necessary = |n| {
-                    if original_lor_direction[n] < 0.0 {
-                        p1[n] = - p1[n];
-                        p2[n] = - p2[n];
-                        flipped[n] = true;
-                    }
-                };
-                for d in 0..dimensions {
-                    flip_if_necessary(d);
+            // Simplify expression of the algorithm by flipping axes so that the
+            // direction from p1 to p2 is non-negative along all axes. Remember
+            // which directions have been flipped, to recover correct voxel indices.
+            let original_lor_direction: Vector = p2 - p1;
+            let mut flipped = VecOf::<bool>::repeat(false);
+            let mut flip_if_necessary = |n| {
+                if original_lor_direction[n] < 0.0 {
+                    p1[n] = - p1[n];
+                    p2[n] = - p2[n];
+                    flipped[n] = true;
+                }
+            };
+            for d in 0..dimensions {
+                flip_if_necessary(d);
+            }
+
+            // Find if and where LOR enters voxel box.
+            let mut entry_point: Point = match self.vbox.entry(&p1, &p2) {
+                // If LOR misses the box, immediately return
+                None => return,
+                // Otherwise, unwrap the point and continue calculating a more
+                // detailed iterator state
+                Some(point) => point,
+            };
+
+            // ... and how far the entry point is from the TOF peak
+            let p1_to_peak = 0.5 * ((p1 - p2).norm() + C * (lor.t1 - lor.t2));
+            let p1_to_entry = (entry_point - p1).norm();
+            let tof_peak = p1_to_peak - p1_to_entry;
+
+            // Transform coordinates to align box with axes: making the lower
+            // boundaries of the box lie on the zero-planes.
+            entry_point += self.vbox.half_width;
+
+            // Express entry point in voxel coordinates: floor(position) = index of voxel.
+            let mut entry_point: Vector = entry_point.coords.component_div(&self.vbox.voxel_size);
+
+            // Floating-point subtractions which should give zero, usually miss very
+            // slightly: if this error is negative, the next step (which uses floor)
+            // will pick the wrong voxel. Work around this problem by assuming that
+            // anything very close to zero is exactly zero.
+            entry_point.iter_mut().for_each(|x| if x.abs() < EPS { *x = 0.0 });
+
+            // Find N-dimensional index of voxel at entry point.
+            let mut index: Index3 = [entry_point.x.floor() as usize,
+                                     entry_point.y.floor() as usize,
+                                     entry_point.z.floor() as usize];//entry_point.map(|x| x.floor() as usize);
+
+            // Voxel size in LOR length units: how far must we move along LOR to
+            // traverse one voxel, in any dimension.
+            let lor_direction = (p2-p1).normalize();
+            let voxel_size: Vector = self.vbox.voxel_size.component_div(&lor_direction);
+
+            // What fraction of the voxel has already been traversed at the entry
+            // point, along any axis.
+            let vox_done_fraction: Vector = entry_point - entry_point.map(|x| x.floor());
+
+            // How far we must travel along LOR before hitting next voxel boundary,
+            // in any dimension.
+            let mut next_boundary: Vector = (Vector::repeat(1.0) - vox_done_fraction)
+                .component_mul(&voxel_size);
+
+            // ================================================================================
+            loop {
+                // Remember index of the voxel we are about to cross (flipped
+                // back from our algorithm's internal coordinate system, to the
+                // client's original coordinate system).
+                let mut true_index = [0; 3];
+                for n in 0..3 {
+                    if flipped[n] { true_index[n] = n_voxels[n] - 1 - index[n]; }
+                    else          { true_index[n] =                   index[n]; }
                 }
 
-                // Find if and where LOR enters voxel box.
-                let mut entry_point: Point = match self.vbox.entry(&p1, &p2) {
-                    // If LOR misses the box, immediately return
-                    None => return,
-                    // Otherwise, unwrap the point and continue calculating a more
-                    // detailed iterator state
-                    Some(point) => point,
-                };
+                // Which boundary will be hit next, and where
+                let (dimension, boundary_position) = next_boundary.argmin();
 
-                // ... and how far the entry point is from the TOF peak
-                let t1_minus_t2 = lor.t1 - lor.t2;
-                let p1_to_peak = 0.5 * ((p1 - p2).norm() + C * (t1_minus_t2));
-                let p1_to_entry = (entry_point - p1).norm();
-                let tof_peak = p1_to_peak - p1_to_entry;
-
-                // Transform coordinates to align box with axes: making the lower
-                // boundaries of the box lie on the zero-planes.
-                entry_point += self.vbox.half_width;
-
-                // Express entry point in voxel coordinates: floor(position) = index of voxel.
-                let mut entry_point: Vector = entry_point.coords.component_div(&self.vbox.voxel_size);
-
-                // Floating-point subtractions which should give zero, usually miss very
-                // slightly: if this error is negative, the next step (which uses floor)
-                // will pick the wrong voxel. Work around this problem by assuming that
-                // anything very close to zero is exactly zero.
-                entry_point.iter_mut().for_each(|x| if x.abs() < EPS { *x = 0.0 });
-
-                // Find N-dimensional index of voxel at entry point.
-                let mut index: Index3 = [entry_point.x.floor() as usize,
-                                         entry_point.y.floor() as usize,
-                                         entry_point.z.floor() as usize];//entry_point.map(|x| x.floor() as usize);
-
-                // Voxel size in LOR length units: how far must we move along LOR to
-                // traverse one voxel, in any dimension.
-                let lor_direction = (p2-p1).normalize();
-                let voxel_size: Vector = self.vbox.voxel_size.component_div(&lor_direction);
-
-                // What fraction of the voxel has already been traversed at the entry
-                // point, along any axis.
-                let vox_done_fraction: Vector = entry_point - entry_point.map(|x| x.floor());
-
-                // How far we must travel along LOR before hitting next voxel boundary,
-                // in any dimension.
-                let mut next_boundary: Vector = (Vector::repeat(1.0) - vox_done_fraction)
-                    .component_mul(&voxel_size);
-
-                // ================================================================================
-                loop {
-                    // Remember index of the voxel we are about to cross (flipped
-                    // back from our algorithm's internal coordinate system, to the
-                    // client's original coordinate system).
-                    let mut true_index = [0; 3];
-                    for n in 0..3 {
-                        if flipped[n] { true_index[n] = n_voxels[n] - 1 - index[n]; }
-                        else          { true_index[n] =                   index[n]; }
-                    }
-
-                    // Which boundary will be hit next, and where
-                    let (dimension, boundary_position) = next_boundary.argmin();
-
-                    // The weight of this voxel is the distance from where we
-                    // entered the voxel to the nearest boundary
-                    let mut weight = boundary_position - here;
-                    if let Some(gauss) = &tof {
-                        weight *= gauss(here - tof_peak);
-                    }
-
-                    // Move to the boundary of this voxel
-                    here = boundary_position;
-
-                    // Find the next boundary in this dimension
-                    next_boundary[dimension] += voxel_size[dimension];
-
-                    // Change the index according to the boundary we are crossing
-                    index[dimension] += 1;
-
-                    // If we have traversed the whole voxel box
-                    if index[dimension] >= n_voxels[dimension] { break; }
-
-                    // Store the N-dimensional index of the voxel we have just
-                    // crossed (expressed in the client's coordinate system), along
-                    // with the distance that the LOR covered in that voxel.
-                    if weight > 0.0 {
-                        true_indices.push(true_index);
-                        weights     .push(weight);
-                    }
-                }
-                // ================================================================================
-
-                // Forward projection of current image into this LOR
-                // let P_i = self.project(A_ijs.iter().copied());
-                let mut projection = 0.0;
-                for (w, j) in weights.iter().zip(true_indices.iter()) {
-                    projection += w * self[*j]
-                }
-                let projection_reciprocal = 1.0 / projection;
-
-                for (w, j) in weights.iter().zip(true_indices.iter()) {
-                    backprojection[*j] += w * projection_reciprocal;
+                // The weight of this voxel is the distance from where we
+                // entered the voxel to the nearest boundary
+                let mut weight = boundary_position - here;
+                if let Some(gauss) = &tof {
+                    weight *= gauss(here - tof_peak);
                 }
 
-            });
+                // Move to the boundary of this voxel
+                here = boundary_position;
+
+                // Find the next boundary in this dimension
+                next_boundary[dimension] += voxel_size[dimension];
+
+                // Change the index according to the boundary we are crossing
+                index[dimension] += 1;
+
+                // If we have traversed the whole voxel box
+                if index[dimension] >= n_voxels[dimension] { break; }
+
+                // Store the N-dimensional index of the voxel we have just
+                // crossed (expressed in the client's coordinate system), along
+                // with the distance that the LOR covered in that voxel.
+                if weight > 0.0 {
+                    true_indices.push(true_index);
+                    weights     .push(weight);
+                }
+            }
+            // ================================================================================
+
+            // Forward projection of current image into this LOR
+            // let P_i = self.project(A_ijs.iter().copied());
+            let mut projection = 0.0;
+            for (w, j) in weights.iter().zip(true_indices.iter()) {
+                projection += w * self[*j]
+            }
+            let projection_reciprocal = 1.0 / projection;
+
+            for (w, j) in weights.iter().zip(true_indices.iter()) {
+                backprojection[*j] += w * projection_reciprocal;
+            }
+
+        });
 
         //  TODO express with Option<matrix> and mul reciprocal
         // Apply Sensitivity matrix
