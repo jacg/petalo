@@ -7,11 +7,11 @@ use petalo::weights::{Length, Time, Ratio};
 // in terms of petalo::weights::make_gauss
 #[allow(nonstandard_style)]
 fn sim_burdel(dist: Length, deltaT: Time, TOF_resolution: Time) -> Ratio {
-    use petalo::weights::{make_gauss, C};
+    use petalo::weights::{make_gauss_option, C};
     let t = dist * 2.0 / C + deltaT ;
     let sigma = TOF_resolution;
     let cutoff = Some(3.0);
-    make_gauss(sigma, cutoff)(t) * 2.0 / C
+    make_gauss_option(Some(sigma), cutoff).unwrap()(t) * 2.0 / C
 }
 
 // Check that sim_burdel is equivalent to ale_burdel a.k.a ToFFunction

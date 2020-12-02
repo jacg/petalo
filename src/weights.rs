@@ -36,7 +36,7 @@ pub type Index3 = [usize; 3];
 pub type Index1 = usize;
 type BoxDim = [usize; 3];
 
-type Index1Weight = (Index1, Weight);
+//type Index1Weight = (Index1, Weight);
 type Index3Weight = (Index3, Weight);
 
 const TWOPI: Length = std::f64::consts::TAU as Length;
@@ -52,173 +52,6 @@ const TWOPI: Length = std::f64::consts::TAU as Length;
 //    then assume that all progress is in the positive direction. Any voxels
 //    indices calculated by the algorithm, must be flipped back to the original
 //    coordinate system.
-
-/// An iterator which yields the N-dimensional indices of voxels which have been
-/// traversed by a LOR, along with the distance the LOR covered inside that
-/// voxel.
-pub enum WeightsAlongLOR {
-
-    // We are at a point outside of the voxel box: no bookkeeping to be done.
-    Outside,
-
-    // We are traversing the voxel box:
-    Inside {
-
-        // Distance travelled along LOR since entering the voxel box
-        here: Length,
-
-        // Position of the next voxel boundary in any dimension, in LOR distance
-        // units from point of entry.
-
-        next_boundary: Vector,
-
-        // Voxel box size, as number of voxels in each dimension
-        n_voxels: BoxDim,
-
-        // Dimensions of the voxels expressed in LOR distance units. Used to
-        // reset components of `next_boundary` when they reach 0.
-        voxel_size: Vector,
-
-        // The flipped index of the voxel we have just entered. Must be flipped
-        // back before yielding to client.
-        index: Index3,
-
-        // We exploit the symmetries of the system by flipping some axes. Here
-        // we record which axes have been flipped and must be adjusted when
-        // calculating indices to be yielded.
-        flipped: VecOf<bool>,
-    }
-}
-
-impl WeightsAlongLOR {
-    pub fn new(mut p1: Point, mut p2: Point, vbox: &VoxelBox) -> Self {
-
-        // This function works in an arbitrary number of dimensions. In order to
-        // iterate over all dimensions, we need to know how many there are.
-        let dimensions = p1.len();
-
-        // Simplify expression of the algorithm by flipping axes so that the
-        // direction from p1 to p2 is non-negative along all axes. Remember
-        // which directions have been flipped, to recover correct voxel indices.
-        let original_lor_direction: Vector = p2 - p1;
-        let mut flipped = VecOf::<bool>::repeat(false);
-        let mut flip_if_necessary = |n| {
-            if original_lor_direction[n] < 0.0 {
-                p1[n] = - p1[n];
-                p2[n] = - p2[n];
-                flipped[n] = true;
-            }
-        };
-        for d in 0..dimensions {
-            flip_if_necessary(d);
-        }
-
-        // Find if and where LOR enters voxel box.
-        let mut entry_point: Point = match vbox.entry(&p1, &p2) {
-            // If LOR misses the box, immediately return an iterator which will
-            // generate no hits.
-            None => return Self::Outside,
-            // Otherwise, unwrap the point and continue calculating a more
-            // detailed iterator state
-            Some(point) => point,
-        };
-
-        // Transform coordinates to align box with axes: making the lower
-        // boundaries of the box lie on the zero-planes.
-        entry_point += vbox.half_width;
-
-        // Express entry point in voxel coordinates: floor(position) = index of voxel.
-        let mut entry_point: Vector = entry_point.coords.component_div(&vbox.voxel_size);
-
-        // Floating-point subtractions which should give zero, usually miss very
-        // slightly: if this error is negative, the next step (which uses floor)
-        // will pick the wrong voxel. Work around this problem by assuming that
-        // anything very close to zero is exactly zero.
-        entry_point.iter_mut().for_each(|x| if x.abs() < EPS { *x = 0.0 });
-
-        // Find N-dimensional index of voxel at entry point.
-        let index: Index3 = [entry_point.x.floor() as usize,
-                             entry_point.y.floor() as usize,
-                             entry_point.z.floor() as usize];//entry_point.map(|x| x.floor() as usize);
-
-        // Voxel size in LOR length units: how far must we move along LOR to
-        // traverse one voxel, in any dimension.
-        let lor_direction = (p2-p1).normalize();
-        let voxel_size: Vector = vbox.voxel_size.component_div(&lor_direction);
-
-        // What fraction of the voxel has already been traversed at the entry
-        // point, along any axis.
-        let vox_done_fraction: Vector = entry_point - entry_point.map(|x| x.floor());
-
-        // How far we must travel along LOR before hitting next voxel boundary,
-        // in any dimension.
-        let next_boundary: Vector = (Vector::repeat(1.0) - vox_done_fraction)
-            .component_mul(&voxel_size);
-
-        // Initial iterator state: the point where LOR enters voxel box (in
-        // voxel coordinates), along with bookkeeping information.
-        Self::Inside { here: 0.0, next_boundary, voxel_size, n_voxels: vbox.n, flipped, index }
-    }
-}
-
-impl Iterator for WeightsAlongLOR {
-
-    // Generate one item for each voxel crossed by the LOR. Each item contains
-    // the N-dimensional index of the voxel, and the length of the LOR within
-    // that voxel.
-    type Item = Index3Weight;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            // If we are not inside the voxel box, then either the LOR
-            // completely missed the box, or we have traversed it and come out
-            // of the other side. In either case, there is nothing more to be
-            // done: The iteration is finished.
-            Self::Outside => None,
-
-            // If we are inside the voxel box, then we are at the boundary of a voxel
-            Self::Inside { here, flipped, index, n_voxels, next_boundary, voxel_size } => {
-
-                // Remember index of the voxel we are about to cross (flipped
-                // back from our algorithm's internal coordinate system, to the
-                // client's original coordinate system).
-                let mut true_index = [0; 3];
-                for n in 0..3 {
-                    if flipped[n] { true_index[n] = n_voxels[n] - 1 - index[n]; }
-                    else          { true_index[n] =                   index[n]; }
-                }
-
-                // Which boundary will be hit next, and where
-                let (dimension, boundary_position) = next_boundary.argmin();
-
-                // The weight of this voxel is the distance from where we
-                // entered the voxel to the nearest boundary
-                let weight = boundary_position - *here;
-
-                // Move to the boundary of this voxel
-                *here = boundary_position;
-
-                // Find the next boundary in this dimension
-                next_boundary[dimension] += voxel_size[dimension];
-
-                // Change the index according to the boundary we are crossing
-                index[dimension] += 1;
-
-                // If we have traversed the whole voxel box
-                if index[dimension] >= n_voxels[dimension] {
-                    // no more steps need to be taken after this one.
-                    *self = Self::Outside
-                }
-
-                // Yield the N-dimensional index of the voxel we have just
-                // crossed (expressed in the client's coordinate system), along
-                // with the distance that the LOR covered in that voxel.
-                Some((true_index, weight))
-            }
-        }
-    }
-    // TODO: iterator hints
-}
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -266,11 +99,10 @@ mod test {
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weight> =
-            WeightsAlongLOR::new(p1, p2, &vbox)
-            .filter(|(_, w)| w > &0.0)
-            .inspect(|(is, l)| println!("  ({} {})   {}", is[0], is[1], l))
-            .collect();
+        let hits: Vec<Index3Weight> = LOR::new(0.0, 0.0, p1, p2).active_voxels(&vbox, None, None);
+
+        // Diagnostic output
+        for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
 
         // Check total length through voxel box
         let total_length: Length = hits.iter()
@@ -318,7 +150,9 @@ mod test {
             let command = crate::visualize::vislor_command(&vbox, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Length = WeightsAlongLOR::new(p1, p2, &vbox)
+            let summed: Length = LOR::new(0.0, 0.0, p1, p2)
+                .active_voxels(&vbox, None, None)
+                .iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
                 .map(|(_index, weight)| weight)
                 .sum();
@@ -430,12 +264,6 @@ impl Image {
 
         apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
 
-    }
-
-    fn project(&self, A_ijs: impl Iterator<Item = Index1Weight>) -> Weight {
-        let lambda = self;
-        A_ijs.map(move |(j, A_ij)|  A_ij * lambda[j])
-            .sum()
     }
 
     // A new empty data store with matching size
@@ -610,7 +438,7 @@ fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDi
         if flipped[1] { ny - 1 - iy } else { iy },
         if flipped[2] { nz - 1 - iz } else { iz },
     ];
-    let index = ix + (iy + iz * ny) * nx;
+    let index = index3dto1d([ix, iy, iz], [nx, ny, nz]);
 
     (index, delta_index, remaining)
 }
@@ -799,153 +627,7 @@ pub fn make_gauss_option(sigma: Option<Length>, cutoff: Option<Length>) -> Optio
     sigma.map(|sigma| make_gauss(sigma * TOF_DT_AS_DISTANCE, cutoff))
 }
 
-// A doctest, just to remind us that we should have some.
-
-// TODO: This test is symmetric in t1,t2; need an asymmetric test.
-/// Returns a closure which keeps track of progress along LOR and adjusts voxel
-/// weight according to Gaussian TOF distribution. To be mapped over the stream
-/// produced by WeightsAlongLOR, as shown in this example:
-///
-/// ```
-/// # use petalo::weights::{VoxelBox, Point, Length, LOR, WeightsAlongLOR, gaussian};
-/// // A highly symmetric system for easy testing of features
-/// let vbox = VoxelBox::new((30.0, 30.0, 30.0), (5,5,5));
-/// let p1 = Point::new(-100.0, 0.0, 0.0);
-/// let p2 = Point::new( 100.0, 0.0, 0.0);
-/// let (t1, t2) = (12.3, 12.3);
-/// let lor = LOR::new(t1, t2, p1, p2);
-/// let sigma = 10.0;
-///
-/// // Generate geometry-dependent voxel weights
-/// let active_voxels = WeightsAlongLOR::new(p1, p2, &vbox)
-///     // Adjust weights with gaussian TOF factor
-///     .map(gaussian(sigma, &lor, &vbox, None))
-///     // Make index more human-friendly (tuple rather than vector)
-///     .map(|(i,w)| ((i[0], i[1], i[2]), w))
-///     // Store weights in hash map, keyed on voxel index, for easy retrieval
-///     .collect::<std::collections::HashMap<(usize, usize, usize), Length>>();
-///
-/// // Gaussian centred on origin is symmetric about origin
-/// assert_eq!(active_voxels.get(&(0,2,2)) , active_voxels.get(&(4,2,2)));
-/// assert_eq!(active_voxels.get(&(1,2,2)) , active_voxels.get(&(3,2,2)));
-///
-/// // Highest probability in the centre
-/// assert!   (active_voxels.get(&(0,2,2)) < active_voxels.get(&(1,2,2)));
-/// assert!   (active_voxels.get(&(1,2,2)) < active_voxels.get(&(2,2,2)));
-/// ```
-pub fn gaussian(sigma: Length, lor: &LOR, vbox: &VoxelBox, cutoff: Option<Length>) -> Box<dyn FnMut (Index3Weight) -> Index3Weight> {
-    let t1_minus_t2 = lor.t1 - lor.t2;
-    match vbox.entry(&lor.p1, &lor.p2).map(|ep| (ep-lor.p1).norm()) {
-        // If LOR misses the voxel box, we should never receive any voxels
-        // weights to adjust.
-        None => Box::new(|_| panic!("Cannot adjust for TOF on LOR that misses image volume.")),
-        // If LOR does hit some voxels, find the first hit's distance from p1 ...
-        Some(p1_to_entry) => {
-            // ... and the TOF peak's distance from p1
-            let p1_to_peak = 0.5 * ((lor.p1 - lor.p2).norm() + C * (t1_minus_t2));
-            // Will keep track of how far we are from the TOF peak
-            let mut distance_to_peak = p1_to_peak - p1_to_entry;
-            // Specialize gaussian on given sigma
-            let gauss = make_gauss(sigma, cutoff);
-            Box::new(move |(index, weight)| {
-                // Use the LOR's half-way point in the voxel, for the TOF factor
-                let midpoint = distance_to_peak - weight / 2.0;
-                // Update distance for next voxel
-                distance_to_peak -= weight;
-                // Return the weight suppressed by the gaussian TOF factor
-                (index, weight * gauss(midpoint * DISTANCE_AS_TOF_DELTA))
-            })
-        },
-    }
-}
-
-#[cfg(test)]
-mod test_gaussian {
-
-    use super::*;
-
-    #[test]
-    fn peak_shift() {
-
-        // Arbitrarily choose to shift the peak by 40.5 mm from the midpoint
-        let delta_x = 40.5;
-
-        // That distance reduces/increases the TOF to the nearer/farther LOR
-        // endpoints by delta_t = delta_x / c.
-        let delta_t = delta_x / C;
-
-        // As one of the TOFs is reduced by this amount, while the other is
-        // increased by the same amount, the total difference between the
-        // arrival times, differs by 2 times delta_t.
-        let t1 = 1234.5678; // arbitrary choice
-        let t2 = t1 + 2.0 * delta_t; // it's the difference that matters
-
-        // LOR parallel to x-axis: all voxels will have identical weights,
-        // before taking TOF into consideration.
-        let p1 = Point::new(-110.0, 0.5, 0.5);
-        let p2 = Point::new( 110.0, 0.5, 0.5);
-
-        // Vbox with width 100 mm, one voxel per mm
-        let vbox = VoxelBox::new((100.0, 100.0, 100.0), (100, 100, 100));
-
-        // The peak is at x = -40.5 mm, which has x-index 9
-        let expected_voxel_x_index = 9;
-
-        let lor = LOR::new(t1, t2, p1, p2);
-
-        // The value of sigma isn't important here. Use a sharp peak to make
-        // debugging output easy to understand.
-        let sigma = 0.7;
-
-        let actual_voxel_x_index =
-        // Generate geometry-dependent (all equal) voxel weights
-            WeightsAlongLOR::new(p1, p2, &vbox)
-            // Adjust weights with gaussian TOF factor
-            .map(gaussian(sigma, &lor, &vbox, None))
-            // Show values: will be hidden if test succeeds
-            .inspect(|x| println!("{:?}", x))
-            // find the index-and-weight of the peak
-            .max_by(|&(_, wa), &(_, wb)|
-                    if wa > wb { std::cmp::Ordering::Greater}
-                    else       { std::cmp::Ordering::Less }).unwrap()
-            // Throw away the weight, keep index
-            .0
-            // extract x-component from 3d-index
-            [0];
-
-        // Values to plug in to visualizer (only show when test fails)
-        println!("\nTo visualize this case, run:");
-        println!("{}\n", crate::visualize::vislor_command(&vbox, &lor));
-
-        assert_eq!(expected_voxel_x_index, actual_voxel_x_index);
-
-    }
-
-    // TODO: test width of peak
-
-    use proptest::prelude::*;
-    use assert_approx_eq::assert_approx_eq;
-
-    proptest! {
-        #[test]
-        fn gaussian_cutoff(
-            sigma in 20.0..(400.0 as Length),
-            width in  1.0..(  4.0 as Length)
-        ) {
-            let gauss = make_gauss(sigma, Some(width));
-            let inside  = (1.0 - EPS) * width * sigma;
-            let outside = (1.0 + EPS) * width * sigma;
-            let pos_in  = gauss( inside);
-            let pos_out = gauss( outside);
-            let neg_in  = gauss(-inside);
-            let neg_out = gauss(-outside);
-            assert_eq!(pos_out, 0.0);
-            assert_eq!(neg_out, 0.0);
-            assert_approx_eq!(pos_in, neg_in);
-            assert!(pos_in > 0.0);
-        }
-    }
-}
+//--------------------------------------------------------------------------------
 
 #[derive(Clone, Copy, Debug)]
 pub struct LOR {
@@ -958,20 +640,52 @@ pub struct LOR {
 impl LOR {
     pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self { Self { t1, t2, p1, p2 } }
 
-    pub fn active_voxels<'a>(&self, vbox: &'a VoxelBox, cutoff: Option<Length>, tof: Option<Length>) -> impl Iterator<Item = Index3Weight> + 'a {
+    pub fn active_voxels(&self, vbox: &VoxelBox, cutoff: Option<Length>, sigma: Option<Length>) -> Vec<Index3Weight> {
 
-        //
-        let tof_adjustment = match tof {
-            Some(sigma) => gaussian(sigma, &self, vbox, cutoff),
-            None        => Box::new(|x| x),
-        };
+        let tof = make_gauss_option(sigma, cutoff);
+        let mut weights = vec![];
+        let mut indices = vec![];
+        match lor_vbox_hit(self, *vbox) {
+            None => (),
+            Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+                find_active_voxels(
+                    &mut indices, &mut weights,
+                    next_boundary, voxel_size,
+                    index, delta_index, remaining,
+                    tof_peak, &tof
+                );
 
-        WeightsAlongLOR::new(self.p1, self.p2, vbox)
-            .map(tof_adjustment)
-            // Gaussian-truncation will have set some of the voxels' weights to
-            // zero. They will contribute nothing to the calculation, so keeping them
-            // will merely waste CPU cycles: filter them out
-            .filter(|(_, w)| w > &0.0)
+            }
+        }
+        indices.into_iter()
+            .map(|i| vbox.index1_to_3(i))
+            .zip(weights.into_iter())
+            .collect()
     }
-
 }
+
+
+// --------------------------------------------------------------------------------
+//                  Conversion between 1d and 3d indices
+
+use std::ops::{Add, /*Div,*/ Mul /*, Rem*/};
+
+fn index3dto1d<T>([ix, iy, iz]: [T; 3], [nx, ny, _nz]: [T; 3]) -> T
+where
+    T: Mul<Output = T> + Add<Output = T>
+{
+    ix + (iy + iz * ny) * nx
+}
+
+// fn index1dto3d<T>(i: T, [nx, ny, _nz]: [T; 3]) -> [T; 3]
+// where
+//     T: Mul<Output = T> +
+//     Div<Output = T> +
+//     Rem<Output = T> +
+//     Copy
+// {
+//     let ix = i % (nx * ny);
+//     let iy = i / nx;
+//     let iz = i / (nx * ny);
+//     [ix, iy, iz]
+// }
