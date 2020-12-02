@@ -429,12 +429,7 @@ impl Image {
             }
         });
 
-        //  TODO express with Option<matrix> and mul reciprocal
-        // Apply Sensitivity matrix
-        azip!((voxel in &mut self.data, &b in &backprojection, &s in S) {
-            if s > 0.0 { *voxel *= b / s }
-            else       { *voxel  = 0.0   }
-        })
+        apply_sensitivity_matrix(&mut self.data, &backprojection, S);
 
     }
 
@@ -655,6 +650,17 @@ fn back_project(backprojection: &mut Vec<Length>, weights: &Vec<Length>, indices
         backprojection[*j] += w * projection_reciprocal;
     }
 }
+
+
+fn apply_sensitivity_matrix(image: &mut ImageData, backprojection: &Vec<Length>, smatrix: &ImageData) {
+    //  TODO express with Option<matrix> and mul reciprocal
+    // Apply Sensitivity matrix
+    azip!((voxel in image, &b in backprojection, &s in smatrix) {
+        if s > 0.0 { *voxel *= b / s }
+        else       { *voxel  = 0.0   }
+    })
+}
+
 //--------------------------------------------------------------------------------
 #[derive(Clone, Copy, Debug)]
 pub struct VoxelBox {
