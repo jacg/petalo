@@ -438,7 +438,7 @@ fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDi
         if flipped[1] { ny - 1 - iy } else { iy },
         if flipped[2] { nz - 1 - iz } else { iz },
     ];
-    let index = index3dto1d([ix, iy, iz], [nx, ny, nz]);
+    let index = index3_to_1([ix, iy, iz], [nx, ny, nz]);
 
     (index, delta_index, remaining)
 }
@@ -522,21 +522,6 @@ impl VoxelBox {
                    (i[2] as Length + 0.5) * s.z,)
     }
 
-    pub fn index3_to_1(&self, i: Index3) -> Index1 {
-        let n = self.n;
-        i[0] + n[0] * i[1] + (n[0] * n[1]) * i[2]
-    }
-
-    #[allow(clippy::many_single_char_names)]
-    pub fn index1_to_3(&self, i: Index1) -> Index3 {
-        let n = self.n;
-        let z = i / (n[0] * n[1]);
-        let r = i % (n[0] * n[1]);
-        let y = r / n[0];
-        let x = r % n[0];
-        [x,y,z]
-    }
-
     pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
         let lor_direction: Vector = (p2 - p1).normalize();
         let lor_length   : Length = (p2 - p1).norm();
@@ -549,63 +534,6 @@ impl VoxelBox {
 
 }
 
-#[cfg(test)]
-mod test_vbox {
-    use super::*;
-    use rstest::rstest;
-
-    type I3 = (usize, usize, usize);
-
-    // -------------------- Some hand-picked examples ------------------------------
-    #[rstest(/**/    size   , index3 , index1,
-             // 1-d examples
-             case(( 1, 1, 1), (0,0,0),   0),
-             case(( 9, 1, 1), (3,0,0),   3),
-             case(( 1, 8, 1), (0,4,0),   4),
-             case(( 1, 1, 7), (0,0,5),   5),
-             // Counting in binary: note digit reversal
-             case(( 2, 2, 2), (0,0,0),   0),
-             case(( 2, 2, 2), (1,0,0),   1),
-             case(( 2, 2, 2), (0,1,0),   2),
-             case(( 2, 2, 2), (1,1,0),   3),
-             case(( 2, 2, 2), (0,0,1),   4),
-             case(( 2, 2, 2), (1,0,1),   5),
-             case(( 2, 2, 2), (0,1,1),   6),
-             case(( 2, 2, 2), (1,1,1),   7),
-             // Relation to decimal: note reversal
-             case((10,10,10), (1,2,3), 321),
-             case((10,10,10), (7,9,6), 697),
-    )]
-    fn hand_picked(size: I3, index3: I3, index1: usize) {
-        let irrelevant = (10.0, 10.0, 10.0);
-        let vbox = VoxelBox::new(irrelevant, (size.0, size.1, size.2));
-        let index3 = [index3.0, index3.1, index3.2];
-        assert_eq!(vbox.index3_to_1(index3), index1);
-        assert_eq!(vbox.index1_to_3(index1), index3);
-    }
-
-    // -------------------- Exhaustive roundtrip testing ------------------------------
-    use proptest::prelude::*;
-
-    // A strategy that picks 3-d index limits, and a 1-d index guaranteed to lie
-    // within those bounds.
-    fn size_and_in_range_index() -> impl Strategy<Value = (I3, usize)> {
-        (1..200_usize, 1..200_usize, 1..200_usize)
-            .prop_flat_map(|i| (Just(i), 1..(i.0 * i.1 * i.2)))
-    }
-
-    proptest! {
-        #[test]
-        fn index_roundtrip((size, index) in size_and_in_range_index()) {
-            let irrelevant = (10.0, 10.0, 10.0);
-            let vbox = VoxelBox::new(irrelevant, size);
-            let there = vbox.index1_to_3(index);
-            let back  = vbox.index3_to_1(there);
-            assert_eq!(back, index)
-        }
-
-    }
-}
 //--------------------------------------------------------------------------------
 
 fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> Length {
@@ -658,7 +586,7 @@ impl LOR {
             }
         }
         indices.into_iter()
-            .map(|i| vbox.index1_to_3(i))
+            .map(|i| index1_to_3(i, vbox.n))
             .zip(weights.into_iter())
             .collect()
     }
@@ -668,24 +596,77 @@ impl LOR {
 // --------------------------------------------------------------------------------
 //                  Conversion between 1d and 3d indices
 
-use std::ops::{Add, /*Div,*/ Mul /*, Rem*/};
+use std::ops::{Add, Div, Mul , Rem};
 
-fn index3dto1d<T>([ix, iy, iz]: [T; 3], [nx, ny, _nz]: [T; 3]) -> T
+fn index3_to_1<T>([ix, iy, iz]: [T; 3], [nx, ny, _nz]: [T; 3]) -> T
 where
     T: Mul<Output = T> + Add<Output = T>
 {
     ix + (iy + iz * ny) * nx
 }
 
-// fn index1dto3d<T>(i: T, [nx, ny, _nz]: [T; 3]) -> [T; 3]
-// where
-//     T: Mul<Output = T> +
-//     Div<Output = T> +
-//     Rem<Output = T> +
-//     Copy
-// {
-//     let ix = i % (nx * ny);
-//     let iy = i / nx;
-//     let iz = i / (nx * ny);
-//     [ix, iy, iz]
-// }
+fn index1_to_3<T>(i: T, [nx, ny, _nz]: [T; 3]) -> [T; 3]
+where
+    T: Mul<Output = T> +
+    Div<Output = T> +
+    Rem<Output = T> +
+    Copy
+{
+    let z = i / (nx * ny);
+    let r = i % (nx * ny);
+    let y = r / nx;
+    let x = r % nx;
+    [x,y,z]
+}
+
+
+#[cfg(test)]
+mod test_index_conversion {
+    use super::*;
+    use rstest::rstest;
+
+    // -------------------- Some hand-picked examples ------------------------------
+    #[rstest(/**/    size   , index3 , index1,
+             // 1-d examples
+             case([ 1, 1, 1], [0,0,0],   0),
+             case([ 9, 1, 1], [3,0,0],   3),
+             case([ 1, 8, 1], [0,4,0],   4),
+             case([ 1, 1, 7], [0,0,5],   5),
+             // Counting in binary: note digit reversal
+             case([ 2, 2, 2], [0,0,0],   0),
+             case([ 2, 2, 2], [1,0,0],   1),
+             case([ 2, 2, 2], [0,1,0],   2),
+             case([ 2, 2, 2], [1,1,0],   3),
+             case([ 2, 2, 2], [0,0,1],   4),
+             case([ 2, 2, 2], [1,0,1],   5),
+             case([ 2, 2, 2], [0,1,1],   6),
+             case([ 2, 2, 2], [1,1,1],   7),
+             // Relation to decimal: note reversal
+             case([10,10,10], [1,2,3], 321),
+             case([10,10,10], [7,9,6], 697),
+    )]
+    fn hand_picked(size: Index3, index3: Index3, index1: usize) {
+        assert_eq!(index3_to_1(index3, size), index1);
+        assert_eq!(index1_to_3(index1, size), index3);
+    }
+
+    // -------------------- Exhaustive roundtrip testing ------------------------------
+    use proptest::prelude::*;
+
+    // A strategy that picks 3-d index limits, and a 1-d index guaranteed to lie
+    // within those bounds.
+    fn size_and_in_range_index() -> impl Strategy<Value = (Index3, usize)> {
+        [1..200_usize, 1..200_usize, 1..200_usize]
+            .prop_flat_map(|i| (Just(i), 1..(i[0] * i[1] * i[2])))
+    }
+
+    proptest! {
+        #[test]
+        fn index_roundtrip((size, index) in size_and_in_range_index()) {
+            let there = index1_to_3(index, size);
+            let back  = index3_to_1(there, size);
+            assert_eq!(back, index)
+        }
+
+    }
+}
