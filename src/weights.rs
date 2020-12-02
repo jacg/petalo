@@ -384,7 +384,7 @@ impl Image {
         let mut backprojection = self.zeros_buffer();
 
         // TOF adjustment to apply to the weights
-        let tof: Option<_> = sigma.map(|sigma| make_gauss(sigma * TOF_DT_AS_DISTANCE, cutoff));
+        let tof: Option<_> = make_gauss_option(sigma, cutoff);
 
         // Storage space for the weights and indices of the active voxels
         // (allocating new result vectors for each LOR had a noticeable runtime cost)
@@ -780,7 +780,7 @@ mod test_vbox {
 }
 //--------------------------------------------------------------------------------
 
-pub fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> Length {
+fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> Length {
     let root_two_pi = TWOPI.sqrt() as Length;
     let peak_height = 1.0 / (sigma * root_two_pi);
     let cutoff = cutoff.map_or(std::f32::INFINITY as Length, |width| width * sigma);
@@ -793,6 +793,10 @@ pub fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> L
             0.0
         }
     }
+}
+
+pub fn make_gauss_option(sigma: Option<Length>, cutoff: Option<Length>) -> Option<impl Fn(Length) -> Length> {
+    sigma.map(|sigma| make_gauss(sigma * TOF_DT_AS_DISTANCE, cutoff))
 }
 
 // A doctest, just to remind us that we should have some.
