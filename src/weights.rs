@@ -344,6 +344,13 @@ fn find_active_voxels(
             weight *= gauss(here - tof_peak);
         }
 
+        // Store the index of the voxel we have just crossed, along with
+        // the distance that the LOR covered in that voxel.
+        if weight > 0.0 {
+            indices.push(index as usize);
+            weights.push(weight);
+        }
+
         // Move along LOR until it leaves this voxel
         here = boundary_position;
 
@@ -351,19 +358,11 @@ fn find_active_voxels(
         next_boundary[dimension] += voxel_size[dimension];
 
         // Move index across the boundary we are crossing
-        let previous_index = index;
         index += delta_index[dimension];
         remaining[dimension] -= 1;
 
         // If we have traversed the whole voxel box
         if remaining[dimension] == 0 { break; }
-
-        // Store the index of the voxel we have just crossed, along with
-        // the distance that the LOR covered in that voxel.
-        if weight > 0.0 {
-            indices.push(previous_index as usize);
-            weights.push(weight);
-        }
     }
 }
 
