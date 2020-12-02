@@ -424,7 +424,7 @@ impl Image {
                     let projection = forward_project(&weights, &indices, self);
 
                     // Backprojection of LOR onto image
-                    back_project(&weights, &indices, &mut backprojection, projection);
+                    back_project(&mut backprojection, &weights, &indices, projection);
                 }
             }
         });
@@ -649,7 +649,7 @@ fn forward_project(weights: &Vec<Length>, indices: &Vec<usize>, image: &Image) -
 }
 
 #[inline]
-fn back_project(weights: &Vec<Length>, indices: &Vec<usize>, backprojection: &mut Vec<Length>, projection: Length) {
+fn back_project(backprojection: &mut Vec<Length>, weights: &Vec<Length>, indices: &Vec<usize>, projection: Length) {
     let projection_reciprocal = 1.0 / projection;
     for (w, j) in weights.iter().zip(indices.iter()) {
         backprojection[*j] += w * projection_reciprocal;
