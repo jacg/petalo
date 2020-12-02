@@ -358,14 +358,13 @@ impl core::ops::Index<Index1> for Image {
     fn index(&self, i: Index1) -> &Self::Output { &self.data[i] }
 }
 
-#[allow(nonstandard_style)]
 impl Image {
 
     pub fn mlem<'a>(vbox: VoxelBox,
                     measured_lors: &'a [LOR],
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
-                    S            : &'a ImageData,
+                    smatrix      : &'a ImageData,
     ) -> impl Iterator<Item = Image> + 'a {
 
         // Start off with a uniform image
@@ -374,12 +373,12 @@ impl Image {
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
         std::iter::from_fn(move || {
-            image.one_iteration(measured_lors, S, sigma, cutoff);
+            image.one_iteration(measured_lors, smatrix, sigma, cutoff);
             Some(image.clone()) // TODO see if we can sensibly avoid cloning
         })
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], S: &ImageData, sigma: Option<Time>, cutoff: Option<Ratio>) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], smatrix: &ImageData, sigma: Option<Time>, cutoff: Option<Ratio>) {
 
         // Accumulator for all backprojection contributions in this iteration
         let mut backprojection = self.zeros_buffer();
@@ -429,7 +428,7 @@ impl Image {
             }
         });
 
-        apply_sensitivity_matrix(&mut self.data, &backprojection, S);
+        apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
 
     }
 
