@@ -388,6 +388,7 @@ impl Image {
         let tof: Option<_> = sigma.map(|sigma| make_gauss(sigma * TOF_DT_AS_DISTANCE, cutoff));
 
         // Storage space for the weights and indices of the active voxels
+        // (allocating new result vectors for each LOR had a noticeable runtime cost)
         let (mut weights, mut indices) = {
             let [nx, ny, nz] = self.vbox.n;
             let max_number_of_active_voxels_possible = nx + ny + nz - 2;
