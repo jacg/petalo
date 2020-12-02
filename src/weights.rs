@@ -398,62 +398,34 @@ impl Image {
         // For each measured LOR ...
         measured_lors.iter().for_each(|lor| {
 
-            weights.clear();
-            indices.clear();
+            // Analyse point where LOR hits voxel box
+            match lor_vbox_hit(lor, self.vbox) {
 
-            // Simplify expression of the algorithm by flipping axes so that the
-            // direction from p1 to p2 is non-negative along all axes. Remember
-            // which directions have been flipped, to recover correct voxel indices.
-            let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
-
-            // Find if and where LOR enters voxel box.
-            let entry_point: Point = match self.vbox.entry(&p1, &p2) {
-                // If LOR misses the box, immediately return
+                // LOR missed voxel box: nothing to be done
                 None => return,
-                // Otherwise, unwrap the point and continue
-                Some(point) => point,
-            };
 
-            // ... and how far the entry point is from the TOF peak
-            let tof_peak = find_tof_peak(entry_point, p1, p2, lor.t1, lor.t2);
+                // Data needed by `find_active_voxels`
+                Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
 
-            // Express entry point in voxel coordinates: floor(position) = index of voxel.
-            let entry_point = align_entry_point(entry_point, self.vbox);
+                    // Throw away previous search results
+                    weights.clear();
+                    indices.clear();
 
-            // Bookkeeping information needed during traversal of voxel box
-            let (
-                index,       // current 1d index into 3d array of voxels
-                delta_index, // how the index changes along each dimension
-                remaining,   // voxels until edge of vbox in each dimension
-            ) = index_trackers(entry_point, flipped, self.vbox.n);
+                    // Find active voxels and their weights
+                    find_active_voxels(
+                        &mut indices, &mut weights,
+                        next_boundary, voxel_size,
+                        index, delta_index, remaining,
+                        tof_peak, &tof
+                    );
 
-            // Voxel size in LOR length units: how far must we move along LOR to
-            // traverse one voxel, in any dimension.
-            let voxel_size = voxel_size(self.vbox, p1, p2);
+                    // Forward projection of current image into this LOR
+                    let projection = forward_project(&weights, &indices, self);
 
-            // How far we must travel along LOR before hitting next voxel boundary,
-            // in any dimension.
-            let next_boundary = first_boundaries(entry_point, voxel_size);
-
-            // Find active voxels and their weights
-            find_active_voxels(
-                &mut indices,
-                &mut weights,
-                next_boundary,
-                voxel_size,
-                index,
-                delta_index,
-                remaining,
-                tof_peak,
-                &tof
-            );
-
-            // Forward projection of current image into this LOR
-            let projection = forward_project(&weights, &indices, self);
-
-            // Backprojection of LOR onto image
-            back_project(&weights, &indices, &mut backprojection, projection);
-
+                    // Backprojection of LOR onto image
+                    back_project(&weights, &indices, &mut backprojection, projection);
+                }
+            }
         });
 
         //  TODO express with Option<matrix> and mul reciprocal
@@ -479,6 +451,48 @@ impl Image {
         Self { data: vec![1.0; size], vbox, size}
     }
 
+}
+
+fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox)
+                -> Option<(Vector, Vector, i32, [i32; 3], [i32; 3], Length)>
+{
+
+    // Simplify expression of the algorithm by flipping axes so that the
+    // direction from p1 to p2 is non-negative along all axes. Remember
+    // which directions have been flipped, to recover correct voxel indices.
+    let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
+
+    // If and where LOR enters voxel box.
+    let entry_point: Point = match vbox.entry(&p1, &p2) {
+        // If LOR misses the box, immediately return
+        None => return None,
+        // Otherwise, unwrap the point and continue
+        Some(point) => point,
+    };
+
+    // How far the entry point is from the TOF peak
+    let tof_peak = find_tof_peak(entry_point, p1, p2, lor.t1, lor.t2);
+
+    // Express entry point in voxel coordinates: floor(position) = index of voxel.
+    let entry_point = align_entry_point(entry_point, vbox);
+
+    // Bookkeeping information needed during traversal of voxel box
+    let (
+        index,       // current 1d index into 3d array of voxels
+        delta_index, // how the index changes along each dimension
+        remaining,   // voxels until edge of vbox in each dimension
+    ) = index_trackers(entry_point, flipped, vbox.n);
+
+    // Voxel size in LOR length units: how far must we move along LOR to
+    // traverse one voxel, in any dimension.
+    let voxel_size = voxel_size(vbox, p1, p2);
+
+    // How far we must travel along LOR before hitting next voxel boundary,
+    // in any dimension.
+    let next_boundary = first_boundaries(entry_point, voxel_size);
+
+    // Return the values needed by `find_active_voxels`
+    Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak))
 }
 
 fn find_active_voxels(
