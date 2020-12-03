@@ -3,6 +3,8 @@ use nc::query::RayCast;
 
 use ndarray::azip;
 
+use rayon::prelude::*;
+
 // TODO: have another go at getting nalgebra to work with uom.
 
 #[allow(clippy::excessive_precision)] // Precision needed when features=f64
@@ -214,53 +216,72 @@ impl Image {
 
     fn one_iteration(&mut self, measured_lors: &[LOR], smatrix: &ImageData, sigma: Option<Time>, cutoff: Option<Ratio>) {
 
-        // Accumulator for all backprojection contributions in this iteration
-        let mut backprojection = self.zeros_buffer();
-
         // TOF adjustment to apply to the weights
         let tof: Option<_> = make_gauss_option(sigma, cutoff);
 
-        // Storage space for the weights and indices of the active voxels
-        // (allocating new result vectors for each LOR had a noticeable runtime cost)
-        let (mut weights, mut indices) = {
-            let [nx, ny, nz] = self.vbox.n;
-            let max_number_of_active_voxels_possible = nx + ny + nz - 2;
-            (Vec::with_capacity(max_number_of_active_voxels_possible),
-             Vec::with_capacity(max_number_of_active_voxels_possible))
+        // Closure preparing the state needed by each thread: will be called by
+        // `fold` when a thread is launched.
+        let per_thread_state = || {
+            // Accumulator for all backprojection contributions in this iteration
+            let backprojection = self.zeros_buffer();
+
+            // Storage space for the weights and indices of the active voxels
+            // (allocating new result vectors for each LOR had a noticeable runtime cost)
+            let (weights, indices) = {
+                let [nx, ny, nz] = self.vbox.n;
+                let max_number_of_active_voxels_possible = nx + ny + nz - 2;
+                (Vec::with_capacity(max_number_of_active_voxels_possible),
+                 Vec::with_capacity(max_number_of_active_voxels_possible))
+            };
+            (backprojection, weights, indices)
         };
 
         // For each measured LOR ...
-        measured_lors.iter().for_each(|lor| {
+        let backprojection = measured_lors
+            .par_iter()
+            .fold(
+                // Empty accumulator (backprojection) and temporary workspace (weights, items)
+                per_thread_state,
+                // Process one LOR, storing contribution in `backprojection`
+                |(mut backprojection, mut weights, mut indices), lor| {
 
-            // Analyse point where LOR hits voxel box
-            match lor_vbox_hit(lor, self.vbox) {
+                    // Analyse point where LOR hits voxel box
+                    match lor_vbox_hit(lor, self.vbox) {
 
-                // LOR missed voxel box: nothing to be done
-                None => return,
+                        // LOR missed voxel box: nothing to be done
+                        None => return (backprojection, weights, indices),
 
-                // Data needed by `find_active_voxels`
-                Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+                        // Data needed by `find_active_voxels`
+                        Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
 
-                    // Throw away previous search results
-                    weights.clear();
-                    indices.clear();
+                            // Throw away previous search results
+                            weights.clear();
+                            indices.clear();
 
-                    // Find active voxels and their weights
-                    find_active_voxels(
-                        &mut indices, &mut weights,
-                        next_boundary, voxel_size,
-                        index, delta_index, remaining,
-                        tof_peak, &tof
-                    );
+                            // Find active voxels and their weights
+                            find_active_voxels(
+                                &mut indices, &mut weights,
+                                next_boundary, voxel_size,
+                                index, delta_index, remaining,
+                                tof_peak, &tof
+                            );
 
-                    // Forward projection of current image into this LOR
-                    let projection = forward_project(&weights, &indices, self);
+                            // Forward projection of current image into this LOR
+                            let projection = forward_project(&weights, &indices, self);
 
-                    // Backprojection of LOR onto image
-                    back_project(&mut backprojection, &weights, &indices, projection);
+                            // Backprojection of LOR onto image
+                            back_project(&mut backprojection, &weights, &indices, projection);
+                        }
+                    }
+                    // Return the final state collected on this thread
+                    (backprojection, weights, indices)
                 }
-            }
-        });
+            )
+            // Keep only the backprojection (ignore weights and indices)
+            .map(|tuple| tuple.0)
+            // Sum the backprojections calculated on each thread
+            .reduce(|   | self.zeros_buffer(),
+                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect());
 
         apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
 

@@ -49,7 +49,11 @@ pub struct Cli {
 
     /// Use true rather than reco LOR data
     #[structopt(long)]
-    use_true: bool
+    use_true: bool,
+
+    /// Maximum number of rayon threads
+    #[structopt(short = "j", long, default_value = "4")]
+    pub num_threads: usize,
 
 }
 
@@ -100,6 +104,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     if args.use_c {
         run_cmlem(&args, &measured_lors)
     } else {
+
+        match rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build_global() {
+            Err(e) => println!("{}", e),
+            Ok(_)  => println!("Using up to {} threads.", args.num_threads),
+        }
+
         for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix))
             .take(args.iterations)
             .enumerate() {
