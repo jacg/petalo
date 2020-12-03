@@ -3,6 +3,8 @@ use nc::query::RayCast;
 
 use ndarray::azip;
 
+use rayon::prelude::*;
+
 // TODO: have another go at getting nalgebra to work with uom.
 
 #[allow(clippy::excessive_precision)] // Precision needed when features=f64
@@ -233,46 +235,50 @@ impl Image {
         };
 
         // For each measured LOR ...
-        let fold_state = measured_lors.iter()
+        let backprojection = measured_lors
+            .par_iter()
             .fold(
-            // Empty accumulator (backprojection) and temporary workspace (weights, items)
-            blank_slate(),
-            // Process one LOR, storing contribution in `backprojection`
-            |(mut backprojection, mut weights, mut indices), lor| {
+                // Empty accumulator (backprojection) and temporary workspace (weights, items)
+                blank_slate,
+                // Process one LOR, storing contribution in `backprojection`
+                |(mut backprojection, mut weights, mut indices), lor| {
 
-                // Analyse point where LOR hits voxel box
-                match lor_vbox_hit(lor, self.vbox) {
+                    // Analyse point where LOR hits voxel box
+                    match lor_vbox_hit(lor, self.vbox) {
 
-                    // LOR missed voxel box: nothing to be done
-                    None => return (backprojection, weights, indices),
+                        // LOR missed voxel box: nothing to be done
+                        None => return (backprojection, weights, indices),
 
-                    // Data needed by `find_active_voxels`
-                    Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+                        // Data needed by `find_active_voxels`
+                        Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
 
-                        // Throw away previous search results
-                        weights.clear();
-                        indices.clear();
+                            // Throw away previous search results
+                            weights.clear();
+                            indices.clear();
 
-                        // Find active voxels and their weights
-                        find_active_voxels(
-                            &mut indices, &mut weights,
-                            next_boundary, voxel_size,
-                            index, delta_index, remaining,
-                            tof_peak, &tof
-                        );
+                            // Find active voxels and their weights
+                            find_active_voxels(
+                                &mut indices, &mut weights,
+                                next_boundary, voxel_size,
+                                index, delta_index, remaining,
+                                tof_peak, &tof
+                            );
 
-                        // Forward projection of current image into this LOR
-                        let projection = forward_project(&weights, &indices, self);
+                            // Forward projection of current image into this LOR
+                            let projection = forward_project(&weights, &indices, self);
 
-                        // Backprojection of LOR onto image
-                        back_project(&mut backprojection, &weights, &indices, projection);
+                            // Backprojection of LOR onto image
+                            back_project(&mut backprojection, &weights, &indices, projection);
+                        }
                     }
+                    (backprojection, weights, indices)
                 }
-                (backprojection, weights, indices)
-            }
-        );
+            )
 
-        let backprojection = fold_state.0;
+            .map(|tuple| tuple.0)
+            .reduce(|   | self.zeros_buffer(),
+                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
+            ;
 
         apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
 
