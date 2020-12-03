@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::ops::Range;
 
-use crate::types::{Time, Length, Point};
+use crate::types::{Time, Length, Point, Ratio};
 use crate::weights::{LOR};
 
 pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {
@@ -42,4 +42,11 @@ pub fn parse_lor(s: &str) -> Result<LOR, Box<dyn Error>> {
     let p2 = Point::new(x2, y2, z2);
     let lor = LOR::new(t1, t2, p1, p2);
     Ok(lor)
+}
+
+// Alias to disable structopt's type magic
+pub type CutoffOption<T> = Option<T>;
+
+pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<Ratio>, std::num::ParseFloatError> {
+    Ok(if s == "no" { None } else { Some(s.parse()?) })
 }
