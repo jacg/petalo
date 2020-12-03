@@ -109,8 +109,7 @@ impl Scene {
 
     pub fn place_voxels(&mut self, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Length>) {
 
-        let active_voxels = self.lor.active_voxels(&self.vbox, cutoff, sigma)
-            .collect::<std::collections::HashMap<Index3, Length>>();
+        let active_voxels = self.lor.active_voxels(&self.vbox, cutoff, sigma);
 
         let &max_weight = active_voxels
             .iter()
