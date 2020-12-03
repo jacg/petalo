@@ -219,7 +219,9 @@ impl Image {
         // TOF adjustment to apply to the weights
         let tof: Option<_> = make_gauss_option(sigma, cutoff);
 
-        let blank_slate = || {
+        // Closure preparing the state needed by each thread: will be called by
+        // `fold` when a thread is launched.
+        let per_thread_state = || {
             // Accumulator for all backprojection contributions in this iteration
             let backprojection = self.zeros_buffer();
 
@@ -239,7 +241,7 @@ impl Image {
             .par_iter()
             .fold(
                 // Empty accumulator (backprojection) and temporary workspace (weights, items)
-                blank_slate,
+                per_thread_state,
                 // Process one LOR, storing contribution in `backprojection`
                 |(mut backprojection, mut weights, mut indices), lor| {
 
@@ -271,14 +273,15 @@ impl Image {
                             back_project(&mut backprojection, &weights, &indices, projection);
                         }
                     }
+                    // Return the final state collected on this thread
                     (backprojection, weights, indices)
                 }
             )
-
+            // Keep only the backprojection (ignore weights and indices)
             .map(|tuple| tuple.0)
+            // Sum the backprojections calculated on each thread
             .reduce(|   | self.zeros_buffer(),
-                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
-            ;
+                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect());
 
         apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
 
