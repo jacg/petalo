@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
 #[derive(StructOpt, Debug, Clone)]
-#[structopt(name = "petalo", about = "Visualize LOR interaction with voxels")]
+#[structopt(name = "vislor", about = "Visualize LOR interaction with voxels")]
 pub struct Cli {
 
     /// TOF sensitivity (sigma in ps). If not sepcified, TOF is ignored.
