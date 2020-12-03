@@ -4,7 +4,7 @@ use structopt::StructOpt;
 use petalo::utils::{parse_triplet, parse_range};
 
 #[derive(StructOpt, Debug, Clone)]
-#[structopt(name = "mlem", about = "TODO: describe what this does")]
+#[structopt(name = "mlem", about = "Maximum Likelyhood Expectation Maximization")]
 pub struct Cli {
 
     /// Number of MLEM iterations to perform
