@@ -3,6 +3,7 @@ use nc::query::RayCast;
 
 use ndarray::azip;
 
+#[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
 // TODO: have another go at getting nalgebra to work with uom.
@@ -236,8 +237,14 @@ impl Image {
             (backprojection, weights, indices)
         };
 
+        #[cfg (feature = "serial")]
+        let per_thread_state =  per_thread_state();
+
+        #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
+        #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
+
         // For each measured LOR ...
-        let backprojection = measured_lors.par_iter().fold(
+        let final_thread_state = iter.fold(
             // Empty accumulator (backprojection) and temporary workspace (weights, items)
             per_thread_state,
             // Process one LOR, storing contribution in `backprojection`
@@ -274,12 +281,20 @@ impl Image {
                 // Return the final state collected on this thread
                 (backprojection, weights, indices)
             }
-        )
+        );
+
+        #[cfg (feature = "serial")]
+        let backprojection = final_thread_state.0;
+
+        #[cfg(not(feature = "serial"))]
+        let backprojection = {
+            final_thread_state
             // Keep only the backprojection (ignore weights and indices)
             .map(|tuple| tuple.0)
             // Sum the backprojections calculated on each thread
             .reduce(|   | self.zeros_buffer(),
-                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect());
+                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
+        };
 
         apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
 
