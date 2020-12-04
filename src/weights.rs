@@ -222,7 +222,7 @@ impl Image {
 
         // Closure preparing the state needed by each thread: will be called by
         // `fold` when a thread is launched.
-        let per_thread_state = || {
+        let initial_thread_state = || {
             // Accumulator for all backprojection contributions in this iteration
             let backprojection = self.zeros_buffer();
 
@@ -238,7 +238,7 @@ impl Image {
         };
 
         #[cfg (feature = "serial")]
-        let per_thread_state =  per_thread_state();
+        let initial_thread_state =  initial_thread_state();
 
         #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
         #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
@@ -246,7 +246,7 @@ impl Image {
         // For each measured LOR ...
         let final_thread_state = iter.fold(
             // Empty accumulator (backprojection) and temporary workspace (weights, items)
-            per_thread_state,
+            initial_thread_state,
             // Process one LOR, storing contribution in `backprojection`
             |(mut backprojection, mut weights, mut indices), lor| {
 
