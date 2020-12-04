@@ -200,7 +200,7 @@ impl Image {
                     measured_lors: &'a [LOR],
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
-                    smatrix      : &'a ImageData,
+                    smatrix      : &'a [Intensity],
     ) -> impl Iterator<Item = Image> + 'a {
 
         // Start off with a uniform image
@@ -214,7 +214,7 @@ impl Image {
         })
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], smatrix: &ImageData, sigma: Option<Time>, cutoff: Option<Ratio>) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], smatrix: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
 
         // TOF adjustment to apply to the weights
         let tof: Option<_> = make_gauss_option(sigma, cutoff);
@@ -482,7 +482,7 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, VecOf<bool>) {
 }
 
 #[inline]
-fn forward_project(weights: &Vec<Length>, indices: &Vec<usize>, image: &Image) -> Length {
+fn forward_project(weights: &[Length], indices: &[usize], image: &Image) -> Length {
     let mut projection = 0.0;
     for (w, j) in weights.iter().zip(indices.iter()) {
         projection += w * image[*j]
@@ -491,7 +491,7 @@ fn forward_project(weights: &Vec<Length>, indices: &Vec<usize>, image: &Image) -
 }
 
 #[inline]
-fn back_project(backprojection: &mut Vec<Length>, weights: &Vec<Length>, indices: &Vec<usize>, projection: Length) {
+fn back_project(backprojection: &mut Vec<Length>, weights: &[Length], indices: &[usize], projection: Length) {
     let projection_reciprocal = 1.0 / projection;
     for (w, j) in weights.iter().zip(indices.iter()) {
         backprojection[*j] += w * projection_reciprocal;
@@ -499,7 +499,7 @@ fn back_project(backprojection: &mut Vec<Length>, weights: &Vec<Length>, indices
 }
 
 
-fn apply_sensitivity_matrix(image: &mut ImageData, backprojection: &Vec<Length>, smatrix: &ImageData) {
+fn apply_sensitivity_matrix(image: &mut ImageData, backprojection: &[Length], smatrix: &[Intensity]) {
     //  TODO express with Option<matrix> and mul reciprocal
     // Apply Sensitivity matrix
     azip!((voxel in image, &b in backprojection, &s in smatrix) {
