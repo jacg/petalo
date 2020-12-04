@@ -223,6 +223,7 @@ impl Image {
         // Closure preparing the state needed by each thread: will be called by
         // `fold` when a thread is launched.
         let initial_thread_state = || {
+
             // Accumulator for all backprojection contributions in this iteration
             let backprojection = self.zeros_buffer();
 
@@ -237,9 +238,13 @@ impl Image {
             (backprojection, weights, indices)
         };
 
+        // Parallel fold takes a function which will return ID value;
+        // serial fold takes the ID value itself.
         #[cfg (feature = "serial")]
+        // In the serial case, call the function to get one ID value
         let initial_thread_state =  initial_thread_state();
 
+        // Choose between serial parallel iteration
         #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
         #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
 
@@ -283,9 +288,12 @@ impl Image {
             }
         );
 
+        // In the serial case, there is a single result to unwrap ...
         #[cfg (feature = "serial")]
-        let backprojection = final_thread_state.0;
+        let backprojection = final_thread_state.0; // Keep only backprojection
 
+        // ... in the parallel case, the results from each thread must be
+        // combined
         #[cfg(not(feature = "serial"))]
         let backprojection = {
             final_thread_state

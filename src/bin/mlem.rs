@@ -107,6 +107,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
 
         #[cfg(not(feature = "serial"))]
+        // Set the maximum number of threads used by rayon for parallel iteration
         match rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build_global() {
             Err(e) => println!("{}", e),
             Ok(_)  => println!("Using up to {} threads.", args.num_threads),
