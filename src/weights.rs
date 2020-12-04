@@ -625,6 +625,7 @@ where
     ix + (iy + iz * ny) * nx
 }
 
+#[allow(clippy::many_single_char_names)]
 fn index1_to_3<T>(i: T, [nx, ny, _nz]: [T; 3]) -> [T; 3]
 where
     T: Mul<Output = T> +
