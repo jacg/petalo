@@ -297,9 +297,10 @@ impl Image {
 
 }
 
-fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox)
-                -> Option<(Vector, Vector, i32, [i32; 3], [i32; 3], Length)>
-{
+//        next_boundary voxel_size index d_index   remaining  tof_peak
+type VboxHit = (Vector, Vector,    i32,  [i32; 3], [i32; 3],  Length);
+
+fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
 
     // Simplify expression of the algorithm by flipping axes so that the
     // direction from p1 to p2 is non-negative along all axes. Remember
