@@ -51,6 +51,7 @@ pub struct Cli {
     #[structopt(long)]
     use_true: bool,
 
+    #[cfg(not(feature = "serial"))]
     /// Maximum number of rayon threads
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
@@ -105,6 +106,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         run_cmlem(&args, &measured_lors)
     } else {
 
+        #[cfg(not(feature = "serial"))]
+        // Set the maximum number of threads used by rayon for parallel iteration
         match rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build_global() {
             Err(e) => println!("{}", e),
             Ok(_)  => println!("Using up to {} threads.", args.num_threads),

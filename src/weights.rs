@@ -3,6 +3,7 @@ use nc::query::RayCast;
 
 use ndarray::azip;
 
+#[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
 // TODO: have another go at getting nalgebra to work with uom.
@@ -221,7 +222,8 @@ impl Image {
 
         // Closure preparing the state needed by each thread: will be called by
         // `fold` when a thread is launched.
-        let per_thread_state = || {
+        let initial_thread_state = || {
+
             // Accumulator for all backprojection contributions in this iteration
             let backprojection = self.zeros_buffer();
 
@@ -236,52 +238,71 @@ impl Image {
             (backprojection, weights, indices)
         };
 
+        // Parallel fold takes a function which will return ID value;
+        // serial fold takes the ID value itself.
+        #[cfg (feature = "serial")]
+        // In the serial case, call the function to get one ID value
+        let initial_thread_state =  initial_thread_state();
+
+        // Choose between serial parallel iteration
+        #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
+        #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
+
         // For each measured LOR ...
-        let backprojection = measured_lors
-            .par_iter()
-            .fold(
-                // Empty accumulator (backprojection) and temporary workspace (weights, items)
-                per_thread_state,
-                // Process one LOR, storing contribution in `backprojection`
-                |(mut backprojection, mut weights, mut indices), lor| {
+        let final_thread_state = iter.fold(
+            // Empty accumulator (backprojection) and temporary workspace (weights, items)
+            initial_thread_state,
+            // Process one LOR, storing contribution in `backprojection`
+            |(mut backprojection, mut weights, mut indices), lor| {
 
-                    // Analyse point where LOR hits voxel box
-                    match lor_vbox_hit(lor, self.vbox) {
+                // Analyse point where LOR hits voxel box
+                match lor_vbox_hit(lor, self.vbox) {
 
-                        // LOR missed voxel box: nothing to be done
-                        None => return (backprojection, weights, indices),
+                    // LOR missed voxel box: nothing to be done
+                    None => return (backprojection, weights, indices),
 
-                        // Data needed by `find_active_voxels`
-                        Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+                    // Data needed by `find_active_voxels`
+                    Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
 
-                            // Throw away previous search results
-                            weights.clear();
-                            indices.clear();
+                        // Throw away previous search results
+                        weights.clear();
+                        indices.clear();
 
-                            // Find active voxels and their weights
-                            find_active_voxels(
-                                &mut indices, &mut weights,
-                                next_boundary, voxel_size,
-                                index, delta_index, remaining,
-                                tof_peak, &tof
-                            );
+                        // Find active voxels and their weights
+                        find_active_voxels(
+                            &mut indices, &mut weights,
+                            next_boundary, voxel_size,
+                            index, delta_index, remaining,
+                            tof_peak, &tof
+                        );
 
-                            // Forward projection of current image into this LOR
-                            let projection = forward_project(&weights, &indices, self);
+                        // Forward projection of current image into this LOR
+                        let projection = forward_project(&weights, &indices, self);
 
-                            // Backprojection of LOR onto image
-                            back_project(&mut backprojection, &weights, &indices, projection);
-                        }
+                        // Backprojection of LOR onto image
+                        back_project(&mut backprojection, &weights, &indices, projection);
                     }
-                    // Return the final state collected on this thread
-                    (backprojection, weights, indices)
                 }
-            )
+                // Return the final state collected on this thread
+                (backprojection, weights, indices)
+            }
+        );
+
+        // In the serial case, there is a single result to unwrap ...
+        #[cfg (feature = "serial")]
+        let backprojection = final_thread_state.0; // Keep only backprojection
+
+        // ... in the parallel case, the results from each thread must be
+        // combined
+        #[cfg(not(feature = "serial"))]
+        let backprojection = {
+            final_thread_state
             // Keep only the backprojection (ignore weights and indices)
             .map(|tuple| tuple.0)
             // Sum the backprojections calculated on each thread
             .reduce(|   | self.zeros_buffer(),
-                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect());
+                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
+        };
 
         apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
 
