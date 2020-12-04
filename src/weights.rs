@@ -237,46 +237,44 @@ impl Image {
         };
 
         // For each measured LOR ...
-        let backprojection = measured_lors
-            .par_iter()
-            .fold(
-                // Empty accumulator (backprojection) and temporary workspace (weights, items)
-                per_thread_state,
-                // Process one LOR, storing contribution in `backprojection`
-                |(mut backprojection, mut weights, mut indices), lor| {
+        let backprojection = measured_lors.par_iter().fold(
+            // Empty accumulator (backprojection) and temporary workspace (weights, items)
+            per_thread_state,
+            // Process one LOR, storing contribution in `backprojection`
+            |(mut backprojection, mut weights, mut indices), lor| {
 
-                    // Analyse point where LOR hits voxel box
-                    match lor_vbox_hit(lor, self.vbox) {
+                // Analyse point where LOR hits voxel box
+                match lor_vbox_hit(lor, self.vbox) {
 
-                        // LOR missed voxel box: nothing to be done
-                        None => return (backprojection, weights, indices),
+                    // LOR missed voxel box: nothing to be done
+                    None => return (backprojection, weights, indices),
 
-                        // Data needed by `find_active_voxels`
-                        Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+                    // Data needed by `find_active_voxels`
+                    Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
 
-                            // Throw away previous search results
-                            weights.clear();
-                            indices.clear();
+                        // Throw away previous search results
+                        weights.clear();
+                        indices.clear();
 
-                            // Find active voxels and their weights
-                            find_active_voxels(
-                                &mut indices, &mut weights,
-                                next_boundary, voxel_size,
-                                index, delta_index, remaining,
-                                tof_peak, &tof
-                            );
+                        // Find active voxels and their weights
+                        find_active_voxels(
+                            &mut indices, &mut weights,
+                            next_boundary, voxel_size,
+                            index, delta_index, remaining,
+                            tof_peak, &tof
+                        );
 
-                            // Forward projection of current image into this LOR
-                            let projection = forward_project(&weights, &indices, self);
+                        // Forward projection of current image into this LOR
+                        let projection = forward_project(&weights, &indices, self);
 
-                            // Backprojection of LOR onto image
-                            back_project(&mut backprojection, &weights, &indices, projection);
-                        }
+                        // Backprojection of LOR onto image
+                        back_project(&mut backprojection, &weights, &indices, projection);
                     }
-                    // Return the final state collected on this thread
-                    (backprojection, weights, indices)
                 }
-            )
+                // Return the final state collected on this thread
+                (backprojection, weights, indices)
+            }
+        )
             // Keep only the backprojection (ignore weights and indices)
             .map(|tuple| tuple.0)
             // Sum the backprojections calculated on each thread
