@@ -1,5 +1,5 @@
 [workspace]
-members = ["mlem", "cmlem"]
+members = ["mlem", "cmlem", "bindings"]
 
 [package]
 name = "petalo"
