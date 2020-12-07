@@ -3,6 +3,7 @@ use pyo3::wrap_pyfunction;
 
 
 #[pyfunction]
+#[text_signature = "(n, /)"]
 /// The naive, recursive fibonacci implementation
 fn fib(n: usize) -> usize {
     if n < 2 { 1 }
@@ -14,6 +15,7 @@ fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fib, m)?)?;
 
     #[pyfn(m, "fab")]
+    #[text_signature = "(n, /)"]
     /// The iterative fibonacci implementation
     fn burp(_py_gil: Python, mut n: usize) -> usize {
         let (mut p, mut c) = (0,1);
