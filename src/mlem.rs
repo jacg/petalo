@@ -83,47 +83,12 @@ impl Image {
         #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
         #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
 
-        let hmm = |(mut backprojection, mut weights, mut indices, image, tof):
-                   (_                 , Vec<Length>, Vec<Index1> , &&mut Image, &Option<_>), lor| {
-
-                // Analyse point where LOR hits voxel box
-                match lor_vbox_hit(lor, image.vbox) {
-
-                    // LOR missed voxel box: nothing to be done
-                    None => return (backprojection, weights, indices, image, tof),
-
-                    // Data needed by `find_active_voxels`
-                    Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
-
-                        // Throw away previous search results
-                        weights.clear();
-                        indices.clear();
-
-                        // Find active voxels and their weights
-                        find_active_voxels(
-                            &mut indices, &mut weights,
-                            next_boundary, voxel_size,
-                            index, delta_index, remaining,
-                            tof_peak, &tof
-                        );
-
-                        // Forward projection of current image into this LOR
-                        let projection = forward_project(&weights, &indices, image);
-
-                        // Backprojection of LOR onto image
-                        back_project(&mut backprojection, &weights, &indices, projection);
-                    }
-                }
-                // Return the final state collected on this thread
-                (backprojection, weights, indices, image, tof)
-            };
-
         // For each measured LOR ...
         let final_thread_state = iter.fold(
             // Empty accumulator (backprojection) and temporary workspace (weights, items)
             initial_thread_state,
             // Process one LOR, storing contribution in `backprojection`
-            hmm
+            process_one_lor
         );
 
         // In the serial case, there is a single result to unwrap ...
@@ -154,6 +119,47 @@ impl Image {
         Self { data: vec![1.0; size], vbox, size}
     }
 
+}
+
+
+fn process_one_lor<'r, 'i, 'o, G>((mut backprojection, mut weights, mut indices, image, tof):
+                   (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'o Option<G>),
+       lor: &LOR)
+                   -> (ImageData, Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'o Option<G>)
+    where
+    G: Fn(Length) -> Length
+{
+
+    // Analyse point where LOR hits voxel box
+    match lor_vbox_hit(lor, image.vbox) {
+
+        // LOR missed voxel box: nothing to be done
+        None => return (backprojection, weights, indices, image, tof),
+
+        // Data needed by `find_active_voxels`
+        Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+
+            // Throw away previous search results
+            weights.clear();
+            indices.clear();
+
+            // Find active voxels and their weights
+            find_active_voxels(
+                &mut indices, &mut weights,
+                next_boundary, voxel_size,
+                index, delta_index, remaining,
+                tof_peak, &tof
+            );
+
+            // Forward projection of current image into this LOR
+            let projection = forward_project(&weights, &indices, image);
+
+            // Backprojection of LOR onto image
+            back_project(&mut backprojection, &weights, &indices, projection);
+        }
+    }
+    // Return the final state collected on this thread
+    (backprojection, weights, indices, image, tof)
 }
 
 #[inline]
