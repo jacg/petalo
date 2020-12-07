@@ -1,5 +1,10 @@
-use ncollide3d as nc;
-use nc::query::RayCast;
+use ncollide3d::query::RayCast;
+use ncollide3d::shape::Cuboid;
+
+type Ray      = ncollide3d::query::Ray    <Length>;
+type Isometry = ncollide3d::math::Isometry<Length>;
+type VecOf<T> = ncollide3d::math::Vector<T>;
+
 
 use ndarray::azip;
 
@@ -8,7 +13,7 @@ use rayon::prelude::*;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
-use crate::types::{Length, Time, Weight, Ratio};
+use crate::types::{Length, Time, Weight, Ratio, Vector, Point};
 
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
 pub const C: Length = 0.299_792_458; // mm / ps
@@ -20,15 +25,8 @@ pub const TOF_DT_AS_DISTANCE: Ratio = C / 2.0;
 
 const EPS: Length = 1e-5;
 
-type Vector = nc::math ::Vector<Length>;
-pub type Point  = nc::math ::Point <Length>;
-type Ray    = nc::query::Ray   <Length>;
-type Isometry = nc::math::Isometry<Length>;
-
-type VecOf<T> = nc::math::Vector<T>;
-
-pub type Index3 = [usize; 3];
-pub type Index1 = usize;
+type Index3 = [usize; 3];
+type Index1 = usize;
 type BoxDim = [usize; 3];
 
 //type Index1Weight = (Index1, Weight);
@@ -560,7 +558,7 @@ impl VoxelBox {
         let lor_length   : Length = (p2 - p1).norm();
         let lor: Ray = Ray::new(*p1, lor_direction);
         let iso: Isometry = Isometry::identity();
-        nc::shape::Cuboid::new(self.half_width)
+        Cuboid::new(self.half_width)
             .toi_with_ray(&iso, &lor, lor_length, true)
             .map(|toi| lor.origin + lor.dir * toi)
     }
