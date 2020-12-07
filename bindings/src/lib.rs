@@ -3,6 +3,7 @@ use pyo3::wrap_pyfunction;
 
 
 #[pyfunction]
+/// The naive, recursive fibonacci implementation
 fn fib(n: usize) -> usize {
     if n < 2 { 1 }
     else     { fib(n-1) + fib(n-2) }
