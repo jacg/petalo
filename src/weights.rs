@@ -154,6 +154,7 @@ mod test {
 //        next_boundary voxel_size index d_index   remaining  tof_peak
 type VboxHit = (Vector, Vector,    i32,  [i32; 3], [i32; 3],  Length);
 
+#[inline]
 pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
 
     // Simplify expression of the algorithm by flipping axes so that the
@@ -194,6 +195,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak))
 }
 
+#[inline]
 pub fn find_active_voxels(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Length>,
