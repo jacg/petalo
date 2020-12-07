@@ -51,4 +51,10 @@ impl Lift {
     fn up  (&mut self, n: usize) { self.height += n as i32 }
     fn down(&mut self, n: usize) { self.height -= n as i32 }
 
+    #[pyproto]
+    fn __repr__(&self) -> PyResult<impl ToPyObject<ObjectType=PyString>> {
+        format!("Lift({})", n)
+    }
+
+
 }
