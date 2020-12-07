@@ -83,12 +83,8 @@ impl Image {
         #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
         #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
 
-        // For each measured LOR ...
-        let final_thread_state = iter.fold(
-            // Empty accumulator (backprojection) and temporary workspace (weights, items)
-            initial_thread_state,
-            // Process one LOR, storing contribution in `backprojection`
-            |(mut backprojection, mut weights, mut indices, image, tof), lor| {
+        let hmm = |(mut backprojection, mut weights, mut indices, image, tof):
+                   (_                 , Vec<Length>, Vec<Index1> , &&mut Image, &Option<_>), lor| {
 
                 // Analyse point where LOR hits voxel box
                 match lor_vbox_hit(lor, image.vbox) {
@@ -120,7 +116,14 @@ impl Image {
                 }
                 // Return the final state collected on this thread
                 (backprojection, weights, indices, image, tof)
-            }
+            };
+
+        // For each measured LOR ...
+        let final_thread_state = iter.fold(
+            // Empty accumulator (backprojection) and temporary workspace (weights, items)
+            initial_thread_state,
+            // Process one LOR, storing contribution in `backprojection`
+            hmm
         );
 
         // In the serial case, there is a single result to unwrap ...
