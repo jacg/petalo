@@ -10,7 +10,21 @@ fn fib(n: usize) -> usize {
 }
 
 #[pymodule]
-fn fulano(_python_gil: Python, m: &PyModule) -> PyResult<()> {
+fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fib, m)?)?;
+
+    #[pyfn(m, "fab")]
+    /// The iterative fibonacci implementation
+    fn burp(_py_gil: Python, mut n: usize) -> usize {
+        let (mut p, mut c) = (0,1);
+        while n > 0 {
+            let old_c = c;
+            c = c + p;
+            p = old_c;
+            n -= 1;
+        }
+        c
+    }
+
     Ok(())
 }
