@@ -21,11 +21,11 @@ pub struct Cli {
 
     /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored
     #[structopt(short = "r", long)]
-    pub tof: Option<pet::Time>,
+    pub tof: Option<Time>,
 
     /// Deactivate voxels lying more than this many sigma from TOF peak (Rust version only)
     #[structopt(short = "k", long)]
-    pub cutoff: Option<pet::Ratio>,
+    pub cutoff: Option<Ratio>,
 
     /// Override automatic generation of image output file name
     #[structopt(short, long)]
@@ -64,10 +64,11 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::weights as pet;
+use petalo::types::{Length, Time, Ratio};
+use petalo::weights::{Image, VoxelBox};
 use petalo::io;
 
-type F = pet::Length;
+type F = Length;
 
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -90,9 +91,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time("Loaded LOR data from local disk");
 
     // Define extent and granularity of voxels
-    let vbox = pet::VoxelBox::new(args.size, args.n_voxels);
+    let vbox = VoxelBox::new(args.size, args.n_voxels);
     // TODO: sensitivity matrix, all ones for now
-    let sensitivity_matrix = pet::Image::ones(vbox).data;
+    let sensitivity_matrix = Image::ones(vbox).data;
 
     let file_pattern = guess_filename(&args);
 
@@ -111,7 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(_)  => println!("Using up to {} threads.", args.num_threads),
         }
 
-        for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix))
+        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix))
             .take(args.iterations)
             .enumerate() {
                 report_time("iteration");

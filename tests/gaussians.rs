@@ -1,6 +1,6 @@
 use assert_approx_eq::assert_approx_eq;
 use proptest::prelude::*;
-use petalo::weights::{Length, Time, Ratio};
+use petalo::types::{Length, Time, Ratio};
 
 // An implementation of
 // https://github.com/jerenner/tofpet3d/blob/a8c3fc8293fd05547f9ca752abc259173bac57af/cc/mlem.cc#L146-L163

@@ -8,6 +8,8 @@ use rayon::prelude::*;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
+use crate::types::{Length, Time, Weight, Ratio};
+
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
 pub const C: Length = 0.299_792_458; // mm / ps
 pub const DISTANCE_AS_TOF_DELTA: Length = 2.0 / C;
@@ -15,13 +17,8 @@ pub const TOF_DT_AS_DISTANCE: Ratio = C / 2.0;
 
 // TODO: no thought has been given to what should be public or private.
 
-pub type Length = f32;
 
 const EPS: Length = 1e-5;
-
-pub type Time   = Length;
-pub type Weight = Length;
-pub type Ratio = Length;
 
 type Vector = nc::math ::Vector<Length>;
 pub type Point  = nc::math ::Point <Length>;

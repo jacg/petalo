@@ -1,7 +1,8 @@
 use std::error::Error;
 use std::ops::Range;
 
-use crate::weights::{LOR, Point, Time, Length};
+use crate::types::{Time, Length};
+use crate::weights::{LOR, Point};
 
 pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {
     let v = s.split("..").collect::<Vec<_>>();

@@ -12,7 +12,8 @@ pub struct Args {
 
 use ndarray::s;
 
-use crate::weights::{LOR, Point, Length};
+use crate::types::Length;
+use crate::weights::{LOR, Point};
 type F = Length;
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
