@@ -36,6 +36,7 @@ fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
 
 #[pyclass]
 #[text_signature = "(initial_height)"]
+/// It's a Lift: it goes up and down
 struct Lift {
     #[pyo3(get)]
     height: i32
