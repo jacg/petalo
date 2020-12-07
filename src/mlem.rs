@@ -22,11 +22,13 @@ pub struct Image {
 }
 
 impl core::ops::IndexMut<Index1> for Image {
+    #[inline]
     fn index_mut(&mut self, i: Index1) -> &mut Self::Output { &mut self.data[i] }
 }
 
 impl core::ops::Index<Index1> for Image {
     type Output = Intensity;
+    #[inline]
     fn index(&self, i: Index1) -> &Self::Output { &self.data[i] }
 }
 
