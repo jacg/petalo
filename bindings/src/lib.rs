@@ -29,5 +29,25 @@ fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
         c
     }
 
+    m.add_class::<Lift>()?;
+
     Ok(())
+}
+
+#[pyclass]
+#[text_signature = "(initial_height)"]
+struct Lift {
+    #[pyo3(get)]
+    height: i32
+}
+
+#[pymethods]
+impl Lift {
+
+    #[new] // Signature goes on the struct
+    fn new(initial_height: i32) -> Self { Self { height: initial_height }}
+
+    fn up  (&mut self, n: usize) { self.height += n as i32 }
+    fn down(&mut self, n: usize) { self.height -= n as i32 }
+
 }
