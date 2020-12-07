@@ -11,6 +11,7 @@ fn fib(n: usize) -> usize {
 }
 
 #[pymodule]
+/// Module docstring works too!
 fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fib, m)?)?;
 
