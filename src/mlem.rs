@@ -70,7 +70,7 @@ impl Image {
                 (Vec::with_capacity(max_number_of_active_voxels_possible),
                  Vec::with_capacity(max_number_of_active_voxels_possible))
             };
-            (backprojection, weights, indices)
+            (backprojection, weights, indices, &self, &tof)
         };
 
         // Parallel fold takes a function which will return ID value;
@@ -88,13 +88,13 @@ impl Image {
             // Empty accumulator (backprojection) and temporary workspace (weights, items)
             initial_thread_state,
             // Process one LOR, storing contribution in `backprojection`
-            |(mut backprojection, mut weights, mut indices), lor| {
+            |(mut backprojection, mut weights, mut indices, image, tof), lor| {
 
                 // Analyse point where LOR hits voxel box
-                match lor_vbox_hit(lor, self.vbox) {
+                match lor_vbox_hit(lor, image.vbox) {
 
                     // LOR missed voxel box: nothing to be done
-                    None => return (backprojection, weights, indices),
+                    None => return (backprojection, weights, indices, image, tof),
 
                     // Data needed by `find_active_voxels`
                     Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
@@ -112,14 +112,14 @@ impl Image {
                         );
 
                         // Forward projection of current image into this LOR
-                        let projection = forward_project(&weights, &indices, self);
+                        let projection = forward_project(&weights, &indices, image);
 
                         // Backprojection of LOR onto image
                         back_project(&mut backprojection, &weights, &indices, projection);
                     }
                 }
                 // Return the final state collected on this thread
-                (backprojection, weights, indices)
+                (backprojection, weights, indices, image, tof)
             }
         );
 
