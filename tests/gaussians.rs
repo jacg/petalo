@@ -7,7 +7,8 @@ use petalo::types::{Length, Time, Ratio};
 // in terms of petalo::weights::make_gauss
 #[allow(nonstandard_style)]
 fn sim_burdel(dist: Length, dt: Time, sigma: Time) -> Ratio {
-    use petalo::weights::{make_gauss_option, C};
+    use petalo::types::C;
+    use petalo::gauss::make_gauss_option;
     let x = dist + dt * C / 2.0;
     let cutoff = Some(3.0);
     let gauss = make_gauss_option(Some(sigma), cutoff).unwrap();

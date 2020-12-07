@@ -65,7 +65,8 @@ use std::path::PathBuf;
 use std::fs::create_dir_all;
 
 use petalo::types::{Length, Time, Ratio};
-use petalo::weights::{Image, VoxelBox};
+use petalo::weights::VoxelBox;
+use petalo::mlem::Image;
 use petalo::io;
 
 type F = Length;
