@@ -8,15 +8,11 @@ type VecOf<T> = ncollide3d::math::Vector<T>;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
-use crate::types::{Length, Time, Weight, Vector, Point, C};
+use crate::types::{Length, Time, Vector, Point, C, BoxDim, Index3, Index3Weight};
 use crate::gauss::make_gauss_option;
+use crate::mlem::{index3_to_1, index1_to_3};
 
 const EPS: Length = 1e-5;
-
-type Index3 = [usize; 3];
-type BoxDim = [usize; 3];
-
-type Index3Weight = (Index3, Weight);
 
 // This algorithm is centred around two key simplifications:
 //
@@ -419,85 +415,5 @@ impl LOR {
             .map(|i| index1_to_3(i, vbox.n))
             .zip(weights.into_iter())
             .collect()
-    }
-}
-
-
-// --------------------------------------------------------------------------------
-//                  Conversion between 1d and 3d indices
-
-use std::ops::{Add, Div, Mul , Rem};
-
-fn index3_to_1<T>([ix, iy, iz]: [T; 3], [nx, ny, _nz]: [T; 3]) -> T
-where
-    T: Mul<Output = T> + Add<Output = T>
-{
-    ix + (iy + iz * ny) * nx
-}
-
-#[allow(clippy::many_single_char_names)]
-fn index1_to_3<T>(i: T, [nx, ny, _nz]: [T; 3]) -> [T; 3]
-where
-    T: Mul<Output = T> +
-    Div<Output = T> +
-    Rem<Output = T> +
-    Copy
-{
-    let z = i / (nx * ny);
-    let r = i % (nx * ny);
-    let y = r / nx;
-    let x = r % nx;
-    [x,y,z]
-}
-
-
-#[cfg(test)]
-mod test_index_conversion {
-    use super::*;
-    use rstest::rstest;
-
-    // -------------------- Some hand-picked examples ------------------------------
-    #[rstest(/**/    size   , index3 , index1,
-             // 1-d examples
-             case([ 1, 1, 1], [0,0,0],   0),
-             case([ 9, 1, 1], [3,0,0],   3),
-             case([ 1, 8, 1], [0,4,0],   4),
-             case([ 1, 1, 7], [0,0,5],   5),
-             // Counting in binary: note digit reversal
-             case([ 2, 2, 2], [0,0,0],   0),
-             case([ 2, 2, 2], [1,0,0],   1),
-             case([ 2, 2, 2], [0,1,0],   2),
-             case([ 2, 2, 2], [1,1,0],   3),
-             case([ 2, 2, 2], [0,0,1],   4),
-             case([ 2, 2, 2], [1,0,1],   5),
-             case([ 2, 2, 2], [0,1,1],   6),
-             case([ 2, 2, 2], [1,1,1],   7),
-             // Relation to decimal: note reversal
-             case([10,10,10], [1,2,3], 321),
-             case([10,10,10], [7,9,6], 697),
-    )]
-    fn hand_picked(size: Index3, index3: Index3, index1: usize) {
-        assert_eq!(index3_to_1(index3, size), index1);
-        assert_eq!(index1_to_3(index1, size), index3);
-    }
-
-    // -------------------- Exhaustive roundtrip testing ------------------------------
-    use proptest::prelude::*;
-
-    // A strategy that picks 3-d index limits, and a 1-d index guaranteed to lie
-    // within those bounds.
-    fn size_and_in_range_index() -> impl Strategy<Value = (Index3, usize)> {
-        [1..200_usize, 1..200_usize, 1..200_usize]
-            .prop_flat_map(|i| (Just(i), 1..(i[0] * i[1] * i[2])))
-    }
-
-    proptest! {
-        #[test]
-        fn index_roundtrip((size, index) in size_and_in_range_index()) {
-            let there = index1_to_3(index, size);
-            let back  = index3_to_1(there, size);
-            assert_eq!(back, index)
-        }
-
     }
 }

@@ -3,6 +3,12 @@ pub type Time   = Length;
 pub type Weight = Length;
 pub type Ratio  = Length;
 
+pub type Index1 = usize;
+pub type Index3 = [usize; 3];
+pub type BoxDim = [usize; 3];
+
+pub type Index3Weight = (Index3, Weight);
+
 use ncollide3d as nc;
 pub type Vector = nc::math ::Vector<Length>;
 pub type Point  = nc::math ::Point <Length>;
