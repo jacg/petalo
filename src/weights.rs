@@ -8,21 +8,16 @@ use rayon::prelude::*;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
-#[allow(clippy::excessive_precision)] // Precision needed when features=f64
-pub const C: Length = 0.299792458; // mm / ps
+#[allow(clippy::excessive_precision)] // Stick to official definition of c
+pub const C: Length = 0.299_792_458; // mm / ps
 pub const DISTANCE_AS_TOF_DELTA: Length = 2.0 / C;
 pub const TOF_DT_AS_DISTANCE: Ratio = C / 2.0;
 
 // TODO: no thought has been given to what should be public or private.
 
-#[cfg    (feature = "f64") ] pub const PRECISION: u8 = 64;
-#[cfg(not(feature = "f64"))] pub const PRECISION: u8 = 32;
+pub type Length = f32;
 
-#[cfg    (feature = "f64") ] pub type Length = f64;
-#[cfg(not(feature = "f64"))] pub type Length = f32;
-
-#[cfg    (feature = "f64") ] const EPS: Length = 1e-14;
-#[cfg(not(feature = "f64"))] const EPS: Length = 1e-5;
+const EPS: Length = 1e-5;
 
 pub type Time   = Length;
 pub type Weight = Length;
@@ -168,8 +163,7 @@ mod test {
                 _ => 0.0
             };
 
-            #[cfg    (feature = "f64") ] assert_approx_eq!(summed, in_one_go);
-            #[cfg(not(feature = "f64"))] assert_approx_eq!(summed, in_one_go, 1e-3);
+            assert_approx_eq!(summed, in_one_go, 1e-4);
 
         }
     }

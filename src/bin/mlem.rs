@@ -74,8 +74,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
 
-    println!("Float precision: {} bits", petalo::weights::PRECISION);
-
     // Set up progress reporting and timing
     use std::time::Instant;
     let mut now = Instant::now();
@@ -129,8 +127,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 fn write(data: impl Iterator<Item = F>, path: &PathBuf) -> Result<(), Box<dyn Error>> {
     use petalo::io::raw::write;
-    #[cfg(not(feature = "f64"))] write(data                   , path)?;
-    #[cfg    (feature = "f64") ] write(data.map(|&x| x as f32), path)?;
+    write(data, path)?;
     Ok(())
 }
 
@@ -191,7 +188,6 @@ fn run_cmlem(
     // TODO: Dummy sensitivity matrix, for now
     let sensitivity_matrix = vec![1.0; nx * ny * nz];
 
-    #[cfg(not(feature = "f64"))]
     cmlem::cmlem(
         args.iterations,
         args.tof.is_some(),

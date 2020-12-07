@@ -15,7 +15,6 @@ fn sim_burdel(dist: Length, dt: Time, sigma: Time) -> Ratio {
 }
 
 // Check that sim_burdel is equivalent to ale_burdel a.k.a ToFFunction
-#[cfg(not(feature = "f64"))]
 proptest! {
     #[test]
     fn gauss_equivalence(
