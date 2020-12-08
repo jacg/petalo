@@ -84,12 +84,7 @@ impl Image {
         #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
 
         // For each measured LOR ...
-        let final_thread_state = iter.fold(
-            // Empty accumulator (backprojection) and temporary workspace (weights, items)
-            initial_thread_state,
-            // Process one LOR, storing contribution in `backprojection`
-            process_one_lor
-        );
+        let final_thread_state = iter.fold(initial_thread_state, process_one_lor);
 
         // In the serial case, there is a single result to unwrap ...
         #[cfg (feature = "serial")]
