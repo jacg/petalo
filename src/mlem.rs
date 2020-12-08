@@ -87,7 +87,7 @@ impl Image {
 
         // -------- find active voxels in all LORs ------------------------------
 
-        let fold_result = iter.fold(initial_thread_state, process_one_lor);
+        let fold_result = iter.fold(initial_thread_state, project_one_lor);
 
         // -------- extract relevant information (backprojection) ---------------
 
@@ -126,7 +126,7 @@ impl Image {
 
 type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>);
 
-fn process_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
+fn project_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
 where
     G: Fn(Length) -> Length
 {
