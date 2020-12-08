@@ -52,11 +52,13 @@ impl Image {
 
     fn one_iteration(&mut self, measured_lors: &[LOR], smatrix: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
 
+        // -------- Prepare state required by serial/parallel fold --------------
+
         // TOF adjustment to apply to the weights
         let tof: Option<_> = make_gauss_option(sigma, cutoff);
 
-        // Closure preparing the state needed by each thread: will be called by
-        // `fold` when a thread is launched.
+        // Closure preparing the state needed by `fold`: will be called by
+        // `fold` at the start of every thread that is launched.
         let initial_thread_state = || {
 
             // Accumulator for all backprojection contributions in this iteration
@@ -83,24 +85,29 @@ impl Image {
         #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
         #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
 
-        // For each measured LOR ...
-        let final_thread_state = iter.fold(initial_thread_state, process_one_lor);
+        // -------- find active voxels in all LORs ------------------------------
+
+        let fold_result = iter.fold(initial_thread_state, process_one_lor);
+
+        // -------- extract relevant information (backprojection) ---------------
 
         // In the serial case, there is a single result to unwrap ...
         #[cfg (feature = "serial")]
-        let backprojection = final_thread_state.0; // Keep only backprojection
+        let backprojection = fold_result.0; // Keep only backprojection
 
         // ... in the parallel case, the results from each thread must be
         // combined
         #[cfg(not(feature = "serial"))]
         let backprojection = {
-            final_thread_state
+            fold_result
             // Keep only the backprojection (ignore weights and indices)
             .map(|tuple| tuple.0)
             // Sum the backprojections calculated on each thread
             .reduce(|   | self.zeros_buffer(),
                     |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
         };
+
+        // ----------------------------------------------------------------------
 
         apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
 
