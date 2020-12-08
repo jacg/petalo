@@ -1,3 +1,18 @@
+//! Find the weights and indices of the active voxels along a single Line Of
+//! Response LOR.
+//!
+//! The algorithm is centred around two key simplifications:
+//!
+//! 1. Express the voxel size in terms of the components of the LOR's direction
+//!    vector. This allows trivial calculation of how far we must move along the
+//!    LOR before reaching a voxel boundary, in any dimension.
+//!
+//! 2. Exploit symmetry to simplify dealing with directions: flip axes so that
+//!    the direction of the LOR has non-negative components. The algorithm can
+//!    then assume that all progress is in the positive direction. Any voxels
+//!    indices calculated by the algorithm, must be flipped back to the original
+//!    coordinate system.
+
 use ncollide3d::query::RayCast;
 use ncollide3d::shape::Cuboid;
 
@@ -13,18 +28,6 @@ use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
 const EPS: Length = 1e-5;
-
-// This algorithm is centred around two key simplifications:
-//
-// 1. Express the voxel size in terms of the LOR components. This allows trivial
-//    calculation of how far we must move along the LOR before reaching a voxel
-//    boundary, in any dimension.
-//
-// 2. Exploit symmetry to simplify dealing with directions: flip axes so that
-//    the direction of the LOR has non-negative components. The algorithm can
-//    then assume that all progress is in the positive direction. Any voxels
-//    indices calculated by the algorithm, must be flipped back to the original
-//    coordinate system.
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
