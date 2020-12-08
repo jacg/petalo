@@ -122,13 +122,13 @@ impl Image {
 }
 
 
-fn process_one_lor<'r, 'i, 'o, G>((mut backprojection, mut weights, mut indices, image, tof):
-                   (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'o Option<G>),
-       lor: &LOR)
-                   -> (ImageData, Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'o Option<G>)
-    where
+type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>);
+
+fn process_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
+where
     G: Fn(Length) -> Length
 {
+    let (mut backprojection, mut weights, mut indices, image, tof) = state;
 
     // Analyse point where LOR hits voxel box
     match lor_vbox_hit(lor, image.vbox) {
