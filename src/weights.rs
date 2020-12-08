@@ -147,9 +147,12 @@ mod test {
 
 // ---------------------- Implementation -----------------------------------------
 
+// Returned by lor_vbox_hit
 //        next_boundary voxel_size index d_index   remaining  tof_peak
 type VboxHit = (Vector, Vector,    i32,  [i32; 3], [i32; 3],  Length);
 
+/// Figure out if the LOR hits the voxel box at all. If it does, calculate
+/// values needed by find_active_voxels.
 #[inline]
 pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
 
@@ -170,7 +173,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     let tof_peak = find_tof_peak(entry_point, p1, p2, lor.t1, lor.t2);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
-    let entry_point = align_entry_point(entry_point, vbox);
+    let entry_point = find_entry_point(entry_point, vbox);
 
     // Bookkeeping information needed during traversal of voxel box
     let (
@@ -183,14 +186,18 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     // traverse one voxel, in any dimension.
     let voxel_size = voxel_size(vbox, p1, p2);
 
-    // How far we must travel along LOR before hitting next voxel boundary,
-    // in any dimension.
+    // At what position along LOR is the next voxel boundary, in any dimension.
     let next_boundary = first_boundaries(entry_point, voxel_size);
 
     // Return the values needed by `find_active_voxels`
     Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak))
 }
 
+/// For a single LOR, place the weights and indices of the active voxels in the
+/// `weights` and `indices` parameters. Using output parameters rather than
+/// return values, because this function is called in the inner loop, and
+/// allocating the vectors of results repeatedly, had a noticeable impact on
+/// performance.
 #[inline]
 pub fn find_active_voxels(
     indices: &mut Vec<usize>,
@@ -218,8 +225,7 @@ pub fn find_active_voxels(
             weight *= gauss(here - tof_peak);
         }
 
-        // Store the index of the voxel we have just crossed, along with
-        // the distance that the LOR covered in that voxel.
+        // Store the index and weight of the voxel we have just crossed
         if weight > 0.0 {
             indices.push(index as usize);
             weights.push(weight);
@@ -235,13 +241,15 @@ pub fn find_active_voxels(
         index += delta_index[dimension];
         remaining[dimension] -= 1;
 
-        // If we have traversed the whole voxel box
+        // If we have traversed the whole voxel box, we're finished
         if remaining[dimension] == 0 { break; }
     }
 }
 
+/// The point at which the LOR enters the voxel box, expressed in a coordinate
+/// system with one corner of the box at the origin
 #[inline]
-fn align_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
+fn find_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
     // Transform coordinates to align box with axes: making the lower boundaries
     // of the box lie on the zero-planes.
     entry_point += vbox.half_width;
@@ -257,6 +265,7 @@ fn align_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
     entry_point
 }
 
+/// Distance from entry point to the LOR's TOF peak
 #[inline]
 fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, t1: Time, t2: Time) -> Length {
     let p1_to_peak = 0.5 * ((p1 - p2).norm() + C * (t1 - t2));
@@ -264,6 +273,7 @@ fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, t1: Time, t2: Time) -
     p1_to_peak - p1_to_entry
 }
 
+/// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
 fn first_boundaries(entry_point: Vector, voxel_size: Vector) -> Vector {
     // What fraction of the voxel has already been traversed at the entry
@@ -273,12 +283,17 @@ fn first_boundaries(entry_point: Vector, voxel_size: Vector) -> Vector {
     (Vector::repeat(1.0) - vox_done_fraction).component_mul(&voxel_size)
 }
 
+/// Voxel size expressed in LOR distance units: how far we must move along LOR
+/// to cross one voxel in any given dimension. Will be infinite for any axis
+/// which is parallel to the LOR.
 #[inline]
 fn voxel_size(vbox: VoxelBox, p1: Point, p2: Point) -> Vector {
     let lor_direction = (p2-p1).normalize();
     vbox.voxel_size.component_div(&lor_direction)
 }
 
+/// Calculate information needed to keep track of progress across voxel box:
+/// voxel index and distance remaining until leaving the box
 #[inline]
 fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDim) -> (i32, [i32; 3], [i32; 3]) {
 
@@ -316,6 +331,10 @@ fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDi
     (index, delta_index, remaining)
 }
 
+/// Flip axes to ensure that direction from p1 to p2 is non-negative in all
+/// dimensions. Return p1 & p2 in flipped coordinate system, along with
+/// knowledge of which axes were flipped, so that the indices of subsequently
+/// found active voxels can be flipped back into the original coordinate system.
 #[inline]
 fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, VecOf<bool>) {
     let dimensions = 3;
@@ -336,6 +355,8 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, VecOf<bool>) {
 
 
 //--------------------------------------------------------------------------------
+/// The size and granularity of the region in which images should be
+/// reconstructed
 #[derive(Clone, Copy, Debug)]
 pub struct VoxelBox {
     pub half_width: Vector,
@@ -382,7 +403,8 @@ impl VoxelBox {
 }
 
 //--------------------------------------------------------------------------------
-
+/// Line Of Response: 2 spacetime vectors indicating the positions and times of
+/// coincident detector element activations
 #[derive(Clone, Copy, Debug)]
 pub struct LOR {
     pub p1: Point,
