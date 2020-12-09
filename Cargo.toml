@@ -36,6 +36,5 @@ tempfile = "3.1"
 bindgen = "*"
 
 [features]
-f64 = []
 compile-error = []
 serial = []

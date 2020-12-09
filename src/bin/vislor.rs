@@ -1,7 +1,8 @@
 use std::error::Error;
 use structopt::StructOpt;
 
-use petalo::weights::{VoxelBox, Length, LOR, Ratio};
+use petalo::types::{Length, Ratio};
+use petalo::weights::{VoxelBox, LOR};
 use petalo::visualize::{lor_weights, Shape};
 
 use petalo::utils::{parse_triplet, parse_lor};

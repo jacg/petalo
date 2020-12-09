@@ -21,11 +21,11 @@ pub struct Cli {
 
     /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored
     #[structopt(short = "r", long)]
-    pub tof: Option<pet::Time>,
+    pub tof: Option<Time>,
 
     /// Deactivate voxels lying more than this many sigma from TOF peak (Rust version only)
     #[structopt(short = "k", long)]
-    pub cutoff: Option<pet::Ratio>,
+    pub cutoff: Option<Ratio>,
 
     /// Override automatic generation of image output file name
     #[structopt(short, long)]
@@ -64,17 +64,17 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::weights as pet;
+use petalo::types::{Length, Time, Ratio};
+use petalo::weights::VoxelBox;
+use petalo::mlem::Image;
 use petalo::io;
 
-type F = pet::Length;
+type F = Length;
 
 
 fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
-
-    println!("Float precision: {} bits", petalo::weights::PRECISION);
 
     // Set up progress reporting and timing
     use std::time::Instant;
@@ -92,9 +92,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time("Loaded LOR data from local disk");
 
     // Define extent and granularity of voxels
-    let vbox = pet::VoxelBox::new(args.size, args.n_voxels);
+    let vbox = VoxelBox::new(args.size, args.n_voxels);
     // TODO: sensitivity matrix, all ones for now
-    let sensitivity_matrix = pet::Image::ones(vbox).data;
+    let sensitivity_matrix = Image::ones(vbox).data;
 
     let file_pattern = guess_filename(&args);
 
@@ -113,7 +113,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(_)  => println!("Using up to {} threads.", args.num_threads),
         }
 
-        for (n, image) in (pet::Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix))
+        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix))
             .take(args.iterations)
             .enumerate() {
                 report_time("iteration");
@@ -129,8 +129,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 fn write(data: impl Iterator<Item = F>, path: &PathBuf) -> Result<(), Box<dyn Error>> {
     use petalo::io::raw::write;
-    #[cfg(not(feature = "f64"))] write(data                   , path)?;
-    #[cfg    (feature = "f64") ] write(data.map(|&x| x as f32), path)?;
+    write(data, path)?;
     Ok(())
 }
 
@@ -191,7 +190,6 @@ fn run_cmlem(
     // TODO: Dummy sensitivity matrix, for now
     let sensitivity_matrix = vec![1.0; nx * ny * nz];
 
-    #[cfg(not(feature = "f64"))]
     cmlem::cmlem(
         args.iterations,
         args.tof.is_some(),

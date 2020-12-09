@@ -55,8 +55,7 @@ fn calculate(b: &N, c: &N) -> N {
 }
 
 
-#[cfg    (feature = "f64") ] type N = f64;
-#[cfg(not(feature = "f64"))] type N = f32;
+type N = f32;
 
 use ndarray::Array3;
 type A = Array3<N>;

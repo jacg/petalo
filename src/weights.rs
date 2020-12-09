@@ -1,60 +1,33 @@
-use ncollide3d as nc;
-use nc::query::RayCast;
+//! Find the weights and indices of the active voxels along a single Line Of
+//! Response LOR.
+//!
+//! The algorithm is centred around two key simplifications:
+//!
+//! 1. Express the voxel size in terms of the components of the LOR's direction
+//!    vector. This allows trivial calculation of how far we must move along the
+//!    LOR before reaching a voxel boundary, in any dimension.
+//!
+//! 2. Exploit symmetry to simplify dealing with directions: flip axes so that
+//!    the direction of the LOR has non-negative components. The algorithm can
+//!    then assume that all progress is in the positive direction. Any voxels
+//!    indices calculated by the algorithm, must be flipped back to the original
+//!    coordinate system.
 
-use ndarray::azip;
+use ncollide3d::query::RayCast;
+use ncollide3d::shape::Cuboid;
 
-#[cfg(not(feature = "serial"))]
-use rayon::prelude::*;
+type Ray      = ncollide3d::query::Ray    <Length>;
+type Isometry = ncollide3d::math::Isometry<Length>;
+type VecOf<T> = ncollide3d::math::Vector<T>;
+
 
 // TODO: have another go at getting nalgebra to work with uom.
 
-#[allow(clippy::excessive_precision)] // Precision needed when features=f64
-pub const C: Length = 0.299792458; // mm / ps
-pub const DISTANCE_AS_TOF_DELTA: Length = 2.0 / C;
-pub const TOF_DT_AS_DISTANCE: Ratio = C / 2.0;
+use crate::types::{Length, Time, Vector, Point, C, BoxDim, Index3, Index3Weight};
+use crate::gauss::make_gauss_option;
+use crate::mlem::{index3_to_1, index1_to_3};
 
-// TODO: no thought has been given to what should be public or private.
-
-#[cfg    (feature = "f64") ] pub const PRECISION: u8 = 64;
-#[cfg(not(feature = "f64"))] pub const PRECISION: u8 = 32;
-
-#[cfg    (feature = "f64") ] pub type Length = f64;
-#[cfg(not(feature = "f64"))] pub type Length = f32;
-
-#[cfg    (feature = "f64") ] const EPS: Length = 1e-14;
-#[cfg(not(feature = "f64"))] const EPS: Length = 1e-5;
-
-pub type Time   = Length;
-pub type Weight = Length;
-pub type Ratio = Length;
-
-type Vector = nc::math ::Vector<Length>;
-pub type Point  = nc::math ::Point <Length>;
-type Ray    = nc::query::Ray   <Length>;
-type Isometry = nc::math::Isometry<Length>;
-
-type VecOf<T> = nc::math::Vector<T>;
-
-pub type Index3 = [usize; 3];
-pub type Index1 = usize;
-type BoxDim = [usize; 3];
-
-//type Index1Weight = (Index1, Weight);
-type Index3Weight = (Index3, Weight);
-
-const TWOPI: Length = std::f64::consts::TAU as Length;
-
-// This algorithm is centred around two key simplifications:
-//
-// 1. Express the voxel size in terms of the LOR components. This allows trivial
-//    calculation of how far we must move along the LOR before reaching a voxel
-//    boundary, in any dimension.
-//
-// 2. Exploit symmetry to simplify dealing with directions: flip axes so that
-//    the direction of the LOR has non-negative components. The algorithm can
-//    then assume that all progress is in the positive direction. Any voxels
-//    indices calculated by the algorithm, must be flipped back to the original
-//    coordinate system.
+const EPS: Length = 1e-5;
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -63,6 +36,7 @@ mod test {
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
+    use crate::types::TWOPI;
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
@@ -168,160 +142,22 @@ mod test {
                 _ => 0.0
             };
 
-            #[cfg    (feature = "f64") ] assert_approx_eq!(summed, in_one_go);
-            #[cfg(not(feature = "f64"))] assert_approx_eq!(summed, in_one_go, 1e-3);
+            assert_approx_eq!(summed, in_one_go, 1e-4);
 
         }
     }
 }
-//--------------------------------------------------------------------------------
-type Intensity = Length;
 
-type ImageData = Vec<Intensity>;
+// ---------------------- Implementation -----------------------------------------
 
-#[derive(Clone)]
-pub struct Image {
-    vbox: VoxelBox,
-    pub data: ImageData,
-    size: usize,
-}
-
-impl core::ops::IndexMut<Index1> for Image {
-    fn index_mut(&mut self, i: Index1) -> &mut Self::Output { &mut self.data[i] }
-}
-
-impl core::ops::Index<Index1> for Image {
-    type Output = Intensity;
-    fn index(&self, i: Index1) -> &Self::Output { &self.data[i] }
-}
-
-impl Image {
-
-    pub fn mlem<'a>(vbox: VoxelBox,
-                    measured_lors: &'a [LOR],
-                    sigma        :     Option<Time>,
-                    cutoff       :     Option<Ratio>,
-                    smatrix      : &'a [Intensity],
-    ) -> impl Iterator<Item = Image> + 'a {
-
-        // Start off with a uniform image
-        let mut image = Self::ones(vbox);
-
-        // Return an iterator which generates an infinite sequence of images,
-        // each one made by performing one MLEM iteration on the previous one
-        std::iter::from_fn(move || {
-            image.one_iteration(measured_lors, smatrix, sigma, cutoff);
-            Some(image.clone()) // TODO see if we can sensibly avoid cloning
-        })
-    }
-
-    fn one_iteration(&mut self, measured_lors: &[LOR], smatrix: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
-
-        // TOF adjustment to apply to the weights
-        let tof: Option<_> = make_gauss_option(sigma, cutoff);
-
-        // Closure preparing the state needed by each thread: will be called by
-        // `fold` when a thread is launched.
-        let initial_thread_state = || {
-
-            // Accumulator for all backprojection contributions in this iteration
-            let backprojection = self.zeros_buffer();
-
-            // Storage space for the weights and indices of the active voxels
-            // (allocating new result vectors for each LOR had a noticeable runtime cost)
-            let (weights, indices) = {
-                let [nx, ny, nz] = self.vbox.n;
-                let max_number_of_active_voxels_possible = nx + ny + nz - 2;
-                (Vec::with_capacity(max_number_of_active_voxels_possible),
-                 Vec::with_capacity(max_number_of_active_voxels_possible))
-            };
-            (backprojection, weights, indices)
-        };
-
-        // Parallel fold takes a function which will return ID value;
-        // serial fold takes the ID value itself.
-        #[cfg (feature = "serial")]
-        // In the serial case, call the function to get one ID value
-        let initial_thread_state =  initial_thread_state();
-
-        // Choose between serial parallel iteration
-        #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
-        #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
-
-        // For each measured LOR ...
-        let final_thread_state = iter.fold(
-            // Empty accumulator (backprojection) and temporary workspace (weights, items)
-            initial_thread_state,
-            // Process one LOR, storing contribution in `backprojection`
-            |(mut backprojection, mut weights, mut indices), lor| {
-
-                // Analyse point where LOR hits voxel box
-                match lor_vbox_hit(lor, self.vbox) {
-
-                    // LOR missed voxel box: nothing to be done
-                    None => return (backprojection, weights, indices),
-
-                    // Data needed by `find_active_voxels`
-                    Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
-
-                        // Throw away previous search results
-                        weights.clear();
-                        indices.clear();
-
-                        // Find active voxels and their weights
-                        find_active_voxels(
-                            &mut indices, &mut weights,
-                            next_boundary, voxel_size,
-                            index, delta_index, remaining,
-                            tof_peak, &tof
-                        );
-
-                        // Forward projection of current image into this LOR
-                        let projection = forward_project(&weights, &indices, self);
-
-                        // Backprojection of LOR onto image
-                        back_project(&mut backprojection, &weights, &indices, projection);
-                    }
-                }
-                // Return the final state collected on this thread
-                (backprojection, weights, indices)
-            }
-        );
-
-        // In the serial case, there is a single result to unwrap ...
-        #[cfg (feature = "serial")]
-        let backprojection = final_thread_state.0; // Keep only backprojection
-
-        // ... in the parallel case, the results from each thread must be
-        // combined
-        #[cfg(not(feature = "serial"))]
-        let backprojection = {
-            final_thread_state
-            // Keep only the backprojection (ignore weights and indices)
-            .map(|tuple| tuple.0)
-            // Sum the backprojections calculated on each thread
-            .reduce(|   | self.zeros_buffer(),
-                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
-        };
-
-        apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
-
-    }
-
-    // A new empty data store with matching size
-    fn zeros_buffer(&self) -> ImageData { vec![0.0; self.size] }
-    pub fn ones(vbox: VoxelBox) -> Self {
-        let [x,y,z] = vbox.n;
-        let size = x * y * z;
-        Self { data: vec![1.0; size], vbox, size}
-    }
-
-}
-
+// Returned by lor_vbox_hit
 //        next_boundary voxel_size index d_index   remaining  tof_peak
 type VboxHit = (Vector, Vector,    i32,  [i32; 3], [i32; 3],  Length);
 
-fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
+/// Figure out if the LOR hits the voxel box at all. If it does, calculate
+/// values needed by find_active_voxels.
+#[inline]
+pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
 
     // Simplify expression of the algorithm by flipping axes so that the
     // direction from p1 to p2 is non-negative along all axes. Remember
@@ -340,7 +176,7 @@ fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     let tof_peak = find_tof_peak(entry_point, p1, p2, lor.t1, lor.t2);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
-    let entry_point = align_entry_point(entry_point, vbox);
+    let entry_point = find_entry_point(entry_point, vbox);
 
     // Bookkeeping information needed during traversal of voxel box
     let (
@@ -353,15 +189,20 @@ fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     // traverse one voxel, in any dimension.
     let voxel_size = voxel_size(vbox, p1, p2);
 
-    // How far we must travel along LOR before hitting next voxel boundary,
-    // in any dimension.
+    // At what position along LOR is the next voxel boundary, in any dimension.
     let next_boundary = first_boundaries(entry_point, voxel_size);
 
     // Return the values needed by `find_active_voxels`
     Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak))
 }
 
-fn find_active_voxels(
+/// For a single LOR, place the weights and indices of the active voxels in the
+/// `weights` and `indices` parameters. Using output parameters rather than
+/// return values, because this function is called in the inner loop, and
+/// allocating the vectors of results repeatedly, had a noticeable impact on
+/// performance.
+#[inline]
+pub fn find_active_voxels(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Length>,
     mut next_boundary: Vector,
@@ -387,8 +228,7 @@ fn find_active_voxels(
             weight *= gauss(here - tof_peak);
         }
 
-        // Store the index of the voxel we have just crossed, along with
-        // the distance that the LOR covered in that voxel.
+        // Store the index and weight of the voxel we have just crossed
         if weight > 0.0 {
             indices.push(index as usize);
             weights.push(weight);
@@ -404,13 +244,15 @@ fn find_active_voxels(
         index += delta_index[dimension];
         remaining[dimension] -= 1;
 
-        // If we have traversed the whole voxel box
+        // If we have traversed the whole voxel box, we're finished
         if remaining[dimension] == 0 { break; }
     }
 }
 
+/// The point at which the LOR enters the voxel box, expressed in a coordinate
+/// system with one corner of the box at the origin
 #[inline]
-fn align_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
+fn find_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
     // Transform coordinates to align box with axes: making the lower boundaries
     // of the box lie on the zero-planes.
     entry_point += vbox.half_width;
@@ -426,6 +268,7 @@ fn align_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
     entry_point
 }
 
+/// Distance from entry point to the LOR's TOF peak
 #[inline]
 fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, t1: Time, t2: Time) -> Length {
     let p1_to_peak = 0.5 * ((p1 - p2).norm() + C * (t1 - t2));
@@ -433,6 +276,7 @@ fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, t1: Time, t2: Time) -
     p1_to_peak - p1_to_entry
 }
 
+/// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
 fn first_boundaries(entry_point: Vector, voxel_size: Vector) -> Vector {
     // What fraction of the voxel has already been traversed at the entry
@@ -442,12 +286,17 @@ fn first_boundaries(entry_point: Vector, voxel_size: Vector) -> Vector {
     (Vector::repeat(1.0) - vox_done_fraction).component_mul(&voxel_size)
 }
 
+/// Voxel size expressed in LOR distance units: how far we must move along LOR
+/// to cross one voxel in any given dimension. Will be infinite for any axis
+/// which is parallel to the LOR.
 #[inline]
 fn voxel_size(vbox: VoxelBox, p1: Point, p2: Point) -> Vector {
     let lor_direction = (p2-p1).normalize();
     vbox.voxel_size.component_div(&lor_direction)
 }
 
+/// Calculate information needed to keep track of progress across voxel box:
+/// voxel index and distance remaining until leaving the box
 #[inline]
 fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDim) -> (i32, [i32; 3], [i32; 3]) {
 
@@ -485,6 +334,10 @@ fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDi
     (index, delta_index, remaining)
 }
 
+/// Flip axes to ensure that direction from p1 to p2 is non-negative in all
+/// dimensions. Return p1 & p2 in flipped coordinate system, along with
+/// knowledge of which axes were flipped, so that the indices of subsequently
+/// found active voxels can be flipped back into the original coordinate system.
 #[inline]
 fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, VecOf<bool>) {
     let dimensions = 3;
@@ -503,34 +356,10 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, VecOf<bool>) {
     (p1, p2, flipped)
 }
 
-#[inline]
-fn forward_project(weights: &[Length], indices: &[usize], image: &Image) -> Length {
-    let mut projection = 0.0;
-    for (w, j) in weights.iter().zip(indices.iter()) {
-        projection += w * image[*j]
-    }
-    projection
-}
-
-#[inline]
-fn back_project(backprojection: &mut Vec<Length>, weights: &[Length], indices: &[usize], projection: Length) {
-    let projection_reciprocal = 1.0 / projection;
-    for (w, j) in weights.iter().zip(indices.iter()) {
-        backprojection[*j] += w * projection_reciprocal;
-    }
-}
-
-
-fn apply_sensitivity_matrix(image: &mut ImageData, backprojection: &[Length], smatrix: &[Intensity]) {
-    //  TODO express with Option<matrix> and mul reciprocal
-    // Apply Sensitivity matrix
-    azip!((voxel in image, &b in backprojection, &s in smatrix) {
-        if s > 0.0 { *voxel *= b / s }
-        else       { *voxel  = 0.0   }
-    })
-}
 
 //--------------------------------------------------------------------------------
+/// The size and granularity of the region in which images should be
+/// reconstructed
 #[derive(Clone, Copy, Debug)]
 pub struct VoxelBox {
     pub half_width: Vector,
@@ -569,7 +398,7 @@ impl VoxelBox {
         let lor_length   : Length = (p2 - p1).norm();
         let lor: Ray = Ray::new(*p1, lor_direction);
         let iso: Isometry = Isometry::identity();
-        nc::shape::Cuboid::new(self.half_width)
+        Cuboid::new(self.half_width)
             .toi_with_ray(&iso, &lor, lor_length, true)
             .map(|toi| lor.origin + lor.dir * toi)
     }
@@ -577,28 +406,8 @@ impl VoxelBox {
 }
 
 //--------------------------------------------------------------------------------
-
-fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> Length {
-    let root_two_pi = TWOPI.sqrt() as Length;
-    let peak_height = 1.0 / (sigma * root_two_pi);
-    let cutoff = cutoff.map_or(std::f32::INFINITY as Length, |width| width * sigma);
-    move |x| {
-        if x.abs() < cutoff {
-            let y = x / sigma;
-            let z = y * y;
-            peak_height * (-0.5 * z).exp()
-        } else {
-            0.0
-        }
-    }
-}
-
-pub fn make_gauss_option(sigma: Option<Length>, cutoff: Option<Length>) -> Option<impl Fn(Length) -> Length> {
-    sigma.map(|sigma| make_gauss(sigma * TOF_DT_AS_DISTANCE, cutoff))
-}
-
-//--------------------------------------------------------------------------------
-
+/// Line Of Response: 2 spacetime vectors indicating the positions and times of
+/// coincident detector element activations
 #[derive(Clone, Copy, Debug)]
 pub struct LOR {
     pub p1: Point,
@@ -631,85 +440,5 @@ impl LOR {
             .map(|i| index1_to_3(i, vbox.n))
             .zip(weights.into_iter())
             .collect()
-    }
-}
-
-
-// --------------------------------------------------------------------------------
-//                  Conversion between 1d and 3d indices
-
-use std::ops::{Add, Div, Mul , Rem};
-
-fn index3_to_1<T>([ix, iy, iz]: [T; 3], [nx, ny, _nz]: [T; 3]) -> T
-where
-    T: Mul<Output = T> + Add<Output = T>
-{
-    ix + (iy + iz * ny) * nx
-}
-
-#[allow(clippy::many_single_char_names)]
-fn index1_to_3<T>(i: T, [nx, ny, _nz]: [T; 3]) -> [T; 3]
-where
-    T: Mul<Output = T> +
-    Div<Output = T> +
-    Rem<Output = T> +
-    Copy
-{
-    let z = i / (nx * ny);
-    let r = i % (nx * ny);
-    let y = r / nx;
-    let x = r % nx;
-    [x,y,z]
-}
-
-
-#[cfg(test)]
-mod test_index_conversion {
-    use super::*;
-    use rstest::rstest;
-
-    // -------------------- Some hand-picked examples ------------------------------
-    #[rstest(/**/    size   , index3 , index1,
-             // 1-d examples
-             case([ 1, 1, 1], [0,0,0],   0),
-             case([ 9, 1, 1], [3,0,0],   3),
-             case([ 1, 8, 1], [0,4,0],   4),
-             case([ 1, 1, 7], [0,0,5],   5),
-             // Counting in binary: note digit reversal
-             case([ 2, 2, 2], [0,0,0],   0),
-             case([ 2, 2, 2], [1,0,0],   1),
-             case([ 2, 2, 2], [0,1,0],   2),
-             case([ 2, 2, 2], [1,1,0],   3),
-             case([ 2, 2, 2], [0,0,1],   4),
-             case([ 2, 2, 2], [1,0,1],   5),
-             case([ 2, 2, 2], [0,1,1],   6),
-             case([ 2, 2, 2], [1,1,1],   7),
-             // Relation to decimal: note reversal
-             case([10,10,10], [1,2,3], 321),
-             case([10,10,10], [7,9,6], 697),
-    )]
-    fn hand_picked(size: Index3, index3: Index3, index1: usize) {
-        assert_eq!(index3_to_1(index3, size), index1);
-        assert_eq!(index1_to_3(index1, size), index3);
-    }
-
-    // -------------------- Exhaustive roundtrip testing ------------------------------
-    use proptest::prelude::*;
-
-    // A strategy that picks 3-d index limits, and a 1-d index guaranteed to lie
-    // within those bounds.
-    fn size_and_in_range_index() -> impl Strategy<Value = (Index3, usize)> {
-        [1..200_usize, 1..200_usize, 1..200_usize]
-            .prop_flat_map(|i| (Just(i), 1..(i[0] * i[1] * i[2])))
-    }
-
-    proptest! {
-        #[test]
-        fn index_roundtrip((size, index) in size_and_in_range_index()) {
-            let there = index1_to_3(index, size);
-            let back  = index3_to_1(there, size);
-            assert_eq!(back, index)
-        }
-
     }
 }

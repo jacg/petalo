@@ -1,13 +1,14 @@
 use assert_approx_eq::assert_approx_eq;
 use proptest::prelude::*;
-use petalo::weights::{Length, Time, Ratio};
+use petalo::types::{Length, Time, Ratio};
 
 // An implementation of
 // https://github.com/jerenner/tofpet3d/blob/a8c3fc8293fd05547f9ca752abc259173bac57af/cc/mlem.cc#L146-L163
 // in terms of petalo::weights::make_gauss
 #[allow(nonstandard_style)]
 fn sim_burdel(dist: Length, dt: Time, sigma: Time) -> Ratio {
-    use petalo::weights::{make_gauss_option, C};
+    use petalo::types::C;
+    use petalo::gauss::make_gauss_option;
     let x = dist + dt * C / 2.0;
     let cutoff = Some(3.0);
     let gauss = make_gauss_option(Some(sigma), cutoff).unwrap();
@@ -15,7 +16,6 @@ fn sim_burdel(dist: Length, dt: Time, sigma: Time) -> Ratio {
 }
 
 // Check that sim_burdel is equivalent to ale_burdel a.k.a ToFFunction
-#[cfg(not(feature = "f64"))]
 proptest! {
     #[test]
     fn gauss_equivalence(
