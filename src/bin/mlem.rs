@@ -1,10 +1,10 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::utils::{parse_triplet, parse_range};
+use petalo::utils::{parse_triplet, parse_range, parse_maybe_cutoff, CutoffOption};
 
 #[derive(StructOpt, Debug, Clone)]
-#[structopt(name = "mlem", about = "TODO: describe what this does")]
+#[structopt(name = "mlem", about = "Maximum Likelyhood Expectation Maximization")]
 pub struct Cli {
 
     /// Number of MLEM iterations to perform
@@ -23,9 +23,9 @@ pub struct Cli {
     #[structopt(short = "r", long)]
     pub tof: Option<Time>,
 
-    /// Deactivate voxels lying more than this many sigma from TOF peak (Rust version only)
-    #[structopt(short = "k", long)]
-    pub cutoff: Option<Ratio>,
+    /// TOF cutoff (✕ sigma). to disable: `-k no` [Rust version only]
+    #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
+    pub cutoff: CutoffOption<Ratio>,
 
     /// Override automatic generation of image output file name
     #[structopt(short, long)]

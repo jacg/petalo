@@ -5,7 +5,7 @@ use petalo::types::{Length, Ratio};
 use petalo::weights::{VoxelBox, LOR};
 use petalo::visualize::{lor_weights, Shape};
 
-use petalo::utils::{parse_triplet, parse_lor};
+use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, CutoffOption};
 use petalo::io;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -36,16 +36,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
 #[derive(StructOpt, Debug, Clone)]
-#[structopt(name = "petalo", about = "Visualize LOR interaction with voxels")]
+#[structopt(name = "vislor", about = "Visualize LOR interaction with voxels")]
 pub struct Cli {
 
     /// TOF sensitivity (sigma in ps). If not sepcified, TOF is ignored.
     #[structopt(short = "r", long)]
     sigma: Option<Length>,
 
-    /// Ignore voxels with lie further than <cutoff> from TOF peak.
-    #[structopt(short = "k", long)]
-    cutoff: Option<Ratio>,
+    /// TOF cutoff (✕ sigma). to disable: `-k no`
+    #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
+    cutoff: CutoffOption<Ratio>,
 
     /// How to represent voxels. BOX is better for viewing the geometric
     /// weights; BALL is better for viewing TOF weights.
