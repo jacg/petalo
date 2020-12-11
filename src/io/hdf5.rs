@@ -68,11 +68,11 @@ impl Event {
 }
 
 pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
-    let file = ::hdf5::File::open(args.input_file)?;
+    let file = ::hdf5::File::open(args.input_file.clone())?;
     let table = file.dataset(&args.dataset)?;
-    let it: Vec<LOR> = table.read_slice_1d::<Event,_>(s![args.event_range])?
+    let it: Vec<LOR> = table.read_slice_1d::<Event,_>(s![args.event_range.clone()])?
         .iter()
-        .map(|e| e.to_lor(true))
+        .map(|e| e.to_lor(args.use_true))
         .collect();
     println!("Using {} events", it.len());
     Ok(it)
