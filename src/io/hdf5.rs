@@ -68,11 +68,11 @@ impl Event {
 }
 
 pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
-    let file = ::hdf5::File::open(args.input_file)?;
+    let file = ::hdf5::File::open(args.input_file.clone())?;
     let table = file.dataset(&args.dataset)?;
-    let it: Vec<LOR> = table.read_slice_1d::<Event,_>(s![args.event_range])?
+    let it: Vec<LOR> = table.read_slice_1d::<Event,_>(s![args.event_range.clone()])?
         .iter()
-        .map(|e| e.to_lor(true))
+        .map(|e| e.to_lor(args.use_true))
         .collect();
     println!("Using {} events", it.len());
     Ok(it)
@@ -98,7 +98,7 @@ mod test {
             use_true: false,
         };
         let lors = read_lors(args.clone()).unwrap();
-        assert_eq!(lors[2].p1.coords.x, -120.73839054997248);
+        assert_eq!(lors[2].p1.coords.x, -120.7552004817734);
 
         // ... then use the true data.
         let args = Args { use_true: true, ..args };
