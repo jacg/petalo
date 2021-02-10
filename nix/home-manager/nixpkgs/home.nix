@@ -9,11 +9,12 @@ in
   home.packages = [
     sources.home-manager
     # Add and remove packages in this list to suit your needs.
-    pkgs.bat # git-aware, intelligent, helpful, colourful version of `cat`
-    pkgs.fd  # better find
-    pkgs.ripgrep # better grep / grep-find
-    pkgs.du-dust # better du
-    pkgs.tldr # simplified man-pages
+    pkgs.bat         # git-aware, intelligent, helpful, colourful version of `cat`
+    pkgs.fd          # better find
+    pkgs.ripgrep     # better grep / grep-find
+    pkgs.ripgrep-all # ripgrep support for PDFs etc.
+    pkgs.du-dust     # better du
+    pkgs.tldr        # simplified man-pages
     #pkgs.cowsay
     # <uncomment-to-install-spacemacs> # pkgs.emacs
   ];
