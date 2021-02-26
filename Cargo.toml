@@ -22,7 +22,7 @@ ncollide3d = "0.25"
 kiss3d = "0.26"
 num-traits = "0.2"
 hdf5 = "0.7"
-uom = "0.30.0"
+uom = "0.31"
 cmlem = { path = "cmlem" }
 
 [dev-dependencies]
