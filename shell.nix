@@ -12,7 +12,7 @@ let
   rust-stable  = pkgs.latest.rustChannels.stable .rust;
   rust-nightly = pkgs.latest.rustChannels.nightly.rust;
   rust-specific = (pkgs.rustChannelOf { date = "2020-10-19"; channel = "nightly"; }).rust;
-  rust-pinned-stable = (pkgs.rustChannelOf { channel = "1.47.0"; }).rust;
+  rust-pinned-stable = (pkgs.rustChannelOf { channel = "1.50.0"; }).rust;
   # to use the project's rust-toolchain file:
   rust-toolchain = (pkgs.rustChannelOf { rustToolchain = ./rust-toolchain; }).rust;
   # Rust system to be used in buldiInputs. Choose between
