@@ -33,7 +33,7 @@ proptest = "0.10.1"
 tempfile = "3.2"
 
 [build-dependencies]
-bindgen = "*"
+bindgen = "0.57"
 
 [features]
 compile-error = []
