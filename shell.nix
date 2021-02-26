@@ -115,7 +115,7 @@ let
 
     # Hacking around bindgen/dyld/MacOS: a compiler that can be used in
     # buildPhase on both Mac/Linux
-    pkgs.clang_9
+    pkgs.clang_11
 
     ######## Tools for profiling, debugging, benchmarking #######
 
@@ -148,7 +148,7 @@ pkgs.stdenv.mkDerivation {
   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
 
   # Needed if using bindgen to wrap C libraries in Rust
-  LIBCLANG_PATH = "${pkgs.llvmPackages_9.libclang}/lib";
+  LIBCLANG_PATH = "${pkgs.llvmPackages_11.libclang}/lib";
 
   # RA_LOG = "info";
   # RUST_BAfCKTRACE = 1;
