@@ -15,7 +15,7 @@ debug = true
 [dependencies]
 structopt = "0.3"
 ndarray = { version = "0.13", features = ["rayon"] }
-rayon = "1.4"
+rayon = "1.5"
 serde = { version = "1.0", features = ["derive"] }
 nalgebra = "0.22"
 ncollide3d = "0.25"
