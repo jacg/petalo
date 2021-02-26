@@ -12,7 +12,7 @@ let
   rust-stable  = pkgs.latest.rustChannels.stable .rust;
   rust-nightly = pkgs.latest.rustChannels.nightly.rust;
   rust-specific = (pkgs.rustChannelOf { date = "2020-10-19"; channel = "nightly"; }).rust;
-  rust-pinned-stable = (pkgs.rustChannelOf { channel = "1.47.0"; }).rust;
+  rust-pinned-stable = (pkgs.rustChannelOf { channel = "1.50.0"; }).rust;
   # to use the project's rust-toolchain file:
   rust-toolchain = (pkgs.rustChannelOf { rustToolchain = ./rust-toolchain; }).rust;
   # Rust system to be used in buldiInputs. Choose between
@@ -115,7 +115,7 @@ let
 
     # Hacking around bindgen/dyld/MacOS: a compiler that can be used in
     # buildPhase on both Mac/Linux
-    pkgs.clang_9
+    pkgs.clang_11
 
     ######## Tools for profiling, debugging, benchmarking #######
 
@@ -148,7 +148,7 @@ pkgs.stdenv.mkDerivation {
   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
 
   # Needed if using bindgen to wrap C libraries in Rust
-  LIBCLANG_PATH = "${pkgs.llvmPackages_9.libclang}/lib";
+  LIBCLANG_PATH = "${pkgs.llvmPackages_11.libclang}/lib";
 
   # RA_LOG = "info";
   # RUST_BAfCKTRACE = 1;

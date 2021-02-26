@@ -14,26 +14,26 @@ debug = true
 
 [dependencies]
 structopt = "0.3"
-ndarray = { version = "0.13", features = ["rayon"] }
-rayon = "1.4"
+ndarray = { version = "0.14", features = ["rayon"] }
+rayon = "1.5"
 serde = { version = "1.0", features = ["derive"] }
-nalgebra = "0.22"
-ncollide3d = "0.25"
-kiss3d = "0.26"
+nalgebra = "0.24"
+ncollide3d = "0.27"
+kiss3d = "0.29"
 num-traits = "0.2"
-hdf5 = "0.7"
-uom = "0.30.0"
+hdf5 = "0.7.1"
+uom = "0.31"
 cmlem = { path = "cmlem" }
 
 [dev-dependencies]
 rstest = "0.6.4"
 pretty_assertions = "0.6.1"
 assert_approx_eq = "1.1"
-proptest = "0.10.1"
-tempfile = "3.1"
+proptest = "1.0.0"
+tempfile = "3.2"
 
 [build-dependencies]
-bindgen = "*"
+bindgen = "0.57"
 
 [features]
 compile-error = []
