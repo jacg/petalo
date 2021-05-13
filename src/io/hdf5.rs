@@ -6,7 +6,7 @@ use std::error::Error;
 pub struct Args {
     pub input_file: String,
     pub dataset: String,
-    pub event_range: std::ops::Range<usize>,
+    pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
 }
 
@@ -16,10 +16,14 @@ use crate::types::{Length, Point};
 use crate::weights::{LOR};
 type F = Length;
 
-fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: std::ops::Range<usize>) -> hdf5::Result<Array1<T>> {
+pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<std::ops::Range<usize>>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;
     let table = file.dataset(dataset)?;
-    let data = table.read_slice_1d::<T,_>(s![range])?;
+    let data = if let Some(range) = range {
+        table.read_slice_1d::<T,_>(s![range])?
+    } else {
+        table.read_slice_1d::<T,_>(s![..])?
+    };
     Ok(data)
 }
 
@@ -97,7 +101,7 @@ mod test {
         let args = Args {
             input_file: "src/io/test.h5".into(),
             dataset: "reco_info/table".into(),
-            event_range: 0..4,
+            event_range: Some(0..4),
             use_true: false,
         };
         let lors = read_lors(args.clone()).unwrap();
@@ -116,7 +120,7 @@ mod test {
         let args = Args {
             input_file: "src/io/test.h5".into(),
             dataset: "reco_info/table".into(),
-            event_range: 0..4,
+            event_range: Some(0..4),
             use_true: false,
         };
 

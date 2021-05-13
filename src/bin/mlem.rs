@@ -40,8 +40,8 @@ pub struct Cli {
     pub dataset: String,
 
     /// Which rows of the input file should be loaded
-    #[structopt(short, long, parse(try_from_str = parse_range::<usize>), default_value = "0..1000000")]
-    pub event_range: std::ops::Range<usize>,
+    #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
+    pub event_range: Option<std::ops::Range<usize>>,
 
     /// Use the C version of the MLEM algorithm
     #[structopt(short = "c", long)]

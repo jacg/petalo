@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let lor = if let Some(input_file) = args.clone().input_file {
         let event_range = args.event..args.event+1;
         let                      Cli{ dataset, use_true, .. } = args.clone();
-        let io_args = io::hdf5::Args{ dataset, use_true, input_file, event_range };
+        let io_args = io::hdf5::Args{ dataset, use_true, input_file, event_range: Some(event_range) };
         petalo::io::hdf5::read_lors(io_args)?[0]
     } else {
         args.lor
