@@ -121,6 +121,8 @@ mod test {
         assert_eq!(events[2].true_r1, 394.2929992675781);
         assert_eq!(events[2].reco_r1, 394.3750647735979);
 
+        // Leave this here in case we want to regenerate the test file
+
         // let file = hdf5::File::create("test.h5")?;
         // let reco_info = file.create_group("reco_info")?;
         // let table = reco_info.new_dataset::<Event>().create("table", 10)?;
