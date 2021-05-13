@@ -10,11 +10,18 @@ pub struct Args {
     pub use_true: bool,
 }
 
-use ndarray::s;
+use ndarray::{s, Array1};
 
 use crate::types::{Length, Point};
 use crate::weights::{LOR};
 type F = Length;
+
+fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: std::ops::Range<usize>) -> hdf5::Result<Array1<T>> {
+    let file = ::hdf5::File::open(filename)?;
+    let table = file.dataset(dataset)?;
+    let data = table.read_slice_1d::<T,_>(s![range])?;
+    Ok(data)
+}
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
@@ -66,9 +73,7 @@ impl Event {
 }
 
 pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
-    let file = ::hdf5::File::open(args.input_file.clone())?;
-    let table = file.dataset(&args.dataset)?;
-    let it: Vec<LOR> = table.read_slice_1d::<Event,_>(s![args.event_range.clone()])?
+    let it: Vec<LOR> = read_table::<Event>(&args.input_file, &args.dataset, args.event_range.clone())?
         .iter()
         .map(|e| e.to_lor(args.use_true))
         .collect();
@@ -115,9 +120,7 @@ mod test {
             use_true: false,
         };
 
-        let file = ::hdf5::File::open(args.input_file)?;
-        let table = file.dataset(&args.dataset)?;
-        let events = table.read_slice_1d::<Event,_>(s![args.event_range])?;
+        let events = read_table::<Event>(&args.input_file, &args.dataset, args.event_range)?;
         assert_eq!(events[2].true_r1, 394.2929992675781);
         assert_eq!(events[2].reco_r1, 394.3750647735979);
 
