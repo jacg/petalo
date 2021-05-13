@@ -84,7 +84,7 @@ mod test {
 
     use super::*;
 
-    #[test]
+    #[test] // Test higher-level `read_lors`
     fn read_lors_hdf5() -> hdf5::Result<()> {
 
         // suppress spamming stdout
@@ -107,7 +107,7 @@ mod test {
         Ok(())
     }
 
-    #[test]
+    #[test] // Test lower-level components used by `read_lors`
     fn read_hdf5() -> hdf5::Result<()> {
 
         let args = Args {
