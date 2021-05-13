@@ -53,11 +53,9 @@ impl Event {
         };
         let x1 = r1 * phi1.cos();
         let y1 = r1 * phi1.sin();
-        //let t1 = t1 * 1000.0; // turn into picoseconds
 
         let x2 = r2 * phi2.cos();
         let y2 = r2 * phi2.sin();
-        //let t2 = t2 * 1000.0; // turn into picoseconds
 
         LOR::new(t1 as F, t2 as F,
                  Point::new(x1 as F, y1 as F, z1 as F),
