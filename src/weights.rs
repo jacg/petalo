@@ -442,3 +442,18 @@ impl LOR {
             .collect()
     }
 }
+
+use core::fmt;
+impl fmt::Display for LOR {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (p, q) = (self.p1, self.p2);
+        let ps_per_ns = 1000.0;
+        write!(f, "<LOR ({:4.2} {:4.2}) ({:8.2} {:8.2} {:8.2}) ({:8.2} {:8.2} {:8.2}) {:7.2} /{:7.2} >",
+               self.t1, self.t2,
+               p.x, p.y, p.z,
+               q.x, q.y, q.z,
+               ((self.t1 - self.t2) * C * ps_per_ns).abs() / 2.0,
+               (p-q).norm()
+        )
+    }
+}
