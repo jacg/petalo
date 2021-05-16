@@ -73,7 +73,7 @@ pub struct Cli {
     nvoxels: (usize, usize, usize),
 
     /// LOR to visualize: 't1 t2   x1 y1 z1   x2 y2 z2' (t: ps, xyz: mm)
-    #[structopt(short, long, parse(try_from_str = parse_lor), default_value = "0 10  -100 20 -90  100 60 10")]
+    #[structopt(short, long, parse(try_from_str = parse_lor), default_value = "0 300  -100 20 -90  100 60 10")]
     lor: LOR,
 
     /// Use true rather than reco LOR data from file
