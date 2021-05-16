@@ -130,10 +130,10 @@ mod test {
 
         // Leave this here in case we want to regenerate the test file
 
-        // let file = hdf5::File::create("test.h5")?;
-        // let reco_info = file.create_group("reco_info")?;
-        // let table = reco_info.new_dataset::<Event>().create("table", 10)?;
-        // table.write(&events)?;
+        // hdf5::File::create("test.h5")?
+        //     .create_group("reco_info")?
+        //     .new_dataset::<Event>().create("table", 10)?
+        //     .write(&events)?;
 
         Ok(())
     }
