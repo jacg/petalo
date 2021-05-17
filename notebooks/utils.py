@@ -10,8 +10,17 @@ from functools import reduce
 import matplotlib.pyplot as plt
 
 
-def compare_c_rust(*, tof=None, shape=(60,60,60), iterations=6, use_true=False, file_in=None, n_events):
-    args = Args(tof, shape, iterations, c=False, use_true=use_true, file_in=file_in, n_events=n_events)
+#def compare_c_rust(*, tof=None, shape=(60,60,60), iterations=6, use_true=False, file_in=None, n_events):
+def compare_c_rust(**incoming):
+    # default values
+    args = dict(tof=None, shape=(60,60,60), size=(360, 360, 360),
+                iterations=6, use_true=False, file_in=None, c=False,
+                dataset='', n_events=False)
+    # override defaults with incoming values
+    args.update(incoming)
+    #args = Args(tof, shape, iterations, c=False, use_true=use_true, file_in=file_in, n_events=n_events)
+    args = Args(**args)
+    print(args)
     display_reconstructed_images(nr=1, nc=6, args=args)
     display_reconstructed_images(nr=1, nc=6, args=update_nt(args, c=True))
 
@@ -30,12 +39,13 @@ def display_reconstructed_images(nr, nc, args):
 def show_image_from_file(filename, args, ax=plt):
     data = read_raw(filename)
     image = wrap_1d_into_3d(data, args.shape)
-    show_image(image, zslice=args.shape[-1]//2, ax=ax)
+    show_image(image, zslice=args.shape[-1]//2, extent=args.size, ax=ax)
 
 
-def show_image(image, zslice, ax=plt):
+def show_image(image, zslice, extent, ax=plt):
+    xe, ye, ze = extent
     ax.imshow(image[:, :, zslice].transpose(),
-              extent = [0,180, 0,180],
+              extent = [-xe,xe, -ye,ye],
               origin = 'lower')
 
 
@@ -78,19 +88,24 @@ def generate_data_if_missing(args):
     os.chdir(original_dir)
 
 
-Args = namedtuple('Args', 'tof, shape, iterations, c, use_true, file_in, n_events')
+Args = namedtuple('Args', '''tof, shape, iterations, c, use_true, file_in, n_events, dataset,
+                             read_lors, size''')
 
 
 def args_to_cli(args):
     nx, ny, nz = args.shape
+    sx, sy, sz = args.size
     n = f' -n {nx},{ny},{nz}'     if args.shape != (60,60,60) else ''
+    s = f' -s {sx},{sy},{sz}'     if args.size                else ''
     i = f' -i {args.iterations}'
     c =  ' -c'                    if args.c                   else ''
     r = f' -r {args.tof}'         if args.tof                 else ''
     t =  ' --use-true'            if args.use_true            else ''
     f = f' -f {args.file_in}'     if args.file_in             else ''
     e = f' -e 0..{args.n_events}' if args.n_events            else ''
-    return f'cargo run --bin mlem --release -- {i}{r}{n}{c}{t}{f}{e}'
+    d = f' -d {args.dataset}'     if args.dataset             else ''
+    l = f' --read-lors'           if args.read_lors           else ''
+    return f'cargo run --bin mlem --release -- {i}{r}{n}{s}{c}{t}{f}{e}{d}{l}'
 
 
 def args_to_filename(args, N=None):
