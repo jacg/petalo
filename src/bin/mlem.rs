@@ -56,6 +56,10 @@ pub struct Cli {
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
 
+    /// The input dataset contains LORs (not events)
+    #[structopt(long)]
+    pub lor: bool,
+
 }
 
 // --------------------------------------------------------------------------------
@@ -86,8 +90,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // Read event data from disk into memory
-    let                      Cli{ input_file, dataset, event_range, use_true, .. } = args.clone();
-    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true     };
+    let                      Cli{ input_file, dataset, event_range, use_true, lor, .. } = args.clone();
+    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, lor };
     let measured_lors = io::hdf5::read_lors(io_args)?;
     report_time("Loaded LOR data from local disk");
 

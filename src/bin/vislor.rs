@@ -22,15 +22,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     // exclusive.
     let lor = if let Some(input_file) = args.clone().input_file {
         let event_range = args.event..args.event+1;
-        let                      Cli{ dataset, use_true, .. } = args.clone();
-        let io_args = io::hdf5::Args{ dataset, use_true, input_file, event_range: Some(event_range) };
+        let                      Cli{ dataset, use_true, read_lors, .. } = args.clone();
+        let io_args = io::hdf5::Args{ dataset, use_true, input_file, event_range: Some(event_range), lor:read_lors };
         petalo::io::hdf5::read_lors(io_args)?[0]
     } else {
         args.lor
     };
 
+    println!("{}", lor);
     lor_weights(lor, vbox, args.shape, args.cutoff, args.sigma);
-
     Ok(())
 }
 
@@ -78,6 +78,10 @@ pub struct Cli {
 
     /// Use true rather than reco LOR data from file
     #[structopt(long)]
-    use_true: bool
+    use_true: bool,
+
+    /// Input file contains LORs rather than events
+    #[structopt(long)]
+    read_lors: bool,
 
 }

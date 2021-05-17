@@ -8,6 +8,7 @@ pub struct Args {
     pub dataset: String,
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
+    pub lor: bool,
 }
 
 use ndarray::{s, Array1};
@@ -77,10 +78,17 @@ impl Event {
 }
 
 pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
-    let it: Vec<LOR> = read_table::<Event>(&args.input_file, &args.dataset, args.event_range.clone())?
-        .iter()
-        .map(|e| e.to_lor(args.use_true))
-        .collect();
+    let it: Vec<LOR> = if args.lor {
+        read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
+            .iter().cloned()
+            .map(|l| LOR::from(l))
+            .collect()
+    } else {
+        read_table::<Event>  (&args.input_file, &args.dataset, args.event_range.clone())?
+            .iter()
+            .map(|e| e.to_lor(args.use_true))
+            .collect()
+    };
     println!("Using {} events", it.len());
     Ok(it)
 }
@@ -103,6 +111,7 @@ mod test {
             dataset: "reco_info/table".into(),
             event_range: Some(0..4),
             use_true: false,
+            lor: false,
         };
         let lors = read_lors(args.clone()).unwrap();
         assert_eq!(lors[2].p1.coords.x, -120.7552004817734);
@@ -122,6 +131,7 @@ mod test {
             dataset: "reco_info/table".into(),
             event_range: Some(0..4),
             use_true: false,
+            lor: false,
         };
 
         let events = read_table::<Event>(&args.input_file, &args.dataset, args.event_range)?;
