@@ -138,3 +138,33 @@ mod test {
         Ok(())
     }
 }
+
+// The LOR used by mlem contains fields (the points) with types (ncollide Point)
+// which hdf5 appears not to be able to digest, so hack around the problem for
+// now, by creating a LOR type that is hdf5able
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
+pub struct Hdf5Lor {
+    t1: f32,
+    t2: f32,
+    x1: f32,
+    y1: f32,
+    z1: f32,
+    x2: f32,
+    y2: f32,
+    z2: f32,
+}
+
+impl From<LOR> for Hdf5Lor {
+    fn from(lor: LOR) -> Self {
+        let LOR{ t1, t2, p1, p2 } = lor;
+        Self { t1, t2, x1:p1.x, y1: p1.y, z1: p1.z, x2: p2.x, y2: p2.y, z2: p2.z }
+    }
+}
+
+impl From<Hdf5Lor> for LOR {
+    fn from(lor: Hdf5Lor) -> Self {
+        let Hdf5Lor{t1, t2, x1, y1, z1, x2, y2, z2} = lor;
+        Self { t1, t2, p1: Point::new(x1, y1, z1), p2: Point::new(x2, y2, z2)}
+    }
+}
