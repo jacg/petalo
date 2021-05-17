@@ -1420,6 +1420,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordered-float"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b50b8919aecb97e5ee9aceef27e24f39c46b11831130f4a6b7b091ec5de0de12"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "osmesa-sys"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1502,6 +1511,7 @@ dependencies = [
  "ncollide3d",
  "ndarray",
  "num-traits",
+ "ordered-float 2.2.0",
  "pretty_assertions",
  "proptest",
  "rayon",
@@ -1856,7 +1866,7 @@ dependencies = [
  "crossbeam-utils 0.7.2",
  "linked-hash-map",
  "num_cpus",
- "ordered-float",
+ "ordered-float 1.1.0",
  "rustc-hash",
  "stb_truetype",
 ]

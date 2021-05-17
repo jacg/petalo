@@ -23,6 +23,7 @@ kiss3d = "0.29"
 num-traits = "0.2"
 hdf5 = "0.7.1"
 uom = "0.31"
+ordered-float = "2.2"
 cmlem = { path = "cmlem" }
 
 [dev-dependencies]

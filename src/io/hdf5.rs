@@ -139,6 +139,32 @@ mod test {
     }
 }
 
+// --------------------------------------------------------------------------------
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
+pub struct SensorXYZ {
+    pub sensor_id: u64,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
+pub struct Charge {
+    pub event_id: u64,
+    pub sensor_id: u64,
+    pub charge: u64,
+}
+
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
+pub struct SensorHit {
+    pub event_id: u64,
+    pub sensor_id: u64,
+    pub time: f64,
+}
+
 // The LOR used by mlem contains fields (the points) with types (ncollide Point)
 // which hdf5 appears not to be able to digest, so hack around the problem for
 // now, by creating a LOR type that is hdf5able
