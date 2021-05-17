@@ -43,17 +43,17 @@ pub struct Event {
 impl Event {
 
     fn reco_coords(&self) -> (f64, f64, f64, f64, f64, f64, f64, f64) {
-        let Event{reco_r1, reco_phi1, reco_z1, reco_t1,
-                  reco_r2, reco_phi2, reco_z2, reco_t2, ..} = self;
-        (*reco_r1, *reco_phi1, *reco_z1, *reco_t1,
-         *reco_r2, *reco_phi2, *reco_z2, *reco_t2,)
+        let &Event{reco_r1, reco_phi1, reco_z1, reco_t1,
+                   reco_r2, reco_phi2, reco_z2, reco_t2, ..} = self;
+        (reco_r1, reco_phi1, reco_z1, reco_t1,
+         reco_r2, reco_phi2, reco_z2, reco_t2,)
     }
 
     fn true_coords(&self) -> (f64, f64, f64, f64, f64, f64, f64, f64) {
-        let Event{true_r1, true_phi1, true_z1, true_t1,
+        let &Event{true_r1, true_phi1, true_z1, true_t1,
                   true_r2, true_phi2, true_z2, true_t2, ..} = self;
-        (*true_r1, *true_phi1, *true_z1, *true_t1,
-         *true_r2, *true_phi2, *true_z2, *true_t2,)
+        (true_r1, true_phi1, true_z1, true_t1,
+         true_r2, true_phi2, true_z2, true_t2,)
     }
 
     fn to_lor(&self, use_true: bool) -> LOR {
