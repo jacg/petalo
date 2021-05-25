@@ -7,7 +7,7 @@
 
 let
   random_pkgs = import <nixpkgs> {};
-  nixpkgs-commit-id = "896270d629efd47d14972e96f4fbb79fc9f45c80"; # nixos-20.09 on 2020-11-11
+  nixpkgs-commit-id = "ac60476ed94fd5424d9f3410c438825f793a8cbb"; # nixos-20.09 on 2021-05-23
   nixpkgs-url = "https://github.com/nixos/nixpkgs/archive/${nixpkgs-commit-id}.tar.gz";
   pkgs = import (fetchTarball nixpkgs-url) {
       overlays = map (uri: import (fetchTarball uri)) [
