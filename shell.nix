@@ -150,7 +150,7 @@ in
 pkgs.stdenv.mkDerivation {
   name = "petalorust";
   buildInputs = buildInputs;
-  LD_LIBRARY_PATH = "${pkgs.stdenv.lib.makeLibraryPath buildInputs}";
+  LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath buildInputs}";
   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
 
   # Needed if using bindgen to wrap C libraries in Rust
