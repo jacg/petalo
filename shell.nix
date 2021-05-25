@@ -89,6 +89,7 @@ let
   # --------------------------------------------------------------------------------
   buildInputs = [
     rust
+    pkgs.rust-analyzer
 
     pkgs.pkgconfig
 
