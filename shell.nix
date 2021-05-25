@@ -154,7 +154,7 @@ pkgs.stdenv.mkDerivation {
   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
 
   # Needed if using bindgen to wrap C libraries in Rust
-  LIBCLANG_PATH = "${pkgs.llvmPackages_11.libclang}/lib";
+  LIBCLANG_PATH = "${pkgs.llvmPackages_11.libclang.lib}/lib";
 
   # RA_LOG = "info";
   # RUST_BAfCKTRACE = 1;
