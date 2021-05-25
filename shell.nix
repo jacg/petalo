@@ -9,15 +9,7 @@ let
   pkgs = sources.pkgs;
 
   # ----- Rust --------------------------------------------------------------------
-  rust-stable  = pkgs.latest.rustChannels.stable .rust;
-  rust-nightly = pkgs.latest.rustChannels.nightly.rust;
-  rust-specific = (pkgs.rustChannelOf { date = "2020-10-19"; channel = "nightly"; }).rust;
-  rust-pinned-stable = (pkgs.rustChannelOf { channel = "1.50.0"; }).rust;
-  # to use the project's rust-toolchain file:
-  rust-toolchain = (pkgs.rustChannelOf { rustToolchain = ./rust-toolchain; }).rust;
-  # Rust system to be used in buldiInputs. Choose between
-  # stable/nightly/specific on the next line
-  rust = (rust-pinned-stable.override {
+  extras = {
     extensions = [
       "rust-analysis" # Rust Language Server (RLS)
       "rust-src"      # Needed by RLS? or only rust-analyzer?
@@ -25,7 +17,21 @@ let
       "rustfmt-preview"
       "clippy-preview"
     ];
-  });
+    #targets = [ "arg-unknown-linux-gnueabihf" ];
+  };
+
+  # If you already have a rust-toolchain file for rustup, you can simply use
+  # fromRustupToolchainFile to get the customized toolchain derivation.
+  rust-tcfile  = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain;
+
+  rust-latest  = pkgs.rust-bin.stable .latest      .default;
+  rust-beta    = pkgs.rust-bin.beta   ."2021-05-25".default;
+  rust-nightly = pkgs.rust-bin.nightly."2021-05-25".default;
+  rust-stable  = pkgs.rust-bin.stable ."1.52.1"    .default;
+
+  # Rust system to be used in buldiInputs. Choose between
+  # latest/beta/nightly/stable on the next line
+  rust = rust-stable.override extras;
 
   # ----- Python -------------------------------------------------------------------
   python = builtins.getAttr ("python" + py) pkgs;

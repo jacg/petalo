@@ -11,7 +11,7 @@ let
   nixpkgs-url = "https://github.com/nixos/nixpkgs/archive/${nixpkgs-commit-id}.tar.gz";
   pkgs = import (fetchTarball nixpkgs-url) {
       overlays = map (uri: import (fetchTarball uri)) [
-        https://github.com/mozilla/nixpkgs-mozilla/archive/master.tar.gz
+        https://github.com/oxalica/rust-overlay/archive/master.tar.gz
       ];
     };
 in
