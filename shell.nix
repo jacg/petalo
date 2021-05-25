@@ -9,15 +9,7 @@ let
   pkgs = sources.pkgs;
 
   # ----- Rust --------------------------------------------------------------------
-  rust-stable  = pkgs.latest.rustChannels.stable .rust;
-  rust-nightly = pkgs.latest.rustChannels.nightly.rust;
-  rust-specific = (pkgs.rustChannelOf { date = "2020-10-19"; channel = "nightly"; }).rust;
-  rust-pinned-stable = (pkgs.rustChannelOf { channel = "1.50.0"; }).rust;
-  # to use the project's rust-toolchain file:
-  rust-toolchain = (pkgs.rustChannelOf { rustToolchain = ./rust-toolchain; }).rust;
-  # Rust system to be used in buldiInputs. Choose between
-  # stable/nightly/specific on the next line
-  rust = (rust-pinned-stable.override {
+  extras = {
     extensions = [
       "rust-analysis" # Rust Language Server (RLS)
       "rust-src"      # Needed by RLS? or only rust-analyzer?
@@ -25,7 +17,21 @@ let
       "rustfmt-preview"
       "clippy-preview"
     ];
-  });
+    #targets = [ "arg-unknown-linux-gnueabihf" ];
+  };
+
+  # If you already have a rust-toolchain file for rustup, you can simply use
+  # fromRustupToolchainFile to get the customized toolchain derivation.
+  rust-tcfile  = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain;
+
+  rust-latest  = pkgs.rust-bin.stable .latest      .default;
+  rust-beta    = pkgs.rust-bin.beta   ."2021-05-25".default;
+  rust-nightly = pkgs.rust-bin.nightly."2021-05-25".default;
+  rust-stable  = pkgs.rust-bin.stable ."1.52.1"    .default;
+
+  # Rust system to be used in buldiInputs. Choose between
+  # latest/beta/nightly/stable on the next line
+  rust = rust-stable.override extras;
 
   # ----- Python -------------------------------------------------------------------
   python = builtins.getAttr ("python" + py) pkgs;
@@ -83,6 +89,7 @@ let
   # --------------------------------------------------------------------------------
   buildInputs = [
     rust
+    pkgs.rust-analyzer
 
     pkgs.pkgconfig
 
@@ -115,7 +122,7 @@ let
 
     # Hacking around bindgen/dyld/MacOS: a compiler that can be used in
     # buildPhase on both Mac/Linux
-    pkgs.clang_11
+    pkgs.clang_12
 
     ######## Tools for profiling, debugging, benchmarking #######
 
@@ -144,11 +151,11 @@ in
 pkgs.stdenv.mkDerivation {
   name = "petalorust";
   buildInputs = buildInputs;
-  LD_LIBRARY_PATH = "${pkgs.stdenv.lib.makeLibraryPath buildInputs}";
+  LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath buildInputs}";
   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
 
   # Needed if using bindgen to wrap C libraries in Rust
-  LIBCLANG_PATH = "${pkgs.llvmPackages_11.libclang}/lib";
+  LIBCLANG_PATH = "${pkgs.llvmPackages_12.libclang.lib}/lib";
 
   # RA_LOG = "info";
   # RUST_BAfCKTRACE = 1;
