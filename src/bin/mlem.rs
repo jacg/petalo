@@ -92,6 +92,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Read event data from disk into memory
     let                      Cli{ input_file, dataset, event_range, use_true, read_lors, .. } = args.clone();
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, read_lors };
+    println!("Reading LOR data from disk ...");
     let measured_lors = io::hdf5::read_lors(io_args)?;
     report_time("Loaded LOR data from local disk");
 
