@@ -21,8 +21,10 @@ def compare_c_rust(**incoming):
     #args = Args(tof, shape, iterations, c=False, use_true=use_true, file_in=file_in, n_events=n_events)
     args = Args(**args)
     print(args)
-    display_reconstructed_images(nr=1, nc=6, args=args)
-    display_reconstructed_images(nr=1, nc=6, args=update_nt(args, c=True))
+    # Always run the Rust version, only run C if requested
+    display_reconstructed_images(nr=1, nc=6, args=update_nt(args, c=False))
+    if args.c:
+        display_reconstructed_images(nr=1, nc=6, args=args)
 
 
 def display_reconstructed_images(nr, nc, args):
