@@ -16,7 +16,6 @@ pub type ImageData = Vec<Intensity>;
 pub struct Image {
     vbox: VoxelBox,
     pub data: ImageData,
-    size: usize,
 }
 
 impl core::ops::IndexMut<Index1> for Image {
@@ -114,11 +113,11 @@ impl Image {
     }
 
     // A new empty data store with matching size
-    fn zeros_buffer(&self) -> ImageData { vec![0.0; self.size] }
+    fn zeros_buffer(&self) -> ImageData { vec![0.0; self.data.len()] }
     pub fn ones(vbox: VoxelBox) -> Self {
         let [x,y,z] = vbox.n;
         let size = x * y * z;
-        Self { data: vec![1.0; size], vbox, size}
+        Self { data: vec![1.0; size], vbox}
     }
 
 }
