@@ -3,11 +3,9 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::types::{Length, Time, Ratio, Index1};
+use crate::types::{Length, Time, Ratio, Index1, Intensity};
 use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR};
 use crate::gauss::make_gauss_option;
-
-type Intensity = Length;
 
 pub type ImageData = Vec<Intensity>;
 
