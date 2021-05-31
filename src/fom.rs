@@ -5,7 +5,7 @@ use crate::weights::VoxelBox;
 
 type BoxErr<T> = Result<T, Box<dyn std::error::Error>>;
 
-fn load_image(filename: &std::path::PathBuf, vbox: VoxelBox) -> BoxErr<Image> {
+pub fn load_image(filename: &std::path::PathBuf, vbox: VoxelBox) -> BoxErr<Image> {
     let data = raw::read(filename)?.collect::<Result<_,_>>()?;
     Ok(Image::new(vbox, data)) // TODO: Upgrade Image::new from panic to Result
 }
