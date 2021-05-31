@@ -36,11 +36,6 @@ impl Image {
             let p = self.vbox.voxel_centre1(index);
             let (x, y, z) = (p.x - cx, p.y - cy, p.z - cz);
             let d_squared = x*x + y*y + z*z;
-            println!("({:5.1} {:5.1} {:5.1}) ({:5.1} {:5.1} {:5.1}) {} <? {} {}",
-                     p.x, p.y, p.z,
-                     x, y, z,
-                     d_squared, radius*radius,
-                     if d_squared < radius*radius {"KEEP"} else {"    "});
             if d_squared < radius*radius { out.push(value); }
         }
         out
