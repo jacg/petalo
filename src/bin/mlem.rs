@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     use std::time::Instant;
     let mut now = Instant::now();
 
-    let mut report_time = |message| {
+    let mut report_time = |message: &str| {
         println!("{}: {} ms", message, now.elapsed().as_millis());
         now = Instant::now();
     };
@@ -103,7 +103,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file_pattern = guess_filename(&args);
 
     // If the directory where results will be written does not exist yet, make it
-    create_dir_all(PathBuf::from(format!("{}_00.raw", file_pattern)).parent().unwrap())?;
+    create_dir_all(PathBuf::from(format!("{:02}_00.raw", file_pattern)).parent().unwrap())?;
 
     // Perform MLEM iterations
     if args.use_c {
@@ -120,11 +120,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix))
             .take(args.iterations)
             .enumerate() {
-                report_time("iteration");
+                report_time(&format!("Iteration {:2}", n));
                 let data: Vec<F> = image.data;
                 let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
                 write(data.into_iter(), &path)?;
-                report_time("Wrote raw bin");
+                report_time("  Wrote raw bin");
                 // TODO: step_by for print every
             }
     }
