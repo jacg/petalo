@@ -120,7 +120,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix))
             .take(args.iterations)
             .enumerate() {
-                report_time("iteration");
+                println!("--------------------------");
+                println!("Iteration number {}", n);
+                report_time("Time");
                 let data: Vec<F> = image.data;
                 let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
                 write(data.into_iter(), &path)?;
