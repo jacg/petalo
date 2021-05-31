@@ -1,5 +1,5 @@
 use crate::io::raw;
-use crate::types::Length;
+use crate::types::{Length, Point};
 use crate::mlem::{Image, ImageData};
 use crate::weights::VoxelBox;
 
@@ -39,11 +39,13 @@ impl Image {
     pub fn values_inside_sphere(&self, sphere: Sphere) -> ImageData {
         let mut out = vec![];
         let ((cx, cy, cz), radius) = sphere;
+        let roi_contains = |p: Point| {
+            let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
+            x*x + y*y + z*z < radius * radius
+        };
         for (index, value) in self.data.iter().copied().enumerate() {
             let p = self.vbox.voxel_centre1(index);
-            let (x, y, z) = (p.x - cx, p.y - cy, p.z - cz);
-            let d_squared = x*x + y*y + z*z;
-            if d_squared < radius*radius { out.push(value); }
+            if roi_contains(p) { out.push(value) }
         }
         out
     }
@@ -51,11 +53,13 @@ impl Image {
     pub fn values_inside_cylinder(&self, cylinder: Cylinder) -> ImageData {
         let mut out = vec![];
         let ((cx, cy), radius) = cylinder;
+        let roi_contains = |p: Point| {
+            let (x, y) = (p.x - cx, p.y - cy);
+            x*x + y*y < radius*radius
+        };
         for (index, value) in self.data.iter().copied().enumerate() {
             let p = self.vbox.voxel_centre1(index);
-            let (x, y) = (p.x - cx, p.y - cy);
-            let d_squared = x*x + y*y;
-            if d_squared < radius*radius { out.push(value); }
+            if roi_contains(p) { out.push(value) }
         }
         out
     }
