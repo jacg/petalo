@@ -14,7 +14,7 @@ pub type ImageData = Vec<Intensity>;
 
 #[derive(Clone)]
 pub struct Image {
-    vbox: VoxelBox,
+    pub vbox: VoxelBox,
     pub data: ImageData,
 }
 
@@ -118,6 +118,15 @@ impl Image {
         let [x,y,z] = vbox.n;
         let size = x * y * z;
         Self { data: vec![1.0; size], vbox}
+    }
+
+    pub fn new(vbox: VoxelBox, data: ImageData) -> Self {
+        let [x, y, z] = vbox.n;
+        if data.len() != x * y * z {
+            // TODO change panic to Option or Result
+            panic!("Image data does not match dimensions {:?}", vbox.n);
+        };
+        Image { vbox, data }
     }
 
 }
