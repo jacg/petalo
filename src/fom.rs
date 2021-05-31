@@ -31,12 +31,9 @@ mod test_get_sample_image {
 
 #[derive(Clone)]
 pub enum ROI {
-    Sphere(Sphere),
-    CylinderZ(Cylinder),
+    Sphere((Length, Length, Length), Length),
+    CylinderZ((Length, Length), Length),
 }
-
-type Sphere = ((Length, Length, Length), Length);
-type Cylinder = ((Length, Length), Length);
 
 // TODO replace vec with iterator in output
 impl Image {
@@ -44,12 +41,12 @@ impl Image {
     pub fn values_inside_roi(&self, roi: ROI) -> ImageData {
         let mut out = vec![];
         let roi_contains: Box<dyn Fn(Point) -> bool> = match roi {
-            ROI::Sphere(((cx, cy, cz), radius)) => Box::new(move |p: Point| {
+            ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
                 let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
                 x*x + y*y + z*z < radius * radius
             }),
 
-            ROI::CylinderZ(((cx, cy), radius)) => Box::new(move |p: Point| {
+            ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 x*x + y*y < radius*radius
             })
@@ -91,7 +88,7 @@ mod test_in_sphere {
         let data = vec![1.0; n*n*n];
         let vbox = VoxelBox::new((l,l,l), (n,n,n));
         let image = Image::new(vbox, data);
-        let inside = image.values_inside_roi(ROI::Sphere((centre, r)));
+        let inside = image.values_inside_roi(ROI::Sphere(centre, r));
         println!("{} {}", inside.len(), expected_len);
         assert!(inside.len() == expected_len);
     }
@@ -113,7 +110,7 @@ mod test_in_sphere {
         let data = vec![1.0; n*n*n];
         let vbox = VoxelBox::new((l,l,l), (n,n,n));
         let image = Image::new(vbox, data);
-        let inside = image.values_inside_roi(ROI::CylinderZ((centre, r)));
+        let inside = image.values_inside_roi(ROI::CylinderZ(centre, r));
         println!("{} {}", inside.len(), expected_len);
         assert!(inside.len() == expected_len);
     }
