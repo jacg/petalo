@@ -29,6 +29,11 @@ mod test_get_sample_image {
 }
 
 
+#[derive(Clone)]
+pub enum ROI {
+    Sphere(Sphere),
+    CylinderZ(Cylinder),
+}
 
 type Sphere = ((Length, Length, Length), Length);
 type Cylinder = ((Length, Length), Length);
@@ -36,26 +41,18 @@ type Cylinder = ((Length, Length), Length);
 // TODO replace vec with iterator in output
 impl Image {
 
-    pub fn values_inside_sphere(&self, sphere: Sphere) -> ImageData {
+    pub fn values_inside_roi(&self, roi: ROI) -> ImageData {
         let mut out = vec![];
-        let ((cx, cy, cz), radius) = sphere;
-        let roi_contains = |p: Point| {
-            let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
-            x*x + y*y + z*z < radius * radius
-        };
-        for (index, value) in self.data.iter().copied().enumerate() {
-            let p = self.vbox.voxel_centre1(index);
-            if roi_contains(p) { out.push(value) }
-        }
-        out
-    }
+        let roi_contains: Box<dyn Fn(Point) -> bool> = match roi {
+            ROI::Sphere(((cx, cy, cz), radius)) => Box::new(move |p: Point| {
+                let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
+                x*x + y*y + z*z < radius * radius
+            }),
 
-    pub fn values_inside_cylinder(&self, cylinder: Cylinder) -> ImageData {
-        let mut out = vec![];
-        let ((cx, cy), radius) = cylinder;
-        let roi_contains = |p: Point| {
-            let (x, y) = (p.x - cx, p.y - cy);
-            x*x + y*y < radius*radius
+            ROI::CylinderZ(((cx, cy), radius)) => Box::new(move |p: Point| {
+                let (x, y) = (p.x - cx, p.y - cy);
+                x*x + y*y < radius*radius
+            })
         };
         for (index, value) in self.data.iter().copied().enumerate() {
             let p = self.vbox.voxel_centre1(index);
@@ -94,7 +91,7 @@ mod test_in_sphere {
         let data = vec![1.0; n*n*n];
         let vbox = VoxelBox::new((l,l,l), (n,n,n));
         let image = Image::new(vbox, data);
-        let inside = image.values_inside_sphere((centre, r));
+        let inside = image.values_inside_roi(ROI::Sphere((centre, r)));
         println!("{} {}", inside.len(), expected_len);
         assert!(inside.len() == expected_len);
     }
@@ -116,7 +113,7 @@ mod test_in_sphere {
         let data = vec![1.0; n*n*n];
         let vbox = VoxelBox::new((l,l,l), (n,n,n));
         let image = Image::new(vbox, data);
-        let inside = image.values_inside_cylinder((centre, r));
+        let inside = image.values_inside_roi(ROI::CylinderZ((centre, r)));
         println!("{} {}", inside.len(), expected_len);
         assert!(inside.len() == expected_len);
     }
