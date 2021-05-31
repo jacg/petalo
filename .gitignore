@@ -6,3 +6,10 @@
 .ipynb_checkpoints
 __pycache__
 /data/
+*.so
+/*.h5
+perf.*
+callgrind.out.*
+cachegrind.out.*
+oprofile_data
+flamegraphs
