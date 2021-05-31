@@ -1,5 +1,5 @@
 use crate::io::raw;
-use crate::types::{Length, Point};
+use crate::types::{Length, Point, Intensity, Ratio};
 use crate::mlem::{Image, ImageData};
 use crate::weights::VoxelBox;
 
@@ -117,5 +117,39 @@ mod test_in_sphere {
         println!("{} {}", inside.len(), expected_len);
         assert!(inside.len() == expected_len);
     }
+
+}
+
+// TODO stop reinventing this wheel
+fn mean(data: &ImageData) -> Option<Intensity> {
+    data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensity)
+}
+
+impl Image {
+    pub fn sphere_crcs(
+        &self,
+        rois           : &[ROI],        roi_activities: &[Intensity],
+        background_rois: &[ROI], background_activity  :   Intensity,
+    )
+        -> Vec<Ratio>
+    {
+        let background_measured = background_rois.iter().cloned()
+            .map(|roi| mean(&self.values_inside_roi(roi)).unwrap())
+            .reduce(|a,b| a+b)
+            .unwrap();
+
+        let mut results = vec![];
+        for (roi, roi_activity) in rois.iter().cloned().zip(roi_activities) {
+            let roi_measured = mean(&self.values_inside_roi(roi)).unwrap();
+            results.push(((roi_measured / background_measured) - 1.0) /
+                         ((roi_activity / background_activity) - 1.0)  )
+        }
+        results
+    }
+}
+
+#[cfg(test)]
+mod test_crc {
+    use super::*;
 
 }
