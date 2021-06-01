@@ -115,12 +115,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let roi_from_centre = 50.0;
     let (hot, cold, bg_activity, bg_radius) = (4.0, 0.0, 1.0, 4.0);
     let rois = vec![
-        (ROI::CylinderZ(polar(roi_from_centre,  2.0*step), 2.0 /* 4.0*/),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre,  4.0*step), 2.0 /* 6.5*/),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre,  6.0*step), 2.0 /* 8.5*/),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre,  8.0*step), 2.0 /*11.0*/),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre, 10.0*step), 2.0 /*14.0*/), cold),
-        (ROI::CylinderZ(polar(roi_from_centre, 12.0*step), 2.0 /*18.5*/), cold),
+        (ROI::CylinderZ(polar(roi_from_centre,  2.0*step),  4.0),  hot),
+        (ROI::CylinderZ(polar(roi_from_centre,  4.0*step),  6.5),  hot),
+        (ROI::CylinderZ(polar(roi_from_centre,  6.0*step),  8.5),  hot),
+        (ROI::CylinderZ(polar(roi_from_centre,  8.0*step), 11.0),  hot),
+        (ROI::CylinderZ(polar(roi_from_centre, 10.0*step), 14.0), cold),
+        (ROI::CylinderZ(polar(roi_from_centre, 12.0*step), 18.5), cold),
 
         (ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius), 4.0),
         (ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius), 4.0),
