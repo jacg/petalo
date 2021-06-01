@@ -32,6 +32,8 @@ mod test_get_sample_image {
 #[derive(Clone)]
 pub enum ROI {
     Sphere((Length, Length, Length), Length),
+    CylinderX((Length, Length), Length),
+    CylinderY((Length, Length), Length),
     CylinderZ((Length, Length), Length),
 }
 
@@ -46,10 +48,21 @@ impl Image {
                 x*x + y*y + z*z < radius * radius
             }),
 
+            ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Point| {
+                let (y, z) = (p.y - cy, p.z - cz);
+                y*y + z*z < radius*radius
+            }),
+
+            ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Point| {
+                let (x, z) = (p.x - cx, p.z - cz);
+                x*x + z*z < radius*radius
+            }),
+
             ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 x*x + y*y < radius*radius
             })
+
         };
         for (index, value) in self.data.iter().copied().enumerate() {
             let p = self.vbox.voxel_centre1(index);
@@ -64,9 +77,6 @@ impl Image {
 mod test_in_roi {
     use super::*;
     use rstest::rstest;
-
-    // TODO these tests only verify the number of included voxels but do not
-    // check whether the correct ones have been included
 
     // Arrange for outer voxels to be centred at +/- 100.0, when n = 10
     const MAGIC: Length = 10.0 / 9.0 * 200.0;
@@ -115,6 +125,49 @@ mod test_in_roi {
         assert!(inside.len() == expected_len);
     }
 
+    const I: Intensity =  1.0;
+    const O: Intensity = -1.0;
+    const R: Length = 1.0;
+    use ROI::*;
+    #[rstest(/**/  roi              , expected,
+             // Should pick exactly one voxel
+             case(Sphere((O,O,O), R),   1),
+             case(Sphere((I,O,O), R),   2),
+             case(Sphere((O,I,O), R),   4),
+             case(Sphere((I,I,O), R),   8),
+             case(Sphere((O,O,I), R),  16),
+             case(Sphere((I,O,I), R),  32),
+             case(Sphere((O,I,I), R),  64),
+             case(Sphere((I,I,I), R), 128),
+             // Should pick two voxels differing only in x-component
+             case(CylinderX((O,O), R),   3),
+             case(CylinderX((O,I), R),  48),
+             case(CylinderX((I,O), R),  12),
+             case(CylinderX((I,I), R), 192),
+             // Should pick two voxels differing only in y-component
+             case(CylinderY((O,O), R),   5),
+             case(CylinderY((O,I), R),  80),
+             case(CylinderY((I,O), R),  10),
+             case(CylinderY((I,I), R), 160),
+             // Should pick two voxels differing only in z-component
+             case(CylinderZ((O,O), R),  17),
+             case(CylinderZ((O,I), R),  68),
+             case(CylinderZ((I,O), R),  34),
+             case(CylinderZ((I,I), R), 136),
+
+    )]
+    fn which_voxels(roi: ROI, expected: usize) {
+        let data = vec![1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0];
+        let (l, n) = (4.0, 2);
+        let vbox = VoxelBox::new((l,l,l), (n,n,n));
+        let image = Image::new(vbox, data);
+        let pattern = image.values_inside_roi(roi)
+            .iter().sum::<Intensity>()
+            as usize;
+        println!("pattern {} {} expected", pattern, expected);
+        assert!(pattern == expected);
+
+    }
 }
 
 // TODO stop reinventing this wheel
