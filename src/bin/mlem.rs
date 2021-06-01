@@ -107,6 +107,38 @@ fn main() -> Result<(), Box<dyn Error>> {
     // If the directory where results will be written does not exist yet, make it
     create_dir_all(PathBuf::from(format!("{:02}_00.raw", file_pattern)).parent().unwrap())?;
 
+    // Regions of interest for CRC
+    fn polar(r: f32, phi: f32) -> (f32, f32) { (r * phi.cos(), r * phi.sin()) }
+
+    use petalo::fom::ROI;
+    let step = std::f32::consts::PI / 6.0;
+    let roi_from_centre = 50.0;
+    let (hot, cold, bg_activity, bg_radius) = (4.0, 0.0, 1.0, 4.0);
+    let rois = vec![
+        (ROI::CylinderZ(polar(roi_from_centre,  2.0*step), 2.0 /* 4.0*/),  hot),
+        (ROI::CylinderZ(polar(roi_from_centre,  4.0*step), 2.0 /* 6.5*/),  hot),
+        (ROI::CylinderZ(polar(roi_from_centre,  6.0*step), 2.0 /* 8.5*/),  hot),
+        (ROI::CylinderZ(polar(roi_from_centre,  8.0*step), 2.0 /*11.0*/),  hot),
+        (ROI::CylinderZ(polar(roi_from_centre, 10.0*step), 2.0 /*14.0*/), cold),
+        (ROI::CylinderZ(polar(roi_from_centre, 12.0*step), 2.0 /*18.5*/), cold),
+
+        (ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius), 4.0),
+        (ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius), 4.0),
+        (ROI::CylinderZ(polar(roi_from_centre,  5.0*step), bg_radius), 4.0),
+        (ROI::CylinderZ(polar(roi_from_centre,  7.0*step), bg_radius), 4.0),
+        (ROI::CylinderZ(polar(roi_from_centre,  9.0*step), bg_radius), 4.0),
+        (ROI::CylinderZ(polar(roi_from_centre, 11.0*step), bg_radius), 4.0),
+    ];
+    let bg_rois = vec![
+        ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius),
+        ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius),
+        ROI::CylinderZ(polar(roi_from_centre,  5.0*step), bg_radius),
+        ROI::CylinderZ(polar(roi_from_centre,  7.0*step), bg_radius),
+        ROI::CylinderZ(polar(roi_from_centre,  9.0*step), bg_radius),
+        ROI::CylinderZ(polar(roi_from_centre, 11.0*step), bg_radius),
+    ];
+
+
     // Perform MLEM iterations
     #[cfg    (feature = "ccmlem") ] let use_c = args.use_c;
     #[cfg(not(feature = "ccmlem"))] let use_c = false;
@@ -131,6 +163,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 write(data.into_iter(), &path)?;
                 report_time("  Wrote raw bin");
                 // TODO: step_by for print every
+                let image = petalo::fom::load_image(&path, vbox)?;
+                report_time("  Read raw bin");
+                let foms = image.foms(&rois, &bg_rois, bg_activity);
+                println!("    CRCs: {:?}", foms.crcs);
+                println!("    SNRs: {:?}", foms.snrs);
+                report_time("  Calculated figures of merit");
+
             }
     }
     Ok(())

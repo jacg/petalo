@@ -175,26 +175,85 @@ fn mean(data: &ImageData) -> Option<Intensity> {
     data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensity)
 }
 
+fn mu_and_sigma(data: &ImageData) -> Option<(Intensity, Intensity)> {
+    let mu = mean(data)?;
+    let sigma = data.iter().cloned()
+        .map(|x| x-mu)
+        .map(|x| x*x)
+        .sum::<Intensity>() / data.len() as Intensity;
+    Some((mu, sigma))
+
+}
+
+#[cfg(test)]
+mod test_mean {
+    use super::*;
+
+    #[test]
+    fn test_mean() {
+        let it = mean(&vec![1.0, 1.0, 1.0]);
+        assert!(it == Some(1.0));
+
+        let it = mean(&vec![1.0, 2.0, 3.0, 4.0]);
+        assert!(it == Some(2.5));
+
+        let it = mean(&vec![]);
+        assert!(it == None);
+    }
+
+    #[test]
+    fn test_mu_and_sigma() {
+        if let Some((mu, sigma)) = mu_and_sigma(&vec![1.0, 1.0, 1.0]) {
+            assert!(mu    == 1.0);
+            assert!(sigma == 0.0);
+        };
+
+        if let Some((mu, sigma)) = mu_and_sigma(&vec![2.0, 4.0, 2.0, 4.0]) {
+            assert!(mu    == 3.0);
+            assert!(sigma == 1.0);
+        };
+
+        assert!(mu_and_sigma(&vec![]) == None);
+    }
+}
+
+pub struct FOMS {
+    pub crcs: Vec<Ratio>,
+    pub snrs: Vec<Ratio>,
+}
+
 impl Image {
-    pub fn sphere_crcs(
+    pub fn foms(
         &self,
-        rois           : &[ROI],        roi_activities: &[Intensity],
+        rois           : &[(ROI, Intensity)],
         background_rois: &[ROI], background_activity  :   Intensity,
     )
-        -> Vec<Ratio>
+        -> FOMS
     {
         let background_measured = background_rois.iter().cloned()
             .map(|roi| mean(&self.values_inside_roi(roi)).unwrap())
-            .reduce(|a,b| a+b)
-            .unwrap();
+            .sum::<Intensity>() / background_rois.len() as Intensity;
+        println!("    background measured / set: {:4.1} / {}", background_measured, background_activity);
 
-        let mut results = vec![];
-        for (roi, roi_activity) in rois.iter().cloned().zip(roi_activities) {
-            let roi_measured = mean(&self.values_inside_roi(roi)).unwrap();
-            results.push(((roi_measured / background_measured) - 1.0) /
-                         ((roi_activity / background_activity) - 1.0)  )
+        let mut crcs = vec![];
+        let mut snrs = vec![];
+        print!("    measured roi activities: ");
+        for (roi, roi_activity) in rois.iter().cloned() {
+            let (roi_measured, roi_sigma) = mu_and_sigma(&self.values_inside_roi(roi)).unwrap();
+            print!("({:4.1} / {}) ", roi_measured, roi_activity);
+            crcs.push(
+                if roi_activity > background_activity { // hot CRC
+                    ((roi_measured / background_measured) - 1.0) /
+                    ((roi_activity / background_activity) - 1.0)
+                } else { // cold CRC
+                    1.0 - (roi_measured / background_measured)
+                }
+            );
+
+            snrs.push((roi_measured - background_measured) / roi_sigma); // TODO doesn't quite match antea
         }
-        results
+        println!();
+        FOMS{crcs, snrs}
     }
 }
 
