@@ -370,9 +370,10 @@ pub struct VoxelBox {
 impl VoxelBox {
 
     pub fn new(
-        (dx, dy, dz): (Length, Length, Length),
+        full_size: (Length, Length, Length),
         (nx, ny, nz): (usize, usize, usize)
     ) -> Self {
+        let (dx, dy, dz) = full_size;
         let half_width = Vector::new(dx/2.0, dy/2.0, dz/2.0);
         let n = [nx, ny, nz];
         let voxel_size = Self::voxel_size(n, half_width);
