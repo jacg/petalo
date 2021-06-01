@@ -61,7 +61,7 @@ impl Image {
 }
 
 #[cfg(test)]
-mod test_in_sphere {
+mod test_in_roi {
     use super::*;
     use rstest::rstest;
 
