@@ -200,7 +200,7 @@ fn apply_sensitivity_matrix(image: &mut ImageData, backprojection: &[Length], sm
 // --------------------------------------------------------------------------------
 //                  Conversion between 1d and 3d indices
 
-use std::ops::{Add, Div, Mul , Rem};
+use std::ops::{Add, Div, Mul, Rem};
 
 pub fn index3_to_1<T>([ix, iy, iz]: [T; 3], [nx, ny, _nz]: [T; 3]) -> T
 where
