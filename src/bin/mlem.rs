@@ -121,14 +121,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         (ROI::CylinderZ(polar(roi_from_centre,  8.0*step), 11.0),  hot),
         (ROI::CylinderZ(polar(roi_from_centre, 10.0*step), 14.0), cold),
         (ROI::CylinderZ(polar(roi_from_centre, 12.0*step), 18.5), cold),
-
-        (ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius), 4.0),
-        (ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius), 4.0),
-        (ROI::CylinderZ(polar(roi_from_centre,  5.0*step), bg_radius), 4.0),
-        (ROI::CylinderZ(polar(roi_from_centre,  7.0*step), bg_radius), 4.0),
-        (ROI::CylinderZ(polar(roi_from_centre,  9.0*step), bg_radius), 4.0),
-        (ROI::CylinderZ(polar(roi_from_centre, 11.0*step), bg_radius), 4.0),
     ];
+
     let bg_rois = vec![
         ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius),
         ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius),
@@ -166,8 +160,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let image = petalo::fom::load_image(&path, vbox)?;
                 report_time("  Read raw bin");
                 let foms = image.foms(&rois, &bg_rois, bg_activity);
-                println!("    CRCs: {:?}", foms.crcs);
-                println!("    SNRs: {:?}", foms.snrs);
+                print!("    CRCs:{:16}",""); for crc in foms.crcs {print!(" {:12.2}", crc);}; println!();
+                print!("    SNRs:{:16}",""); for snr in foms.snrs {print!(" {:12.2}", snr);}; println!();
                 report_time("  Calculated figures of merit");
 
             }
