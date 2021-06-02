@@ -156,13 +156,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             .take(args.iterations)
             .enumerate() {
                 report_time(&format!("Iteration {:2}", n));
-                let data: Vec<F> = image.data;
+                let data: &Vec<F> = &image.data;
                 let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
-                write(data.into_iter(), &path)?;
+                write(data.iter().cloned(), &path)?;
                 report_time("  Wrote raw bin");
                 // TODO: step_by for print every
-                let image = petalo::fom::load_image(&path, vbox)?;
-                report_time("  Read raw bin");
+
                 let foms = image.foms(&rois, &bg_rois, bg_activity);
                 for crc in &foms.crcs {write!(&mut fom_buf, "{:7.2}", crc)?;}; writeln!(&mut fom_buf)?;
                 print!("    CRCs:{:16}",""); for crc in foms.crcs {print!(" {:12.2}", crc);}; println!();
