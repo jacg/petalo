@@ -1,6 +1,11 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
+#[pyfunction]
+/// Print a pointless message
+fn test_message() -> String {
+    petalo::fom::foo()
+}
 
 #[pyfunction]
 #[text_signature = "(n, /)"]
@@ -14,6 +19,7 @@ fn fib(n: usize) -> usize {
 /// Module docstring works too!
 fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fib, m)?)?;
+    m.add_function(wrap_pyfunction!(test_message, m)?)?;
 
     #[pyfn(m, "fab")]
     #[text_signature = "(n, /)"]

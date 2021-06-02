@@ -16,6 +16,9 @@ name = "fulano"
 # crate-type = ["cdylib", "rlib"]
 crate-type = ["cdylib"]
 
+[dependencies]
+petalo = { path = ".." }
+
 [dependencies.pyo3]
 version = "0.13.2"
 features = ["extension-module"]
