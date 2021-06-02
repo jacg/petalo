@@ -23,5 +23,6 @@ def test_fab_doc():
 def test_Lift_doc():
     assert fulano.Lift.__doc__ == "It's a Lift: it goes up and down"
 
-def test_implemented_in_petalo_fom():
-    assert fulano.test_message() == "This is implemented in petalo::fom"
+def test_crcs():
+    crcs = fulano.crcs((1.0,) * (60*60*60))
+    assert crcs == [0] * 6

@@ -262,5 +262,3 @@ mod test_crc {
     use super::*;
 
 }
-
-pub fn foo() -> String { "This is implemented in petalo::fom".to_string() }
