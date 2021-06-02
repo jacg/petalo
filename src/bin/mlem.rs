@@ -132,6 +132,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         ROI::CylinderZ(polar(roi_from_centre, 11.0*step), bg_radius),
     ];
 
+    use std::{fs::File, io::{Write, BufWriter}};
+    let fom_path = PathBuf::from(format!("{}.crcs", file_pattern));
+    let fom_file = File::create(fom_path)?;
+    let mut fom_buf = BufWriter::new(fom_file);
 
     // Perform MLEM iterations
     #[cfg    (feature = "ccmlem") ] let use_c = args.use_c;
@@ -160,6 +164,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let image = petalo::fom::load_image(&path, vbox)?;
                 report_time("  Read raw bin");
                 let foms = image.foms(&rois, &bg_rois, bg_activity);
+                for crc in &foms.crcs {write!(&mut fom_buf, "{:7.2}", crc)?;}; writeln!(&mut fom_buf)?;
                 print!("    CRCs:{:16}",""); for crc in foms.crcs {print!(" {:12.2}", crc);}; println!();
                 print!("    SNRs:{:16}",""); for snr in foms.snrs {print!(" {:12.2}", snr);}; println!();
                 report_time("  Calculated figures of merit");
