@@ -241,7 +241,7 @@ impl Image {
         for (roi, roi_activity) in rois.iter().cloned() {
             let (roi_measured, roi_sigma) = mu_and_sigma(&self.values_inside_roi(roi)).unwrap();
             print!("({:4.1} / {}) ", roi_measured, roi_activity);
-            crcs.push(
+            crcs.push(100.0 *
                 if roi_activity > background_activity { // hot CRC
                     ((roi_measured / background_measured) - 1.0) /
                     ((roi_activity / background_activity) - 1.0)
