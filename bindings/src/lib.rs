@@ -7,8 +7,6 @@ use petalo::{mlem::Image, weights::VoxelBox};
 /// Calculate CRC for a 60x60x60 voxel image
 fn crcs(data: Vec<f32>) -> Vec<f32> {
 
-    println!("data length: {}, first few: {:?}", data.len(), data.iter().cloned().take(5).collect::<Vec<_>>());
-
     // Regions of interest for CRC
     fn polar(r: f32, phi: f32) -> (f32, f32) { (r * phi.cos(), r * phi.sin()) }
 
