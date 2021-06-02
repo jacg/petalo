@@ -227,20 +227,21 @@ impl Image {
         &self,
         rois           : &[(ROI, Intensity)],
         background_rois: &[ROI], background_activity  :   Intensity,
+        quiet: bool,
     )
         -> FOMS
     {
         let background_measured = background_rois.iter().cloned()
             .map(|roi| mean(&self.values_inside_roi(roi)).unwrap())
             .sum::<Intensity>() / background_rois.len() as Intensity;
-        println!("    background measured (set): {:4.1} ({})", background_measured, background_activity);
+        if !quiet {println!("    background measured (set): {:4.1} ({})", background_measured, background_activity);}
 
         let mut crcs = vec![];
         let mut snrs = vec![];
-        print!("    measured roi activities:");
+        if !quiet {print!("    measured roi activities:");}
         for (roi, roi_activity) in rois.iter().cloned() {
             let (roi_measured, roi_sigma) = mu_and_sigma(&self.values_inside_roi(roi)).unwrap();
-            print!("{:9.1} ({})", roi_measured, roi_activity);
+            if !quiet {print!("{:9.1} ({})", roi_measured, roi_activity);}
             crcs.push(100.0 *
                 if roi_activity > background_activity { // hot CRC
                     ((roi_measured / background_measured) - 1.0) /
@@ -252,7 +253,7 @@ impl Image {
 
             snrs.push((roi_measured - background_measured) / roi_sigma); // TODO doesn't quite match antea
         }
-        println!();
+        if !quiet {println!();}
         FOMS{crcs, snrs}
     }
 }

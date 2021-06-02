@@ -36,7 +36,7 @@ fn crcs(data: Vec<f32>) -> Vec<f32> {
 
     let vbox = VoxelBox::new((180.0, 180.0, 180.0), (60, 60, 60));
     let image = Image::new(vbox, data);
-    let crcs = image.foms(&rois, &bg_rois, bg_activity).crcs;
+    let crcs = image.foms(&rois, &bg_rois, bg_activity, true).crcs;
     crcs
 }
 

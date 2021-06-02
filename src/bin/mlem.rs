@@ -162,7 +162,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 report_time("  Wrote raw bin");
                 // TODO: step_by for print every
 
-                let foms = image.foms(&rois, &bg_rois, bg_activity);
+                let foms = image.foms(&rois, &bg_rois, bg_activity, false);
                 for crc in &foms.crcs {write!(&mut fom_buf, "{:7.2}", crc)?;}; writeln!(&mut fom_buf)?;
                 print!("    CRCs:{:16}",""); for crc in foms.crcs {print!(" {:12.2}", crc);}; println!();
                 print!("    SNRs:{:16}",""); for snr in foms.snrs {print!(" {:12.2}", snr);}; println!();
