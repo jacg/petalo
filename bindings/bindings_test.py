@@ -57,15 +57,15 @@ def test_crcs():
     crcs = fulano.crcs((1.0,) * (60*60*60))
     assert crcs == [0] * 6
 
-cyliderX = namedtuple('cyliderX', 'y,z,r')
-cyliderY = namedtuple('cyliderY', 'x,z,r')
-cyliderZ = namedtuple('cyliderZ', 'x,y,r')
-sphere   = namedtuple('sphere', 'x,y,z,r')
+cylinderX = namedtuple('cylinderX', 'y,z,r')
+cylinderY = namedtuple('cylinderY', 'x,z,r')
+cylinderZ = namedtuple('cylinderZ', 'x,y,r')
+sphere    = namedtuple('sphere', 'x,y,z,r')
 
 @parametrize('roi, expected',
-             ((cyliderX(1,2,3), 'X 1 2 3'),
-              (cyliderY(4,5,6), 'Y 4 5 6'),
-              (cyliderZ(7,8,9), 'Z 7 8 9'),
+             ((cylinderX(1,2,3), 'X 1 2 3'),
+              (cylinderY(4,5,6), 'Y 4 5 6'),
+              (cylinderZ(7,8,9), 'Z 7 8 9'),
               (sphere(2,4,6,8), 'S 2 4 6 8')
               ))
 def test_rois(roi, expected):
@@ -73,9 +73,9 @@ def test_rois(roi, expected):
 
 def test_hmm():
     from fulano import fom_config
-    rois = ((cyliderZ(1,2,3), 1),
-            (cyliderY(3,2,4), 2))
-    bg_rois = (cyliderX(9,8,7),
+    rois = ((cylinderZ(1,2,3), 1),
+            (cylinderY(3,2,4), 2))
+    bg_rois = (cylinderX(9,8,7),
                sphere(1,2,3,4))
     # x = fom_config(rois, bg_rois, 1)
     # assert x == ''
