@@ -1,47 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use petalo::{mlem::Image, weights::VoxelBox, fom::FomConfig, types::{Length as L, Intensity}};
-
-#[pyfunction]
-/// Calculate CRC for a 60x60x60 voxel image
-fn crcs(data: Vec<f32>) -> Vec<f32> {
-
-    // Regions of interest for CRC
-    fn polar(r: f32, phi: f32) -> (f32, f32) { (r * phi.cos(), r * phi.sin()) }
-
-    use petalo::fom::ROI;
-    let step = std::f32::consts::PI / 6.0;
-    let roi_from_centre = 50.0;
-    let (hot, cold, bg_radius) = (4.0, 0.0, 4.0);
-    let config = FomConfig {
-
-        background_activity: 1.0,
-
-        rois: vec![
-            (ROI::CylinderZ(polar(roi_from_centre,  2.0*step),  4.0),  hot),
-            (ROI::CylinderZ(polar(roi_from_centre,  4.0*step),  6.5),  hot),
-            (ROI::CylinderZ(polar(roi_from_centre,  6.0*step),  8.5),  hot),
-            (ROI::CylinderZ(polar(roi_from_centre,  8.0*step), 11.0),  hot),
-            (ROI::CylinderZ(polar(roi_from_centre, 10.0*step), 14.0), cold),
-            (ROI::CylinderZ(polar(roi_from_centre, 12.0*step), 18.5), cold),
-        ],
-
-        background_rois: vec![
-            ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius),
-            ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius),
-            ROI::CylinderZ(polar(roi_from_centre,  5.0*step), bg_radius),
-            ROI::CylinderZ(polar(roi_from_centre,  7.0*step), bg_radius),
-            ROI::CylinderZ(polar(roi_from_centre,  9.0*step), bg_radius),
-            ROI::CylinderZ(polar(roi_from_centre, 11.0*step), bg_radius),
-        ],
-    };
-
-    let vbox = VoxelBox::new((180.0, 180.0, 180.0), (60, 60, 60));
-    let image = Image::new(vbox, data);
-    let crcs = image.foms(&config, true).crcs;
-    crcs
-}
+use petalo::{mlem::Image, weights::VoxelBox, fom, types::{Length as L, Intensity}};
 
 #[pyfunction]
 #[text_signature = "(n, /)"]
@@ -55,7 +15,6 @@ fn fib(n: usize) -> usize {
 /// Module docstring works too!
 fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fib, m)?)?;
-    m.add_function(wrap_pyfunction!(crcs, m)?)?;
     m.add_function(wrap_pyfunction!(rust_enum_parameter, m)?)?;
     m.add_function(wrap_pyfunction!(roi, m)?)?;
     m.add_function(wrap_pyfunction!(fom_config, m)?)?;
@@ -75,9 +34,39 @@ fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
     }
 
     m.add_class::<Lift>()?;
+    m.add_class::<FomConfig>()?;
 
     Ok(())
 }
+
+#[pyclass]
+struct FomConfig { cfg: fom::FomConfig }
+
+#[pymethods]
+impl FomConfig {
+
+    #[new]
+    fn new(rois: Vec<(ROI, Intensity)>, bg_rois: Vec<ROI>, bg: Intensity) -> Self {
+        let rois: Vec<(petalo::fom::ROI, Intensity)> = rois.into_iter()
+            .map(|(r,i)| (pyroi_to_fomroi(r), i))
+            .collect();
+        let background_rois = bg_rois.into_iter().map(pyroi_to_fomroi).collect();
+
+        let cfg = fom::FomConfig{ rois, background_rois, background_activity: bg};
+        FomConfig{ cfg }
+    }
+
+    /// Calculate CRC for a 60x60x60 voxel image
+    fn crcs(&self, data: Vec<Intensity>) -> Vec<Intensity> {
+        // TODO replace hard-wired vbox with config member
+        let vbox = VoxelBox::new((180.0, 180.0, 180.0), (60, 60, 60));
+        let image = Image::new(vbox, data);
+        let crcs = image.foms(&self.cfg, true).crcs;
+        crcs
+    }
+
+}
+
 
 #[pyclass]
 #[text_signature = "(initial_height)"]
@@ -128,7 +117,7 @@ fn fom_config(rois: Vec<(ROI, Intensity)>, bg_rois: Vec<ROI>, bg: Intensity) -> 
         .collect();
     let background_rois = bg_rois.into_iter().map(pyroi_to_fomroi).collect();
 
-    let config = FomConfig{ rois, background_rois, background_activity: bg};
+    let config = fom::FomConfig{ rois, background_rois, background_activity: bg};
     format!("{:?}", config)
 }
 
