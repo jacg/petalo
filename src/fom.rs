@@ -29,7 +29,7 @@ mod test_get_sample_image {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ROI {
     Sphere((Length, Length, Length), Length),
     CylinderX((Length, Length), Length),
@@ -217,6 +217,7 @@ mod test_mean {
     }
 }
 
+#[derive(Debug)]
 pub struct FomConfig {
     pub rois: Vec<(ROI, Intensity)>,
     pub background_rois: Vec<ROI>,

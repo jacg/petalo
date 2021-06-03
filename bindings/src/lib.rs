@@ -58,6 +58,7 @@ fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(crcs, m)?)?;
     m.add_function(wrap_pyfunction!(rust_enum_parameter, m)?)?;
     m.add_function(wrap_pyfunction!(roi, m)?)?;
+    m.add_function(wrap_pyfunction!(fom_config, m)?)?;
 
     #[pyfn(m, "fab")]
     #[text_signature = "(n, /)"]
@@ -109,10 +110,28 @@ fn roi(roi: ROI) -> String {
 }
 
 
-// #[pyfunction]
-// fn fom_config(rois: Vec<(ROI, Intensity)>, bg_rois: Vec<ROI>, bg: Intensity) -> FomConfig {
-//     todo!()
-// }
+fn pyroi_to_fomroi(pyroi: ROI) -> petalo::fom::ROI {
+    use              ROI as lr;
+    use petalo::fom::ROI as fr;
+    match pyroi {
+        lr::Sphere {x,y,z,r} => fr::Sphere ((x,y,z), r),
+        lr::CylinderX{y,z,r} => fr::CylinderX((y,z), r),
+        lr::CylinderY{x,z,r} => fr::CylinderX((x,z), r),
+        lr::CylinderZ{x,y,r} => fr::CylinderZ((x,y), r),
+    }
+}
+
+#[pyfunction]
+fn fom_config(rois: Vec<(ROI, Intensity)>, bg_rois: Vec<ROI>, bg: Intensity) -> String /*FomConfig*/ {
+    let rois: Vec<(petalo::fom::ROI, Intensity)> = rois.into_iter()
+        .map(|(r,i)| (pyroi_to_fomroi(r), i))
+        .collect();
+    let background_rois = bg_rois.into_iter().map(pyroi_to_fomroi).collect();
+
+    let config = FomConfig{ rois, background_rois, background_activity: bg};
+    format!("{:?}", config)
+}
+
 #[derive(FromPyObject)]
 enum ROI {
     Sphere{ x: L, y: L, z: L, r: L },

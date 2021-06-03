@@ -70,3 +70,12 @@ sphere   = namedtuple('sphere', 'x,y,z,r')
               ))
 def test_rois(roi, expected):
     assert fulano.roi(roi) == expected
+
+def test_hmm():
+    from fulano import fom_config
+    rois = ((cyliderZ(1,2,3), 1),
+            (cyliderY(3,2,4), 2))
+    bg_rois = (cyliderX(9,8,7),
+               sphere(1,2,3,4))
+    # x = fom_config(rois, bg_rois, 1)
+    # assert x == ''
