@@ -40,27 +40,28 @@ fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
 }
 
 #[pyclass]
-struct FomConfig { cfg: fom::FomConfig }
+struct FomConfig {
+    cfg: fom::FomConfig,
+    vbox: VoxelBox,
+}
 
 #[pymethods]
 impl FomConfig {
 
     #[new]
-    fn new(rois: Vec<(ROI, Intensity)>, bg_rois: Vec<ROI>, bg: Intensity) -> Self {
+    fn new(rois: Vec<(ROI, Intensity)>, bg_rois: Vec<ROI>, bg: Intensity, voxels: (usize, usize, usize), size: (L,L,L)) -> Self {
         let rois: Vec<(petalo::fom::ROI, Intensity)> = rois.into_iter()
             .map(|(r,i)| (pyroi_to_fomroi(r), i))
             .collect();
         let background_rois = bg_rois.into_iter().map(pyroi_to_fomroi).collect();
 
         let cfg = fom::FomConfig{ rois, background_rois, background_activity: bg};
-        FomConfig{ cfg }
+        FomConfig{ cfg, vbox: VoxelBox::new(size, voxels)}
     }
 
     /// Calculate CRC for a 60x60x60 voxel image
     fn crcs(&self, data: Vec<Intensity>) -> Vec<Intensity> {
-        // TODO replace hard-wired vbox with config member
-        let vbox = VoxelBox::new((180.0, 180.0, 180.0), (60, 60, 60));
-        let image = Image::new(vbox, data);
+        let image = Image::new(self.vbox, data);
         let crcs = image.foms(&self.cfg, true).crcs;
         crcs
     }

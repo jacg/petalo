@@ -91,7 +91,9 @@ def test_crcs():
                cylinderZ(*polar(roi_from_centre,  9*step), bg_radius),
                cylinderZ(*polar(roi_from_centre, 11*step), bg_radius))
 
-    cfg = fulano.FomConfig(rois, bg_rois, bg_activity)
+    size   = (180,) * 3
+    voxels =  (60,) * 3
+    cfg = fulano.FomConfig(rois, bg_rois, bg_activity, voxels, size)
     crcs = cfg.crcs((1.0,) * (60*60*60))
     assert crcs == [0] * 6
 
