@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use petalo::{mlem::Image, weights::VoxelBox};
+use petalo::{mlem::Image, weights::VoxelBox, fom::FomConfig};
 
 #[pyfunction]
 /// Calculate CRC for a 60x60x60 voxel image
@@ -13,28 +13,33 @@ fn crcs(data: Vec<f32>) -> Vec<f32> {
     use petalo::fom::ROI;
     let step = std::f32::consts::PI / 6.0;
     let roi_from_centre = 50.0;
-    let (hot, cold, bg_activity, bg_radius) = (4.0, 0.0, 1.0, 4.0);
-    let rois = vec![
-        (ROI::CylinderZ(polar(roi_from_centre,  2.0*step),  4.0),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre,  4.0*step),  6.5),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre,  6.0*step),  8.5),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre,  8.0*step), 11.0),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre, 10.0*step), 14.0), cold),
-        (ROI::CylinderZ(polar(roi_from_centre, 12.0*step), 18.5), cold),
-    ];
+    let (hot, cold, bg_radius) = (4.0, 0.0, 4.0);
+    let config = FomConfig {
 
-    let bg_rois = vec![
-        ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius),
-        ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius),
-        ROI::CylinderZ(polar(roi_from_centre,  5.0*step), bg_radius),
-        ROI::CylinderZ(polar(roi_from_centre,  7.0*step), bg_radius),
-        ROI::CylinderZ(polar(roi_from_centre,  9.0*step), bg_radius),
-        ROI::CylinderZ(polar(roi_from_centre, 11.0*step), bg_radius),
-    ];
+        background_activity: 1.0,
+
+        rois: vec![
+            (ROI::CylinderZ(polar(roi_from_centre,  2.0*step),  4.0),  hot),
+            (ROI::CylinderZ(polar(roi_from_centre,  4.0*step),  6.5),  hot),
+            (ROI::CylinderZ(polar(roi_from_centre,  6.0*step),  8.5),  hot),
+            (ROI::CylinderZ(polar(roi_from_centre,  8.0*step), 11.0),  hot),
+            (ROI::CylinderZ(polar(roi_from_centre, 10.0*step), 14.0), cold),
+            (ROI::CylinderZ(polar(roi_from_centre, 12.0*step), 18.5), cold),
+        ],
+
+        background_rois: vec![
+            ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius),
+            ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius),
+            ROI::CylinderZ(polar(roi_from_centre,  5.0*step), bg_radius),
+            ROI::CylinderZ(polar(roi_from_centre,  7.0*step), bg_radius),
+            ROI::CylinderZ(polar(roi_from_centre,  9.0*step), bg_radius),
+            ROI::CylinderZ(polar(roi_from_centre, 11.0*step), bg_radius),
+        ],
+    };
 
     let vbox = VoxelBox::new((180.0, 180.0, 180.0), (60, 60, 60));
     let image = Image::new(vbox, data);
-    let crcs = image.foms(&rois, &bg_rois, bg_activity, true).crcs;
+    let crcs = image.foms(&config, true).crcs;
     crcs
 }
 

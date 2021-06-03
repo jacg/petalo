@@ -113,24 +113,30 @@ fn main() -> Result<(), Box<dyn Error>> {
     use petalo::fom::ROI;
     let step = std::f32::consts::PI / 6.0;
     let roi_from_centre = 50.0;
-    let (hot, cold, bg_activity, bg_radius) = (4.0, 0.0, 1.0, 4.0);
-    let rois = vec![
-        (ROI::CylinderZ(polar(roi_from_centre,  2.0*step),  4.0),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre,  4.0*step),  6.5),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre,  6.0*step),  8.5),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre,  8.0*step), 11.0),  hot),
-        (ROI::CylinderZ(polar(roi_from_centre, 10.0*step), 14.0), cold),
-        (ROI::CylinderZ(polar(roi_from_centre, 12.0*step), 18.5), cold),
-    ];
+    let (hot, cold, bg_radius) = (4.0, 0.0, 4.0);
+    let fom_config = petalo::fom::FomConfig {
 
-    let bg_rois = vec![
-        ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius),
-        ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius),
-        ROI::CylinderZ(polar(roi_from_centre,  5.0*step), bg_radius),
-        ROI::CylinderZ(polar(roi_from_centre,  7.0*step), bg_radius),
-        ROI::CylinderZ(polar(roi_from_centre,  9.0*step), bg_radius),
-        ROI::CylinderZ(polar(roi_from_centre, 11.0*step), bg_radius),
-    ];
+        background_activity : 1.0,
+
+        rois : vec![
+            (ROI::CylinderZ(polar(roi_from_centre,  2.0*step),  4.0),  hot),
+            (ROI::CylinderZ(polar(roi_from_centre,  4.0*step),  6.5),  hot),
+            (ROI::CylinderZ(polar(roi_from_centre,  6.0*step),  8.5),  hot),
+            (ROI::CylinderZ(polar(roi_from_centre,  8.0*step), 11.0),  hot),
+            (ROI::CylinderZ(polar(roi_from_centre, 10.0*step), 14.0), cold),
+            (ROI::CylinderZ(polar(roi_from_centre, 12.0*step), 18.5), cold),
+        ],
+
+        background_rois : vec![
+            ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius),
+            ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius),
+            ROI::CylinderZ(polar(roi_from_centre,  5.0*step), bg_radius),
+            ROI::CylinderZ(polar(roi_from_centre,  7.0*step), bg_radius),
+            ROI::CylinderZ(polar(roi_from_centre,  9.0*step), bg_radius),
+            ROI::CylinderZ(polar(roi_from_centre, 11.0*step), bg_radius),
+        ],
+
+    };
 
     use std::{fs::File, io::{Write, BufWriter}};
     let fom_path = PathBuf::from(format!("{}.crcs", file_pattern));
@@ -162,7 +168,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 report_time("  Wrote raw bin");
                 // TODO: step_by for print every
 
-                let foms = image.foms(&rois, &bg_rois, bg_activity, false);
+                let foms = image.foms(&fom_config, false);
                 for crc in &foms.crcs {write!(&mut fom_buf, "{:7.2}", crc)?;}; writeln!(&mut fom_buf)?;
                 print!("    CRCs:{:16}",""); for crc in foms.crcs {print!(" {:12.2}", crc);}; println!();
                 print!("    SNRs:{:16}",""); for snr in foms.snrs {print!(" {:12.2}", snr);}; println!();

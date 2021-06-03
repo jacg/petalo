@@ -217,20 +217,26 @@ mod test_mean {
     }
 }
 
+pub struct FomConfig {
+    pub rois: Vec<(ROI, Intensity)>,
+    pub background_rois: Vec<ROI>,
+    pub background_activity: Intensity
+}
+
+impl FomConfig {
+    pub fn new(rois: Vec<(ROI, Intensity)>, background_rois: Vec<ROI>, background_activity: Intensity) -> Self {
+        Self{ rois, background_rois, background_activity }
+    }
+}
+
 pub struct FOMS {
     pub crcs: Vec<Ratio>,
     pub snrs: Vec<Ratio>,
 }
 
 impl Image {
-    pub fn foms(
-        &self,
-        rois           : &[(ROI, Intensity)],
-        background_rois: &[ROI], background_activity  :   Intensity,
-        quiet: bool,
-    )
-        -> FOMS
-    {
+    pub fn foms(&self, config: &FomConfig, quiet: bool) -> FOMS {
+        let FomConfig{ rois, background_rois, background_activity} = config;
         let background_measured = background_rois.iter().cloned()
             .map(|roi| mean(&self.values_inside_roi(roi)).unwrap())
             .sum::<Intensity>() / background_rois.len() as Intensity;
@@ -243,7 +249,7 @@ impl Image {
             let (roi_measured, roi_sigma) = mu_and_sigma(&self.values_inside_roi(roi)).unwrap();
             if !quiet {print!("{:9.1} ({})", roi_measured, roi_activity);}
             crcs.push(100.0 *
-                if roi_activity > background_activity { // hot CRC
+                if roi_activity > *background_activity { // hot CRC
                     ((roi_measured / background_measured) - 1.0) /
                     ((roi_activity / background_activity) - 1.0)
                 } else { // cold CRC
