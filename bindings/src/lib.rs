@@ -51,6 +51,7 @@ fn fib(n: usize) -> usize {
 fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fib, m)?)?;
     m.add_function(wrap_pyfunction!(crcs, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_enum_parameter, m)?)?;
 
     #[pyfn(m, "fab")]
     #[text_signature = "(n, /)"]
@@ -88,4 +89,39 @@ impl Lift {
     fn up  (&mut self, n: usize) { self.height += n as i32 }
     fn down(&mut self, n: usize) { self.height -= n as i32 }
 
+}
+
+#[pyfunction]
+/// Testing Rust enum conversion
+fn rust_enum_parameter(e: RustyEnum) -> String {
+    use RustyEnum::*;
+    match e {
+        Int(n)                   => format!("Int({})", n),
+        String(s)                => format!("String(\"{}\")", s),
+        IntTuple(a,b)            => format!("IntTuple({}, {})", a, b),
+        StringIntTuple(a,b)      => format!("StringTuple(\"{}\", {})", a, b),
+        Coordinates3d {x, y, z}  => format!("Coordinates3d({}, {}, {})", x,y,z),
+        Coordinates2d {a:x, b:y} => format!("Coordinates2d({}, {})"    , x,y),
+    }
+}
+
+#[derive(FromPyObject)]
+enum RustyEnum {
+    Int(usize), // input is a positive int
+    String(String), // input is a string
+    IntTuple(usize, usize), // input is a 2-tuple with positive ints
+    StringIntTuple(String, usize), // input is a 2-tuple with String and int
+    Coordinates3d { // needs to be in front of 2d
+        x: usize,
+        y: usize,
+        z: usize,
+    },
+    Coordinates2d { // only gets checked if the input did not have `z`
+        #[pyo3(attribute("x"))]
+        a: usize,
+        #[pyo3(attribute("y"))]
+        b: usize,
+    },
+    // #[pyo3(transparent)]
+    // CatchAll(&'a PyAny), // This extraction never fails
 }
