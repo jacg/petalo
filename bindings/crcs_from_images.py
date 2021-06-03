@@ -23,19 +23,19 @@ step = pi / 6
 roi_from_centre = 50
 hot, cold, bg_radius, bg_activity = 4, 0, 4, 1
 
-rois = ((cylinderZ(*polar(roi_from_centre,  2*step),  4.0),  hot),
-        (cylinderZ(*polar(roi_from_centre,  4*step),  6.5),  hot),
-        (cylinderZ(*polar(roi_from_centre,  6*step),  8.5),  hot),
-        (cylinderZ(*polar(roi_from_centre,  8*step), 11.0),  hot),
-        (cylinderZ(*polar(roi_from_centre, 10*step), 14.0), cold),
-        (cylinderZ(*polar(roi_from_centre, 12*step), 18.5), cold))
+rois = ((sphere(*polar(roi_from_centre,  2*step), 0,  4.0),  hot),
+        (sphere(*polar(roi_from_centre,  4*step), 0,  6.5),  hot),
+        (sphere(*polar(roi_from_centre,  6*step), 0,  8.5),  hot),
+        (sphere(*polar(roi_from_centre,  8*step), 0, 11.0),  hot),
+        (sphere(*polar(roi_from_centre, 10*step), 0, 14.0), cold),
+        (sphere(*polar(roi_from_centre, 12*step), 0, 18.5), cold))
 
-bg_rois = (cylinderZ(*polar(roi_from_centre,  1*step), bg_radius),
-           cylinderZ(*polar(roi_from_centre,  3*step), bg_radius),
-           cylinderZ(*polar(roi_from_centre,  5*step), bg_radius),
-           cylinderZ(*polar(roi_from_centre,  7*step), bg_radius),
-           cylinderZ(*polar(roi_from_centre,  9*step), bg_radius),
-           cylinderZ(*polar(roi_from_centre, 11*step), bg_radius))
+bg_rois = (sphere(*polar(roi_from_centre,  1*step), 0, bg_radius),
+           sphere(*polar(roi_from_centre,  3*step), 0, bg_radius),
+           sphere(*polar(roi_from_centre,  5*step), 0, bg_radius),
+           sphere(*polar(roi_from_centre,  7*step), 0, bg_radius),
+           sphere(*polar(roi_from_centre,  9*step), 0, bg_radius),
+           sphere(*polar(roi_from_centre, 11*step), 0, bg_radius))
 
 # Specify the size and resolution of the field of view
 size   = (180,) * 3

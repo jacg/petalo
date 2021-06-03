@@ -108,7 +108,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     create_dir_all(PathBuf::from(format!("{:02}_00.raw", file_pattern)).parent().unwrap())?;
 
     // Regions of interest for CRC
-    fn polar(r: f32, phi: f32) -> (f32, f32) { (r * phi.cos(), r * phi.sin()) }
+    fn polar(r: f32, phi: f32) -> (f32, f32, f32) { (r * phi.cos(), r * phi.sin(), 0.0) }
 
     use petalo::fom::ROI;
     let step = std::f32::consts::PI / 6.0;
@@ -119,21 +119,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         background_activity : 1.0,
 
         rois : vec![
-            (ROI::CylinderZ(polar(roi_from_centre,  2.0*step),  4.0),  hot),
-            (ROI::CylinderZ(polar(roi_from_centre,  4.0*step),  6.5),  hot),
-            (ROI::CylinderZ(polar(roi_from_centre,  6.0*step),  8.5),  hot),
-            (ROI::CylinderZ(polar(roi_from_centre,  8.0*step), 11.0),  hot),
-            (ROI::CylinderZ(polar(roi_from_centre, 10.0*step), 14.0), cold),
-            (ROI::CylinderZ(polar(roi_from_centre, 12.0*step), 18.5), cold),
+            (ROI::Sphere(polar(roi_from_centre,  2.0*step),  4.0),  hot),
+            (ROI::Sphere(polar(roi_from_centre,  4.0*step),  6.5),  hot),
+            (ROI::Sphere(polar(roi_from_centre,  6.0*step),  8.5),  hot),
+            (ROI::Sphere(polar(roi_from_centre,  8.0*step), 11.0),  hot),
+            (ROI::Sphere(polar(roi_from_centre, 10.0*step), 14.0), cold),
+            (ROI::Sphere(polar(roi_from_centre, 12.0*step), 18.5), cold),
         ],
 
         background_rois : vec![
-            ROI::CylinderZ(polar(roi_from_centre,  1.0*step), bg_radius),
-            ROI::CylinderZ(polar(roi_from_centre,  3.0*step), bg_radius),
-            ROI::CylinderZ(polar(roi_from_centre,  5.0*step), bg_radius),
-            ROI::CylinderZ(polar(roi_from_centre,  7.0*step), bg_radius),
-            ROI::CylinderZ(polar(roi_from_centre,  9.0*step), bg_radius),
-            ROI::CylinderZ(polar(roi_from_centre, 11.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre,  1.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre,  3.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre,  5.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre,  7.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre,  9.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre, 11.0*step), bg_radius),
         ],
 
     };
