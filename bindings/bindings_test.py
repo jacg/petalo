@@ -56,3 +56,17 @@ def test_rust_enum_parameter(arg, expected):
 def test_crcs():
     crcs = fulano.crcs((1.0,) * (60*60*60))
     assert crcs == [0] * 6
+
+cyliderX = namedtuple('cyliderX', 'y,z,r')
+cyliderY = namedtuple('cyliderY', 'x,z,r')
+cyliderZ = namedtuple('cyliderZ', 'x,y,r')
+sphere   = namedtuple('sphere', 'x,y,z,r')
+
+@parametrize('roi, expected',
+             ((cyliderX(1,2,3), 'X 1 2 3'),
+              (cyliderY(4,5,6), 'Y 4 5 6'),
+              (cyliderZ(7,8,9), 'Z 7 8 9'),
+              (sphere(2,4,6,8), 'S 2 4 6 8')
+              ))
+def test_rois(roi, expected):
+    assert fulano.roi(roi) == expected

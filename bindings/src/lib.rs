@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use petalo::{mlem::Image, weights::VoxelBox, fom::FomConfig};
+use petalo::{mlem::Image, weights::VoxelBox, fom::FomConfig, types::{Length as L, Intensity}};
 
 #[pyfunction]
 /// Calculate CRC for a 60x60x60 voxel image
@@ -57,6 +57,7 @@ fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fib, m)?)?;
     m.add_function(wrap_pyfunction!(crcs, m)?)?;
     m.add_function(wrap_pyfunction!(rust_enum_parameter, m)?)?;
+    m.add_function(wrap_pyfunction!(roi, m)?)?;
 
     #[pyfn(m, "fab")]
     #[text_signature = "(n, /)"]
@@ -95,6 +96,31 @@ impl Lift {
     fn down(&mut self, n: usize) { self.height -= n as i32 }
 
 }
+
+#[pyfunction]
+fn roi(roi: ROI) -> String {
+    use ROI::*;
+    match roi {
+        Sphere{x, y, z, r} => format!("S {} {} {} {}", x, y, z, r),
+        CylinderX{y, z, r} => format!("X {} {} {}", y, z, r),
+        CylinderY{x, z, r} => format!("Y {} {} {}", x, z, r),
+        CylinderZ{x, y, r} => format!("Z {} {} {}", x, y, r),
+    }
+}
+
+
+// #[pyfunction]
+// fn fom_config(rois: Vec<(ROI, Intensity)>, bg_rois: Vec<ROI>, bg: Intensity) -> FomConfig {
+//     todo!()
+// }
+#[derive(FromPyObject)]
+enum ROI {
+    Sphere{ x: L, y: L, z: L, r: L },
+    CylinderZ{ x: L, y: L, r: L },
+    CylinderY{ x: L, z: L, r: L },
+    CylinderX{ y: L, z: L, r: L },
+}
+
 
 #[pyfunction]
 /// Testing Rust enum conversion
