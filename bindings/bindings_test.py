@@ -39,6 +39,7 @@ C2d = namedtuple('C2d', 'x,y')
               (('def', 3), 'StringTuple("def", 3)'),
               (C3d(1,2,3), 'Coordinates3d(1, 2, 3)'),
          param(C2d(1,2)  , 'Coordinates2d(1, 2)', marks=xfail(reason="IntTuple picks it up earlier")),
+              (dict(a=1) , "CatchAll: {'a': 1}")
               ),
 )
 def test_rust_enum_parameter(arg, expected):
