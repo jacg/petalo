@@ -102,12 +102,12 @@ fn rust_enum_parameter(e: RustyEnum) -> String {
         StringIntTuple(a,b)      => format!("StringTuple(\"{}\", {})", a, b),
         Coordinates3d {x, y, z}  => format!("Coordinates3d({}, {}, {})", x,y,z),
         Coordinates2d {a:x, b:y} => format!("Coordinates2d({}, {})"    , x,y),
-        CatchAll(pyany)          => format!("CatchAll: {:?}", pyany),
+        //CatchAll(pyany)          => format!("CatchAll: {:?}", pyany),
     }
 }
 
 #[derive(FromPyObject)]
-enum RustyEnum<'a> {
+enum RustyEnum {
     Int(usize), // input is a positive int
     String(String), // input is a string
     IntTuple(usize, usize), // input is a 2-tuple with positive ints
@@ -123,6 +123,6 @@ enum RustyEnum<'a> {
         #[pyo3(attribute("y"))]
         b: usize,
     },
-    #[pyo3(transparent)]
-    CatchAll(&'a PyAny), // This extraction never fails
+    //#[pyo3(transparent)]
+    //CatchAll(&'a PyAny), // This extraction never fails
 }

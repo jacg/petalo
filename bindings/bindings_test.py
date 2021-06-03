@@ -1,4 +1,4 @@
-from pytest import mark, param
+from pytest import mark, param, raises
 
 parametrize = mark.parametrize
 xfail       = mark.xfail
@@ -39,12 +39,18 @@ C2d = namedtuple('C2d', 'x,y')
               (('def', 3), 'StringTuple("def", 3)'),
               (C3d(1,2,3), 'Coordinates3d(1, 2, 3)'),
          param(C2d(1,2)  , 'Coordinates2d(1, 2)', marks=xfail(reason="IntTuple picks it up earlier")),
-              (dict(a=1) , "CatchAll: {'a': 1}")
+              (dict(a=1) , TypeError)
               ),
 )
 def test_rust_enum_parameter(arg, expected):
-    result = fulano.rust_enum_parameter(arg)
-    assert result == expected
+    if expected is not TypeError:
+        result = fulano.rust_enum_parameter(arg)
+        assert result == expected
+    else:
+        with raises(expected) as excinfo:
+            fulano.rust_enum_parameter(arg)
+        msg = str(excinfo.value)
+        assert msg == "argument 'e': 'dict' object cannot be converted to 'Union[Int, String, IntTuple, StringIntTuple, Coordinates3d, Coordinates2d]'"
 
 
 def test_crcs():
