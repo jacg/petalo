@@ -101,13 +101,14 @@ def args_to_cli(args):
     s = f' -s {sx},{sy},{sz}'     if args.size                else ''
     i = f' -i {args.iterations}'
     c =  ' -c'                    if args.c                   else ''
+    uc = ' --features ccmlem'     if args.c                   else ''
     r = f' -r {args.tof}'         if args.tof                 else ''
     t =  ' --use-true'            if args.use_true            else ''
     f = f' -f {args.file_in}'     if args.file_in             else ''
     e = f' -e 0..{args.n_events}' if args.n_events            else ''
     d = f' -d {args.dataset}'     if args.dataset             else ''
     l = f' --read-lors'           if args.read_lors           else ''
-    return f'cargo run --bin mlem --release -- {i}{r}{n}{s}{c}{t}{f}{e}{d}{l}'
+    return f'cargo run --bin mlem --release {uc} -- {i}{r}{n}{s}{c}{t}{f}{e}{d}{l}'
 
 
 def args_to_filename(args, N=None):
