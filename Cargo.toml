@@ -39,4 +39,4 @@ bindgen = "0.57"
 [features]
 compile-error = []
 serial = []
-no-c = []
+ccmlem = []

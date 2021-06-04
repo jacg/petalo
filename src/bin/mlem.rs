@@ -43,7 +43,7 @@ pub struct Cli {
     #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
     pub event_range: Option<std::ops::Range<usize>>,
 
-    #[cfg(not(feature = "no-c"))]
+    #[cfg(feature = "ccmlem")]
     /// Use the C version of the MLEM algorithm
     #[structopt(short = "c", long)]
     pub use_c: bool,
@@ -108,8 +108,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     create_dir_all(PathBuf::from(format!("{:02}_00.raw", file_pattern)).parent().unwrap())?;
 
     // Perform MLEM iterations
-    #[cfg(not(feature = "no-c"))] let use_c = args.use_c;
-    #[cfg    (feature = "no-c") ] let use_c = false;
+    #[cfg    (feature = "ccmlem") ] let use_c = args.use_c;
+    #[cfg(not(feature = "ccmlem"))] let use_c = false;
 
     if use_c {
         #[cfg(not(feature = "no-c"))] run_cmlem(&args, &measured_lors)
@@ -147,8 +147,8 @@ fn guess_filename(args: &Cli) -> String {
     if let Some(pattern) = &args.out_files {
         pattern.to_string()
     } else {
-        #[cfg(not(feature = "no-c"))] let c = if args.use_c { "c" } else { "" };
-        #[cfg    (feature = "no-c") ] let c = "";
+        #[cfg    (feature = "ccmlem") ] let c = if args.use_c { "c" } else { "" };
+        #[cfg(not(feature = "ccmlem"))] let c = "";
         let (nx, ny, nz) = args.n_voxels;
         let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0}", x));
         format!("data/out/{c}mlem/{nx}_{ny}_{nz}_tof_{tof}",
