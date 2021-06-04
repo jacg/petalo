@@ -61,6 +61,10 @@ pub struct Cli {
     #[structopt(long)]
     pub read_lors: bool,
 
+    /// Calculate figures of merit as images are produced
+    #[structopt(long)]
+    pub fom: bool,
+
 }
 
 // --------------------------------------------------------------------------------
@@ -138,10 +142,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     };
 
-    use std::{fs::File, io::{Write, BufWriter}};
-    let fom_path = PathBuf::from(format!("{}.crcs", file_pattern));
-    let fom_file = File::create(fom_path)?;
-    let mut fom_buf = BufWriter::new(fom_file);
+    let mut fom_buf = if args.fom {
+        use std::{fs::File, io::BufWriter};
+        let fom_path = PathBuf::from(format!("{}.crcs", file_pattern));
+        let fom_file = File::create(fom_path)?;
+        Some(BufWriter::new(fom_file))
+    } else { None };
 
     // Perform MLEM iterations
     #[cfg    (feature = "ccmlem") ] let use_c = args.use_c;
@@ -168,12 +174,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 report_time("  Wrote raw bin");
                 // TODO: step_by for print every
 
-                let foms = image.foms(&fom_config, false);
-                for crc in &foms.crcs {write!(&mut fom_buf, "{:7.2}", crc)?;}; writeln!(&mut fom_buf)?;
-                print!("    CRCs:{:16}",""); for crc in foms.crcs {print!(" {:12.2}", crc);}; println!();
-                print!("    SNRs:{:16}",""); for snr in foms.snrs {print!(" {:12.2}", snr);}; println!();
-                report_time("  Calculated figures of merit");
-
+                if let Some(mut fom_buf) = fom_buf.as_mut() {
+                    use std::io::Write;
+                    let foms = image.foms(&fom_config, false);
+                    for crc in &foms.crcs {write!(&mut fom_buf, "{:7.2}", crc)?;}; writeln!(&mut fom_buf)?;
+                    print!("    CRCs:{:16}",""); for crc in foms.crcs {print!(" {:12.2}", crc);}; println!();
+                    print!("    SNRs:{:16}",""); for snr in foms.snrs {print!(" {:12.2}", snr);}; println!();
+                    report_time("  Calculated figures of merit");
+                }
             }
     }
     Ok(())
