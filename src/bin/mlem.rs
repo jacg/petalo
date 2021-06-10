@@ -112,7 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(not(feature = "ccmlem"))] let use_c = false;
 
     if use_c {
-        #[cfg(not(feature = "no-c"))] run_cmlem(&args, &measured_lors)
+        #[cfg(feature = "ccmlem")] run_cmlem(&args, &measured_lors)
     } else {
 
         #[cfg(not(feature = "serial"))]
@@ -169,7 +169,7 @@ fn guess_filename(args: &Cli) -> String {
 
 use petalo::weights::LOR;
 
-#[cfg(not(feature = "no-c"))]
+#[cfg(feature = "ccmlem")]
 fn run_cmlem(
     args: &Cli,
     lors: &Vec<LOR>
