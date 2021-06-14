@@ -45,7 +45,7 @@ def show_image_from_file(filename, args, ax=plt):
 
 
 def show_image(image, zslice, extent, ax=plt):
-    xe, ye, ze = extent
+    xe, ye, ze = (e/2 for e in extent)
     ax.imshow(image[:, :, zslice].transpose(),
               extent = [-xe,xe, -ye,ye],
               origin = 'lower')
