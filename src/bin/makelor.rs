@@ -31,7 +31,7 @@ fn main() -> hdf5::Result<()> {
     // --- Progress bar --------------------------------------------------------------
     let files_pb = ProgressBar::new(args.infiles.len() as u64).with_message(args.infiles[0].clone());
     files_pb.set_style(ProgressStyle::default_bar()
-                       .template("Reading file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta})")
+                       .template("Reading file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
         );
     files_pb.tick();
     // --- Process input files -------------------------------------------------------
