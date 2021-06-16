@@ -1,6 +1,5 @@
 use structopt::StructOpt;
 use itertools::Itertools;
-use indicatif::ProgressBar;
 use petalo::{io, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::types::{Point, Time};
@@ -67,17 +66,13 @@ fn main() -> hdf5::Result<()> {
     let mut count_interesting_events = 0_u16;
     let mut lors = Vec::<Hdf5Lor>::new();
     let write = args.out.is_some();
-    let pb = if !args.print { Some(ProgressBar::new(events.len() as u64)) }
-             else           { None };
     for hits in events {
         if let Some(lor) = lor(&hits, &xyzs) {
             count_interesting_events += 1;
             if args.print { println!("{:6} {}", count_interesting_events-1, lor) };
             if      write { lors.push(lor.into()) };
         }
-        if let Some(pb) = &pb { pb.inc(1); }
     }
-    if let Some(pb) = pb { pb.finish_with_message("done"); }
     println!("{} / {} have 2 clusters", count_interesting_events, n_events);
     // --- write lors to hdf5 -------------------------------------------------------
     if let Some(file_name) = args.out {
