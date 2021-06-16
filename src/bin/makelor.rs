@@ -13,7 +13,7 @@ pub struct Cli {
 
     /// HDF5 output file for LORs found in input file
     #[structopt(short, long)]
-    pub out: Option<String>,
+    pub out: String,
 
     /// Ignore sensors which do not receive this number of photons
     #[structopt(short, long, default_value = "4")]
@@ -26,109 +26,43 @@ pub struct Cli {
     // TODO allow using different group/dataset in output
 }
 
-// Nasty output parameter inteface ...
-fn read_file(infile: &String, xyzs: &mut Option<Vec<SensorXYZ>>) -> hdf5::Result<Vec<QT0>> {
-    //println!("Reading file {}", infile);
-    // Read sensor configuration, if not yet set.
-    if xyzs.is_none() {
-        // TODO: We're assuming that that the sensor configurations in all files
-        // are the same. We should verify it.
-        let yy = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz"  , None)?;
-        let mut xx = vec![];
-        xx.extend_from_slice(yy.as_slice().unwrap());
-        // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
-        // joined.extend_from_slice(data.into_slice());
-        *xyzs = Some(xx);
-    }
-    // Read charges and waveforms
-    let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
-    let ts = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
-    Ok(combine_tables(qs, ts))
-}
-
-fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT0> {
-    //println!("Combining tables ... ");
-    let mut qts = vec![];
-    let mut titer = ts.into_iter();
-    for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
-        while let Some(&Waveform{ event_id: te, sensor_id: ts, time:t}) = titer.next() {
-            if event_id == te && sensor_id == ts {
-                qts.push(QT0{ event_id, sensor_id, q, t0:t });
-                break;
-            }
-        }
-    }
-    //println!("done");
-    qts
-}
-
-fn group_by_event(qts: Vec<QT0>) -> Vec<Vec<QT0>> {
-    qts.into_iter()
-        .group_by(|h| h.event_id)
-        .into_iter()
-        .map(|(_, group)| group.collect())
-        .collect()
-}
-
 fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
-    // --- File reading progress ban -------------------------------------------------
-    let files_pb = ProgressBar::new(args.infiles.len() as u64)
-        .with_message(args.infiles[0].clone());
+    // --- Progress bar --------------------------------------------------------------
+    let files_pb = ProgressBar::new(args.infiles.len() as u64).with_message(args.infiles[0].clone());
     files_pb.set_style(ProgressStyle::default_bar()
                        .template("Reading file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta})")
         );
     files_pb.tick();
-    // --- read data -----------------------------------------------------------------
-    let mut xyzs = None;
-    let mut qts  = vec![];
+    // --- Process input files -------------------------------------------------------
+    let mut xyzs = None; // sensor positions
+    let mut lors: Vec<Hdf5Lor> = vec![];
     let threshold = args.threshold;
+    let mut n_events = 0;
     let mut failed_files = vec![];
     for infile in args.infiles {
         files_pb.set_message(infile.clone());
-        if let Ok(qts_here) = read_file(&infile, &mut xyzs) {
-            qts.extend(qts_here.into_iter()
-                       // ignore sensors with small number of hits
-                       .filter(|h| h.q > threshold)
-            );
+        if let Ok(qts) = read_file(&infile, &mut xyzs) {
+            let events = group_by_event(qts.into_iter().filter(|h| h.q > threshold));
+            for hits in events {
+                n_events += 1;
+                if let Some(lor) = lor(&hits, xyzs.as_ref().unwrap()) {
+                    lors.push(lor.into());
+                }
+            }
         } else { failed_files.push(infile); }
         files_pb.inc(1);
     }
     files_pb.finish_with_message("<finished reading files>");
-    // --- make map of sensor x-y positions ------------------------------------------
-    let xyzs = xyzs.unwrap().iter().cloned()
-        .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
-        .collect::<std::collections::HashMap<_,_>>();
-    // --- group data into events ----------------------------------------------------
-    let events: Vec<Vec<QT0>> = group_by_event(qts);
-    let n_events = events.len();
-    // --- calculate lors for each event ---------------------------------------------
-    let lors_pb = ProgressBar::new(events.len() as u64);
-    lors_pb.set_style(ProgressStyle::default_bar()
-        .template("[{elapsed}] Constructing LORs {wide_bar} {pos}/{len} ({eta})"));
-    let mut count_interesting_events = 0_usize;
-    let mut lors = Vec::<Hdf5Lor>::new();
-    let write = args.out.is_some();
-    for hits in events {
-        if let Some(lor) = lor(&hits, &xyzs) {
-            count_interesting_events += 1;
-            lors_pb.set_message(format!("{}", count_interesting_events));
-            if args.print { println!("{:6} {}", count_interesting_events-1, lor) };
-            if      write { lors.push(lor.into()) };
-        }
-        lors_pb.inc(1);
-    }
-    lors_pb.finish();
-    println!("{} / {} ({}%) have 2 clusters", count_interesting_events, n_events,
-             100 * count_interesting_events / n_events);
-    // --- write lors to hdf5 -------------------------------------------------------
-    if let Some(file_name) = args.out {
-        println!("Writing LORs to {}", file_name);
-        hdf5::File::create(file_name)?
-            .create_group("reco_info")?
-            .new_dataset::<Hdf5Lor>().create("lors", lors.len())?
-            .write(&lors)?;
-    }
+    println!("{} / {} ({}%) events produced LORs", lors.len(), n_events,
+             100 * lors.len() / n_events);
+    // --- write lors to hdf5 --------------------------------------------------------
+    println!("Writing LORs to {}", args.out);
+    hdf5::File::create(args.out)?
+        .create_group("reco_info")?
+        .new_dataset::<Hdf5Lor>().create("lors", lors.len())?
+        .write(&lors)?;
+    // --- Report any files that failed no be read -----------------------------------
     if !failed_files.is_empty() {
         println!("Warning: failed to read:");
         for file in failed_files {
@@ -154,7 +88,6 @@ fn cluster_xyzt(hits: &[QT0], xyzs: &SensorXyz) -> Option<(Point, Time)> {
     //let t = hits.iter().cloned().map(|h| Finite::<f32>::from(h.t0)).min()?.into();
     Some((Point::new(x,y,z),t))
 }
-
 
 fn mean(data: &Vec<f32>) -> Option<f32> {
     let n = data.len();
@@ -200,7 +133,6 @@ fn group_into_clusters(hits: &[QT0], xyzs: &SensorXyz) -> Option<(Vec::<QT0>, Ve
     if b.len() > 0 { Some((a, b)) } else { None }
 }
 
-
 fn dot((x1,y1): (f32, f32), (x2,y2): (f32, f32)) -> f32 { x1*x2 + y1*y2 }
 
 fn barycentre(hits: &[QT0], xyzs: &SensorXyz) -> Option<(f32, f32, f32)> {
@@ -243,4 +175,53 @@ pub struct Qtot {
     pub event_id: u64,
     pub sensor_id: u64,
     pub charge: u64,
+}
+
+type SensorMap = std::collections::HashMap<u64, (f32, f32, f32)>;
+
+// Nasty output parameter inteface ...
+fn read_file(infile: &String, xyzs: &mut Option<SensorMap>) -> hdf5::Result<Vec<QT0>> {
+    // Read sensor configuration, if not yet set.
+    if xyzs.is_none() {
+        // TODO: We're assuming that that the sensor configurations in all files
+        // are the same. We should verify it.
+        let yy = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz"  , None)?;
+        let mut xx = vec![];
+        xx.extend_from_slice(yy.as_slice().unwrap());
+        // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
+        // joined.extend_from_slice(data.into_slice());
+        *xyzs = Some(make_sensor_position_map(xx));
+    }
+    // Read charges and waveforms
+    let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
+    let ts = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
+    Ok(combine_tables(qs, ts))
+}
+
+fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT0> {
+    let mut qts = vec![];
+    let mut titer = ts.into_iter();
+    for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
+        while let Some(&Waveform{ event_id: te, sensor_id: ts, time:t}) = titer.next() {
+            if event_id == te && sensor_id == ts {
+                qts.push(QT0{ event_id, sensor_id, q, t0:t });
+                break;
+            }
+        }
+    }
+    qts
+}
+
+fn group_by_event(qts: impl IntoIterator<Item = QT0>) -> Vec<Vec<QT0>> {
+    qts.into_iter()
+        .group_by(|h| h.event_id)
+        .into_iter()
+        .map(|(_, group)| group.collect())
+        .collect()
+}
+
+fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
+    xyzs.iter().cloned()
+        .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
+        .collect()
 }
