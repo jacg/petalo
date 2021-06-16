@@ -25,6 +25,7 @@ hdf5 = "0.7.1"
 uom = "0.31"
 ordered-float = "2.2"
 cmlem = { path = "cmlem" }
+indicatif = "0.16.2"
 
 [dev-dependencies]
 rstest = "0.6.4"

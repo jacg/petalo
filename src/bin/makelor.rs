@@ -1,4 +1,5 @@
 use structopt::StructOpt;
+use indicatif::ProgressBar;
 use petalo::{io, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::types::{Point, Time};
@@ -40,9 +41,12 @@ fn main() -> hdf5::Result<()> {
     // --- find available event numbers ----------------------------------------------
     let event_numbers = qts.iter().map(|e| e.event_id).collect::<std::collections::BTreeSet<_>>();
     // --- calculate lors for each event ---------------------------------------------
+    println!("Calculating lors");
     let mut count_interesting_events = 0_u16;
     let mut lors = Vec::<Hdf5Lor>::new();
     let write = args.out.is_some();
+    let pb = if !args.print { Some(ProgressBar::new(event_numbers.len() as u64)) }
+             else           { None };
     for e in event_numbers.iter().cloned() { // TODO replace filter with groupby
         let hits = qts.iter().filter(|h| h.event_id == e).cloned().collect::<Vec<_>>();
         if let Some(lor) = lor(&hits, &xyzs) {
@@ -50,7 +54,9 @@ fn main() -> hdf5::Result<()> {
             if args.print { println!("{:6} {}", count_interesting_events-1, lor) };
             if      write { lors.push(lor.into()) };
         }
+        if let Some(pb) = &pb { pb.inc(1); }
     }
+    if let Some(pb) = pb { pb.finish_with_message("done"); }
     println!("{} / {} have 2 clusters", count_interesting_events, event_numbers.len());
     // --- write lors to hdf5 -------------------------------------------------------
     if let Some(file_name) = args.out {
