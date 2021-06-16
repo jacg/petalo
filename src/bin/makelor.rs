@@ -27,9 +27,25 @@ pub struct Cli {
 fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
     // --- read data -----------------------------------------------------------------
+    println!("Reading data");
     let infile = args.infile;
-    let xyzs = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz", None)?;
-    let qts  = io::hdf5::read_table::<QT0      >(&infile, "MC/q_t0"      , None)?;
+    let xyzs = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz"  , None)?;
+    let qts  = io::hdf5::read_table::<QT0      >(&infile, "MC/q_t0"        , None)?;
+    let qs   = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
+    let ts   = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
+    // --- make qts out of qs and ts -------------------------------------------------
+    println!("Combining data");
+    let mut qts = vec![];
+    let mut titer = ts.into_iter();
+    for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
+        while let Some(&Waveform{ event_id: te, sensor_id: ts, time:t}) = titer.next() {
+            if event_id == te && sensor_id == ts {
+                qts.push(QT0{ event_id, sensor_id, q, t0:t });
+                break;
+            }
+        }
+    }
+    println!("done");
     // --- ignore sensors with small number of hits ----------------------------------
     let threshold = args.threshold;
     let qts = qts.iter().filter(|h| h.q > threshold).cloned().collect::<Vec<_>>();
@@ -158,4 +174,20 @@ pub struct QT0 {
     pub sensor_id: u64,
     pub q: u64,
     pub t0: f32,
+}
+
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
+pub struct Waveform {
+    pub event_id: u64,
+    pub sensor_id: u64,
+    pub time: f32,
+}
+
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
+pub struct Qtot {
+    pub event_id: u64,
+    pub sensor_id: u64,
+    pub charge: u64,
 }
