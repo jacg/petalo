@@ -43,8 +43,7 @@ fn main() -> hdf5::Result<()> {
     for infile in args.infiles {
         files_pb.set_message(infile.clone());
         if let Ok(qts) = read_file(&infile, &mut xyzs) {
-            let qts = qts.into_iter().filter(|h| h.q > threshold).collect(); // TODO: pass iterator to group_by_event
-            let events = group_by_event(qts);
+            let events = group_by_event(qts.into_iter().filter(|h| h.q > threshold));
             for hits in events {
                 n_events += 1;
                 if let Some(lor) = lor(&hits, xyzs.as_ref().unwrap()) {
@@ -213,7 +212,10 @@ fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> V
     qts
 }
 
-fn group_by_event(qts: Vec<QT0>) -> Vec<Vec<QT0>> {
+fn group_by_event<I>(qts: I) -> Vec<Vec<QT0>>
+where
+    I: IntoIterator<Item = QT0>
+{
     qts.into_iter()
         .group_by(|h| h.event_id)
         .into_iter()
