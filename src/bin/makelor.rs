@@ -1,5 +1,5 @@
 use structopt::StructOpt;
-use indicatif::ProgressBar;
+use itertools::Itertools;
 use petalo::{io, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::types::{Point, Time};
@@ -27,9 +27,25 @@ pub struct Cli {
 fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
     // --- read data -----------------------------------------------------------------
+    println!("Reading data");
     let infile = args.infile;
-    let xyzs = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz", None)?;
-    let qts  = io::hdf5::read_table::<QT0      >(&infile, "MC/q_t0"      , None)?;
+    let xyzs = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz"  , None)?;
+    let _qts = io::hdf5::read_table::<QT0      >(&infile, "MC/q_t0"        , None)?;
+    let qs   = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
+    let ts   = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
+    // --- make qts out of qs and ts -------------------------------------------------
+    println!("Combining data");
+    let mut qts = vec![];
+    let mut titer = ts.into_iter();
+    for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
+        while let Some(&Waveform{ event_id: te, sensor_id: ts, time:t}) = titer.next() {
+            if event_id == te && sensor_id == ts {
+                qts.push(QT0{ event_id, sensor_id, q, t0:t });
+                break;
+            }
+        }
+    }
+    println!("done");
     // --- ignore sensors with small number of hits ----------------------------------
     let threshold = args.threshold;
     let qts = qts.iter().filter(|h| h.q > threshold).cloned().collect::<Vec<_>>();
@@ -38,26 +54,26 @@ fn main() -> hdf5::Result<()> {
     let xyzs = xyzs.iter().cloned()
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
         .collect::<std::collections::HashMap<_,_>>();
-    // --- find available event numbers ----------------------------------------------
-    let event_numbers = qts.iter().map(|e| e.event_id).collect::<std::collections::BTreeSet<_>>();
+    // --- group data into events ----------------------------------------------------
+    let events: Vec<Vec<QT0>> = qts.into_iter()
+        .group_by(|h| h.event_id)
+        .into_iter()
+        .map(|(_, group)| group.collect())
+        .collect();
+    let n_events = events.len();
     // --- calculate lors for each event ---------------------------------------------
     println!("Calculating lors");
     let mut count_interesting_events = 0_u16;
     let mut lors = Vec::<Hdf5Lor>::new();
     let write = args.out.is_some();
-    let pb = if !args.print { Some(ProgressBar::new(event_numbers.len() as u64)) }
-             else           { None };
-    for e in event_numbers.iter().cloned() { // TODO replace filter with groupby
-        let hits = qts.iter().filter(|h| h.event_id == e).cloned().collect::<Vec<_>>();
+    for hits in events {
         if let Some(lor) = lor(&hits, &xyzs) {
             count_interesting_events += 1;
             if args.print { println!("{:6} {}", count_interesting_events-1, lor) };
             if      write { lors.push(lor.into()) };
         }
-        if let Some(pb) = &pb { pb.inc(1); }
     }
-    if let Some(pb) = pb { pb.finish_with_message("done"); }
-    println!("{} / {} have 2 clusters", count_interesting_events, event_numbers.len());
+    println!("{} / {} have 2 clusters", count_interesting_events, n_events);
     // --- write lors to hdf5 -------------------------------------------------------
     if let Some(file_name) = args.out {
         println!("Writing LORs to {}", file_name);
@@ -158,4 +174,20 @@ pub struct QT0 {
     pub sensor_id: u64,
     pub q: u64,
     pub t0: f32,
+}
+
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
+pub struct Waveform {
+    pub event_id: u64,
+    pub sensor_id: u64,
+    pub time: f32,
+}
+
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
+pub struct Qtot {
+    pub event_id: u64,
+    pub sensor_id: u64,
+    pub charge: u64,
 }
