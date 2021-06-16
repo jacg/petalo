@@ -7,8 +7,8 @@ use petalo::types::{Point, Time};
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(name = "makelor", about = "Create LORs from MC data")]
 pub struct Cli {
-    /// HDF5 input file with (event_id, sensor_id, Q, t0)
-    pub infile: String,
+    /// HDF5 input files with waveform and charge tables
+    pub infiles: Vec<String>,
 
     /// HDF5 output file for LORs found in input file
     #[structopt(short, long)]
@@ -24,17 +24,13 @@ pub struct Cli {
 
 }
 
-fn main() -> hdf5::Result<()> {
-    let args = Cli::from_args();
-    // --- read data -----------------------------------------------------------------
-    println!("Reading data");
-    let infile = args.infile;
+fn read_file(infile: &String) -> hdf5::Result<(Vec<SensorXYZ>, Vec<QT0>)> {
+    println!("Reading file {}", infile);
     let xyzs = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz"  , None)?;
-    let _qts = io::hdf5::read_table::<QT0      >(&infile, "MC/q_t0"        , None)?;
     let qs   = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
     let ts   = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
-    // --- make qts out of qs and ts -------------------------------------------------
-    println!("Combining data");
+    // Combine tables
+    println!("Combining tables");
     let mut qts = vec![];
     let mut titer = ts.into_iter();
     for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
@@ -45,7 +41,23 @@ fn main() -> hdf5::Result<()> {
             }
         }
     }
-    println!("done");
+    let mut xx = vec![];
+    xx.extend_from_slice(xyzs.as_slice().unwrap());
+    Ok((xx, qts))
+}
+
+fn main() -> hdf5::Result<()> {
+    let args = Cli::from_args();
+    // --- read data -----------------------------------------------------------------
+    println!("Reading data");
+    let mut xyzs = vec![];
+    let mut qts  = vec![];
+    for infile in args.infiles {
+        let (xyzs_1, qts_1) = read_file(&infile)?;
+        xyzs = xyzs_1;
+        qts.extend_from_slice(&qts_1);
+    }
+
     // --- ignore sensors with small number of hits ----------------------------------
     let threshold = args.threshold;
     let qts = qts.iter().filter(|h| h.q > threshold).cloned().collect::<Vec<_>>();
