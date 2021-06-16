@@ -3,18 +3,16 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::types::{Length, Time, Ratio, Index1};
+use crate::types::{Length, Time, Ratio, Index1, Intensity};
 use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR};
 use crate::gauss::make_gauss_option;
-
-type Intensity = Length;
 
 pub type ImageData = Vec<Intensity>;
 
 
 #[derive(Clone)]
 pub struct Image {
-    vbox: VoxelBox,
+    pub vbox: VoxelBox,
     pub data: ImageData,
 }
 
@@ -120,6 +118,15 @@ impl Image {
         Self { data: vec![1.0; size], vbox}
     }
 
+    pub fn new(vbox: VoxelBox, data: ImageData) -> Self {
+        let [x, y, z] = vbox.n;
+        if data.len() != x * y * z {
+            // TODO change panic to Option or Result
+            panic!("Image data does not match dimensions {:?}", vbox.n);
+        };
+        Image { vbox, data }
+    }
+
 }
 
 
@@ -193,7 +200,7 @@ fn apply_sensitivity_matrix(image: &mut ImageData, backprojection: &[Length], sm
 // --------------------------------------------------------------------------------
 //                  Conversion between 1d and 3d indices
 
-use std::ops::{Add, Div, Mul , Rem};
+use std::ops::{Add, Div, Mul, Rem};
 
 pub fn index3_to_1<T>([ix, iy, iz]: [T; 3], [nx, ny, _nz]: [T; 3]) -> T
 where

@@ -61,6 +61,10 @@ pub struct Cli {
     #[structopt(long)]
     pub read_lors: bool,
 
+    /// Calculate figures of merit as images are produced
+    #[structopt(long)]
+    pub fom: bool,
+
 }
 
 // --------------------------------------------------------------------------------
@@ -107,6 +111,44 @@ fn main() -> Result<(), Box<dyn Error>> {
     // If the directory where results will be written does not exist yet, make it
     create_dir_all(PathBuf::from(format!("{:02}_00.raw", file_pattern)).parent().unwrap())?;
 
+    // Regions of interest for CRC
+    fn polar(r: f32, phi: f32) -> (f32, f32, f32) { (r * phi.cos(), r * phi.sin(), 0.0) }
+
+    use petalo::fom::ROI;
+    let step = std::f32::consts::PI / 6.0;
+    let roi_from_centre = 50.0;
+    let (hot, cold, bg_radius) = (4.0, 0.0, 4.0);
+    let fom_config = petalo::fom::FomConfig {
+
+        background_activity : 1.0,
+
+        rois : vec![
+            (ROI::Sphere(polar(roi_from_centre,  2.0*step),  4.0),  hot),
+            (ROI::Sphere(polar(roi_from_centre,  4.0*step),  6.5),  hot),
+            (ROI::Sphere(polar(roi_from_centre,  6.0*step),  8.5),  hot),
+            (ROI::Sphere(polar(roi_from_centre,  8.0*step), 11.0),  hot),
+            (ROI::Sphere(polar(roi_from_centre, 10.0*step), 14.0), cold),
+            (ROI::Sphere(polar(roi_from_centre, 12.0*step), 18.5), cold),
+        ],
+
+        background_rois : vec![
+            ROI::Sphere(polar(roi_from_centre,  1.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre,  3.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre,  5.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre,  7.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre,  9.0*step), bg_radius),
+            ROI::Sphere(polar(roi_from_centre, 11.0*step), bg_radius),
+        ],
+
+    };
+
+    let mut fom_buf = if args.fom {
+        use std::{fs::File, io::BufWriter};
+        let fom_path = PathBuf::from(format!("{}.crcs", file_pattern));
+        let fom_file = File::create(fom_path)?;
+        Some(BufWriter::new(fom_file))
+    } else { None };
+
     // Perform MLEM iterations
     #[cfg    (feature = "ccmlem") ] let use_c = args.use_c;
     #[cfg(not(feature = "ccmlem"))] let use_c = false;
@@ -126,11 +168,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             .take(args.iterations)
             .enumerate() {
                 report_time(&format!("Iteration {:2}", n));
-                let data: Vec<F> = image.data;
+                let data: &Vec<F> = &image.data;
                 let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
-                write(data.into_iter(), &path)?;
+                write(data.iter().cloned(), &path)?;
                 report_time("  Wrote raw bin");
                 // TODO: step_by for print every
+
+                if let Some(mut fom_buf) = fom_buf.as_mut() {
+                    use std::io::Write;
+                    let foms = image.foms(&fom_config, false);
+                    for crc in &foms.crcs {write!(&mut fom_buf, "{:7.2}", crc)?;}; writeln!(&mut fom_buf)?;
+                    print!("    CRCs:{:16}",""); for crc in foms.crcs {print!(" {:12.2}", crc);}; println!();
+                    print!("    SNRs:{:16}",""); for snr in foms.snrs {print!(" {:12.2}", snr);}; println!();
+                    report_time("  Calculated figures of merit");
+                }
             }
     }
     Ok(())

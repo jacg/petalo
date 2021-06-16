@@ -23,7 +23,7 @@ type VecOf<T> = ncollide3d::math::Vector<T>;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
-use crate::types::{Length, Time, Vector, Point, C, BoxDim, Index3, Index3Weight};
+use crate::types::{Length, Time, Vector, Point, C, BoxDim, Index1, Index3, Index3Weight};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -370,9 +370,10 @@ pub struct VoxelBox {
 impl VoxelBox {
 
     pub fn new(
-        (dx, dy, dz): (Length, Length, Length),
+        full_size: (Length, Length, Length),
         (nx, ny, nz): (usize, usize, usize)
     ) -> Self {
+        let (dx, dy, dz) = full_size;
         let half_width = Vector::new(dx/2.0, dy/2.0, dz/2.0);
         let n = [nx, ny, nz];
         let voxel_size = Self::voxel_size(n, half_width);
@@ -388,9 +389,13 @@ impl VoxelBox {
     pub fn voxel_centre(&self, i: Index3) -> Point {
         //i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
         let s = self.voxel_size;
-        Point::new((i[0] as Length + 0.5) * s.x,
-                   (i[1] as Length + 0.5) * s.y,
-                   (i[2] as Length + 0.5) * s.z,)
+        Point::new((i[0] as Length + 0.5) * s.x - self.half_width[0],
+                   (i[1] as Length + 0.5) * s.y - self.half_width[1],
+                   (i[2] as Length + 0.5) * s.z - self.half_width[2],)
+    }
+
+    pub fn voxel_centre1(&self, i: Index1) -> Point {
+        self.voxel_centre(index1_to_3(i, self.n))
     }
 
     pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
@@ -403,6 +408,28 @@ impl VoxelBox {
             .map(|toi| lor.origin + lor.dir * toi)
     }
 
+}
+
+#[cfg(test)]
+mod test_voxel_box {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest(/**/ index,   expected_position,
+             case([0,0,0], [-1.0, -1.0, -1.0]),
+             case([0,0,1], [-1.0, -1.0,  1.0]),
+             case([0,1,0], [-1.0,  1.0, -1.0]),
+             case([0,1,1], [-1.0,  1.0,  1.0]),
+             case([1,0,0], [ 1.0, -1.0, -1.0]),
+             case([1,0,1], [ 1.0, -1.0,  1.0]),
+             case([1,1,0], [ 1.0,  1.0, -1.0]),
+             case([1,1,1], [ 1.0,  1.0,  1.0]),
+    )]
+    fn test_voxel_centre(index: Index3, expected_position: [Length; 3]) {
+        let vbox = VoxelBox::new((4.0, 4.0, 4.0), (2,2,2));
+        let c = vbox.voxel_centre(index);
+        assert!([c.x, c.y, c.z] == expected_position);
+    }
 }
 
 //--------------------------------------------------------------------------------

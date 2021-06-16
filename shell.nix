@@ -109,6 +109,7 @@ let
     pypkgs.cffi
     pypkgs.jupyter
     pypkgs.matplotlib
+    pypkgs.pytest
 
     # Needed for compilation to succeed on Macs
     (darwin darwin-frameworks.AppKit)

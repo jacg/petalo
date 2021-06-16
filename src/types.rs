@@ -2,6 +2,7 @@ pub type Length = f32;
 pub type Time   = Length;
 pub type Weight = Length;
 pub type Ratio  = Length;
+pub type Intensity = Length;
 
 pub type Index1 = usize;
 pub type Index3 = [usize; 3];
