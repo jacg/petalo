@@ -26,9 +26,10 @@ pub struct Cli {
     // TODO allow using different group/dataset in output
 }
 
+type SensorMap = std::collections::HashMap<u64, (f32, f32, f32)>;
+
 // Nasty output parameter inteface ...
-fn read_file(infile: &String, xyzs: &mut Option<Vec<SensorXYZ>>) -> hdf5::Result<Vec<QT0>> {
-    //println!("Reading file {}", infile);
+fn read_file(infile: &String, xyzs: &mut Option<SensorMap>) -> hdf5::Result<Vec<QT0>> {
     // Read sensor configuration, if not yet set.
     if xyzs.is_none() {
         // TODO: We're assuming that that the sensor configurations in all files
@@ -38,7 +39,7 @@ fn read_file(infile: &String, xyzs: &mut Option<Vec<SensorXYZ>>) -> hdf5::Result
         xx.extend_from_slice(yy.as_slice().unwrap());
         // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
         // joined.extend_from_slice(data.into_slice());
-        *xyzs = Some(xx);
+        *xyzs = Some(make_sensor_position_map(xx));
     }
     // Read charges and waveforms
     let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
@@ -70,6 +71,12 @@ fn group_by_event(qts: Vec<QT0>) -> Vec<Vec<QT0>> {
         .collect()
 }
 
+fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
+    xyzs.iter().cloned()
+        .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
+        .collect()
+}
+
 fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
     // --- File reading progress ban -------------------------------------------------
@@ -95,10 +102,6 @@ fn main() -> hdf5::Result<()> {
         files_pb.inc(1);
     }
     files_pb.finish_with_message("<finished reading files>");
-    // --- make map of sensor x-y positions ------------------------------------------
-    let xyzs = xyzs.unwrap().iter().cloned()
-        .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
-        .collect::<std::collections::HashMap<_,_>>();
     // --- group data into events ----------------------------------------------------
     let events: Vec<Vec<QT0>> = group_by_event(qts);
     let n_events = events.len();
@@ -110,7 +113,7 @@ fn main() -> hdf5::Result<()> {
     let mut lors = Vec::<Hdf5Lor>::new();
     let write = args.out.is_some();
     for hits in events {
-        if let Some(lor) = lor(&hits, &xyzs) {
+        if let Some(lor) = lor(&hits, xyzs.as_ref().unwrap()) {
             count_interesting_events += 1;
             lors_pb.set_message(format!("{}", count_interesting_events));
             if args.print { println!("{:6} {}", count_interesting_events-1, lor) };
