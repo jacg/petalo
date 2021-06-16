@@ -25,13 +25,28 @@ pub struct Cli {
     // TODO allow using different group/dataset in output
 }
 
-fn read_file(infile: &String) -> hdf5::Result<(Vec<SensorXYZ>, Vec<QT0>)> {
+// Nasty output parameter inteface ...
+fn read_file(infile: &String, xyzs: &mut Option<Vec<SensorXYZ>>) -> hdf5::Result<Vec<QT0>> {
     println!("Reading file {}", infile);
-    let xyzs = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz"  , None)?;
-    let qs   = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
-    let ts   = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
-    // Combine tables
-    println!("Combining tables");
+    // Read sensor configuration, if not yet set.
+    if xyzs.is_none() {
+        // TODO: We're assuming that that the sensor configurations in all files
+        // are the same. We should verify it.
+        let yy = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz"  , None)?;
+        let mut xx = vec![];
+        xx.extend_from_slice(yy.as_slice().unwrap());
+        // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
+        // joined.extend_from_slice(data.into_slice());
+        *xyzs = Some(xx);
+    }
+    // Read charges and waveforms
+    let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
+    let ts = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
+    Ok(combine_tables(qs, ts))
+}
+
+fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT0> {
+    println!("Combining tables ... ");
     let mut qts = vec![];
     let mut titer = ts.into_iter();
     for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
@@ -42,39 +57,37 @@ fn read_file(infile: &String) -> hdf5::Result<(Vec<SensorXYZ>, Vec<QT0>)> {
             }
         }
     }
-    let mut xx = vec![];
-    xx.extend_from_slice(xyzs.as_slice().unwrap());
-    // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
-    // joined.extend_from_slice(data.into_slice());
-    Ok((xx, qts))
+    println!("done");
+    qts
+}
+
+fn group_by_event(qts: Vec<QT0>) -> Vec<Vec<QT0>> {
+    qts.into_iter()
+        .group_by(|h| h.event_id)
+        .into_iter()
+        .map(|(_, group)| group.collect())
+        .collect()
 }
 
 fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
     // --- read data -----------------------------------------------------------------
     println!("Reading data from {} files", args.infiles.len());
-    let mut xyzs = vec![];
+    let mut xyzs = None;
     let mut qts  = vec![];
-    for infile in args.infiles {
-        let (xyzs_1, qts_1) = read_file(&infile)?;
-        xyzs = xyzs_1;
-        qts.extend_from_slice(&qts_1);
-    }
-
-    // --- ignore sensors with small number of hits ----------------------------------
     let threshold = args.threshold;
-    let qts = qts.iter().filter(|h| h.q > threshold).cloned().collect::<Vec<_>>();
-
+    for infile in args.infiles {
+        qts.extend(read_file(&infile, &mut xyzs)?.into_iter()
+                   // ignore sensors with small number of hits
+                   .filter(|h| h.q > threshold)
+        );
+    }
     // --- make map of sensor x-y positions ------------------------------------------
-    let xyzs = xyzs.iter().cloned()
+    let xyzs = xyzs.unwrap().iter().cloned()
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
         .collect::<std::collections::HashMap<_,_>>();
     // --- group data into events ----------------------------------------------------
-    let events: Vec<Vec<QT0>> = qts.into_iter()
-        .group_by(|h| h.event_id)
-        .into_iter()
-        .map(|(_, group)| group.collect())
-        .collect();
+    let events: Vec<Vec<QT0>> = group_by_event(qts);
     let n_events = events.len();
     // --- calculate lors for each event ---------------------------------------------
     println!("Calculating lors");
@@ -89,7 +102,7 @@ fn main() -> hdf5::Result<()> {
         }
     }
     println!("{} / {} ({}%) have 2 clusters", count_interesting_events, n_events,
-    100 * count_interesting_events / n_events);
+             100 * count_interesting_events / n_events);
     // --- write lors to hdf5 -------------------------------------------------------
     if let Some(file_name) = args.out {
         println!("Writing LORs to {}", file_name);
