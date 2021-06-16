@@ -72,7 +72,7 @@ fn group_by_event(qts: Vec<QT0>) -> Vec<Vec<QT0>> {
 
 fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
-    // Progress bars
+    // --- File reading progress ban -------------------------------------------------
     let files_pb = ProgressBar::new(args.infiles.len() as u64)
         .with_message(args.infiles[0].clone());
     files_pb.set_style(ProgressStyle::default_bar()
@@ -91,7 +91,7 @@ fn main() -> hdf5::Result<()> {
         );
         files_pb.inc(1);
     }
-    files_pb.finish_with_message("");
+    files_pb.finish_with_message("<finished reading files>");
     // --- make map of sensor x-y positions ------------------------------------------
     let xyzs = xyzs.unwrap().iter().cloned()
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
@@ -100,20 +100,22 @@ fn main() -> hdf5::Result<()> {
     let events: Vec<Vec<QT0>> = group_by_event(qts);
     let n_events = events.len();
     // --- calculate lors for each event ---------------------------------------------
-    println!("Calculating lors");
     let lors_pb = ProgressBar::new(events.len() as u64);
+    lors_pb.set_style(ProgressStyle::default_bar()
+        .template("[{elapsed}] Constructing LORs {wide_bar} {pos}/{len} ({eta})"));
     let mut count_interesting_events = 0_usize;
     let mut lors = Vec::<Hdf5Lor>::new();
     let write = args.out.is_some();
     for hits in events {
         if let Some(lor) = lor(&hits, &xyzs) {
             count_interesting_events += 1;
+            lors_pb.set_message(format!("{}", count_interesting_events));
             if args.print { println!("{:6} {}", count_interesting_events-1, lor) };
             if      write { lors.push(lor.into()) };
         }
         lors_pb.inc(1);
     }
-    lors_pb.finish_with_message("done");
+    lors_pb.finish();
     println!("{} / {} ({}%) have 2 clusters", count_interesting_events, n_events,
              100 * count_interesting_events / n_events);
     // --- write lors to hdf5 -------------------------------------------------------
