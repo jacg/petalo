@@ -37,7 +37,7 @@ fn main() -> hdf5::Result<()> {
     let mut n_events = 0;
     let mut failed_files = vec![];
     for infile in args.infiles {
-        files_pb.set_message(infile.clone());
+        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
         if let Ok(qts) = read_file(&infile, &mut xyzs) {
             let events = group_by_event(qts.into_iter().filter(|h| h.q > threshold));
             for hits in events {
