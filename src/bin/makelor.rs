@@ -78,7 +78,7 @@ fn main() -> hdf5::Result<()> {
     let n_events = events.len();
     // --- calculate lors for each event ---------------------------------------------
     println!("Calculating lors");
-    let mut count_interesting_events = 0_u16;
+    let mut count_interesting_events = 0_usize;
     let mut lors = Vec::<Hdf5Lor>::new();
     let write = args.out.is_some();
     for hits in events {
@@ -88,7 +88,8 @@ fn main() -> hdf5::Result<()> {
             if      write { lors.push(lor.into()) };
         }
     }
-    println!("{} / {} have 2 clusters", count_interesting_events, n_events);
+    println!("{} / {} ({}%) have 2 clusters", count_interesting_events, n_events,
+    100 * count_interesting_events / n_events);
     // --- write lors to hdf5 -------------------------------------------------------
     if let Some(file_name) = args.out {
         println!("Writing LORs to {}", file_name);
