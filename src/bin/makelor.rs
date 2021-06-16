@@ -1,6 +1,6 @@
 use structopt::StructOpt;
 use itertools::Itertools;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::{ProgressBar, ProgressStyle};
 use petalo::{io, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::types::{Point, Time};
@@ -73,9 +73,10 @@ fn group_by_event(qts: Vec<QT0>) -> Vec<Vec<QT0>> {
 fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
     // Progress bars
-    let files_pb = ProgressBar::new(args.infiles.len() as u64);
+    let files_pb = ProgressBar::new(args.infiles.len() as u64)
+        .with_message(args.infiles[0].clone());
     files_pb.set_style(ProgressStyle::default_bar()
-                       .template("[{elapsed_precise}] Reading files {wide_bar} {pos}/{len} ({eta})")
+                       .template("Reading file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta})")
         );
     files_pb.tick();
     // --- read data -----------------------------------------------------------------
@@ -83,13 +84,14 @@ fn main() -> hdf5::Result<()> {
     let mut qts  = vec![];
     let threshold = args.threshold;
     for infile in args.infiles {
+        files_pb.set_message(infile.clone());
         qts.extend(read_file(&infile, &mut xyzs)?.into_iter()
                    // ignore sensors with small number of hits
                    .filter(|h| h.q > threshold)
         );
         files_pb.inc(1);
     }
-    files_pb.finish_with_message("done");
+    files_pb.finish_with_message("");
     // --- make map of sensor x-y positions ------------------------------------------
     let xyzs = xyzs.unwrap().iter().cloned()
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
