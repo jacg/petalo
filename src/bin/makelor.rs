@@ -1,6 +1,6 @@
 use structopt::StructOpt;
 use itertools::Itertools;
-use indicatif::{MultiProgress, ProgressBar};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use petalo::{io, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::types::{Point, Time};
@@ -74,8 +74,11 @@ fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
     // Progress bars
     let files_pb = ProgressBar::new(args.infiles.len() as u64);
+    files_pb.set_style(ProgressStyle::default_bar()
+                       .template("[{elapsed_precise}] Reading files {wide_bar} {pos}/{len} ({eta})")
+        );
+    files_pb.tick();
     // --- read data -----------------------------------------------------------------
-    println!("Reading data from {} files", args.infiles.len());
     let mut xyzs = None;
     let mut qts  = vec![];
     let threshold = args.threshold;
