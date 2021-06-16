@@ -52,7 +52,7 @@ fn read_file(infile: &String) -> hdf5::Result<(Vec<SensorXYZ>, Vec<QT0>)> {
 fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
     // --- read data -----------------------------------------------------------------
-    println!("Reading data");
+    println!("Reading data from {} files", args.infiles.len());
     let mut xyzs = vec![];
     let mut qts  = vec![];
     for infile in args.infiles {
