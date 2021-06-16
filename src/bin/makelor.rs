@@ -212,10 +212,7 @@ fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> V
     qts
 }
 
-fn group_by_event<I>(qts: I) -> Vec<Vec<QT0>>
-where
-    I: IntoIterator<Item = QT0>
-{
+fn group_by_event(qts: impl IntoIterator<Item = QT0>) -> Vec<Vec<QT0>> {
     qts.into_iter()
         .group_by(|h| h.event_id)
         .into_iter()
