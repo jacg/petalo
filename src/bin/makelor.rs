@@ -13,7 +13,7 @@ pub struct Cli {
 
     /// HDF5 output file for LORs found in input file
     #[structopt(short, long)]
-    pub out: Option<String>,
+    pub out: String,
 
     /// Ignore sensors which do not receive this number of photons
     #[structopt(short, long, default_value = "4")]
@@ -48,7 +48,6 @@ fn read_file(infile: &String, xyzs: &mut Option<SensorMap>) -> hdf5::Result<Vec<
 }
 
 fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT0> {
-    //println!("Combining tables ... ");
     let mut qts = vec![];
     let mut titer = ts.into_iter();
     for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
@@ -59,7 +58,6 @@ fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> V
             }
         }
     }
-    //println!("done");
     qts
 }
 
@@ -79,59 +77,42 @@ fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
 
 fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
-    // --- File reading progress ban -------------------------------------------------
-    let files_pb = ProgressBar::new(args.infiles.len() as u64)
-        .with_message(args.infiles[0].clone());
+    // --- File reading progress bar -------------------------------------------------
+    let files_pb = ProgressBar::new(args.infiles.len() as u64).with_message(args.infiles[0].clone());
     files_pb.set_style(ProgressStyle::default_bar()
                        .template("Reading file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta})")
         );
     files_pb.tick();
-    // --- read data -----------------------------------------------------------------
+    // --- Process input files -------------------------------------------------------
     let mut xyzs = None;
-    let mut qts  = vec![];
+    let mut lors: Vec<Hdf5Lor> = vec![];
     let threshold = args.threshold;
+    let mut n_events = 0;
     let mut failed_files = vec![];
     for infile in args.infiles {
         files_pb.set_message(infile.clone());
-        if let Ok(qts_here) = read_file(&infile, &mut xyzs) {
-            qts.extend(qts_here.into_iter()
-                       // ignore sensors with small number of hits
-                       .filter(|h| h.q > threshold)
-            );
+        if let Ok(qts) = read_file(&infile, &mut xyzs) {
+            let qts = qts.into_iter().filter(|h| h.q > threshold).collect(); // TODO: pass iterator to group_by_event
+            let events = group_by_event(qts);
+            for hits in events {
+                n_events += 1;
+                if let Some(lor) = lor(&hits, xyzs.as_ref().unwrap()) {
+                    lors.push(lor.into());
+                }
+            }
         } else { failed_files.push(infile); }
         files_pb.inc(1);
     }
     files_pb.finish_with_message("<finished reading files>");
-    // --- group data into events ----------------------------------------------------
-    let events: Vec<Vec<QT0>> = group_by_event(qts);
-    let n_events = events.len();
-    // --- calculate lors for each event ---------------------------------------------
-    let lors_pb = ProgressBar::new(events.len() as u64);
-    lors_pb.set_style(ProgressStyle::default_bar()
-        .template("[{elapsed}] Constructing LORs {wide_bar} {pos}/{len} ({eta})"));
-    let mut count_interesting_events = 0_usize;
-    let mut lors = Vec::<Hdf5Lor>::new();
-    let write = args.out.is_some();
-    for hits in events {
-        if let Some(lor) = lor(&hits, xyzs.as_ref().unwrap()) {
-            count_interesting_events += 1;
-            lors_pb.set_message(format!("{}", count_interesting_events));
-            if args.print { println!("{:6} {}", count_interesting_events-1, lor) };
-            if      write { lors.push(lor.into()) };
-        }
-        lors_pb.inc(1);
-    }
-    lors_pb.finish();
-    println!("{} / {} ({}%) have 2 clusters", count_interesting_events, n_events,
-             100 * count_interesting_events / n_events);
-    // --- write lors to hdf5 -------------------------------------------------------
-    if let Some(file_name) = args.out {
-        println!("Writing LORs to {}", file_name);
-        hdf5::File::create(file_name)?
-            .create_group("reco_info")?
-            .new_dataset::<Hdf5Lor>().create("lors", lors.len())?
-            .write(&lors)?;
-    }
+    println!("{} / {} ({}%) have 2 clusters", lors.len(), n_events,
+             100 * lors.len() / n_events);
+    // --- write lors to hdf5 --------------------------------------------------------
+    println!("Writing LORs to {}", args.out);
+    hdf5::File::create(args.out)?
+        .create_group("reco_info")?
+        .new_dataset::<Hdf5Lor>().create("lors", lors.len())?
+        .write(&lors)?;
+    // --- Report any files that failed no be read -----------------------------------
     if !failed_files.is_empty() {
         println!("Warning: failed to read:");
         for file in failed_files {
