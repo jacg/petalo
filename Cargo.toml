@@ -26,6 +26,7 @@ uom = "0.31"
 ordered-float = "2.2"
 cmlem = { path = "cmlem" }
 indicatif = "0.16.2"
+itertools = "0.10.1"
 
 [dev-dependencies]
 rstest = "0.6.4"

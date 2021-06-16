@@ -1,4 +1,5 @@
 use structopt::StructOpt;
+use itertools::Itertools;
 use indicatif::ProgressBar;
 use petalo::{io, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
@@ -30,7 +31,7 @@ fn main() -> hdf5::Result<()> {
     println!("Reading data");
     let infile = args.infile;
     let xyzs = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz"  , None)?;
-    let qts  = io::hdf5::read_table::<QT0      >(&infile, "MC/q_t0"        , None)?;
+    let _qts = io::hdf5::read_table::<QT0      >(&infile, "MC/q_t0"        , None)?;
     let qs   = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
     let ts   = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
     // --- make qts out of qs and ts -------------------------------------------------
@@ -54,17 +55,21 @@ fn main() -> hdf5::Result<()> {
     let xyzs = xyzs.iter().cloned()
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
         .collect::<std::collections::HashMap<_,_>>();
-    // --- find available event numbers ----------------------------------------------
-    let event_numbers = qts.iter().map(|e| e.event_id).collect::<std::collections::BTreeSet<_>>();
+    // --- group data into events ----------------------------------------------------
+    let events: Vec<Vec<QT0>> = qts.into_iter()
+        .group_by(|h| h.event_id)
+        .into_iter()
+        .map(|(_, group)| group.collect())
+        .collect();
+    let n_events = events.len();
     // --- calculate lors for each event ---------------------------------------------
     println!("Calculating lors");
     let mut count_interesting_events = 0_u16;
     let mut lors = Vec::<Hdf5Lor>::new();
     let write = args.out.is_some();
-    let pb = if !args.print { Some(ProgressBar::new(event_numbers.len() as u64)) }
+    let pb = if !args.print { Some(ProgressBar::new(events.len() as u64)) }
              else           { None };
-    for e in event_numbers.iter().cloned() { // TODO replace filter with groupby
-        let hits = qts.iter().filter(|h| h.event_id == e).cloned().collect::<Vec<_>>();
+    for hits in events {
         if let Some(lor) = lor(&hits, &xyzs) {
             count_interesting_events += 1;
             if args.print { println!("{:6} {}", count_interesting_events-1, lor) };
@@ -73,7 +78,7 @@ fn main() -> hdf5::Result<()> {
         if let Some(pb) = &pb { pb.inc(1); }
     }
     if let Some(pb) = pb { pb.finish_with_message("done"); }
-    println!("{} / {} have 2 clusters", count_interesting_events, event_numbers.len());
+    println!("{} / {} have 2 clusters", count_interesting_events, n_events);
     // --- write lors to hdf5 -------------------------------------------------------
     if let Some(file_name) = args.out {
         println!("Writing LORs to {}", file_name);
