@@ -22,6 +22,7 @@ pub struct Cli {
     #[structopt(short, long)]
     pub print: bool,
 
+    // TODO allow using different group/dataset in output
 }
 
 fn read_file(infile: &String) -> hdf5::Result<(Vec<SensorXYZ>, Vec<QT0>)> {
@@ -43,6 +44,8 @@ fn read_file(infile: &String) -> hdf5::Result<(Vec<SensorXYZ>, Vec<QT0>)> {
     }
     let mut xx = vec![];
     xx.extend_from_slice(xyzs.as_slice().unwrap());
+    // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
+    // joined.extend_from_slice(data.into_slice());
     Ok((xx, qts))
 }
 
