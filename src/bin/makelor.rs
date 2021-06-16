@@ -19,10 +19,6 @@ pub struct Cli {
     #[structopt(short, long, default_value = "4")]
     pub threshold: u64,
 
-    /// Print LORs on stdout
-    #[structopt(short, long)]
-    pub print: bool,
-
     // TODO allow using different group/dataset in output
 }
 
