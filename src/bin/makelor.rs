@@ -83,12 +83,15 @@ fn main() -> hdf5::Result<()> {
     let mut xyzs = None;
     let mut qts  = vec![];
     let threshold = args.threshold;
+    let mut failed_files = vec![];
     for infile in args.infiles {
         files_pb.set_message(infile.clone());
-        qts.extend(read_file(&infile, &mut xyzs)?.into_iter()
-                   // ignore sensors with small number of hits
-                   .filter(|h| h.q > threshold)
-        );
+        if let Ok(qts_here) = read_file(&infile, &mut xyzs) {
+            qts.extend(qts_here.into_iter()
+                       // ignore sensors with small number of hits
+                       .filter(|h| h.q > threshold)
+            );
+        } else { failed_files.push(infile); }
         files_pb.inc(1);
     }
     files_pb.finish_with_message("<finished reading files>");
@@ -125,6 +128,12 @@ fn main() -> hdf5::Result<()> {
             .create_group("reco_info")?
             .new_dataset::<Hdf5Lor>().create("lors", lors.len())?
             .write(&lors)?;
+    }
+    if !failed_files.is_empty() {
+        println!("Warning: failed to read:");
+        for file in failed_files {
+            println!("  {}", file);
+        }
     }
     Ok(())
 }
