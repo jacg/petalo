@@ -1,5 +1,6 @@
 use structopt::StructOpt;
 use itertools::Itertools;
+use indicatif::{ProgressBar, ProgressStyle};
 use petalo::{io, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::types::{Point, Time};
@@ -27,7 +28,7 @@ pub struct Cli {
 
 // Nasty output parameter inteface ...
 fn read_file(infile: &String, xyzs: &mut Option<Vec<SensorXYZ>>) -> hdf5::Result<Vec<QT0>> {
-    println!("Reading file {}", infile);
+    //println!("Reading file {}", infile);
     // Read sensor configuration, if not yet set.
     if xyzs.is_none() {
         // TODO: We're assuming that that the sensor configurations in all files
@@ -46,7 +47,7 @@ fn read_file(infile: &String, xyzs: &mut Option<Vec<SensorXYZ>>) -> hdf5::Result
 }
 
 fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT0> {
-    println!("Combining tables ... ");
+    //println!("Combining tables ... ");
     let mut qts = vec![];
     let mut titer = ts.into_iter();
     for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
@@ -57,7 +58,7 @@ fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> V
             }
         }
     }
-    println!("done");
+    //println!("done");
     qts
 }
 
@@ -71,17 +72,26 @@ fn group_by_event(qts: Vec<QT0>) -> Vec<Vec<QT0>> {
 
 fn main() -> hdf5::Result<()> {
     let args = Cli::from_args();
+    // --- File reading progress ban -------------------------------------------------
+    let files_pb = ProgressBar::new(args.infiles.len() as u64)
+        .with_message(args.infiles[0].clone());
+    files_pb.set_style(ProgressStyle::default_bar()
+                       .template("Reading file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta})")
+        );
+    files_pb.tick();
     // --- read data -----------------------------------------------------------------
-    println!("Reading data from {} files", args.infiles.len());
     let mut xyzs = None;
     let mut qts  = vec![];
     let threshold = args.threshold;
     for infile in args.infiles {
+        files_pb.set_message(infile.clone());
         qts.extend(read_file(&infile, &mut xyzs)?.into_iter()
                    // ignore sensors with small number of hits
                    .filter(|h| h.q > threshold)
         );
+        files_pb.inc(1);
     }
+    files_pb.finish_with_message("<finished reading files>");
     // --- make map of sensor x-y positions ------------------------------------------
     let xyzs = xyzs.unwrap().iter().cloned()
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
@@ -90,17 +100,22 @@ fn main() -> hdf5::Result<()> {
     let events: Vec<Vec<QT0>> = group_by_event(qts);
     let n_events = events.len();
     // --- calculate lors for each event ---------------------------------------------
-    println!("Calculating lors");
+    let lors_pb = ProgressBar::new(events.len() as u64);
+    lors_pb.set_style(ProgressStyle::default_bar()
+        .template("[{elapsed}] Constructing LORs {wide_bar} {pos}/{len} ({eta})"));
     let mut count_interesting_events = 0_usize;
     let mut lors = Vec::<Hdf5Lor>::new();
     let write = args.out.is_some();
     for hits in events {
         if let Some(lor) = lor(&hits, &xyzs) {
             count_interesting_events += 1;
+            lors_pb.set_message(format!("{}", count_interesting_events));
             if args.print { println!("{:6} {}", count_interesting_events-1, lor) };
             if      write { lors.push(lor.into()) };
         }
+        lors_pb.inc(1);
     }
+    lors_pb.finish();
     println!("{} / {} ({}%) have 2 clusters", count_interesting_events, n_events,
              100 * count_interesting_events / n_events);
     // --- write lors to hdf5 -------------------------------------------------------
