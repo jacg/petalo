@@ -299,6 +299,7 @@ fn voxel_size(vbox: VoxelBox, p1: Point, p2: Point) -> Vector {
 /// Calculate information needed to keep track of progress across voxel box:
 /// voxel index and distance remaining until leaving the box
 #[inline]
+#[allow(clippy::identity_op)]
 fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDim) -> (i32, [i32; 3], [i32; 3]) {
 
     // Find N-dimensional index of voxel at entry point.
