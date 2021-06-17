@@ -1,7 +1,7 @@
 /// Read / write float arrays as raw binary
 
 use std::fs::File;
-use std::io::{Write, Read, BufWriter};
+use std::io::{Write, Read, BufWriter, BufReader};
 
 pub fn write(data: impl Iterator<Item = f32>, path: &std::path::Path) -> std::io::Result<()> {
     let file = File::create(path)?;
@@ -17,14 +17,14 @@ pub fn write(data: impl Iterator<Item = f32>, path: &std::path::Path) -> std::io
 }
 
 type IORes<T> = std::io::Result<T>;
-// TODO: reading is a factor of 60 slower than writing
 pub fn read<'a>(path: &std::path::Path) -> IORes<impl Iterator<Item = IORes<f32>> + 'a> {
-    let mut file = File::open(path)?;
+    let file = File::open(path)?;
+    let mut buf = BufReader::new(file);
     let mut buffer = [0; 4];
 
     Ok(std::iter::from_fn(move || {
         use std::io::ErrorKind::UnexpectedEof;
-        match file.read_exact(&mut buffer) {
+        match buf.read_exact(&mut buffer) {
             Ok(()) => Some(Ok(f32::from_le_bytes(buffer))),
             Err(e) if e.kind() == UnexpectedEof => None,
             Err(e) => Some(Err(e)),
