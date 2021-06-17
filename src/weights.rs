@@ -447,7 +447,7 @@ pub struct LOR {
 }
 
 impl LOR {
-    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self { Self { t1, t2, p1, p2 } }
+    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self { Self { p1, p2, t1, t2 } }
 
     pub fn active_voxels(&self, vbox: &VoxelBox, cutoff: Option<Length>, sigma: Option<Length>) -> Vec<Index3Weight> {
 
