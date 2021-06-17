@@ -170,7 +170,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 report_time(&format!("Iteration {:2}", n));
                 let data: &Vec<F> = &image.data;
                 let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
-                write(data.iter().cloned(), &path)?;
+                petalo::io::raw::write(data.iter().cloned(), &path)?;
                 report_time("  Wrote raw bin");
                 // TODO: step_by for print every
 
@@ -186,13 +186,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     Ok(())
 }
-
-fn write(data: impl Iterator<Item = F>, path: &PathBuf) -> Result<(), Box<dyn Error>> {
-    use petalo::io::raw::write;
-    write(data, path)?;
-    Ok(())
-}
-
 
 fn guess_filename(args: &Cli) -> String {
     if let Some(pattern) = &args.out_files {
