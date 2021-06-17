@@ -81,7 +81,7 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
     let it: Vec<LOR> = if args.read_lors {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
-            .map(|l| LOR::from(l))
+            .map(LOR::from)
             .collect()
     } else {
         read_table::<Event>  (&args.input_file, &args.dataset, args.event_range.clone())?
