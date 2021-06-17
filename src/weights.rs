@@ -202,6 +202,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
 /// allocating the vectors of results repeatedly, had a noticeable impact on
 /// performance.
 #[inline]
+#[allow(clippy::too_many_arguments)]
 pub fn find_active_voxels(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Length>,
