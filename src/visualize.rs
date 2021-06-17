@@ -157,7 +157,7 @@ impl Scene {
         let distance = 4.0 * biggest;
         let zfar  = distance * 2.0;
         let znear = 0.1; //distance / 2.0;
-        let fov = (biggest / distance).atan() * 2.2 as f32;
+        let fov = (biggest / distance).atan() * 2.2_f32;
         kiss3d::camera::ArcBall::new_with_frustrum(
             fov, znear, zfar,
             Point3::new(0.0, 0.0, distance), // eye
