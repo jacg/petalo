@@ -19,10 +19,6 @@ pub struct Cli {
     #[structopt(short, long, default_value = "4")]
     pub threshold: u64,
 
-    /// Print LORs on stdout
-    #[structopt(short, long)]
-    pub print: bool,
-
     // TODO allow using different group/dataset in output
 }
 
@@ -31,7 +27,7 @@ fn main() -> hdf5::Result<()> {
     // --- Progress bar --------------------------------------------------------------
     let files_pb = ProgressBar::new(args.infiles.len() as u64).with_message(args.infiles[0].clone());
     files_pb.set_style(ProgressStyle::default_bar()
-                       .template("Reading file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
+                       .template("Processing file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
         );
     files_pb.tick();
     // --- Process input files -------------------------------------------------------
@@ -41,7 +37,7 @@ fn main() -> hdf5::Result<()> {
     let mut n_events = 0;
     let mut failed_files = vec![];
     for infile in args.infiles {
-        files_pb.set_message(infile.clone());
+        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
         if let Ok(qts) = read_file(&infile, &mut xyzs) {
             let events = group_by_event(qts.into_iter().filter(|h| h.q > threshold));
             for hits in events {
@@ -53,9 +49,9 @@ fn main() -> hdf5::Result<()> {
         } else { failed_files.push(infile); }
         files_pb.inc(1);
     }
-    files_pb.finish_with_message("<finished reading files>");
     println!("{} / {} ({}%) events produced LORs", lors.len(), n_events,
              100 * lors.len() / n_events);
+    files_pb.finish_with_message("<finished processing files>");
     // --- write lors to hdf5 --------------------------------------------------------
     println!("Writing LORs to {}", args.out);
     hdf5::File::create(args.out)?
