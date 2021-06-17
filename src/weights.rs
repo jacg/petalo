@@ -202,6 +202,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
 /// allocating the vectors of results repeatedly, had a noticeable impact on
 /// performance.
 #[inline]
+#[allow(clippy::too_many_arguments)]
 pub fn find_active_voxels(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Length>,
@@ -298,6 +299,7 @@ fn voxel_size(vbox: VoxelBox, p1: Point, p2: Point) -> Vector {
 /// Calculate information needed to keep track of progress across voxel box:
 /// voxel index and distance remaining until leaving the box
 #[inline]
+#[allow(clippy::identity_op)]
 fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDim) -> (i32, [i32; 3], [i32; 3]) {
 
     // Find N-dimensional index of voxel at entry point.
@@ -436,6 +438,7 @@ mod test_voxel_box {
 /// Line Of Response: 2 spacetime vectors indicating the positions and times of
 /// coincident detector element activations
 #[derive(Clone, Copy, Debug)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct LOR {
     pub p1: Point,
     pub p2: Point,
@@ -444,7 +447,7 @@ pub struct LOR {
 }
 
 impl LOR {
-    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self { Self { t1, t2, p1, p2 } }
+    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self { Self { p1, p2, t1, t2 } }
 
     pub fn active_voxels(&self, vbox: &VoxelBox, cutoff: Option<Length>, sigma: Option<Length>) -> Vec<Index3Weight> {
 

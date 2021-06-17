@@ -5,6 +5,7 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 use std::ffi::CString;
 use ::std::os::raw::c_int;
 
+#[allow(clippy::too_many_arguments)]
 pub fn cmlem(
     niterations: usize,
     TOF: bool,

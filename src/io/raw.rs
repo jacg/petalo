@@ -3,7 +3,7 @@
 use std::fs::File;
 use std::io::{Write, Read, BufWriter};
 
-pub fn write(data: impl Iterator<Item = f32>, path: &std::path::PathBuf) -> std::io::Result<()> {
+pub fn write(data: impl Iterator<Item = f32>, path: &std::path::Path) -> std::io::Result<()> {
     let file = File::create(path)?;
     let mut buf = BufWriter::new(file);
     for datum in data {
@@ -18,7 +18,7 @@ pub fn write(data: impl Iterator<Item = f32>, path: &std::path::PathBuf) -> std:
 
 type IORes<T> = std::io::Result<T>;
 // TODO: reading is a factor of 60 slower than writing
-pub fn read<'a>(path: &std::path::PathBuf) -> IORes<impl Iterator<Item = IORes<f32>> + 'a> {
+pub fn read<'a>(path: &std::path::Path) -> IORes<impl Iterator<Item = IORes<f32>> + 'a> {
     let mut file = File::open(path)?;
     let mut buffer = [0; 4];
 

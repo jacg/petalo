@@ -5,7 +5,7 @@ use crate::weights::VoxelBox;
 
 type BoxErr<T> = Result<T, Box<dyn std::error::Error>>;
 
-pub fn load_image(filename: &std::path::PathBuf, vbox: VoxelBox) -> BoxErr<Image> {
+pub fn load_image(filename: &std::path::Path, vbox: VoxelBox) -> BoxErr<Image> {
     let data = raw::read(filename)?.collect::<Result<_,_>>()?;
     Ok(Image::new(vbox, data)) // TODO: Upgrade Image::new from panic to Result
 }
@@ -30,6 +30,7 @@ mod test_get_sample_image {
 
 
 #[derive(Clone, Debug)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum ROI {
     Sphere((Length, Length, Length), Length),
     CylinderX((Length, Length), Length),
@@ -171,11 +172,11 @@ mod test_in_roi {
 }
 
 // TODO stop reinventing this wheel
-fn mean(data: &ImageData) -> Option<Intensity> {
+fn mean(data: &[Intensity]) -> Option<Intensity> {
     data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensity)
 }
 
-fn mu_and_sigma(data: &ImageData) -> Option<(Intensity, Intensity)> {
+fn mu_and_sigma(data: &[Intensity]) -> Option<(Intensity, Intensity)> {
     let mu = mean(data)?;
     let sigma = data.iter().cloned()
         .map(|x| x-mu)
@@ -230,6 +231,7 @@ impl FomConfig {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 pub struct FOMS {
     pub crcs: Vec<Ratio>,
     pub snrs: Vec<Ratio>,
