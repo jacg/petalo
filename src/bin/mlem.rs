@@ -218,6 +218,7 @@ fn guess_filename(args: &Cli) -> String {
 // let's just get it working at all, for the time being, and reorganize the
 // packages later
 
+#[cfg(feature = "ccmlem")]
 use petalo::weights::LOR;
 
 #[cfg(feature = "ccmlem")]
