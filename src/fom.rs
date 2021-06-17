@@ -30,6 +30,7 @@ mod test_get_sample_image {
 
 
 #[derive(Clone, Debug)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum ROI {
     Sphere((Length, Length, Length), Length),
     CylinderX((Length, Length), Length),
@@ -230,6 +231,7 @@ impl FomConfig {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 pub struct FOMS {
     pub crcs: Vec<Ratio>,
     pub snrs: Vec<Ratio>,

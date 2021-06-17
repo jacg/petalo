@@ -438,6 +438,7 @@ mod test_voxel_box {
 /// Line Of Response: 2 spacetime vectors indicating the positions and times of
 /// coincident detector element activations
 #[derive(Clone, Copy, Debug)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct LOR {
     pub p1: Point,
     pub p2: Point,
