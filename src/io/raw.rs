@@ -63,7 +63,7 @@ mod test {
 
 // ----- Raw 3d image with matrix/physical size metadata --------------------------------
 
-use binrw::BinRead;
+use binrw::{BinRead, BinReaderExt};
 use binwrite::BinWrite;
 
 #[derive(BinRead, BinWrite, PartialEq, Debug)]
@@ -83,10 +83,16 @@ impl Image3D {
         let mut buf = BufWriter::new(file);
         self.write(&mut buf)
     }
+
+    pub fn read_from_file(path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
+        let file = File::open(path)?;
+        let mut buffered = BufReader::new(file);
+        Ok(buffered.read_ne().unwrap())
+    }
 }
 
 #[cfg(test)]
-use binrw::{BinReaderExt, io::Cursor};
+use binrw::io::Cursor;
 
 #[cfg(test)]
 mod test_with_metadata {
@@ -133,13 +139,9 @@ mod test_with_metadata {
 
         // Write data to file
         original.write_to_file(&file_path)?;
+
         // Read data back from file
-        // TODO: encapsulate this in methods
-        let recovered: Image3D = {
-            let file = File::open(file_path)?;
-            let mut buffered = BufReader::new(file);
-            buffered.read_ne().unwrap()
-        };
+        let recovered = Image3D::read_from_file(&file_path)?;
 
         // Check that roundtrip didn't corrupt the data
         assert_eq!(original, recovered);
