@@ -53,7 +53,9 @@ def show_image(image, zslice, extent, ax=plt):
 
 def read_raw(filename):
     buffer = open(filename, 'rb').read()
-    return struct.unpack_from('f' * (len(buffer) // 4), buffer)
+    metadata = buffer[:18]
+    data = buffer[18:]
+    return struct.unpack_from('>'+'f' * (len(data) // 4), data)
 
 
 def wrap_1d_into_3d(data, shape, row_major=False):
