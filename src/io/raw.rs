@@ -74,7 +74,7 @@ pub struct Image3D {
     pixels: [u16; 3],
     mm: [f32; 3],
     #[br(count = pixels[0] as usize * pixels[1] as usize * pixels[2] as usize)]
-    data: Vec<f32>,
+    pub data: Vec<f32>,
 }
 
 impl Image3D {
@@ -88,6 +88,19 @@ impl Image3D {
         let file = File::open(path)?;
         let mut buffered = BufReader::new(file);
         Ok(buffered.read_ne().unwrap())
+    }
+}
+
+// TODO: Ideally mlem::Image and Image3D would be a single type.
+use super::super::mlem::Image as MLEMImage;
+impl From<&MLEMImage> for Image3D {
+    fn from(image: &MLEMImage) -> Self {
+        let n = image.vbox.n;
+        let pixels = [n[0] as u16, n[1] as u16, n[2] as u16];
+        let l = image.vbox.half_width;
+        let mm = [l[0], l[1], l[2]];
+        let data = image.data.clone();
+        Self { pixels, mm, data }
     }
 }
 
