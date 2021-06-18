@@ -138,7 +138,9 @@ mod test_mytrial {
         let mut bytes = vec![];
         a.write(&mut bytes).unwrap();
         let mut reader = Cursor::new(bytes);
-        let b: MyTrial = reader.read_ne().unwrap();
-        assert!(a == b);
+        match reader.read_ne::<MyTrial>() {
+            Ok(b) => assert_eq!(a, b),
+            Err(e) => {println!("{:?}", e); panic!("Waaaaaa!")}
+        }
     }
 }
