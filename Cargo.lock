@@ -155,6 +155,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "binwrite"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42c3da1db1f384ad643e27cb6ba4f08f2a7cd8753bef8dd95c39fe45d7a474c8"
+dependencies = [
+ "binwrite_derive",
+ "paste 0.1.18",
+]
+
+[[package]]
+name = "binwrite_derive"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "476f17c19ce04226ba997c229ce8fb96eaef1c0e0745ec91d8df35f723aae353"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1653,6 +1674,7 @@ dependencies = [
  "assert_approx_eq",
  "bindgen",
  "binread",
+ "binwrite",
  "cmlem",
  "hdf5",
  "indicatif",

@@ -76,15 +76,45 @@ struct Dog {
     name: NullString
 }
 
+
+use binwrite::BinWrite;
+
+#[derive(BinWrite)]
+#[binwrite(little)]
+struct Rect {
+    x: i32,
+    y: i32,
+    #[binwrite(big)]
+    size: (u16, u16),
+}
+
 #[cfg(test)]
 mod test_binrw {
     use super::*;
 
     #[test]
-    fn simplest() {
+    fn simplest_binread() {
         let mut reader = Cursor::new(b"DOG\x02\x00\x01\x00\x12\0\0Rudy\0");
         let dog: Dog = reader.read_ne().unwrap();
         assert_eq!(dog.bone_piles, &[0x1, 0x12]);
         assert_eq!(dog.name.into_string(), "Rudy")
+    }
+
+    #[test]
+    fn simplest_binwrite() {
+        let rects = vec![
+            Rect { x: 1, y: -2, size: (3, 4) },
+            Rect { x: 20, y: 4, size: (5, 7) }
+        ];
+        let mut bytes = vec![];
+        rects.write(&mut bytes).unwrap();
+        assert_eq!(
+            bytes,
+            vec![
+                //  [  x (little endian) ]  [  y (little endian) ]  [ size.0 ]  [ size.1 ]
+                0x01, 0x00, 0x00, 0x00, 0xFE, 0xFF, 0xFF, 0xFF, 0x00, 0x03, 0x00, 0x04,
+                0x14, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x07,
+            ]
+        );
     }
 }
