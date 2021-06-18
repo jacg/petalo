@@ -78,6 +78,9 @@ struct Image3D {
 }
 
 #[cfg(test)]
+use binrw::{BinReaderExt, io::Cursor};
+
+#[cfg(test)]
 mod test_with_metadata {
     use super::*;
 
@@ -106,62 +109,6 @@ mod test_with_metadata {
 }
 
 // ----- Proofs of concept ---------------------------------------------------------------
-use binrw::{BinReaderExt, NullString, io::Cursor};
-
-#[derive(BinRead)]
-#[br(magic = b"DOG", assert(name.len() != 0))]
-struct Dog {
-    bone_pile_count: u8,
-
-    #[br(big, count = bone_pile_count)]
-    bone_piles: Vec<u16>,
-
-    #[br(align_before = 0xA)]
-    name: NullString
-}
-
-
-
-#[derive(BinWrite)]
-#[binwrite(little)]
-struct Rect {
-    x: i32,
-    y: i32,
-    #[binwrite(big)]
-    size: (u16, u16),
-}
-
-#[cfg(test)]
-mod test_binrw {
-    use super::*;
-
-    #[test]
-    fn simplest_binread() {
-        let mut reader = Cursor::new(b"DOG\x02\x00\x01\x00\x12\0\0Rudy\0");
-        let dog: Dog = reader.read_ne().unwrap();
-        assert_eq!(dog.bone_piles, &[0x1, 0x12]);
-        assert_eq!(dog.name.into_string(), "Rudy")
-    }
-
-    #[test]
-    fn simplest_binwrite() {
-        let rects = vec![
-            Rect { x: 1, y: -2, size: (3, 4) },
-            Rect { x: 20, y: 4, size: (5, 7) }
-        ];
-        let mut bytes = vec![];
-        rects.write(&mut bytes).unwrap();
-        assert_eq!(
-            bytes,
-            vec![
-                //  [  x (little endian) ]  [  y (little endian) ]  [ size.0 ]  [ size.1 ]
-                0x01, 0x00, 0x00, 0x00, 0xFE, 0xFF, 0xFF, 0xFF, 0x00, 0x03, 0x00, 0x04,
-                0x14, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x07,
-            ]
-        );
-    }
-}
-
 #[cfg(test)]
 mod test_br_enum {
     use super::*;
@@ -187,31 +134,5 @@ mod test_br_enum {
 
         let rect = Shape::read(&mut Cursor::new(b"SHAP\x00\x00\x01\x00\x02\x00\x03\x00\x04")).unwrap();
         assert_eq!(rect, Shape::Rect { left: 1, top: 2, right: 3, bottom: 4 });
-    }
-}
-
-#[derive(BinRead, BinWrite, PartialEq, Debug)]
-struct MyTrial {
-    x: u32,
-    y: u32,
-    #[br(count = x*y)]
-    data: Vec<f32>,
-}
-
-#[cfg(test)]
-mod test_mytrial {
-    use super::*;
-
-    #[test]
-    fn roundtrip() {
-        let data = vec![1.2, 3.4, 5.6, 7.8, 9.0, 0.1];
-        let a = MyTrial { x: 2, y: 3, data };
-        let mut bytes = vec![];
-        a.write(&mut bytes).unwrap();
-        let mut reader = Cursor::new(bytes);
-        match reader.read_ne::<MyTrial>() {
-            Ok(b) => assert_eq!(a, b),
-            Err(e) => {println!("{:?}", e); panic!("Waaaaaa!")}
-        }
     }
 }
