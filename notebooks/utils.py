@@ -10,15 +10,13 @@ from functools import reduce
 import matplotlib.pyplot as plt
 
 
-#def compare_c_rust(*, tof=None, shape=(60,60,60), iterations=6, use_true=False, file_in=None, n_events):
 def compare_c_rust(**incoming):
     # default values
-    args = dict(tof=None, shape=(60,60,60), size=(360, 360, 360),
+    args = dict(tof=None, shape=(60,60,60), full_length=(180, 180, 180),
                 iterations=6, use_true=False, file_in=None, c=False,
                 dataset='', n_events=False)
     # override defaults with incoming values
     args.update(incoming)
-    #args = Args(tof, shape, iterations, c=False, use_true=use_true, file_in=file_in, n_events=n_events)
     args = Args(**args)
     print(args)
     # Always run the Rust version, only run C if requested
@@ -35,13 +33,13 @@ def display_reconstructed_images(nr, nc, args):
     for (r,c) in ((r,c) for r in range(nr) for c in range(nc)):
         filename = args_to_filename(args, c+nc*r)
         the_ax = ax[c] if min(nr,nc) == 1 else ax[r,c]
-        show_image_from_file(filename, args, ax=the_ax)
+        show_image_from_file(filename, ax=the_ax)
 
 
-def show_image_from_file(filename, args, ax=plt):
-    data = read_raw(filename)
-    image = wrap_1d_into_3d(data, args.shape)
-    show_image(image, zslice=args.shape[-1]//2, extent=args.size, ax=ax)
+def show_image_from_file(filename, ax=plt):
+    (shape, full_length), data = read_raw(filename)
+    image = wrap_1d_into_3d(data, shape)
+    show_image(image, zslice=shape[-1]//2, extent=full_length, ax=ax)
 
 
 def show_image(image, zslice, extent, ax=plt):
@@ -53,9 +51,13 @@ def show_image(image, zslice, extent, ax=plt):
 
 def read_raw(filename):
     buffer = open(filename, 'rb').read()
-    metadata = buffer[:18]
-    data = buffer[18:]
-    return struct.unpack_from('>'+'f' * (len(data) // 4), data)
+    metadata_length = 18
+    metadata = buffer[: metadata_length  ]
+    data     = buffer[  metadata_length :]
+    pixels = struct.unpack_from('>HHH', metadata[:6])
+    mm     = struct.unpack_from('>fff', metadata[6:])
+    data   = struct.unpack_from('>'+'f' * (len(data) // 4), data)
+    return (pixels, mm), data
 
 
 def wrap_1d_into_3d(data, shape, row_major=False):
@@ -93,14 +95,14 @@ def generate_data_if_missing(args):
 
 
 Args = namedtuple('Args', '''tof, shape, iterations, c, use_true, file_in, n_events, dataset,
-                             read_lors, size''')
+                             read_lors, full_length''')
 
 
 def args_to_cli(args):
     nx, ny, nz = args.shape
-    sx, sy, sz = args.size
+    sx, sy, sz = args.full_length
     n = f' -n {nx},{ny},{nz}'     if args.shape != (60,60,60) else ''
-    s = f' -s {sx},{sy},{sz}'     if args.size                else ''
+    s = f' -s {sx},{sy},{sz}'     if args.full_length         else ''
     i = f' -i {args.iterations}'
     c =  ' -c'                    if args.c                   else ''
     uc = ' --features ccmlem'     if args.c                   else ''

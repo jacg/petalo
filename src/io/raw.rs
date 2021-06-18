@@ -98,7 +98,7 @@ impl From<&MLEMImage> for Image3D {
         let n = image.vbox.n;
         let pixels = [n[0] as u16, n[1] as u16, n[2] as u16];
         let l = image.vbox.half_width;
-        let mm = [l[0], l[1], l[2]];
+        let mm = [l[0]*2.0, l[1]*2.0, l[2]*2.0];
         let data = image.data.clone();
         Self { pixels, mm, data }
     }
