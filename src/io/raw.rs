@@ -70,11 +70,19 @@ use binwrite::BinWrite;
 // #[br(magic = b"IMG3D")] // TODO: magic not supported by writers?
 #[br(big)]
 #[binwrite(big)]
-struct Image3D {
+pub struct Image3D {
     pixels: [u16; 3],
     mm: [f32; 3],
     #[br(count = pixels[0] as usize * pixels[1] as usize * pixels[2] as usize)]
     data: Vec<f32>,
+}
+
+impl Image3D {
+    pub fn write_to_file(&self, path: impl AsRef<std::path::Path>) -> std::io::Result<()> {
+        let file = File::create(path)?;
+        let mut buf = BufWriter::new(file);
+        self.write(&mut buf)
+    }
 }
 
 #[cfg(test)]
@@ -124,12 +132,7 @@ mod test_with_metadata {
         let original = guinea_pig();
 
         // Write data to file
-        // TODO: encapsulate this in methods
-        {
-            let file = File::create(&file_path)?;
-            let mut buf = BufWriter::new(file);
-            original.write(&mut buf)?;
-        }
+        original.write_to_file(&file_path)?;
         // Read data back from file
         // TODO: encapsulate this in methods
         let recovered: Image3D = {
