@@ -171,8 +171,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
                 petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
                 report_time("  Wrote raw bin");
-                let xxx = petalo::io::raw::Image3D::read_from_file(&path)?;
-                report_time("  Read  raw bin");
                 // TODO: step_by for print every
                 if let Some(mut fom_buf) = fom_buf.as_mut() {
                     use std::io::Write;
