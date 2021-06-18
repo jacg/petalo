@@ -84,15 +84,19 @@ use binrw::{BinReaderExt, io::Cursor};
 mod test_with_metadata {
     use super::*;
 
-    #[test]
-    fn roundtrip() {
-
-        // Create a test image
-        let original = Image3D {
+    // An example instance used for testing
+    fn guinea_pig() -> Image3D {
+        Image3D {
             pixels: [1, 2, 3],
             mm:     [2.0, 4.0, 9.0],
             data: (0..6).map(|n| n as f32).collect(),
-        };
+        }
+    }
+
+    #[test]
+    fn roundtrip() {
+        // Create a test image
+        let original = guinea_pig();
 
         // Serialize the image
         let mut bytes = vec![];
@@ -106,6 +110,40 @@ mod test_with_metadata {
         // Verify
         assert_eq!(recovered, original);
     }
+
+    #[test]
+    fn roundtrip_via_file() -> std::io::Result<()> {
+        use tempfile::tempdir;
+        #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
+
+        // Harmless temporary location for output file
+        let dir = tempdir()?;
+        let file_path = dir.path().join("test.bin");
+
+        // Some test data
+        let original = guinea_pig();
+
+        // Write data to file
+        // TODO: encapsulate this in methods
+        {
+            let file = File::create(&file_path)?;
+            let mut buf = BufWriter::new(file);
+            original.write(&mut buf)?;
+        }
+        // Read data back from file
+        // TODO: encapsulate this in methods
+        let recovered: Image3D = {
+            let file = File::open(file_path)?;
+            let mut buffered = BufReader::new(file);
+            buffered.read_ne().unwrap()
+        };
+
+        // Check that roundtrip didn't corrupt the data
+        assert_eq!(original, recovered);
+        Ok(())
+
+    }
+
 }
 
 // ----- Proofs of concept ---------------------------------------------------------------
