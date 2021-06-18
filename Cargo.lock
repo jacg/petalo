@@ -74,6 +74,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "array-init"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6945cc5422176fc5e602e590c2878d2c2acd9a4fe20a4baa7c28022521698ec6"
+
+[[package]]
 name = "ascii"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -134,21 +140,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "binread"
-version = "2.1.1"
+name = "binrw"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a883c66db6f3c86b19210ceed1b2b18de64b617c92cb0f0bc90b8c05f18dba87"
+checksum = "b48a1a44cb9dc4fcc444607eced56dc4aaf7969635d9640678a3ebe7ced2f732"
 dependencies = [
- "binread_derive",
+ "array-init",
+ "binrw_derive",
 ]
 
 [[package]]
-name = "binread_derive"
-version = "2.0.0"
+name = "binrw_derive"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c575d9a28eb4c2d61747b23d50271c6699b941448c35a738af35267f90b3d4d2"
+checksum = "011b8eb647ebddc5a72d3a3b2d0eaa93079f8e8c1d0ac538a5d6a3286b7e632b"
 dependencies = [
- "either",
  "proc-macro2",
  "quote",
  "syn",
@@ -1673,7 +1679,7 @@ version = "0.1.0"
 dependencies = [
  "assert_approx_eq",
  "bindgen",
- "binread",
+ "binrw",
  "binwrite",
  "cmlem",
  "hdf5",

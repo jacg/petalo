@@ -62,7 +62,7 @@ mod test {
 }
 
 
-use binread::{BinRead, BinReaderExt, NullString, io::Cursor};
+use binrw::{BinRead, BinReaderExt, NullString, io::Cursor};
 
 #[derive(BinRead)]
 #[br(magic = b"DOG", assert(name.len() != 0))]
