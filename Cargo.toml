@@ -27,6 +27,7 @@ ordered-float = "2.2"
 cmlem = { path = "cmlem" }
 indicatif = "0.16.2"
 itertools = "0.10.1"
+binread = "2.1.1"
 
 [dev-dependencies]
 rstest = "0.6.4"
