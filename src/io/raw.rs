@@ -121,8 +121,9 @@ mod test_binrw {
 
 #[derive(BinRead, BinWrite, PartialEq, Debug)]
 struct MyTrial {
-    size: u32,
-    #[br(count = size)]
+    x: u32,
+    y: u32,
+    #[br(count = x*y)]
     data: Vec<f32>,
 }
 
@@ -132,8 +133,8 @@ mod test_mytrial {
 
     #[test]
     fn roundtrip() {
-        let data = vec![1.2, 3.4, 5.6];
-        let a = MyTrial { size: data.len() as u32, data };
+        let data = vec![1.2, 3.4, 5.6, 7.8, 9.0, 0.1];
+        let a = MyTrial { x: 2, y: 3, data };
         let mut bytes = vec![];
         a.write(&mut bytes).unwrap();
         let mut reader = Cursor::new(bytes);
