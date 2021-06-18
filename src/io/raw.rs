@@ -141,6 +141,9 @@ mod test_br_enum {
 
         let oval = Shape::read(&mut Cursor::new(b"SHAP\x01\x80\x02\xe0\x01\x2a\x15")).unwrap();
         assert_eq!(oval, Shape::Oval { origin: Point(640, 480), rx: 42, ry: 21 });
+
+        let rect = Shape::read(&mut Cursor::new(b"SHAP\x00\x00\x01\x00\x02\x00\x03\x00\x04")).unwrap();
+        assert_eq!(rect, Shape::Rect { left: 1, top: 2, right: 3, bottom: 4 });
     }
 }
 
