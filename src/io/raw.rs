@@ -61,8 +61,52 @@ mod test {
     }
 }
 
+// ----- Raw 3d image with matrix/physical size metadata --------------------------------
 
-use binrw::{BinRead, BinReaderExt, NullString, io::Cursor};
+use binrw::BinRead;
+use binwrite::BinWrite;
+
+#[derive(BinRead, BinWrite, PartialEq, Debug)]
+// #[br(magic = b"IMG3D")] // TODO: magic not supported by writers?
+#[br(big)]
+#[binwrite(big)]
+struct Image3D {
+    pixels: [u16; 3],
+    mm: [f32; 3],
+    #[br(count = pixels[0] as usize * pixels[1] as usize * pixels[2] as usize)]
+    data: Vec<f32>,
+}
+
+#[cfg(test)]
+mod test_with_metadata {
+    use super::*;
+
+    #[test]
+    fn roundtrip() {
+
+        // Create a test image
+        let original = Image3D {
+            pixels: [1, 2, 3],
+            mm:     [2.0, 4.0, 9.0],
+            data: (0..6).map(|n| n as f32).collect(),
+        };
+
+        // Serialize the image
+        let mut bytes = vec![];
+        original.write(&mut bytes).unwrap();
+        println!("{:?}", original);
+
+        // Deserialize
+        let mut reader = Cursor::new(bytes);
+        let recovered: Image3D = reader.read_ne().unwrap();
+
+        // Verify
+        assert_eq!(recovered, original);
+    }
+}
+
+// ----- Proofs of concept ---------------------------------------------------------------
+use binrw::{BinReaderExt, NullString, io::Cursor};
 
 #[derive(BinRead)]
 #[br(magic = b"DOG", assert(name.len() != 0))]
@@ -77,7 +121,6 @@ struct Dog {
 }
 
 
-use binwrite::BinWrite;
 
 #[derive(BinWrite)]
 #[binwrite(little)]
