@@ -60,3 +60,122 @@ mod test {
         Ok(())
     }
 }
+
+// ----- Raw 3d image with matrix/physical size metadata --------------------------------
+
+use binrw::{BinRead, BinReaderExt};
+use binwrite::BinWrite;
+
+#[derive(BinRead, BinWrite, PartialEq, Debug)]
+// #[br(magic = b"IMG3D")] // TODO: magic not supported by writers?
+#[br(big)]
+#[binwrite(big)]
+pub struct Image3D {
+    pixels: [u16; 3],
+    mm: [f32; 3],
+    #[br(count = pixels[0] as usize * pixels[1] as usize * pixels[2] as usize)]
+    data: Vec<f32>,
+}
+
+impl Image3D {
+    pub fn write_to_file(&self, path: impl AsRef<std::path::Path>) -> std::io::Result<()> {
+        let file = File::create(path)?;
+        let mut buf = BufWriter::new(file);
+        self.write(&mut buf)
+    }
+
+    pub fn read_from_file(path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
+        let file = File::open(path)?;
+        let mut buffered = BufReader::new(file);
+        Ok(buffered.read_ne().unwrap())
+    }
+}
+
+#[cfg(test)]
+use binrw::io::Cursor;
+
+#[cfg(test)]
+mod test_with_metadata {
+    use super::*;
+
+    // An example instance used for testing
+    fn guinea_pig() -> Image3D {
+        Image3D {
+            pixels: [1, 2, 3],
+            mm:     [2.0, 4.0, 9.0],
+            data: (0..6).map(|n| n as f32).collect(),
+        }
+    }
+
+    #[test]
+    fn roundtrip() {
+        // Create a test image
+        let original = guinea_pig();
+
+        // Serialize the image
+        let mut bytes = vec![];
+        original.write(&mut bytes).unwrap();
+        println!("{:?}", original);
+
+        // Deserialize
+        let mut reader = Cursor::new(bytes);
+        let recovered: Image3D = reader.read_ne().unwrap();
+
+        // Verify
+        assert_eq!(recovered, original);
+    }
+
+    #[test]
+    fn roundtrip_via_file() -> std::io::Result<()> {
+        use tempfile::tempdir;
+        #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
+
+        // Harmless temporary location for output file
+        let dir = tempdir()?;
+        let file_path = dir.path().join("test.bin");
+
+        // Some test data
+        let original = guinea_pig();
+
+        // Write data to file
+        original.write_to_file(&file_path)?;
+
+        // Read data back from file
+        let recovered = Image3D::read_from_file(&file_path)?;
+
+        // Check that roundtrip didn't corrupt the data
+        assert_eq!(original, recovered);
+        Ok(())
+
+    }
+
+}
+
+// ----- Proofs of concept ---------------------------------------------------------------
+#[cfg(test)]
+mod test_br_enum {
+    use super::*;
+
+    #[test]
+    fn test_br_enum() {
+        let point = Point::read(&mut Cursor::new(b"\x80\x02\xe0\x01")).unwrap();
+        assert_eq!(point, Point(640, 480));
+
+        #[derive(BinRead, Debug, PartialEq)]
+        #[br(little)]
+        struct Point(i16, i16);
+
+        #[derive(BinRead, Debug, PartialEq)]
+        #[br(big, magic = b"SHAP")]
+        enum Shape {
+            #[br(magic(0u8))] Rect { left: i16, top: i16, right: i16, bottom: i16 },
+            #[br(magic(1u8))] Oval { origin: Point, rx: u8, ry: u8 }
+        }
+
+        let oval = Shape::read(&mut Cursor::new(b"SHAP\x01\x80\x02\xe0\x01\x2a\x15")).unwrap();
+        assert_eq!(oval, Shape::Oval { origin: Point(640, 480), rx: 42, ry: 21 });
+
+        let rect = Shape::read(&mut Cursor::new(b"SHAP\x00\x00\x01\x00\x02\x00\x03\x00\x04")).unwrap();
+        assert_eq!(rect, Shape::Rect { left: 1, top: 2, right: 3, bottom: 4 });
+    }
+}

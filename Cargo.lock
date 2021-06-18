@@ -74,6 +74,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "array-init"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6945cc5422176fc5e602e590c2878d2c2acd9a4fe20a4baa7c28022521698ec6"
+
+[[package]]
 name = "ascii"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -131,6 +137,48 @@ version = "0.1.0"
 dependencies = [
  "petalo",
  "pyo3",
+]
+
+[[package]]
+name = "binrw"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b48a1a44cb9dc4fcc444607eced56dc4aaf7969635d9640678a3ebe7ced2f732"
+dependencies = [
+ "array-init",
+ "binrw_derive",
+]
+
+[[package]]
+name = "binrw_derive"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "011b8eb647ebddc5a72d3a3b2d0eaa93079f8e8c1d0ac538a5d6a3286b7e632b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "binwrite"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42c3da1db1f384ad643e27cb6ba4f08f2a7cd8753bef8dd95c39fe45d7a474c8"
+dependencies = [
+ "binwrite_derive",
+ "paste 0.1.18",
+]
+
+[[package]]
+name = "binwrite_derive"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "476f17c19ce04226ba997c229ce8fb96eaef1c0e0745ec91d8df35f723aae353"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1631,6 +1679,8 @@ version = "0.1.0"
 dependencies = [
  "assert_approx_eq",
  "bindgen",
+ "binrw",
+ "binwrite",
  "cmlem",
  "hdf5",
  "indicatif",
