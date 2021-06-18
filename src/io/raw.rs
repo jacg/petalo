@@ -118,3 +118,25 @@ mod test_binrw {
         );
     }
 }
+
+#[derive(BinRead, BinWrite, PartialEq)]
+struct MyTrial {
+    a: u8,
+    b: u16,
+    c: u64,
+}
+
+#[cfg(test)]
+mod test_mytrial {
+    use super::*;
+
+    #[test]
+    fn roundtrip() {
+        let a = MyTrial { a:1, b:2, c:3 };
+        let mut bytes = vec![];
+        a.write(&mut bytes).unwrap();
+        let mut reader = Cursor::new(bytes);
+        let b: MyTrial = reader.read_ne().unwrap();
+        assert!(a == b);
+    }
+}
