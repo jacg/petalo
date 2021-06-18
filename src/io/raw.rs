@@ -119,6 +119,31 @@ mod test_binrw {
     }
 }
 
+#[cfg(test)]
+mod test_br_enum {
+    use super::*;
+
+    #[test]
+    fn test_br_enum() {
+        let point = Point::read(&mut Cursor::new(b"\x80\x02\xe0\x01")).unwrap();
+        assert_eq!(point, Point(640, 480));
+
+        #[derive(BinRead, Debug, PartialEq)]
+        #[br(little)]
+        struct Point(i16, i16);
+
+        #[derive(BinRead, Debug, PartialEq)]
+        #[br(big, magic = b"SHAP")]
+        enum Shape {
+            #[br(magic(0u8))] Rect { left: i16, top: i16, right: i16, bottom: i16 },
+            #[br(magic(1u8))] Oval { origin: Point, rx: u8, ry: u8 }
+        }
+
+        let oval = Shape::read(&mut Cursor::new(b"SHAP\x01\x80\x02\xe0\x01\x2a\x15")).unwrap();
+        assert_eq!(oval, Shape::Oval { origin: Point(640, 480), rx: 42, ry: 21 });
+    }
+}
+
 #[derive(BinRead, BinWrite, PartialEq, Debug)]
 struct MyTrial {
     x: u32,
