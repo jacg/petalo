@@ -14,7 +14,7 @@ def compare_c_rust(**incoming):
     # default values
     args = dict(tof=None, shape=(60,60,60), full_length=(180, 180, 180),
                 iterations=6, use_true=False, file_in=None, c=False,
-                dataset='', n_events=False)
+                dataset='', n_events=False, axis = 'z', slice_='half')
     # override defaults with incoming values
     args.update(incoming)
     args = Args(**args)
@@ -33,20 +33,29 @@ def display_reconstructed_images(nr, nc, args):
     for (r,c) in ((r,c) for r in range(nr) for c in range(nc)):
         filename = args_to_filename(args, c+nc*r)
         the_ax = ax[c] if min(nr,nc) == 1 else ax[r,c]
-        show_image_from_file(filename, ax=the_ax)
+        show_image_from_file(filename, axis=args.axis, slice_=args.slice_, ax=the_ax)
 
 
-def show_image_from_file(filename, ax=plt):
+def show_image_from_file(filename, *, axis, slice_, ax=plt):
     (shape, full_length), data = read_raw(filename)
     image = wrap_1d_into_3d(data, shape)
-    show_image(image, zslice=shape[-1]//2, extent=full_length, ax=ax)
+    show_image(image, axis=axis, slice_=slice_, extent=full_length, shape=shape, ax=ax)
 
 
-def show_image(image, zslice, extent, ax=plt):
+def show_image(image, *, axis, slice_, extent, shape, ax=plt):
     xe, ye, ze = (e/2 for e in extent)
-    ax.imshow(image[:, :, zslice].transpose(),
-              extent = [-xe,xe, -ye,ye],
-              origin = 'lower')
+
+    if axis == 'x': e, n = xe, shape[0]
+    if axis == 'y': e, n = ye, shape[1]
+    if axis == 'z': e, n = ze, shape[2]
+
+    s = int(n * (slice_ / e + 0.5))
+
+    #print(f'Showing slice {s} out of ')
+
+    if axis == 'x': ax.imshow(image[s, :, :]            , extent = [-ze,ze, -ye,ye], origin = 'lower')
+    if axis == 'y': ax.imshow(image[:, s, :].transpose(), extent = [-xe,xe, -ze,ze], origin = 'lower')
+    if axis == 'z': ax.imshow(image[:, :, s].transpose(), extent = [-xe,xe, -ye,ye], origin = 'lower')
 
 
 def read_raw(filename):
@@ -95,7 +104,7 @@ def generate_data_if_missing(args):
 
 
 Args = namedtuple('Args', '''tof, shape, iterations, c, use_true, file_in, n_events, dataset,
-                             read_lors, full_length''')
+                             read_lors, full_length, axis, slice_''')
 
 
 def args_to_cli(args):
