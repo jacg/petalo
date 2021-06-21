@@ -39,10 +39,10 @@ class view:
 
     def process_key(self, event):
         k = event.key
-        if k == 'p': self.change_slice(-1)
-        if k == 'n': self.change_slice(+1)
-        if k == 'P': self.change_slice(-10)
-        if k == 'N': self.change_slice(+10)
+        if k in ('p',       'down'): self.change_slice(-1)
+        if k in ('P', 'shift+down'): self.change_slice(-10)
+        if k in ('n',       'up')  : self.change_slice(+1)
+        if k in ('N', 'shift+up')  : self.change_slice(+10)
         if k in 'xyz': self.axis = k
         if k == 't': self.flipT()
         if k in ('right', 'left'): self.switch_image(1 if k == 'right' else -1)
