@@ -62,9 +62,11 @@ class view:
         im.set_array(self.slice_through_data())
         half_size = self.images[self.image_number].half_size
         ax, (x,y,z) = self.axis, half_size
-        xe, ye,  xl, yl = ((x,y, 'x', 'y') if ax == 'z' else
+        xe, ye,  xl, yl = ((y,x, 'y', 'x') if ax == 'z' else
                            (z,x, 'z', 'x') if ax == 'y' else
                            (z,y, 'z', 'y'))
+        if self.axis in self.ts:
+            xe,ye, xl,yl = ye,xe, yl,xl
         extent = -xe,xe, -ye,ye
         im.set_extent(extent)
         #self.ax.set_aspect(ye/xe)
@@ -72,7 +74,7 @@ class view:
         i = self.pos[nax]
         pixel_size = self.images[self.image_number].pixel_size
         p = (i + 0.5) * pixel_size[nax] - half_size[nax]
-        self.ax.set_title(f'{self.axis} = {p}     T={"".join(sorted(self.ts))}   N={self.image_number}')
+        self.ax.set_title(f'{self.axis} = {p}        N={self.image_number}')
         self.ax.set_xlabel(xl)
         self.ax.set_ylabel(yl)
         self.fig.canvas.draw()
