@@ -39,7 +39,7 @@ fn main() -> hdf5::Result<()> {
     for infile in args.infiles {
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
         if let Ok(qts) = read_qts(&infile) {
-            let events = group_by_event(qts.into_iter().filter(|h| h.q < threshold));
+            let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q < threshold));
             for hits in events {
                 n_events += 1;
                 if let Some(lor) = lor(&hits, &xyzs) {
@@ -186,7 +186,6 @@ fn read_sensor_map(filename: &String) -> hdf5::Result<SensorMap> {
     let array = io::hdf5::read_table::<SensorXYZ>(filename, "MC/sensor_xyz"  , None)?;
     Ok(make_sensor_position_map(array_to_vec(array)))
 }
-}
 
 fn read_qts(infile: &String) -> hdf5::Result<Vec<QT>> {
     // Read charges and waveforms
@@ -209,9 +208,9 @@ fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> V
     qts
 }
 
-fn group_by_event(qts: impl IntoIterator<Item = QT>) -> Vec<Vec<QT>> {
+fn group_by<T>(group_by: impl FnMut(&T) -> u32, qts: impl IntoIterator<Item = T>) -> Vec<Vec<T>> {
     qts.into_iter()
-        .group_by(|h| h.event_id)
+        .group_by(group_by)
         .into_iter()
         .map(|(_, group)| group.collect())
         .collect()
