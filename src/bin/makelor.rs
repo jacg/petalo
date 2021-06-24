@@ -15,7 +15,7 @@ pub struct Cli {
     #[structopt(short, long)]
     pub out: String,
 
-    /// Ignore sensors which do not receive this number of photons
+    /// Ignore sensors which detect fewer photons
     #[structopt(short, long, default_value = "4")]
     pub threshold: u32,
 
@@ -39,7 +39,7 @@ fn main() -> hdf5::Result<()> {
     for infile in args.infiles {
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
         if let Ok(qts) = read_file(&infile, &mut xyzs) {
-            let events = group_by_event(qts.into_iter().filter(|h| h.q > threshold));
+            let events = group_by_event(qts.into_iter().filter(|h| h.q < threshold));
             for hits in events {
                 n_events += 1;
                 if let Some(lor) = lor(&hits, xyzs.as_ref().unwrap()) {
