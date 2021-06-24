@@ -449,6 +449,13 @@ pub struct LOR {
 impl LOR {
     pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self { Self { p1, p2, t1, t2 } }
 
+    pub fn from_components(t1: Time, t2: Time,
+                           x1: Length, y1: Length, z1: Length,
+                           x2: Length, y2: Length, z2: Length) -> Self
+    {
+        Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2))
+    }
+
     pub fn active_voxels(&self, vbox: &VoxelBox, cutoff: Option<Length>, sigma: Option<Length>) -> Vec<Index3Weight> {
 
         let tof = make_gauss_option(sigma, cutoff);

@@ -19,6 +19,10 @@ pub struct Cli {
     #[structopt(short, long, default_value = "4")]
     pub threshold: u32,
 
+    /// Use first interactions in LXe as LOR endpoints
+    #[structopt(long)]
+    pub first_lxe: bool,
+
     // TODO allow using different group/dataset in output
 }
 
@@ -38,16 +42,28 @@ fn main() -> hdf5::Result<()> {
     let mut failed_files = vec![];
     for infile in args.infiles {
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
-        if let Ok(qts) = read_qts(&infile) {
-            let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q < threshold));
-            for hits in events {
-                n_events += 1;
-                if let Some(lor) = lor(&hits, &xyzs) {
-                    lors.push(lor.into());
+        if args.first_lxe { // Calculate LOR endpoints from first interactions in LXe
+            if let Ok(vertices) = read_vertices(&infile) {
+                let events = group_by(|v| v.event_id, vertices.into_iter());
+                for vertices in events {
+                    n_events += 1;
+                    if let Some(lor) = lor_from_vertices(&vertices) {
+                        lors.push(lor.into());
+                    }
                 }
-            }
-        } else { failed_files.push(infile); }
-        files_pb.inc(1);
+            } else { failed_files.push(infile); }
+        } else { // Calculate LOR endpoints from clusters
+            if let Ok(qts) = read_qts(&infile) {
+                let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q < threshold));
+                for hits in events {
+                    n_events += 1;
+                    if let Some(lor) = lor(&hits, &xyzs) {
+                        lors.push(lor.into());
+                    }
+                }
+            } else { failed_files.push(infile); }
+            files_pb.inc(1);
+        }
     }
     println!("{} / {} ({}%) events produced LORs", lors.len(), n_events,
              100 * lors.len() / n_events);
@@ -158,6 +174,25 @@ pub struct QT {
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
+#[allow(nonstandard_style)]
+pub struct Vertex {
+    event_id: u32,
+    track_id: u32,
+    parent_id: u32,
+    x: f32,
+    y: f32,
+    z: f32,
+    t: f32,
+    moved: f32,
+    pre_KE: f32,
+    post_KE: f32,
+    deposited: u32,
+    process_id: u32, // NB these may differ across
+    volume_id: u32,  // different files
+}
+
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
 pub struct Waveform {
     pub event_id: u32,
     pub sensor_id: u32,
@@ -185,6 +220,10 @@ fn read_sensor_map(filename: &String) -> hdf5::Result<SensorMap> {
     // TODO: refactor and hide in a function
     let array = io::hdf5::read_table::<SensorXYZ>(filename, "MC/sensor_xyz"  , None)?;
     Ok(make_sensor_position_map(array_to_vec(array)))
+}
+
+fn read_vertices(filename: &String) -> hdf5::Result<Vec<Vertex>> {
+    Ok(array_to_vec(io::hdf5::read_table::<Vertex>(filename, "MC/vertices", None)?))
 }
 
 fn read_qts(infile: &String) -> hdf5::Result<Vec<QT>> {
@@ -220,4 +259,11 @@ fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
     xyzs.iter().cloned()
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x, y, z)))
         .collect()
+}
+
+fn lor_from_vertices(vertices: &Vec<Vertex>) -> Option<LOR> {
+    let mut in_lxe = vertices.iter().filter(|v| v.volume_id == 0);
+    let &Vertex{x:x2, y:y2, z:z2, t:t2, ..} = in_lxe.find(|v| v.track_id == 2)?;
+    let &Vertex{x:x1, y:y1, z:z1, t:t1, ..} = in_lxe.find(|v| v.track_id == 2)?;
+    Some(LOR::from_components(t1, t2, x1,y1,z1, x2,y2,z2))
 }
