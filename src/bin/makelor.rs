@@ -173,14 +173,20 @@ pub struct Qtot {
     pub charge: u32,
 }
 
-fn read_sensor_map(filename: &String) -> hdf5::Result<SensorMap> {
-    // TODO: refactor and hide in a function
-    let yy = io::hdf5::read_table::<SensorXYZ>(filename, "MC/sensor_xyz"  , None)?;
-    let mut xx = vec![];
-    xx.extend_from_slice(yy.as_slice().unwrap());
+// TODO Is there really no simpler way?
+fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
+    let mut vec = vec![];
+    vec.extend_from_slice(array.as_slice().unwrap());
     // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
     // joined.extend_from_slice(data.into_slice());
-    Ok(make_sensor_position_map(xx))
+    vec
+}
+
+fn read_sensor_map(filename: &String) -> hdf5::Result<SensorMap> {
+    // TODO: refactor and hide in a function
+    let array = io::hdf5::read_table::<SensorXYZ>(filename, "MC/sensor_xyz"  , None)?;
+    Ok(make_sensor_position_map(array_to_vec(array)))
+}
 }
 
 fn read_file(infile: &String) -> hdf5::Result<Vec<QT0>> {
