@@ -31,18 +31,18 @@ fn main() -> hdf5::Result<()> {
         );
     files_pb.tick();
     // --- Process input files -------------------------------------------------------
-    let mut xyzs = None; // sensor positions
+    let xyzs = read_sensor_map(&args.infiles[0])?;
     let mut lors: Vec<Hdf5Lor> = vec![];
     let threshold = args.threshold;
     let mut n_events = 0;
     let mut failed_files = vec![];
     for infile in args.infiles {
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
-        if let Ok(qts) = read_file(&infile, &mut xyzs) {
+        if let Ok(qts) = read_file(&infile) {
             let events = group_by_event(qts.into_iter().filter(|h| h.q < threshold));
             for hits in events {
                 n_events += 1;
-                if let Some(lor) = lor(&hits, xyzs.as_ref().unwrap()) {
+                if let Some(lor) = lor(&hits, &xyzs) {
                     lors.push(lor.into());
                 }
             }
@@ -173,19 +173,17 @@ pub struct Qtot {
     pub charge: u32,
 }
 
-// Nasty output parameter inteface ...
-fn read_file(infile: &String, xyzs: &mut Option<SensorMap>) -> hdf5::Result<Vec<QT0>> {
-    // Read sensor configuration, if not yet set.
-    if xyzs.is_none() {
-        // TODO: We're assuming that that the sensor configurations in all files
-        // are the same. We should verify it.
-        let yy = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz"  , None)?;
-        let mut xx = vec![];
-        xx.extend_from_slice(yy.as_slice().unwrap());
-        // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
-        // joined.extend_from_slice(data.into_slice());
-        *xyzs = Some(make_sensor_position_map(xx));
-    }
+fn read_sensor_map(filename: &String) -> hdf5::Result<SensorMap> {
+    // TODO: refactor and hide in a function
+    let yy = io::hdf5::read_table::<SensorXYZ>(filename, "MC/sensor_xyz"  , None)?;
+    let mut xx = vec![];
+    xx.extend_from_slice(yy.as_slice().unwrap());
+    // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
+    // joined.extend_from_slice(data.into_slice());
+    Ok(make_sensor_position_map(xx))
+}
+
+fn read_file(infile: &String) -> hdf5::Result<Vec<QT0>> {
     // Read charges and waveforms
     let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
     let ts = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
