@@ -48,7 +48,7 @@ fn main() -> hdf5::Result<()> {
             if let Ok(vertices) = read_vertices(&infile) {
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 n_events += events.len();
-                let new_lors = lors_from_vertices(&events);
+                let new_lors = lors_from(&events, lor_from_vertices);
                 lors.extend_from_slice(&new_lors);
 
 
@@ -60,7 +60,7 @@ fn main() -> hdf5::Result<()> {
             if let Ok(qts) = read_qts(&infile) {
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= threshold));
                 n_events += events.len();
-                let new_lors = lors_from_clusters(&events, &xyzs);
+                let new_lors = lors_from(&events, |evs| lor_from_hits(evs, &xyzs));
                 lors.extend_from_slice(&new_lors);
 
 
@@ -87,20 +87,10 @@ fn main() -> hdf5::Result<()> {
     Ok(())
 }
 
-fn lors_from_vertices(events: &[Vec<Vertex>]) -> Vec<Hdf5Lor> {
+fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<LOR>) -> Vec<Hdf5Lor> {
     let mut lors = vec![];
-    for vertices in events {
-        if let Some(lor) = lor_from_vertices(&vertices) {
-            lors.push(lor.into());
-        }
-    }
-    lors
-}
-
-fn lors_from_clusters(events: &[Vec<QT>], xyzs: &SensorMap) -> Vec<Hdf5Lor> {
-    let mut lors = vec![];
-    for hits in events {
-        if let Some(lor) = lor_from_hits(&hits, xyzs) {
+    for data in events {
+        if let Some(lor) = one_lor(&data) {
             lors.push(lor.into());
         }
     }
