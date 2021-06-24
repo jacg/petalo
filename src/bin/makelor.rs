@@ -38,7 +38,7 @@ fn main() -> hdf5::Result<()> {
     let mut failed_files = vec![];
     for infile in args.infiles {
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
-        if let Ok(qts) = read_file(&infile) {
+        if let Ok(qts) = read_qts(&infile) {
             let events = group_by_event(qts.into_iter().filter(|h| h.q < threshold));
             for hits in events {
                 n_events += 1;
@@ -68,7 +68,7 @@ fn main() -> hdf5::Result<()> {
     Ok(())
 }
 
-fn lor(hits: &[QT0], xyzs: &SensorMap) -> Option<LOR> {
+fn lor(hits: &[QT], xyzs: &SensorMap) -> Option<LOR> {
     let (cluster_a, cluster_b) = group_into_clusters(hits, xyzs)?;
     //println!("{} + {} = {} ", cluster_a.len(), cluster_b.len(), hits.len());
     let (pa, ta) = cluster_xyzt(&cluster_a, &xyzs)?;
@@ -77,9 +77,9 @@ fn lor(hits: &[QT0], xyzs: &SensorMap) -> Option<LOR> {
     Some(LOR::new(ta, tb, pa, pb))
 }
 
-fn cluster_xyzt(hits: &[QT0], xyzs: &SensorMap) -> Option<(Point, Time)> {
+fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Time)> {
     let (x,y,z) = barycentre(hits, xyzs)?;
-    let ts = k_smallest(10, hits.into_iter().map(|h| h.t0))?;
+    let ts = k_smallest(10, hits.into_iter().map(|h| h.t))?;
     let t = mean(&ts)?;
     //let t = hits.iter().cloned().map(|h| Finite::<f32>::from(h.t0)).min()?.into();
     Some((Point::new(x,y,z),t))
@@ -110,16 +110,16 @@ where
     Some(result)
 }
 
-fn find_sensor_with_highest_charge(sensors: &[QT0]) -> Option<u32> {
+fn find_sensor_with_highest_charge(sensors: &[QT]) -> Option<u32> {
     sensors.iter().max_by_key(|e| e.q).map(|e| e.sensor_id)
 }
 
 type SensorMap = std::collections::HashMap<u32, (f32, f32, f32)>;
 
-fn group_into_clusters(hits: &[QT0], xyzs: &SensorMap) -> Option<(Vec::<QT0>, Vec::<QT0>)> {
+fn group_into_clusters(hits: &[QT], xyzs: &SensorMap) -> Option<(Vec::<QT>, Vec::<QT>)> {
     let sensor_with_highest_charge = find_sensor_with_highest_charge(hits)?;
-    let mut a = Vec::<QT0>::new();
-    let mut b = Vec::<QT0>::new();
+    let mut a = Vec::<QT>::new();
+    let mut b = Vec::<QT>::new();
     let &(xm, ym, _) = xyzs.get(&sensor_with_highest_charge)?;
     for hit in hits.iter().cloned() {
         let &(x, y, _) = xyzs.get(&hit.sensor_id)?;
@@ -131,13 +131,13 @@ fn group_into_clusters(hits: &[QT0], xyzs: &SensorMap) -> Option<(Vec::<QT0>, Ve
 
 fn dot((x1,y1): (f32, f32), (x2,y2): (f32, f32)) -> f32 { x1*x2 + y1*y2 }
 
-fn barycentre(hits: &[QT0], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
+fn barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
     if hits.len() == 0 { return None }
     let mut qs = 0_f32;
     let mut xx = 0.0;
     let mut yy = 0.0;
     let mut zz = 0.0;
-    for QT0{ sensor_id, q, .. } in hits {
+    for QT{ sensor_id, q, .. } in hits {
         let (x, y, z) = xyzs.get(&sensor_id)?;
         let q = *q as f32;
         qs += q;
@@ -148,13 +148,12 @@ fn barycentre(hits: &[QT0], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
     Some((xx / qs, yy / qs, zz / qs))
 }
 
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct QT0 {
+#[derive(Clone)]
+pub struct QT {
     pub event_id: u32,
     pub sensor_id: u32,
     pub q: u32,
-    pub t0: f32,
+    pub t: f32,
 }
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
@@ -189,20 +188,20 @@ fn read_sensor_map(filename: &String) -> hdf5::Result<SensorMap> {
 }
 }
 
-fn read_file(infile: &String) -> hdf5::Result<Vec<QT0>> {
+fn read_qts(infile: &String) -> hdf5::Result<Vec<QT>> {
     // Read charges and waveforms
     let qs = io::hdf5::read_table::<Qtot     >(infile, "MC/total_charge", None)?;
     let ts = io::hdf5::read_table::<Waveform >(infile, "MC/waveform"    , None)?;
     Ok(combine_tables(qs, ts))
 }
 
-fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT0> {
+fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT> {
     let mut qts = vec![];
     let mut titer = ts.into_iter();
     for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
         while let Some(&Waveform{ event_id: te, sensor_id: ts, time:t}) = titer.next() {
             if event_id == te && sensor_id == ts {
-                qts.push(QT0{ event_id, sensor_id, q, t0:t });
+                qts.push(QT{ event_id, sensor_id, q, t });
                 break;
             }
         }
@@ -210,7 +209,7 @@ fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> V
     qts
 }
 
-fn group_by_event(qts: impl IntoIterator<Item = QT0>) -> Vec<Vec<QT0>> {
+fn group_by_event(qts: impl IntoIterator<Item = QT>) -> Vec<Vec<QT>> {
     qts.into_iter()
         .group_by(|h| h.event_id)
         .into_iter()
