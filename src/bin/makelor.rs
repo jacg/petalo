@@ -101,9 +101,6 @@ fn lor_from_vertices(vertices: &[Vertex]) -> Option<LOR> {
     let mut in_lxe = vertices.iter().filter(|v| v.volume_id == 0);
     let &Vertex{x:x2, y:y2, z:z2, t:t2, ..} = in_lxe.find(|v| v.track_id == 2)?;
     let &Vertex{x:x1, y:y1, z:z1, t:t1, ..} = in_lxe.find(|v| v.track_id == 1)?;
-    let r1 = (x1*x1 + y1*y1).sqrt();
-    let r2 = (x2*x2 + y2*y2).sqrt();
-    println!("r1: {}  r2: {}", r1, r2);
     Some(LOR::from_components(t1, t2, x1,y1,z1, x2,y2,z2))
 }
 
