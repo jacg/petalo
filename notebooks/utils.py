@@ -49,13 +49,11 @@ def show_image(image, *, axis, slice_, extent, shape, ax=plt):
     if axis == 'y': e, n = ye, shape[1]
     if axis == 'z': e, n = ze, shape[2]
 
-    s = int(n * (slice_ / e + 0.5))
+    s = int(n * (slice_ / (2*e) - 0.5))
 
-    #print(f'Showing slice {s} out of ')
-
-    if axis == 'x': ax.imshow(image[s, :, :]            , extent = [-ze,ze, -ye,ye], origin = 'lower')
-    if axis == 'y': ax.imshow(image[:, s, :].transpose(), extent = [-xe,xe, -ze,ze], origin = 'lower')
-    if axis == 'z': ax.imshow(image[:, :, s].transpose(), extent = [-xe,xe, -ye,ye], origin = 'lower')
+    if axis == 'x': ax.imshow(image[s, :, :]   , extent = [-ze,ze, -ye,ye], origin = 'lower')
+    if axis == 'y': ax.imshow(image[:, s, :]   , extent = [-ze,ze, -xe,xe], origin = 'lower')
+    if axis == 'z': ax.imshow(image[:, :, s].T , extent = [-xe,xe, -ye,ye], origin = 'lower')
 
 
 def read_raw(filename):
