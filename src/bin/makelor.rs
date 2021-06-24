@@ -185,8 +185,8 @@ fn read_sensor_map(filename: &String) -> hdf5::Result<SensorMap> {
 
 fn read_file(infile: &String) -> hdf5::Result<Vec<QT0>> {
     // Read charges and waveforms
-    let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
-    let ts = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
+    let qs = io::hdf5::read_table::<Qtot     >(infile, "MC/total_charge", None)?;
+    let ts = io::hdf5::read_table::<Waveform >(infile, "MC/waveform"    , None)?;
     Ok(combine_tables(qs, ts))
 }
 
