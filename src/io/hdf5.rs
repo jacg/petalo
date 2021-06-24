@@ -14,7 +14,7 @@ pub struct Args {
 use ndarray::{s, Array1};
 
 use crate::types::{Length, Point};
-use crate::weights::{LOR};
+use crate::weights::LOR;
 type F = Length;
 
 pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<std::ops::Range<usize>>) -> hdf5::Result<Array1<T>> {
@@ -31,26 +31,26 @@ pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
 pub struct Event {
-    event_id:    f64,
-    true_energy: f64,
-    true_r1: f64, true_phi1: f64, true_z1: f64, true_t1: f64,
-    true_r2: f64, true_phi2: f64, true_z2: f64, true_t2: f64,
-    phot_like1: f64, phot_like2: f64,
-    reco_r1: f64, reco_phi1: f64, reco_z1: f64, reco_t1: f64,
-    reco_r2: f64, reco_phi2: f64, reco_z2: f64, reco_t2: f64,
-    not_sel: f64,
+    event_id:    f32,
+    true_energy: f32,
+    true_r1: f32, true_phi1: f32, true_z1: f32, true_t1: f32,
+    true_r2: f32, true_phi2: f32, true_z2: f32, true_t2: f32,
+    phot_like1: f32, phot_like2: f32,
+    reco_r1: f32, reco_phi1: f32, reco_z1: f32, reco_t1: f32,
+    reco_r2: f32, reco_phi2: f32, reco_z2: f32, reco_t2: f32,
+    not_sel: f32,
 }
 
 impl Event {
 
-    fn reco_coords(&self) -> (f64, f64, f64, f64, f64, f64, f64, f64) {
+    fn reco_coords(&self) -> (f32, f32, f32, f32, f32, f32, f32, f32) {
         let &Event{reco_r1, reco_phi1, reco_z1, reco_t1,
                    reco_r2, reco_phi2, reco_z2, reco_t2, ..} = self;
         (reco_r1, reco_phi1, reco_z1, reco_t1,
          reco_r2, reco_phi2, reco_z2, reco_t2,)
     }
 
-    fn true_coords(&self) -> (f64, f64, f64, f64, f64, f64, f64, f64) {
+    fn true_coords(&self) -> (f32, f32, f32, f32, f32, f32, f32, f32) {
         let &Event{true_r1, true_phi1, true_z1, true_t1,
                   true_r2, true_phi2, true_z2, true_t2, ..} = self;
         (true_r1, true_phi1, true_z1, true_t1,
@@ -98,6 +98,7 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
 mod test {
 
     use super::*;
+    use assert_approx_eq::assert_approx_eq;
 
     #[test] // Test higher-level `read_lors`
     fn read_lors_hdf5() -> hdf5::Result<()> {
@@ -114,12 +115,12 @@ mod test {
             read_lors: false,
         };
         let lors = read_lors(args.clone()).unwrap();
-        assert_eq!(lors[2].p1.coords.x, -120.7552004817734);
+        assert_approx_eq!(lors[2].p1.coords.x, -120.7552004817734, 1e-5);
 
         // ... then use the true data.
         let args = Args { use_true: true, ..args };
         let lors = read_lors(args).unwrap();
-        assert_eq!(lors[2].p1.coords.x, -120.73839054997248);
+        assert_approx_eq!(lors[2].p1.coords.x, -120.73839054997248, 1e-5);
         Ok(())
     }
 
@@ -135,8 +136,8 @@ mod test {
         };
 
         let events = read_table::<Event>(&args.input_file, &args.dataset, args.event_range)?;
-        assert_eq!(events[2].true_r1, 394.2929992675781);
-        assert_eq!(events[2].reco_r1, 394.3750647735979);
+        assert_approx_eq!(events[2].true_r1, 394.2929992675781);
+        assert_approx_eq!(events[2].reco_r1, 394.3750647735979);
 
         // Leave this here in case we want to regenerate the test file
 
@@ -153,10 +154,10 @@ mod test {
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
 pub struct SensorXYZ {
-    pub sensor_id: u64,
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
+    pub sensor_id: u32,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]

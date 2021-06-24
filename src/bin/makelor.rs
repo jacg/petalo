@@ -17,7 +17,7 @@ pub struct Cli {
 
     /// Ignore sensors which do not receive this number of photons
     #[structopt(short, long, default_value = "4")]
-    pub threshold: u64,
+    pub threshold: u32,
 
     // TODO allow using different group/dataset in output
 }
@@ -68,7 +68,7 @@ fn main() -> hdf5::Result<()> {
     Ok(())
 }
 
-fn lor(hits: &[QT0], xyzs: &SensorXyz) -> Option<LOR> {
+fn lor(hits: &[QT0], xyzs: &SensorMap) -> Option<LOR> {
     let (cluster_a, cluster_b) = group_into_clusters(hits, xyzs)?;
     //println!("{} + {} = {} ", cluster_a.len(), cluster_b.len(), hits.len());
     let (pa, ta) = cluster_xyzt(&cluster_a, &xyzs)?;
@@ -77,7 +77,7 @@ fn lor(hits: &[QT0], xyzs: &SensorXyz) -> Option<LOR> {
     Some(LOR::new(ta, tb, pa, pb))
 }
 
-fn cluster_xyzt(hits: &[QT0], xyzs: &SensorXyz) -> Option<(Point, Time)> {
+fn cluster_xyzt(hits: &[QT0], xyzs: &SensorMap) -> Option<(Point, Time)> {
     let (x,y,z) = barycentre(hits, xyzs)?;
     let ts = k_smallest(10, hits.into_iter().map(|h| h.t0))?;
     let t = mean(&ts)?;
@@ -110,13 +110,13 @@ where
     Some(result)
 }
 
-fn find_sensor_with_highest_charge(sensors: &[QT0]) -> Option<u64> {
+fn find_sensor_with_highest_charge(sensors: &[QT0]) -> Option<u32> {
     sensors.iter().max_by_key(|e| e.q).map(|e| e.sensor_id)
 }
 
-type SensorXyz = std::collections::HashMap<u64, (f32, f32, f32)>;
+type SensorMap = std::collections::HashMap<u32, (f32, f32, f32)>;
 
-fn group_into_clusters(hits: &[QT0], xyzs: &SensorXyz) -> Option<(Vec::<QT0>, Vec::<QT0>)> {
+fn group_into_clusters(hits: &[QT0], xyzs: &SensorMap) -> Option<(Vec::<QT0>, Vec::<QT0>)> {
     let sensor_with_highest_charge = find_sensor_with_highest_charge(hits)?;
     let mut a = Vec::<QT0>::new();
     let mut b = Vec::<QT0>::new();
@@ -131,7 +131,7 @@ fn group_into_clusters(hits: &[QT0], xyzs: &SensorXyz) -> Option<(Vec::<QT0>, Ve
 
 fn dot((x1,y1): (f32, f32), (x2,y2): (f32, f32)) -> f32 { x1*x2 + y1*y2 }
 
-fn barycentre(hits: &[QT0], xyzs: &SensorXyz) -> Option<(f32, f32, f32)> {
+fn barycentre(hits: &[QT0], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
     if hits.len() == 0 { return None }
     let mut qs = 0_f32;
     let mut xx = 0.0;
@@ -151,29 +151,27 @@ fn barycentre(hits: &[QT0], xyzs: &SensorXyz) -> Option<(f32, f32, f32)> {
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
 pub struct QT0 {
-    pub event_id: u64,
-    pub sensor_id: u64,
-    pub q: u64,
+    pub event_id: u32,
+    pub sensor_id: u32,
+    pub q: u32,
     pub t0: f32,
 }
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
 pub struct Waveform {
-    pub event_id: u64,
-    pub sensor_id: u64,
+    pub event_id: u32,
+    pub sensor_id: u32,
     pub time: f32,
 }
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
 pub struct Qtot {
-    pub event_id: u64,
-    pub sensor_id: u64,
-    pub charge: u64,
+    pub event_id: u32,
+    pub sensor_id: u32,
+    pub charge: u32,
 }
-
-type SensorMap = std::collections::HashMap<u64, (f32, f32, f32)>;
 
 // Nasty output parameter inteface ...
 fn read_file(infile: &String, xyzs: &mut Option<SensorMap>) -> hdf5::Result<Vec<QT0>> {
@@ -218,6 +216,6 @@ fn group_by_event(qts: impl IntoIterator<Item = QT0>) -> Vec<Vec<QT0>> {
 
 fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
     xyzs.iter().cloned()
-        .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x as f32, y as f32, z as f32)))
+        .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x, y, z)))
         .collect()
 }
