@@ -43,24 +43,27 @@ fn main() -> hdf5::Result<()> {
     for infile in args.infiles {
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
         if args.first_lxe { // Calculate LOR endpoints from first interactions in LXe
+
+            // TODO still too much duplication
             if let Ok(vertices) = read_vertices(&infile) {
                 let events = group_by(|v| v.event_id, vertices.into_iter());
-                for vertices in events {
-                    n_events += 1;
-                    if let Some(lor) = lor_from_vertices(&vertices) {
-                        lors.push(lor.into());
-                    }
-                }
+                n_events += events.len();
+                let new_lors = lors_from_vertices(&events);
+                lors.extend_from_slice(&new_lors);
+
+
             } else { failed_files.push(infile); }
+            files_pb.inc(1);
         } else { // Calculate LOR endpoints from clusters
+
+
             if let Ok(qts) = read_qts(&infile) {
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q < threshold));
-                for hits in events {
-                    n_events += 1;
-                    if let Some(lor) = lor(&hits, &xyzs) {
-                        lors.push(lor.into());
-                    }
-                }
+                n_events += events.len();
+                let new_lors = lors_from_clusters(&events, &xyzs);
+                lors.extend_from_slice(&new_lors);
+
+
             } else { failed_files.push(infile); }
             files_pb.inc(1);
         }
@@ -84,7 +87,37 @@ fn main() -> hdf5::Result<()> {
     Ok(())
 }
 
-fn lor(hits: &[QT], xyzs: &SensorMap) -> Option<LOR> {
+fn lors_from_vertices(events: &[Vec<Vertex>]) -> Vec<Hdf5Lor> {
+    let mut lors = vec![];
+    for vertices in events {
+        if let Some(lor) = lor_from_vertices(&vertices) {
+            lors.push(lor.into());
+        }
+    }
+    lors
+}
+
+fn lors_from_clusters(events: &[Vec<QT>], xyzs: &SensorMap) -> Vec<Hdf5Lor> {
+    let mut lors = vec![];
+    for hits in events {
+        if let Some(lor) = lor_from_hits(&hits, xyzs) {
+            lors.push(lor.into());
+        }
+    }
+    lors
+}
+
+fn lor_from_vertices(vertices: &[Vertex]) -> Option<LOR> {
+    let mut in_lxe = vertices.iter().filter(|v| v.volume_id == 0);
+    let &Vertex{x:x2, y:y2, z:z2, t:t2, ..} = in_lxe.find(|v| v.track_id == 2)?;
+    let &Vertex{x:x1, y:y1, z:z1, t:t1, ..} = in_lxe.find(|v| v.track_id == 2)?;
+    let r1 = (x1*x1 + y1*y1).sqrt();
+    let r2 = (x2*x2 + y2*y2).sqrt();
+    println!("r1: {}  r2: {}", r1, r2);
+    Some(LOR::from_components(t1, t2, x1,y1,z1, x2,y2,z2))
+}
+
+fn lor_from_hits(hits: &[QT], xyzs: &SensorMap) -> Option<LOR> {
     let (cluster_a, cluster_b) = group_into_clusters(hits, xyzs)?;
     //println!("{} + {} = {} ", cluster_a.len(), cluster_b.len(), hits.len());
     let (pa, ta) = cluster_xyzt(&cluster_a, &xyzs)?;
@@ -259,11 +292,4 @@ fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
     xyzs.iter().cloned()
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x, y, z)))
         .collect()
-}
-
-fn lor_from_vertices(vertices: &Vec<Vertex>) -> Option<LOR> {
-    let mut in_lxe = vertices.iter().filter(|v| v.volume_id == 0);
-    let &Vertex{x:x2, y:y2, z:z2, t:t2, ..} = in_lxe.find(|v| v.track_id == 2)?;
-    let &Vertex{x:x1, y:y1, z:z1, t:t1, ..} = in_lxe.find(|v| v.track_id == 2)?;
-    Some(LOR::from_components(t1, t2, x1,y1,z1, x2,y2,z2))
 }
