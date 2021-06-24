@@ -65,9 +65,9 @@ fn main() -> hdf5::Result<()> {
             files_pb.inc(1);
         }
     }
+    files_pb.finish_with_message("<finished processing files>");
     println!("{} / {} ({}%) events produced LORs", lors.len(), n_events,
              100 * lors.len() / n_events);
-    files_pb.finish_with_message("<finished processing files>");
     // --- write lors to hdf5 --------------------------------------------------------
     println!("Writing LORs to {}", args.out);
     hdf5::File::create(args.out)?
