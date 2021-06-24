@@ -147,11 +147,19 @@ let
 
   ];
 
+  nativeBuildInputs = [
+    # hacking around Python/Qt issues
+    pkgs.qt5.wrapQtAppsHook
+    pkgs.makeWrapper
+    pkgs.openssl
+
+  ];
 in
 
-pkgs.stdenv.mkDerivation {
+pkgs.mkShell {
   name = "petalorust";
   buildInputs = buildInputs;
+  nativeBuildInputs = nativeBuildInputs;
   LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath buildInputs}";
   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
 
@@ -160,4 +168,14 @@ pkgs.stdenv.mkDerivation {
 
   # RA_LOG = "info";
   # RUST_BAfCKTRACE = 1;
+
+  # hacking around Python/Qt issues
+  shellHook = ''
+    setQtEnvironment=$(mktemp)
+    random=$(openssl rand -base64 20 | sed "s/[^a-zA-Z0-9]//g")
+    makeWrapper "$(type -p sh)" "$setQtEnvironment" "''${qtWrapperArgs[@]}" --argv0 "$random"
+    sed "/$random/d" -i "$setQtEnvironment"
+    source "$setQtEnvironment"
+  '';
+
 }

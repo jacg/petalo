@@ -10,24 +10,6 @@ pub fn load_image(filename: &std::path::Path, vbox: VoxelBox) -> BoxErr<Image> {
     Ok(Image::new(vbox, data)) // TODO: Upgrade Image::new from panic to Result
 }
 
-#[cfg(test)]
-fn get_sample_image() -> BoxErr<Image> {
-    let filename = std::path::PathBuf::from;
-    let vbox = VoxelBox::new((180.0, 180.0, 180.0), (60, 60, 60));
-    load_image(&filename("data/out/mlem/60_60_60_tof_OFF_00.raw"), vbox)
-}
-
-#[cfg(test)]
-mod test_get_sample_image {
-    use super::*;
-    #[test]
-    fn load_an_image_file() -> BoxErr<()> {
-        let image = get_sample_image()?;
-        assert!(image.data.len() == 60 * 60 * 60);
-        Ok(())
-    }
-}
-
 
 #[derive(Clone, Debug)]
 #[allow(clippy::upper_case_acronyms)]

@@ -91,6 +91,19 @@ impl Image3D {
     }
 }
 
+// TODO: Ideally mlem::Image and Image3D would be a single type.
+use super::super::mlem::Image as MLEMImage;
+impl From<&MLEMImage> for Image3D {
+    fn from(image: &MLEMImage) -> Self {
+        let n = image.vbox.n;
+        let pixels = [n[0] as u16, n[1] as u16, n[2] as u16];
+        let l = image.vbox.half_width;
+        let mm = [l[0]*2.0, l[1]*2.0, l[2]*2.0];
+        let data = image.data.clone();
+        Self { pixels, mm, data }
+    }
+}
+
 #[cfg(test)]
 use binrw::io::Cursor;
 
