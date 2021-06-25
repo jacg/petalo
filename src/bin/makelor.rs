@@ -324,3 +324,39 @@ mod test_nested_compound_hdf5 {
         Ok(())
     }
 }
+
+// Proof of concept compound HDF5 containing array
+#[cfg(test)]
+mod test_hdf5_array {
+
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct Waveform {
+        pub event_id: u16,
+        pub charge: u8,
+        pub ts: [f32; 10],
+    }
+
+    impl Waveform {
+        fn new(event_id: u16, charge: u8, v: Vec<f32>) -> Self {
+            let mut ts: [f32; 10] = [f32::NAN; 10];
+            for (from, to) in v.iter().zip(ts.iter_mut()) {
+                *to = *from;
+            }
+            Self { event_id, charge, ts}
+        }
+    }
+
+    #[test]
+    fn testit() -> Result<(), Box<dyn std::error::Error>> {
+        let mut test_data = vec![];
+        test_data.push(Waveform::new(0, 8, vec![1.2, 3.4]));
+        test_data.push(Waveform::new(9, 3, vec![5.6, 7.8, 9.0]));
+        let filename = "just-testing.h5";
+        hdf5::File::create(filename)?
+            .create_group("foo")?
+            .new_dataset::<Waveform>().create("bar", test_data.len())?
+            .write(&test_data)?;
+        Ok(())
+    }
+}
