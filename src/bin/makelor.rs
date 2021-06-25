@@ -58,7 +58,7 @@ fn main() -> hdf5::Result<()> {
 
 
             if let Ok(qts) = read_qts(&infile) {
-                let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q < threshold));
+                let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= threshold));
                 n_events += events.len();
                 let new_lors = lors_from_clusters(&events, &xyzs);
                 lors.extend_from_slice(&new_lors);
