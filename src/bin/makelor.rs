@@ -20,8 +20,8 @@ pub struct Cli {
     pub threshold: u32,
 
     /// Use first interactions in LXe as LOR endpoints
-    #[structopt(long = "true")]
-    pub true_: bool,
+    #[structopt(long)]
+    pub r#true: bool,
 
     // TODO allow using different group/dataset in output
 }
@@ -42,7 +42,7 @@ fn main() -> hdf5::Result<()> {
     let mut failed_files = vec![];
     for infile in args.infiles {
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
-        if args.true_ { // Calculate LOR endpoints from first interactions in LXe
+        if args.r#true { // Calculate LOR endpoints from first interactions in LXe
 
             // TODO still too much duplication
             if let Ok(vertices) = read_vertices(&infile) {
