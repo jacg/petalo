@@ -280,3 +280,47 @@ fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x, y, z)))
         .collect()
 }
+
+// Proof of concept: nested compound hdf5 types
+#[cfg(test)]
+mod test_nested_compound_hdf5 {
+
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct Inner {
+        pub a: u32,
+        pub b: f32,
+    }
+
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct Outer {
+        pub id: u32,
+        pub r#true: Inner,
+        pub   reco: Inner,
+    }
+
+    #[test]
+    fn roundtrip() -> Result<(), Box<dyn std::error::Error>> {
+        let mut test_data = vec![];
+        test_data.push(Outer{ id:0, r#true:Inner{ a: 123, b: 4.56 }, reco:Inner{ a: 789, b: 0.12} });
+        test_data.push(Outer{ id:1, r#true:Inner{ a: 132, b: 45.6 }, reco:Inner{ a: 798, b: 10.2} });
+
+        let dir = tempfile::tempdir()?;
+        let file_path = dir.path().join("nested-compound.h5");
+        let file_path = file_path.to_str().unwrap();
+
+        {
+            hdf5::File::create(file_path)?
+                .create_group("just-testing")?
+                .new_dataset::<Outer>().create("nested", test_data.len())?
+                .write(&test_data)?;
+        }
+        // read
+        let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", None)?;
+        let read_data = super::array_to_vec(read_data);
+        assert_eq!(test_data, read_data);
+        println!("Test table written to {}", file_path);
+        Ok(())
+    }
+}
