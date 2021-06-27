@@ -85,13 +85,11 @@ fn main() -> hdf5::Result<()> {
 }
 
 fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<LOR>) -> Vec<Hdf5Lor> {
-    let mut lors = vec![];
-    for data in events {
-        if let Some(lor) = one_lor(&data) {
-            lors.push(lor.into());
-        }
-    }
-    lors
+    events.iter()
+        .map(|data| one_lor(&data)) // TODO try to remove reference juggling
+        .filter(|o| o.is_some())
+        .map(|o| o.unwrap().into())
+        .collect()
 }
 
 fn lor_from_vertices(vertices: &[Vertex]) -> Option<LOR> {
