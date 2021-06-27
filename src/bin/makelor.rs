@@ -40,33 +40,30 @@ fn main() -> hdf5::Result<()> {
     let threshold = args.threshold;
     let mut n_events = 0;
     let mut failed_files = vec![];
+
+    fn true_lors(infile: &String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+        let vertices = read_vertices(infile)?;
+        let events = group_by(|v| v.event_id, vertices.into_iter());
+        Ok((lors_from(&events, lor_from_vertices), events.len()))
+    }
+
+    let reco_lors = |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+        let qts = read_qts(infile)?;
+        let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= threshold));
+        Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
+    };
+
+    let makelors: Box<dyn Fn(&String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>> =
+        if args.r#true {Box::new(true_lors)} else {Box::new(reco_lors)};
+
     for infile in args.infiles {
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
-        if args.r#true { // Calculate LOR endpoints from first interactions in LXe
+        if let Ok((new_lors, envlen)) = makelors(&infile) {
+            n_events += envlen;
+            lors.extend_from_slice(&new_lors);
+        } else { failed_files.push(infile); }
+        files_pb.inc(1);
 
-            // TODO still too much duplication
-            if let Ok(vertices) = read_vertices(&infile) {
-                let events = group_by(|v| v.event_id, vertices.into_iter());
-                n_events += events.len();
-                let new_lors = lors_from(&events, lor_from_vertices);
-                lors.extend_from_slice(&new_lors);
-
-
-            } else { failed_files.push(infile); }
-            files_pb.inc(1);
-        } else { // Calculate LOR endpoints from clusters
-
-
-            if let Ok(qts) = read_qts(&infile) {
-                let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= threshold));
-                n_events += events.len();
-                let new_lors = lors_from(&events, |evs| lor_from_hits(evs, &xyzs));
-                lors.extend_from_slice(&new_lors);
-
-
-            } else { failed_files.push(infile); }
-            files_pb.inc(1);
-        }
     }
     files_pb.finish_with_message("<finished processing files>");
     println!("{} / {} ({}%) events produced LORs", lors.len(), n_events,
@@ -235,6 +232,8 @@ fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
     // joined.extend_from_slice(data.into_slice());
     vec
 }
+
+
 
 fn read_sensor_map(filename: &String) -> hdf5::Result<SensorMap> {
     // TODO: refactor and hide in a function
