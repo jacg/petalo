@@ -86,9 +86,8 @@ fn main() -> hdf5::Result<()> {
 
 fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<LOR>) -> Vec<Hdf5Lor> {
     events.iter()
-        .map(|data| one_lor(&data)) // TODO try to remove reference juggling
-        .filter(|o| o.is_some())
-        .map(|o| o.unwrap().into())
+        .flat_map(|data| one_lor(&data)) // TODO try to remove reference juggling
+        .map(|l| l.into())
         .collect()
 }
 
