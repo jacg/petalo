@@ -70,30 +70,24 @@ fn main() -> hdf5::Result<()> {
     let mut failed_files = vec![];
 
     let makelors: Box<dyn Fn(&String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>> = match args.reco {
-        Reco::True => {
-            fn true_lors(infile: &String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+        Reco::True => Box::new(
+            |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
                 let vertices = read_vertices(infile)?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 Ok((lors_from(&events, lor_from_vertices), events.len()))
-            }
-            Box::new(true_lors)
-        },
-        Reco::Half{q} => {
-            let reco_lors = move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+            }),
+        Reco::Half{q} => Box::new(
+            move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
                 let qts = read_qts(infile)?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
                 Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
-            };
-            Box::new(reco_lors)
-        },
-        Reco::Dbscan { q, min_count, max_distance } => {
-            let reco_lors_dbscan = move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+            }),
+        Reco::Dbscan { q, min_count, max_distance } => Box::new(
+            move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
                 let qts = read_qts(infile)?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
                 Ok((lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
-            };
-            Box::new(reco_lors_dbscan)
-        }
+            }),
     };
 
 
