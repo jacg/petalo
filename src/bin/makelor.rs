@@ -148,7 +148,6 @@ fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolera
         .map(|&(x,y,z)| [x,y,z])
         .collect::<Vec<_>>()
         .into();
-    let min_points = 5;
     let params = AppxDbscan::params(min_points)
         .tolerance(tolerance) // > 7mm between sipm centres
         .build();
