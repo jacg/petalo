@@ -165,7 +165,7 @@ mod test_n_clusters {
 }
 
 fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolerance: f32) -> Option<LOR> {
-    use linfa_clustering::{AppxDbscan};
+    use linfa_clustering::AppxDbscan;
     use linfa::traits::Transformer;
     let active_sensor_positions: ndarray::Array2<f32> = hits.iter()
         .flat_map(|QT { sensor_id, ..}| xyzs.get(sensor_id))
