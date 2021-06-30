@@ -110,6 +110,8 @@ let
     pypkgs.jupyter
     pypkgs.matplotlib
     pypkgs.pytest
+    pypkgs.h5py
+    pypkgs.scikit-learn
 
     # Needed for compilation to succeed on Macs
     (darwin darwin-frameworks.AppKit)
