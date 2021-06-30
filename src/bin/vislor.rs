@@ -37,6 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
 #[derive(StructOpt, Debug, Clone)]
+#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 #[structopt(name = "vislor", about = "Visualize LOR interaction with voxels")]
 pub struct Cli {
 

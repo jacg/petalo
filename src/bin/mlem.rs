@@ -4,6 +4,7 @@ use structopt::StructOpt;
 use petalo::utils::{parse_triplet, parse_range, parse_maybe_cutoff, CutoffOption};
 
 #[derive(StructOpt, Debug, Clone)]
+#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 #[structopt(name = "mlem", about = "Maximum Likelyhood Expectation Maximization")]
 pub struct Cli {
 

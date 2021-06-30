@@ -96,6 +96,7 @@ fn ratio(n: Duration, d: Duration) -> f32 {
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
+#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 #[structopt(name = "azip", about = "Compare parallel and sequential zipping in ndarray")]
 pub struct Cli {
 

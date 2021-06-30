@@ -6,6 +6,7 @@ use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::types::{Point, Time};
 
 #[derive(StructOpt, Debug, Clone)]
+#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 #[structopt(name = "makelor", about = "Create LORs from MC data")]
 pub struct Cli {
     /// HDF5 input files with waveform and charge tables
