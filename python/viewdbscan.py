@@ -1,14 +1,22 @@
-from sys import argv
 from itertools import groupby, starmap
 from operator import itemgetter
+import argparse
 import numpy as np
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
 import h5py
 from sklearn.cluster import DBSCAN
 
-MINIMUM_CLUSTER_SIZE = 10
-MAXIMUM_DISTANCE_TO_NEIGHBOUR = 100
+parser = argparse.ArgumentParser()
+parser.add_argument('infile', type=str, help='HDF5 file containing MC event data')
+parser.add_argument('-n', '--min-cluster-size', type=int, default=10)
+parser.add_argument('-d', '--max-distance-to_neighbour', type=float, default=100)
+parser.add_argument('-q', '--charge-threshold', type=int, default=4, help='ignore sensors which detect fewer photons')
+args = parser.parse_args()
+
+MINIMUM_CLUSTER_SIZE          = args.min_cluster_size
+MAXIMUM_DISTANCE_TO_NEIGHBOUR = args.max_distance_to_neighbour
+CHARGE_THRESHOLD              = args.charge_threshold
 
 def first_vertices_in_event(event_vertices):
     verts = tuple((evno, tid, x,y,z) for evno, tid, _, x,y,z, *crap, volume in event_vertices)
@@ -95,7 +103,7 @@ def evhits(responses):
 
 
 
-f = h5py.File('nema3-vac-25k-1.h5')
+f = h5py.File(args.infile)
 MC = f['MC']
 
 
@@ -105,7 +113,7 @@ primaries = iter(MC['primaries'])
 vertices  = iter(MC['vertices'])
 charges   = iter(MC['total_charge'])
 
-significant_charges = filter(lambda x: x[2] >= 4, charges)
+significant_charges = filter(lambda x: x[2] >= CHARGE_THRESHOLD, charges)
 event_sensor_responses = groupby(significant_charges, itemgetter(0))
 event_hit_positions = evhits(event_sensor_responses)
 
