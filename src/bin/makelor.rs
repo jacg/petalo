@@ -23,6 +23,14 @@ pub struct Cli {
     #[structopt(long)]
     pub r#true: bool,
 
+    /// Minimum number of neighbours for core points in DBSCAN
+    #[structopt(long, default_value = "10")]
+    pub min_points: usize,
+
+    /// Maximum separation of neighbours in DBSCAN
+    #[structopt(long, default_value = "100")]
+    pub radius: f32,
+
     // TODO allow using different group/dataset in output
 }
 
@@ -47,17 +55,22 @@ fn main() -> hdf5::Result<()> {
         Ok((lors_from(&events, lor_from_vertices), events.len()))
     }
 
+    let (min_points, radius) = (args.min_points, args.radius);
     let reco_lors = |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
         let qts = read_qts(infile)?;
         let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= threshold));
-        Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
+        //Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
+        Ok((lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_points, radius)), events.len()))
     };
 
     let makelors: Box<dyn Fn(&String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>> =
         if args.r#true {Box::new(true_lors)} else {Box::new(reco_lors)};
 
     for infile in args.infiles {
-        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
+        // TODO message doesn't appear until end of iteration
+        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
+                                     infile.clone(), lors.len(), n_events,
+                                     if n_events > 0 {100 * lors.len() / n_events} else {0}));
         if let Ok((new_lors, envlen)) = makelors(&infile) {
             n_events += envlen;
             lors.extend_from_slice(&new_lors);
@@ -105,6 +118,59 @@ fn lor_from_hits(hits: &[QT], xyzs: &SensorMap) -> Option<LOR> {
     let (pb, tb) = cluster_xyzt(&cluster_b, &xyzs)?;
     //println!("{:?} {:?}", xyzt_a, xyzt_b);
     Some(LOR::new(ta, tb, pa, pb))
+}
+
+fn xxx(labels: &ndarray::Array1<Option<usize>>) -> usize {
+    labels.iter()
+        .flat_map(|l| *l)
+        .max()
+        .map_or(0, |n| n+1)
+}
+
+#[cfg(test)]
+mod test_n_clusters {
+    use super::*;
+    use ndarray::array;
+    #[test]
+    fn test_n_clusters() {
+        let a = array![None, None];
+        assert_eq!(xxx(&a), 0);
+        let a = array![Some(2)];
+    }
+}
+
+fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolerance: f32) -> Option<LOR> {
+    use linfa_clustering::{AppxDbscan};
+    use linfa::traits::Transformer;
+    let active_sensor_positions: ndarray::Array2<f32> = hits.iter()
+        .flat_map(|QT { sensor_id, ..}| xyzs.get(sensor_id))
+        .map(|&(x,y,z)| [x,y,z])
+        .collect::<Vec<_>>()
+        .into();
+    let min_points = 5;
+    let params = AppxDbscan::params(min_points)
+        .tolerance(tolerance) // > 7mm between sipm centres
+        .build();
+    let labels = params.transform(&active_sensor_positions);
+    let n_clusters = xxx(&labels);
+    if n_clusters != 2 { return None }
+    let mut cluster: [Vec<f32>; 2] = [vec![], vec![]];
+    for (c, point) in labels.iter().zip(active_sensor_positions.outer_iter()) {
+        if let Some(c) = c {
+            cluster[*c].extend(&point);
+        }
+    }
+    fn cluster_centroid(vec: Vec<f32>) -> Option<ndarray::Array1<f32>> {
+        let it = ndarray::Array2::from_shape_vec((vec.len()/3, 3), vec.clone()).unwrap()
+            .mean_axis(ndarray::Axis(0));
+        if let None = it {
+            println!("Failed to find centroid of cluster {:?}", vec);
+        }
+        it
+    }
+    let a = cluster_centroid(cluster[0].clone())?;
+    let b = cluster_centroid(cluster[1].clone())?;
+    Some(LOR::from_components(0.0, 0.0, a[0], a[1], a[2], b[0], b[1], b[2])) // TODO times
 }
 
 fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Time)> {
@@ -178,7 +244,7 @@ fn barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
     Some((xx / qs, yy / qs, zz / qs))
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct QT {
     pub event_id: u32,
     pub sensor_id: u32,
@@ -354,5 +420,136 @@ mod test_hdf5_array {
             .new_dataset::<Waveform>().create("bar", test_data.len())?
             .write(&test_data)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test_dbscan {
+    use linfa_clustering::{DbscanHyperParams, Dbscan, AppxDbscan, generate_blobs};
+    use linfa::traits::Transformer;
+    use ndarray::{Axis, array, s};
+    use ndarray_rand::rand::SeedableRng;
+    use rand_isaac::Isaac64Rng;
+    use approx::assert_abs_diff_eq;
+
+    #[test]
+    fn test_appx () {
+        // Our random number generator, seeded for reproducibility
+        let seed = 42;
+        let mut rng = Isaac64Rng::seed_from_u64(seed);
+
+        // `expected_centroids` has shape `(n_centroids, n_features)`
+        // i.e. three points in the 2-dimensional plane
+        let expected_centroids = array![[0., 1.], [-10., 20.], [-1., 10.]];
+        // Let's generate a synthetic dataset: three blobs of observations
+        // (100 points each) centered around our `expected_centroids`
+        let observations = generate_blobs(100, &expected_centroids, &mut rng);
+
+        let observations = array![[1.0, 1.0, 3.0],
+                                  [1.1, 1.1, 3.0],
+                                  [0.9, 0.9, 3.0],
+                                  [0.9, 1.1, 3.0],
+                                  [1.1, 0.9, 3.0],
+                                  [1.0, 0.9, 3.0],
+                                  [0.9, 1.0, 3.0],
+                                  [1.0, 1.1, 3.0],
+                                  [1.1, 1.0, 3.0],
+
+                                  [2.0, 2.0, 3.0],
+                                  [2.1, 2.1, 3.0],
+                                  [1.9, 1.9, 3.0],
+                                  [1.9, 2.1, 3.0],
+                                  [2.1, 1.9, 3.0],
+                                  [2.0, 1.9, 3.0],
+                                  [1.9, 2.0, 3.0],
+                                  [2.0, 2.1, 3.0],
+                                  [2.1, 2.0, 3.0],
+
+        ];
+
+        // Let's configure and run our AppxDbscan algorithm
+        // We use the builder pattern to specify the hyperparameters
+        // `min_points` is the only mandatory parameter.
+        // If you don't specify the others (e.g. `tolerance`, `slack`)
+        // default values will be used.
+        let min_points = 3;
+        let params = AppxDbscan::params(min_points)
+            .tolerance(1.0)
+            .slack(1e-3)
+            .build();
+        // Let's run the algorithm!
+        let labels = params.transform(&observations);
+        // Points are `None` if noise `Some(id)` if belonging to a cluster.
+        println!("\n\nobs\n{:?}\n\n", observations);
+        println!("\n\npar\n{:?}\n\n", params);
+        println!("\n\nlab\n{:?}\n\n", labels);
+    }
+
+    #[test]
+    fn test_full () {
+        // Our random number generator, seeded for reproducibility
+        let seed = 42;
+        let mut rng = Isaac64Rng::seed_from_u64(seed);
+
+        // `expected_centroids` has shape `(n_centroids, n_features)`
+        // i.e. three points in the 2-dimensional plane
+        let expected_centroids = array![[0., 1.], [-10., 20.], [-1., 10.]];
+        // Let's generate a synthetic dataset: three blobs of observations
+        // (100 points each) centered around our `expected_centroids`
+        let observations: ndarray::Array2<f64> = generate_blobs(100, &expected_centroids, &mut rng);
+
+        // Let's configure and run our DBSCAN algorithm
+        // We use the builder pattern to specify the hyperparameters
+        // `min_points` is the only mandatory parameter.
+        // If you don't specify the others (e.g. `tolerance`)
+        // default values will be used.
+        let min_points = 3;
+        let labels: ndarray::Array1<Option<usize>> = Dbscan::params(min_points)
+            .tolerance(1.0)
+            .transform(&observations);
+        // Points are `None` if noise `Some(id)` if belonging to a cluster.
+
+        println!("\n\nobs\n{:?}", observations);
+        println!("\n\nclu\n{:?}", labels);
+        //println!("{:?}", params);
+
+        let mut veccy = [vec![], vec![], vec![]];
+
+        for (c, point) in labels.iter().zip(observations.outer_iter()) {
+            if let Some(c) = c {
+                let point: Vec<f64> = point.iter().copied().collect();
+                veccy[*c].push(point)
+            }
+        }
+
+        println!("\n{:4.1?}\n\n", veccy[0]);
+        println!("\n{:4.1?}\n\n", veccy[1]);
+        println!("\n{:4.1?}\n\n", veccy[2]);
+
+
+
+        let mut arry:[Vec<f64>; 3] = [vec![], vec![], vec![]];
+
+        for (c, point) in labels.iter().zip(observations.outer_iter()) {
+            if let Some(c) = c {
+                arry[*c].extend(&point);
+            }
+        }
+
+        fn foo(vec: Vec<f64>, width: usize) -> ndarray::Array2<f64> {
+            ndarray::Array2::from_shape_vec((vec.len()/width, width), vec).unwrap()
+        }
+
+        println!("aaaaa {:?}", foo(arry[0].clone(), 2).mean_axis(Axis(0)));
+
+
+        // use ndarray::prelude::*;
+        // println!("{:?}", observations.mean_axis(Axis(0)));
+
+        // use ndarray::stack;
+        // println!("\n{:4.1?}\n\n", stack![Axis(0), arry[0]].mean_axis((Axis(0))));
+        // println!("\n{:4.1?}\n\n", stack![Axis(0), arry[1]]);
+        // println!("\n{:4.1?}\n\n", arry[2]);
+
     }
 }
