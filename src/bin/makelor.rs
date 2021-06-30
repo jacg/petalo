@@ -26,11 +26,11 @@ pub struct Cli {
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 enum Reco {
 
-    /// Use first vertices in LXe to determine LOR endpoints
+    /// Reconstruct LORs from first vertices in LXe
     #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
     True,
 
-    /// Split cylinder in half to for clusters
+    /// Reconstruct LORs from clusters found by splitting cylinder in half
     #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
     Half {
         /// Ignore sensors with fewer hits
@@ -38,7 +38,7 @@ enum Reco {
         q: u32,
     },
 
-    /// Use DBSCAN to form clusters
+    /// Reconstruct LORs form DBSCAN clusters
     #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
     Dbscan {
         /// Ignore sensors with fewer hits
