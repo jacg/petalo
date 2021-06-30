@@ -15,9 +15,21 @@ pub struct Cli {
     #[structopt(short, long)]
     pub out: String,
 
-    /// Ignore sensors which do not receive this number of photons
+    /// Ignore sensors which detect fewer photons
     #[structopt(short, long, default_value = "4")]
     pub threshold: u32,
+
+    /// Use first interactions in LXe as LOR endpoints
+    #[structopt(long)]
+    pub r#true: bool,
+
+    /// Minimum number of neighbours for core points in DBSCAN
+    #[structopt(long, default_value = "10")]
+    pub min_points: usize,
+
+    /// Maximum separation of neighbours in DBSCAN
+    #[structopt(long, default_value = "100")]
+    pub radius: f32,
 
     // TODO allow using different group/dataset in output
 }
@@ -31,27 +43,44 @@ fn main() -> hdf5::Result<()> {
         );
     files_pb.tick();
     // --- Process input files -------------------------------------------------------
-    let mut xyzs = None; // sensor positions
+    let xyzs = read_sensor_map(&args.infiles[0])?;
     let mut lors: Vec<Hdf5Lor> = vec![];
     let threshold = args.threshold;
     let mut n_events = 0;
     let mut failed_files = vec![];
+
+    fn true_lors(infile: &String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+        let vertices = read_vertices(infile)?;
+        let events = group_by(|v| v.event_id, vertices.into_iter());
+        Ok((lors_from(&events, lor_from_vertices), events.len()))
+    }
+
+    let (min_points, radius) = (args.min_points, args.radius);
+    let reco_lors = |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+        let qts = read_qts(infile)?;
+        let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= threshold));
+        //Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
+        Ok((lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_points, radius)), events.len()))
+    };
+
+    let makelors: Box<dyn Fn(&String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>> =
+        if args.r#true {Box::new(true_lors)} else {Box::new(reco_lors)};
+
     for infile in args.infiles {
-        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far.", infile.clone(), lors.len(), n_events));
-        if let Ok(qts) = read_file(&infile, &mut xyzs) {
-            let events = group_by_event(qts.into_iter().filter(|h| h.q > threshold));
-            for hits in events {
-                n_events += 1;
-                if let Some(lor) = lor(&hits, xyzs.as_ref().unwrap()) {
-                    lors.push(lor.into());
-                }
-            }
+        // TODO message doesn't appear until end of iteration
+        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
+                                     infile.clone(), lors.len(), n_events,
+                                     if n_events > 0 {100 * lors.len() / n_events} else {0}));
+        if let Ok((new_lors, envlen)) = makelors(&infile) {
+            n_events += envlen;
+            lors.extend_from_slice(&new_lors);
         } else { failed_files.push(infile); }
         files_pb.inc(1);
+
     }
+    files_pb.finish_with_message("<finished processing files>");
     println!("{} / {} ({}%) events produced LORs", lors.len(), n_events,
              100 * lors.len() / n_events);
-    files_pb.finish_with_message("<finished processing files>");
     // --- write lors to hdf5 --------------------------------------------------------
     println!("Writing LORs to {}", args.out);
     hdf5::File::create(args.out)?
@@ -68,7 +97,21 @@ fn main() -> hdf5::Result<()> {
     Ok(())
 }
 
-fn lor(hits: &[QT0], xyzs: &SensorMap) -> Option<LOR> {
+fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<LOR>) -> Vec<Hdf5Lor> {
+    events.iter()
+        .flat_map(|data| one_lor(&data)) // TODO try to remove reference juggling
+        .map(|l| l.into())
+        .collect()
+}
+
+fn lor_from_vertices(vertices: &[Vertex]) -> Option<LOR> {
+    let mut in_lxe = vertices.iter().filter(|v| v.volume_id == 0);
+    let &Vertex{x:x2, y:y2, z:z2, t:t2, ..} = in_lxe.find(|v| v.track_id == 2)?;
+    let &Vertex{x:x1, y:y1, z:z1, t:t1, ..} = in_lxe.find(|v| v.track_id == 1)?;
+    Some(LOR::from_components(t1, t2, x1,y1,z1, x2,y2,z2))
+}
+
+fn lor_from_hits(hits: &[QT], xyzs: &SensorMap) -> Option<LOR> {
     let (cluster_a, cluster_b) = group_into_clusters(hits, xyzs)?;
     //println!("{} + {} = {} ", cluster_a.len(), cluster_b.len(), hits.len());
     let (pa, ta) = cluster_xyzt(&cluster_a, &xyzs)?;
@@ -77,9 +120,62 @@ fn lor(hits: &[QT0], xyzs: &SensorMap) -> Option<LOR> {
     Some(LOR::new(ta, tb, pa, pb))
 }
 
-fn cluster_xyzt(hits: &[QT0], xyzs: &SensorMap) -> Option<(Point, Time)> {
+fn xxx(labels: &ndarray::Array1<Option<usize>>) -> usize {
+    labels.iter()
+        .flat_map(|l| *l)
+        .max()
+        .map_or(0, |n| n+1)
+}
+
+#[cfg(test)]
+mod test_n_clusters {
+    use super::*;
+    use ndarray::array;
+    #[test]
+    fn test_n_clusters() {
+        let a = array![None, None];
+        assert_eq!(xxx(&a), 0);
+        let a = array![Some(2)];
+    }
+}
+
+fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolerance: f32) -> Option<LOR> {
+    use linfa_clustering::{AppxDbscan};
+    use linfa::traits::Transformer;
+    let active_sensor_positions: ndarray::Array2<f32> = hits.iter()
+        .flat_map(|QT { sensor_id, ..}| xyzs.get(sensor_id))
+        .map(|&(x,y,z)| [x,y,z])
+        .collect::<Vec<_>>()
+        .into();
+    let min_points = 5;
+    let params = AppxDbscan::params(min_points)
+        .tolerance(tolerance) // > 7mm between sipm centres
+        .build();
+    let labels = params.transform(&active_sensor_positions);
+    let n_clusters = xxx(&labels);
+    if n_clusters != 2 { return None }
+    let mut cluster: [Vec<f32>; 2] = [vec![], vec![]];
+    for (c, point) in labels.iter().zip(active_sensor_positions.outer_iter()) {
+        if let Some(c) = c {
+            cluster[*c].extend(&point);
+        }
+    }
+    fn cluster_centroid(vec: Vec<f32>) -> Option<ndarray::Array1<f32>> {
+        let it = ndarray::Array2::from_shape_vec((vec.len()/3, 3), vec.clone()).unwrap()
+            .mean_axis(ndarray::Axis(0));
+        if let None = it {
+            println!("Failed to find centroid of cluster {:?}", vec);
+        }
+        it
+    }
+    let a = cluster_centroid(cluster[0].clone())?;
+    let b = cluster_centroid(cluster[1].clone())?;
+    Some(LOR::from_components(0.0, 0.0, a[0], a[1], a[2], b[0], b[1], b[2])) // TODO times
+}
+
+fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Time)> {
     let (x,y,z) = barycentre(hits, xyzs)?;
-    let ts = k_smallest(10, hits.into_iter().map(|h| h.t0))?;
+    let ts = k_smallest(10, hits.into_iter().map(|h| h.t))?;
     let t = mean(&ts)?;
     //let t = hits.iter().cloned().map(|h| Finite::<f32>::from(h.t0)).min()?.into();
     Some((Point::new(x,y,z),t))
@@ -110,16 +206,16 @@ where
     Some(result)
 }
 
-fn find_sensor_with_highest_charge(sensors: &[QT0]) -> Option<u32> {
+fn find_sensor_with_highest_charge(sensors: &[QT]) -> Option<u32> {
     sensors.iter().max_by_key(|e| e.q).map(|e| e.sensor_id)
 }
 
 type SensorMap = std::collections::HashMap<u32, (f32, f32, f32)>;
 
-fn group_into_clusters(hits: &[QT0], xyzs: &SensorMap) -> Option<(Vec::<QT0>, Vec::<QT0>)> {
+fn group_into_clusters(hits: &[QT], xyzs: &SensorMap) -> Option<(Vec::<QT>, Vec::<QT>)> {
     let sensor_with_highest_charge = find_sensor_with_highest_charge(hits)?;
-    let mut a = Vec::<QT0>::new();
-    let mut b = Vec::<QT0>::new();
+    let mut a = Vec::<QT>::new();
+    let mut b = Vec::<QT>::new();
     let &(xm, ym, _) = xyzs.get(&sensor_with_highest_charge)?;
     for hit in hits.iter().cloned() {
         let &(x, y, _) = xyzs.get(&hit.sensor_id)?;
@@ -131,13 +227,13 @@ fn group_into_clusters(hits: &[QT0], xyzs: &SensorMap) -> Option<(Vec::<QT0>, Ve
 
 fn dot((x1,y1): (f32, f32), (x2,y2): (f32, f32)) -> f32 { x1*x2 + y1*y2 }
 
-fn barycentre(hits: &[QT0], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
+fn barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
     if hits.len() == 0 { return None }
     let mut qs = 0_f32;
     let mut xx = 0.0;
     let mut yy = 0.0;
     let mut zz = 0.0;
-    for QT0{ sensor_id, q, .. } in hits {
+    for QT{ sensor_id, q, .. } in hits {
         let (x, y, z) = xyzs.get(&sensor_id)?;
         let q = *q as f32;
         qs += q;
@@ -148,13 +244,31 @@ fn barycentre(hits: &[QT0], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
     Some((xx / qs, yy / qs, zz / qs))
 }
 
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct QT0 {
+#[derive(Clone, Debug)]
+pub struct QT {
     pub event_id: u32,
     pub sensor_id: u32,
     pub q: u32,
-    pub t0: f32,
+    pub t: f32,
+}
+
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
+#[allow(nonstandard_style)]
+pub struct Vertex {
+    event_id: u32,
+    track_id: u32,
+    parent_id: u32,
+    x: f32,
+    y: f32,
+    z: f32,
+    t: f32,
+    moved: f32,
+    pre_KE: f32,
+    post_KE: f32,
+    deposited: u32,
+    process_id: u32, // NB these may differ across
+    volume_id: u32,  // different files
 }
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
@@ -173,32 +287,41 @@ pub struct Qtot {
     pub charge: u32,
 }
 
-// Nasty output parameter inteface ...
-fn read_file(infile: &String, xyzs: &mut Option<SensorMap>) -> hdf5::Result<Vec<QT0>> {
-    // Read sensor configuration, if not yet set.
-    if xyzs.is_none() {
-        // TODO: We're assuming that that the sensor configurations in all files
-        // are the same. We should verify it.
-        let yy = io::hdf5::read_table::<SensorXYZ>(&infile, "MC/sensor_xyz"  , None)?;
-        let mut xx = vec![];
-        xx.extend_from_slice(yy.as_slice().unwrap());
-        // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
-        // joined.extend_from_slice(data.into_slice());
-        *xyzs = Some(make_sensor_position_map(xx));
-    }
+// TODO Is there really no simpler way?
+fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
+    let mut vec = vec![];
+    vec.extend_from_slice(array.as_slice().unwrap());
+    // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
+    // joined.extend_from_slice(data.into_slice());
+    vec
+}
+
+
+
+fn read_sensor_map(filename: &String) -> hdf5::Result<SensorMap> {
+    // TODO: refactor and hide in a function
+    let array = io::hdf5::read_table::<SensorXYZ>(filename, "MC/sensor_xyz"  , None)?;
+    Ok(make_sensor_position_map(array_to_vec(array)))
+}
+
+fn read_vertices(filename: &String) -> hdf5::Result<Vec<Vertex>> {
+    Ok(array_to_vec(io::hdf5::read_table::<Vertex>(filename, "MC/vertices", None)?))
+}
+
+fn read_qts(infile: &String) -> hdf5::Result<Vec<QT>> {
     // Read charges and waveforms
-    let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
-    let ts = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
+    let qs = io::hdf5::read_table::<Qtot     >(infile, "MC/total_charge", None)?;
+    let ts = io::hdf5::read_table::<Waveform >(infile, "MC/waveform"    , None)?;
     Ok(combine_tables(qs, ts))
 }
 
-fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT0> {
+fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT> {
     let mut qts = vec![];
     let mut titer = ts.into_iter();
     for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
         while let Some(&Waveform{ event_id: te, sensor_id: ts, time:t}) = titer.next() {
             if event_id == te && sensor_id == ts {
-                qts.push(QT0{ event_id, sensor_id, q, t0:t });
+                qts.push(QT{ event_id, sensor_id, q, t });
                 break;
             }
         }
@@ -206,9 +329,9 @@ fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> V
     qts
 }
 
-fn group_by_event(qts: impl IntoIterator<Item = QT0>) -> Vec<Vec<QT0>> {
+fn group_by<T>(group_by: impl FnMut(&T) -> u32, qts: impl IntoIterator<Item = T>) -> Vec<Vec<T>> {
     qts.into_iter()
-        .group_by(|h| h.event_id)
+        .group_by(group_by)
         .into_iter()
         .map(|(_, group)| group.collect())
         .collect()
@@ -218,4 +341,215 @@ fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
     xyzs.iter().cloned()
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x, y, z)))
         .collect()
+}
+
+// Proof of concept: nested compound hdf5 types
+#[cfg(test)]
+mod test_nested_compound_hdf5 {
+
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct Inner {
+        pub a: u32,
+        pub b: f32,
+    }
+
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct Outer {
+        pub id: u32,
+        pub r#true: Inner,
+        pub   reco: Inner,
+    }
+
+    #[test]
+    fn roundtrip() -> Result<(), Box<dyn std::error::Error>> {
+        let mut test_data = vec![];
+        test_data.push(Outer{ id:0, r#true:Inner{ a: 123, b: 4.56 }, reco:Inner{ a: 789, b: 0.12} });
+        test_data.push(Outer{ id:1, r#true:Inner{ a: 132, b: 45.6 }, reco:Inner{ a: 798, b: 10.2} });
+
+        let dir = tempfile::tempdir()?;
+        let file_path = dir.path().join("nested-compound.h5");
+        let file_path = file_path.to_str().unwrap();
+
+        {
+            hdf5::File::create(file_path)?
+                .create_group("just-testing")?
+                .new_dataset::<Outer>().create("nested", test_data.len())?
+                .write(&test_data)?;
+        }
+        // read
+        let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", None)?;
+        let read_data = super::array_to_vec(read_data);
+        assert_eq!(test_data, read_data);
+        println!("Test table written to {}", file_path);
+        Ok(())
+    }
+}
+
+// Proof of concept compound HDF5 containing array
+#[cfg(test)]
+mod test_hdf5_array {
+
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct Waveform {
+        pub event_id: u16,
+        pub charge: u8,
+        pub ts: [f32; 10],
+    }
+
+    impl Waveform {
+        fn new(event_id: u16, charge: u8, v: Vec<f32>) -> Self {
+            let mut ts: [f32; 10] = [f32::NAN; 10];
+            for (from, to) in v.iter().zip(ts.iter_mut()) {
+                *to = *from;
+            }
+            Self { event_id, charge, ts}
+        }
+    }
+
+    #[test]
+    fn testit() -> Result<(), Box<dyn std::error::Error>> {
+        let mut test_data = vec![];
+        test_data.push(Waveform::new(0, 8, vec![1.2, 3.4]));
+        test_data.push(Waveform::new(9, 3, vec![5.6, 7.8, 9.0]));
+        let filename = "just-testing.h5";
+        hdf5::File::create(filename)?
+            .create_group("foo")?
+            .new_dataset::<Waveform>().create("bar", test_data.len())?
+            .write(&test_data)?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test_dbscan {
+    use linfa_clustering::{DbscanHyperParams, Dbscan, AppxDbscan, generate_blobs};
+    use linfa::traits::Transformer;
+    use ndarray::{Axis, array, s};
+    use ndarray_rand::rand::SeedableRng;
+    use rand_isaac::Isaac64Rng;
+    use approx::assert_abs_diff_eq;
+
+    #[test]
+    fn test_appx () {
+        // Our random number generator, seeded for reproducibility
+        let seed = 42;
+        let mut rng = Isaac64Rng::seed_from_u64(seed);
+
+        // `expected_centroids` has shape `(n_centroids, n_features)`
+        // i.e. three points in the 2-dimensional plane
+        let expected_centroids = array![[0., 1.], [-10., 20.], [-1., 10.]];
+        // Let's generate a synthetic dataset: three blobs of observations
+        // (100 points each) centered around our `expected_centroids`
+        let observations = generate_blobs(100, &expected_centroids, &mut rng);
+
+        let observations = array![[1.0, 1.0, 3.0],
+                                  [1.1, 1.1, 3.0],
+                                  [0.9, 0.9, 3.0],
+                                  [0.9, 1.1, 3.0],
+                                  [1.1, 0.9, 3.0],
+                                  [1.0, 0.9, 3.0],
+                                  [0.9, 1.0, 3.0],
+                                  [1.0, 1.1, 3.0],
+                                  [1.1, 1.0, 3.0],
+
+                                  [2.0, 2.0, 3.0],
+                                  [2.1, 2.1, 3.0],
+                                  [1.9, 1.9, 3.0],
+                                  [1.9, 2.1, 3.0],
+                                  [2.1, 1.9, 3.0],
+                                  [2.0, 1.9, 3.0],
+                                  [1.9, 2.0, 3.0],
+                                  [2.0, 2.1, 3.0],
+                                  [2.1, 2.0, 3.0],
+
+        ];
+
+        // Let's configure and run our AppxDbscan algorithm
+        // We use the builder pattern to specify the hyperparameters
+        // `min_points` is the only mandatory parameter.
+        // If you don't specify the others (e.g. `tolerance`, `slack`)
+        // default values will be used.
+        let min_points = 3;
+        let params = AppxDbscan::params(min_points)
+            .tolerance(1.0)
+            .slack(1e-3)
+            .build();
+        // Let's run the algorithm!
+        let labels = params.transform(&observations);
+        // Points are `None` if noise `Some(id)` if belonging to a cluster.
+        println!("\n\nobs\n{:?}\n\n", observations);
+        println!("\n\npar\n{:?}\n\n", params);
+        println!("\n\nlab\n{:?}\n\n", labels);
+    }
+
+    #[test]
+    fn test_full () {
+        // Our random number generator, seeded for reproducibility
+        let seed = 42;
+        let mut rng = Isaac64Rng::seed_from_u64(seed);
+
+        // `expected_centroids` has shape `(n_centroids, n_features)`
+        // i.e. three points in the 2-dimensional plane
+        let expected_centroids = array![[0., 1.], [-10., 20.], [-1., 10.]];
+        // Let's generate a synthetic dataset: three blobs of observations
+        // (100 points each) centered around our `expected_centroids`
+        let observations: ndarray::Array2<f64> = generate_blobs(100, &expected_centroids, &mut rng);
+
+        // Let's configure and run our DBSCAN algorithm
+        // We use the builder pattern to specify the hyperparameters
+        // `min_points` is the only mandatory parameter.
+        // If you don't specify the others (e.g. `tolerance`)
+        // default values will be used.
+        let min_points = 3;
+        let labels: ndarray::Array1<Option<usize>> = Dbscan::params(min_points)
+            .tolerance(1.0)
+            .transform(&observations);
+        // Points are `None` if noise `Some(id)` if belonging to a cluster.
+
+        println!("\n\nobs\n{:?}", observations);
+        println!("\n\nclu\n{:?}", labels);
+        //println!("{:?}", params);
+
+        let mut veccy = [vec![], vec![], vec![]];
+
+        for (c, point) in labels.iter().zip(observations.outer_iter()) {
+            if let Some(c) = c {
+                let point: Vec<f64> = point.iter().copied().collect();
+                veccy[*c].push(point)
+            }
+        }
+
+        println!("\n{:4.1?}\n\n", veccy[0]);
+        println!("\n{:4.1?}\n\n", veccy[1]);
+        println!("\n{:4.1?}\n\n", veccy[2]);
+
+
+
+        let mut arry:[Vec<f64>; 3] = [vec![], vec![], vec![]];
+
+        for (c, point) in labels.iter().zip(observations.outer_iter()) {
+            if let Some(c) = c {
+                arry[*c].extend(&point);
+            }
+        }
+
+        fn foo(vec: Vec<f64>, width: usize) -> ndarray::Array2<f64> {
+            ndarray::Array2::from_shape_vec((vec.len()/width, width), vec).unwrap()
+        }
+
+        println!("aaaaa {:?}", foo(arry[0].clone(), 2).mean_axis(Axis(0)));
+
+
+        // use ndarray::prelude::*;
+        // println!("{:?}", observations.mean_axis(Axis(0)));
+
+        // use ndarray::stack;
+        // println!("\n{:4.1?}\n\n", stack![Axis(0), arry[0]].mean_axis((Axis(0))));
+        // println!("\n{:4.1?}\n\n", stack![Axis(0), arry[1]]);
+        // println!("\n{:4.1?}\n\n", arry[2]);
+
+    }
 }
