@@ -8,7 +8,7 @@ pub struct Args {
     pub dataset: String,
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
-    pub read_lors: bool,
+    pub legacy_input_format: bool,
 }
 
 use ndarray::{s, Array1};
@@ -78,7 +78,7 @@ impl Event {
 }
 
 pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
-    let it: Vec<LOR> = if args.read_lors {
+    let it: Vec<LOR> = if ! args.legacy_input_format {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
             .map(LOR::from)
@@ -112,7 +112,7 @@ mod test {
             dataset: "reco_info/table".into(),
             event_range: Some(0..4),
             use_true: false,
-            read_lors: false,
+            legacy_input_format: true,
         };
         let lors = read_lors(args.clone()).unwrap();
         assert_approx_eq!(lors[2].p1.coords.x, -120.7552004817734, 1e-5);
@@ -132,7 +132,7 @@ mod test {
             dataset: "reco_info/table".into(),
             event_range: Some(0..4),
             use_true: false,
-            read_lors: false,
+            legacy_input_format: true,
         };
 
         let events = read_table::<Event>(&args.input_file, &args.dataset, args.event_range)?;
