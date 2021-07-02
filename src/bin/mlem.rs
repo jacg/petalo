@@ -37,7 +37,7 @@ pub struct Cli {
     pub input_file: String,
 
     /// The dataset location inside the input file
-    #[structopt(short, long, default_value = "reco_info/table")]
+    #[structopt(short, long, default_value = "reco_info/lors")]
     pub dataset: String,
 
     /// Which rows of the input file should be loaded
