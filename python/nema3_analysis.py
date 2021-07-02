@@ -27,12 +27,15 @@ image, full_extent = utils.load_image_from_file(args.infile)
 positions_of_active_voxels = voxel_centres(image, full_extent)[image > 1]
 
 kmeans = KMeans(n_clusters=6, random_state=0).fit(positions_of_active_voxels)
-cluster_centres = kmeans.cluster_centers_
 
-print('Found sources at')
-for x,y,z in cluster_centres:
-    print(f'{x:6.1f}, {y:6.1f} {z:6.1f}')
+def zone(x):
+    if x > 150: return 2
+    if x >  50: return 1
+    return 0
 
+def by_zone(xyz): return tuple(map(zone, xyz))
+
+cluster_centres = sorted(kmeans.cluster_centers_, key=by_zone)
 
 def slice_to_position(slice_number, n_pixels, full_extent):
     pixel_width = full_extent / n_pixels
@@ -47,7 +50,7 @@ def test_roundtrip(slice_number, n_pixels, full_extent):
     assert new_slice == slice_number
 
 
-delta = 25
+delta = args.peak_box
 ex, ey, ez = full_extent
 nx, ny, nz = image.shape
 dx, dy, dz = (e/n for e,n in zip(full_extent, image.shape))
@@ -70,18 +73,25 @@ def analyse_one_point(x,y,z):
     along_y = around_peak[xpk,  : , zpk]
     along_z = around_peak[xpk, ypk,  : ]
 
+    print(f'{x:6.1f} {y:6.1f} {z:6.1f}     ', end='')
+
+    widths = []
     for i, (a, d) in enumerate(zip((along_x, along_y, along_z), (dx, dy, dz))):
         hm = peak_value /  2
         tm = peak_value / 10
         lh, rh = full_width_at(hm, a, d)
         lt, rt = full_width_at(tm, a, d)
-
         ax = axs[i]
         ax.plot(a, '-o')
         ax.plot((lh, rh), (hm, hm))
         ax.plot((lt, rt), (tm, tm))
         fig.suptitle(f'{x:6.1f} {y:6.1f} {z:6.1f}')
         ax.set_title(f'FWHM = {rh-lh:4.1f} mm   FWTM = {rt-lt:4.1f} mm')
+        widths.append((rh-lh, rt-lt))
+
+    (hx,tx), (hy,ty), (hz,tz) = widths
+    print(f'   {hx:4.1f} {hy:4.1f} {hz:4.1f}     {tx:4.1f} {ty:4.1f} {tz:4.1f}')
+
 
 def n_pixels_to(height, array):
     for i, (this, prev) in enumerate(zip(array[1:], array), 1):
@@ -93,6 +103,8 @@ def full_width_at(height, array, pixel_size):
     r = n_pixels_to(height, array[::-1])
     return (l - 0.5) * pixel_size, (len(array) - r - 0.5) * pixel_size
 
+print('       centroid                FWHM / mm          FWTM / mm')
+print('                              x    y    z        x    y    z')
 for c in cluster_centres:
     analyse_one_point(*c)
 plt.show()
