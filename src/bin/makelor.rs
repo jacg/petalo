@@ -16,23 +16,43 @@ pub struct Cli {
     #[structopt(short, long)]
     pub out: String,
 
-    /// Ignore sensors which detect fewer photons
-    #[structopt(short, long, default_value = "4")]
-    pub threshold: u32,
-
-    /// Use first interactions in LXe as LOR endpoints
-    #[structopt(long)]
-    pub r#true: bool,
-
-    /// Minimum number of neighbours for core points in DBSCAN
-    #[structopt(long, default_value = "10")]
-    pub min_points: usize,
-
-    /// Maximum separation of neighbours in DBSCAN
-    #[structopt(long, default_value = "100")]
-    pub radius: f32,
+    #[structopt(subcommand)]
+    reco: Reco,
 
     // TODO allow using different group/dataset in output
+}
+
+#[derive(StructOpt, Debug, Clone)]
+#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+enum Reco {
+
+    /// Reconstruct LORs from first vertices in LXe
+    #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+    True,
+
+    /// Reconstruct LORs from clusters found by splitting cylinder in half
+    #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+    Half {
+        /// Ignore sensors with fewer hits
+        #[structopt(short, long = "charge-threshold", default_value = "4")]
+        q: u32,
+    },
+
+    /// Reconstruct LORs form DBSCAN clusters
+    #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+    Dbscan {
+        /// Ignore sensors with fewer hits
+        #[structopt(short, long = "charge-threshold", default_value = "4")]
+        q: u32,
+
+        /// Minimum number of sensors in cluster
+        #[structopt(short = "n", long, default_value = "10")]
+        min_count: usize,
+
+        /// Maximum distance between neighbours in cluster
+        #[structopt(short = "d", long, default_value = "100")]
+        max_distance: f32,
+    }
 }
 
 fn main() -> hdf5::Result<()> {
@@ -46,26 +66,30 @@ fn main() -> hdf5::Result<()> {
     // --- Process input files -------------------------------------------------------
     let xyzs = read_sensor_map(&args.infiles[0])?;
     let mut lors: Vec<Hdf5Lor> = vec![];
-    let threshold = args.threshold;
     let mut n_events = 0;
     let mut failed_files = vec![];
 
-    fn true_lors(infile: &String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
-        let vertices = read_vertices(infile)?;
-        let events = group_by(|v| v.event_id, vertices.into_iter());
-        Ok((lors_from(&events, lor_from_vertices), events.len()))
-    }
-
-    let (min_points, radius) = (args.min_points, args.radius);
-    let reco_lors = |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
-        let qts = read_qts(infile)?;
-        let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= threshold));
-        //Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
-        Ok((lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_points, radius)), events.len()))
+    let makelors: Box<dyn Fn(&String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>> = match args.reco {
+        Reco::True => Box::new(
+            |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+                let vertices = read_vertices(infile)?;
+                let events = group_by(|v| v.event_id, vertices.into_iter());
+                Ok((lors_from(&events, lor_from_vertices), events.len()))
+            }),
+        Reco::Half{q} => Box::new(
+            move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+                let qts = read_qts(infile)?;
+                let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
+                Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
+            }),
+        Reco::Dbscan { q, min_count, max_distance } => Box::new(
+            move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+                let qts = read_qts(infile)?;
+                let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
+                Ok((lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
+            }),
     };
 
-    let makelors: Box<dyn Fn(&String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>> =
-        if args.r#true {Box::new(true_lors)} else {Box::new(reco_lors)};
 
     for infile in args.infiles {
         // TODO message doesn't appear until end of iteration
@@ -141,14 +165,13 @@ mod test_n_clusters {
 }
 
 fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolerance: f32) -> Option<LOR> {
-    use linfa_clustering::{AppxDbscan};
+    use linfa_clustering::AppxDbscan;
     use linfa::traits::Transformer;
     let active_sensor_positions: ndarray::Array2<f32> = hits.iter()
         .flat_map(|QT { sensor_id, ..}| xyzs.get(sensor_id))
         .map(|&(x,y,z)| [x,y,z])
         .collect::<Vec<_>>()
         .into();
-    let min_points = 5;
     let params = AppxDbscan::params(min_points)
         .tolerance(tolerance) // > 7mm between sipm centres
         .build();
