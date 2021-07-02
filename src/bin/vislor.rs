@@ -22,9 +22,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // exclusive.
     let lor = if let Some(input_file) = args.clone().input_file {
         let event_range = args.event..args.event+1;
-        let                      Cli{ dataset, use_true, read_lors, .. } = args.clone();
+        let                      Cli{ dataset, use_true, legacy_input_format, .. } = args.clone();
         let io_args = io::hdf5::Args{ dataset, use_true, input_file,
-                                      event_range: Some(event_range), read_lors };
+                                      event_range: Some(event_range), legacy_input_format };
         petalo::io::hdf5::read_lors(io_args)?[0]
     } else {
         args.lor
@@ -82,8 +82,8 @@ pub struct Cli {
     #[structopt(long)]
     use_true: bool,
 
-    /// Input file contains LORs rather than events
+    /// The input dataset contains the old true/reco r/phi format
     #[structopt(long)]
-    read_lors: bool,
+    legacy_input_format: bool,
 
 }

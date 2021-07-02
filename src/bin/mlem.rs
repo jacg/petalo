@@ -37,7 +37,7 @@ pub struct Cli {
     pub input_file: String,
 
     /// The dataset location inside the input file
-    #[structopt(short, long, default_value = "reco_info/table")]
+    #[structopt(short, long, default_value = "reco_info/lors")]
     pub dataset: String,
 
     /// Which rows of the input file should be loaded
@@ -58,9 +58,9 @@ pub struct Cli {
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
 
-    /// The input dataset contains LORs (not events)
+    /// The input dataset contains the old true/reco r/phi format
     #[structopt(long)]
-    pub read_lors: bool,
+    pub legacy_input_format: bool,
 
     /// Calculate figures of merit as images are produced
     #[structopt(long)]
@@ -96,8 +96,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // Read event data from disk into memory
-    let                      Cli{ input_file, dataset, event_range, use_true, read_lors, .. } = args.clone();
-    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, read_lors };
+    let                      Cli{ input_file, dataset, event_range, use_true, legacy_input_format, .. } = args.clone();
+    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, legacy_input_format };
     println!("Reading LOR data from disk ...");
     let measured_lors = io::hdf5::read_lors(io_args)?;
     report_time("Loaded LOR data from local disk");
