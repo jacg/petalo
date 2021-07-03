@@ -12,11 +12,12 @@ class image:
 
 class view:
 
-    def __init__(self, images, *, axis='x'):
+    def __init__(self, files, *, axis='x'):
+        self.files = files
         self.ts = set('z')
         self.fig, self.ax = plt.subplots()
         self.images = tuple(image(wrap_1d_into_3d(data, shape), shape, full_lengths)
-                            for (shape, full_lengths), data in images)
+                            for (shape, full_lengths), data in map(read_raw, files))
         self.image_number = 0
         self.axis = axis
         shape = self.images[self.image_number].shape
@@ -74,7 +75,7 @@ class view:
         i = self.pos[nax]
         pixel_size = self.images[self.image_number].pixel_size
         p = (i + 0.5) * pixel_size[nax] - half_size[nax]
-        self.ax.set_title(f'{self.axis} = {p}        N={self.image_number}')
+        self.ax.set_title(f'{self.axis} = {p}\n{self.files[self.image_number]}')
         self.ax.set_xlabel(xl)
         self.ax.set_ylabel(yl)
         self.fig.canvas.draw()
@@ -91,4 +92,4 @@ class view:
 if __name__ == '__main__':
     from sys import argv
 
-    view(map(read_raw, argv[1:]))
+    view(argv[1:])
