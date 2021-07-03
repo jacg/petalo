@@ -12,6 +12,7 @@ parser.add_argument('infile', type=str, help='HDF5 file containing MC event data
 parser.add_argument('-n', '--min-cluster-size', type=int, default=10)
 parser.add_argument('-d', '--max-distance-to_neighbour', type=float, default=100)
 parser.add_argument('-q', '--charge-threshold', type=int, default=4, help='ignore sensors which detect fewer photons')
+parser.add_argument('-z', '--z-width'         , type=float, default=200, help='full-width of visualization grid in z [mm]')
 args = parser.parse_args()
 
 MINIMUM_CLUSTER_SIZE          = args.min_cluster_size
@@ -72,6 +73,8 @@ def distance_between_point_and_line(point, line_end_1, line_end_2):
     return norm(np.cross(line, line_to_point)) / norm(line)
 
 
+zlim = args.z_width / 2
+
 def plotem(event_number, clusters, vers, active_source, miss):
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -92,9 +95,9 @@ def plotem(event_number, clusters, vers, active_source, miss):
     ax.scatter(*active_source  , c='red'      , label='LOR source')
 
     ax.legend()
-    ax.set_xlim((-450,450)); ax.set_xlabel('x')
-    ax.set_ylim((-450,450)); ax.set_ylabel('y')
-    ax.set_zlim((-100,100)); ax.set_zlabel('z')
+    ax.set_xlim((- 450,  450)); ax.set_xlabel('x')
+    ax.set_ylim((- 450,  450)); ax.set_ylabel('y')
+    ax.set_zlim((-zlim, zlim)); ax.set_zlabel('z')
     plt.show()
 
 def evhits(responses):
