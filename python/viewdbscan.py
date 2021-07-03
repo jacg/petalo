@@ -63,10 +63,6 @@ def centroids_from_clusters(clusters):
     return np.array(tuple(h.mean(axis=0) for n,h in clusters.items() if n!=-1))
 
 
-nema3_sources = np.array([[0,  10, 0], [0,  10, 56.25],
-                          [0, 100, 0], [0, 100, 56.25],
-                          [0, 200, 0], [0, 200, 56.25]])
-
 def distance_between_point_and_line(point, line_end_1, line_end_2):
     line          = line_end_1 - line_end_2
     line_to_point =      point - line_end_2
@@ -109,8 +105,9 @@ def evhits(responses):
 f = h5py.File(args.infile)
 MC = f['MC']
 
-
 sensor_xyz = {sensor: (x,y,z) for sensor, x,y,z in MC['sensor_xyz']}
+
+nema3_sources = np.array(sorted(set((x,y,z) for _, x,y,z, *noise in MC['primaries'])))
 
 primaries = iter(MC['primaries'])
 vertices  = iter(MC['vertices'])
