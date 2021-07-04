@@ -36,6 +36,12 @@ def display_reconstructed_images(nr, nc, args):
         show_image_from_file(filename, axis=args.axis, slice_=args.slice_, ax=the_ax)
 
 
+def load_image_from_file(filename):
+    (shape, full_extent), data = read_raw(filename)
+    image = wrap_1d_into_3d(data, shape)
+    return image, full_extent
+
+
 def show_image_from_file(filename, *, axis, slice_, ax=plt):
     (shape, full_length), data = read_raw(filename)
     image = wrap_1d_into_3d(data, shape)
