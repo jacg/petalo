@@ -18,21 +18,24 @@ class view:
         self.fig, self.ax = plt.subplots()
         self.images = tuple(image(wrap_1d_into_3d(data, shape), shape, full_lengths)
                             for (shape, full_lengths), data in map(read_raw, files))
+
+        self.maxima = [im.data.max() for im in self.images]
         self.image_number = 0
         self.axis = axis
         self.integrate = False
         shape = self.images[self.image_number].shape
         self.pos = [n // 2 for n in shape] # start off in the middle along each axis
-        self.ax.imshow(self.slice_through_data())
+        self.ax.imshow(self.data_to_be_shown())
         self.aximage = self.ax.images[0]
         self.fig.canvas.mpl_connect('key_press_event', self.process_key)
         self.update()
         plt.show()
 
-    def slice_through_data(self):
+    def data_to_be_shown(self):
         s = [slice(None) for _ in range(3)]
         naxis = self.naxis
-        s[naxis] = self.pos[slice(None) if self.integrate else naxis]
+        if not self.integrate:
+            s[naxis] = self.pos[naxis]
         image = self.images[self.image_number]
         it = image.data[s[0], s[1], s[2]]
         if self.integrate:
@@ -64,7 +67,8 @@ class view:
 
     def update(self):
         im = self.aximage
-        im.set_array(self.slice_through_data())
+        data = self.data_to_be_shown()
+        im.set_array(data)
         half_size = self.images[self.image_number].half_size
         ax, (x,y,z) = self.axis, half_size
         xe, ye,  xl, yl = ((y,x, 'y', 'x') if ax == 'z' else
@@ -74,8 +78,12 @@ class view:
             xe,ye, xl,yl = ye,xe, yl,xl
         extent = -xe,xe, -ye,ye
         im.set_extent(extent)
-        #self.ax.set_aspect(ye/xe)
         nax = self.naxis
+        if self.integrate:
+            im.set_clim(0, data.max())
+        else:
+            im.set_clim(0, self.   maxima[self.image_number])
+        #self.ax.set_aspect(ye/xe)
         i = self.pos[nax]
         pixel_size = self.images[self.image_number].pixel_size
         p = 'integrated' if self.integrate else f'{(i + 0.5) * pixel_size[nax] - half_size[nax]:6.1f}'
@@ -96,4 +104,4 @@ class view:
 if __name__ == '__main__':
     from sys import argv
 
-    view(argv[1:])
+    v = view(argv[1:])
