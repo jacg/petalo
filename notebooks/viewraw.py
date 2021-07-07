@@ -75,7 +75,7 @@ class view:
         i = self.pos[nax]
         pixel_size = self.images[self.image_number].pixel_size
         p = (i + 0.5) * pixel_size[nax] - half_size[nax]
-        self.ax.set_title(f'{self.axis} = {p}\n{self.files[self.image_number]}')
+        self.ax.set_title(f'{self.axis} = {p:6.1f}\n{self.files[self.image_number]}')
         self.ax.set_xlabel(xl)
         self.ax.set_ylabel(yl)
         self.fig.canvas.draw()
