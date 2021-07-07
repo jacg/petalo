@@ -12,11 +12,11 @@ pub struct Cli {
     #[structopt(short, long, default_value = "5")]
     pub iterations: usize,
 
-    /// Voxel box full-widths in mm
+    /// Image size full-widths in mm
     #[structopt(short, long, parse(try_from_str = parse_triplet::<F>), default_value = "180,180,180")]
     pub size: (F, F, F),
 
-    /// Number of voxels in each dimension
+    /// Image size in number of voxels
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
     pub n_voxels: (usize, usize, usize),
 
