@@ -3,7 +3,7 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::types::{Length, Time, Ratio, Index1, Intensity};
+use crate::types::{Length, Time, Ratio, Index1, Index3, Intensity};
 use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR};
 use crate::gauss::make_gauss_option;
 
@@ -25,6 +25,21 @@ impl core::ops::Index<Index1> for Image {
     type Output = Intensity;
     #[inline]
     fn index(&self, i: Index1) -> &Self::Output { &self.data[i] }
+}
+
+impl core::ops::IndexMut<Index3> for Image {
+    fn index_mut(&mut self, i3: Index3) -> &mut Self::Output {
+        let i1 = index3_to_1(i3, self.vbox.n);
+        &mut self.data[i1]
+    }
+}
+
+impl core::ops::Index<Index3> for Image {
+    type Output = Intensity;
+    fn index(&self, i3: Index3) -> &Self::Output {
+        let i1 = index3_to_1(i3, self.vbox.n);
+        &self.data[i1]
+    }
 }
 
 impl Image {
@@ -125,6 +140,11 @@ impl Image {
             panic!("Image data does not match dimensions {:?}", vbox.n);
         };
         Image { vbox, data }
+    }
+
+    pub fn empty(vbox: VoxelBox) -> Self {
+        let [x,y,z] = vbox.n;
+        Self::new(vbox, vec![0.0; x*y*z])
     }
 
 }

@@ -205,3 +205,16 @@ impl From<Hdf5Lor> for LOR {
         Self { t1, t2, p1: Point::new(x1, y1, z1), p2: Point::new(x2, y2, z2)}
     }
 }
+
+// --------------------------------------------------------------------------------
+#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+#[repr(C)]
+pub struct Primary {
+    pub event_id: u32,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub vx: f32,
+    pub vy: f32,
+    pub vz: f32,
+}
