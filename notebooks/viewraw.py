@@ -20,6 +20,7 @@ class view:
                             for (shape, full_lengths), data in map(read_raw, files))
         self.image_number = 0
         self.axis = axis
+        self.integrate = False
         shape = self.images[self.image_number].shape
         self.pos = [n // 2 for n in shape] # start off in the middle along each axis
         self.ax.imshow(self.slice_through_data())
@@ -31,9 +32,11 @@ class view:
     def slice_through_data(self):
         s = [slice(None) for _ in range(3)]
         naxis = self.naxis
-        s[naxis] = self.pos[naxis]
+        s[naxis] = self.pos[slice(None) if self.integrate else naxis]
         image = self.images[self.image_number]
         it = image.data[s[0], s[1], s[2]]
+        if self.integrate:
+            it = it.sum(axis = naxis)
         if self.axis in self.ts:
             it = it.transpose()
         return it
@@ -47,6 +50,7 @@ class view:
         if k in 'xyz': self.axis = k
         if k == 't': self.flipT()
         if k in ('right', 'left'): self.switch_image(1 if k == 'right' else -1)
+        if k == 'i': self.integrate = not self.integrate
         self.update()
 
     def switch_image(self, n):
@@ -74,8 +78,8 @@ class view:
         nax = self.naxis
         i = self.pos[nax]
         pixel_size = self.images[self.image_number].pixel_size
-        p = (i + 0.5) * pixel_size[nax] - half_size[nax]
-        self.ax.set_title(f'{self.axis} = {p:6.1f}\n{self.files[self.image_number]}')
+        p = 'integrated' if self.integrate else f'{(i + 0.5) * pixel_size[nax] - half_size[nax]:6.1f}'
+        self.ax.set_title(f'{self.axis} = {p}\n{self.files[self.image_number]}')
         self.ax.set_xlabel(xl)
         self.ax.set_ylabel(yl)
         self.fig.canvas.draw()
