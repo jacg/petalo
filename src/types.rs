@@ -21,4 +21,7 @@ pub const C: Length = 0.299_792_458; // mm / ps
 #[inline] pub fn tof_dt_ps_to_mm(dt: Time) -> Length { dt * C / 2.0 }
 #[inline] pub fn tof_dx_mm_to_ps(dx: Length) -> Time { dx * 2.0 / C }
 
+#[inline] pub fn tof_dt_ns_to_mm(dt: Time) -> Length { tof_dt_ps_to_mm(dt) * 1000.0 }
+#[inline] pub fn tof_dx_mm_to_ns(dx: Length) -> Time { tof_dx_mm_to_ps(dx) / 1000.0  }
+
 pub const TWOPI: Length = std::f32::consts::TAU as Length;
