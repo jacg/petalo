@@ -23,7 +23,7 @@ type VecOf<T> = ncollide3d::math::Vector<T>;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
-use crate::types::{Length, Time, Vector, Point, C, BoxDim, Index1, Index3, Index3Weight};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Time, Vector, tof_dt_ps_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -173,7 +173,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     };
 
     // How far the entry point is from the TOF peak
-    let tof_peak = find_tof_peak(entry_point, p1, p2, lor.t1, lor.t2);
+    let tof_peak = find_tof_peak(entry_point, p1, p2, lor.dx);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     let entry_point = find_entry_point(entry_point, vbox);
@@ -271,8 +271,8 @@ fn find_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
 
 /// Distance from entry point to the LOR's TOF peak
 #[inline]
-fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, t1: Time, t2: Time) -> Length {
-    let p1_to_peak = 0.5 * ((p1 - p2).norm() + C * (t1 - t2));
+fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dx: Length) -> Length {
+    let p1_to_peak = 0.5 * ((p1 - p2).norm() - dx);
     let p1_to_entry = (entry_point - p1).norm();
     p1_to_peak - p1_to_entry
 }
@@ -442,12 +442,13 @@ mod test_voxel_box {
 pub struct LOR {
     pub p1: Point,
     pub p2: Point,
-    pub t1: Time,
-    pub t2: Time,
+    pub dx: Length,
 }
 
 impl LOR {
-    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self { Self { p1, p2, t1, t2 } }
+    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self {
+        Self { p1, p2, dx: tof_dt_ps_to_mm(t2 - t1) }
+    }
 
     pub fn from_components(t1: Time, t2: Time,
                            x1: Length, y1: Length, z1: Length,
@@ -485,11 +486,10 @@ impl fmt::Display for LOR {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (p, q) = (self.p1, self.p2);
         let ps_per_ns = 1000.0;
-        write!(f, "<LOR ({:4.2} {:4.2}) ({:8.2} {:8.2} {:8.2}) ({:8.2} {:8.2} {:8.2}) {:7.2} /{:7.2} >",
-               self.t1, self.t2,
+        write!(f, "<LOR ({:8.2} {:8.2} {:8.2}) ({:8.2} {:8.2} {:8.2}) {:7.2} /{:7.2} >",
                p.x, p.y, p.z,
                q.x, q.y, q.z,
-               ((self.t1 - self.t2) * C * ps_per_ns).abs() / 2.0,
+               self.dx,
                (p-q).norm()
         )
     }

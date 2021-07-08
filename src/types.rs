@@ -18,4 +18,7 @@ pub type Point  = nc::math ::Point <Length>;
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
 pub const C: Length = 0.299_792_458; // mm / ps
 
+#[inline] pub fn tof_dt_ps_to_mm(dt: Time) -> Length { dt * C / 2.0 }
+#[inline] pub fn tof_dx_mm_to_ps(dx: Length) -> Time { dx * 2.0 / C }
+
 pub const TWOPI: Length = std::f32::consts::TAU as Length;
