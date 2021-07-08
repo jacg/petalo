@@ -447,7 +447,7 @@ pub struct LOR {
 
 impl LOR {
     pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self {
-        Self { p1, p2, dx: tof_dt_ns_to_mm(t2 - t1) }
+        Self { p1, p2, dx: 2.0 * tof_dt_ns_to_mm(t2 - t1) }
     }
 
     pub fn from_components(t1: Time, t2: Time,
