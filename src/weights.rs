@@ -485,7 +485,6 @@ use core::fmt;
 impl fmt::Display for LOR {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (p, q) = (self.p1, self.p2);
-        let ps_per_ns = 1000.0;
         write!(f, "<LOR ({:8.2} {:8.2} {:8.2}) ({:8.2} {:8.2} {:8.2}) {:7.2} /{:7.2} >",
                p.x, p.y, p.z,
                q.x, q.y, q.z,
