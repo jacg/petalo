@@ -23,7 +23,7 @@ type VecOf<T> = ncollide3d::math::Vector<T>;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Time, Vector, tof_dt_ns_to_mm};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -447,7 +447,7 @@ pub struct LOR {
 
 impl LOR {
     pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self {
-        Self { p1, p2, dx: 2.0 * tof_dt_ns_to_mm(t2 - t1) }
+        Self { p1, p2, dx: ns_to_mm(t2 - t1) }
     }
 
     pub fn from_components(t1: Time, t2: Time,

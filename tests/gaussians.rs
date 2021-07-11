@@ -11,7 +11,7 @@ fn sim_burdel(dist: Length, dt: Time, sigma: Time) -> Ratio {
     use petalo::gauss::make_gauss_option;
     let x = dist + dt * C / 2.0;
     let cutoff = Some(3.0);
-    let gauss = make_gauss_option(Some(sigma), cutoff).unwrap();
+    let gauss = make_gauss_option(Some(sigma / 2.0), cutoff).unwrap();
     gauss(x)
 }
 

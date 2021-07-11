@@ -1,4 +1,4 @@
-use crate::types::{Length, TWOPI, tof_dt_ps_to_mm};
+use crate::types::{Length, TWOPI, ps_to_mm};
 
 fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> Length {
     let root_two_pi = TWOPI.sqrt() as Length;
@@ -16,5 +16,5 @@ fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> Lengt
 }
 
 pub fn make_gauss_option(sigma: Option<Length>, cutoff: Option<Length>) -> Option<impl Fn(Length) -> Length> {
-    sigma.map(|sigma| make_gauss(tof_dt_ps_to_mm(sigma), cutoff))
+    sigma.map(|sigma| make_gauss(ps_to_mm(sigma), cutoff))
 }
