@@ -177,7 +177,7 @@ mod test_in_roi {
 }
 
 // TODO stop reinventing this wheel
-fn mean(data: &[Intensity]) -> Option<Intensity> {
+pub fn mean(data: &[Intensity]) -> Option<Intensity> {
     data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensity)
 }
 
