@@ -102,7 +102,7 @@ fn crc(sphere: HotSphere,
        bg_activity: f32,
 ) -> Option<f32> {
     let HotSphere { x, y, r } = sphere;
-    let sphere_roi = fom::ROI::DiscZ((x,y, 0.0), r);
+    let sphere_roi = fom::ROI::DiscZ((x,y, background_zs[2]), r);
     let sphere_filter = sphere_roi.contains_fn();
     let sphere_values: Vec<_> = zzz(sphere_filter, &layers[2]).map(|(_,v)| v).collect();
     let sphere_mean = fom::mean(&sphere_values)?;
