@@ -71,10 +71,10 @@ use binwrite::BinWrite;
 #[br(big)]
 #[binwrite(big)]
 pub struct Image3D {
-    pixels: [u16; 3],
-    mm: [f32; 3],
+    pub pixels: [u16; 3],
+    pub mm: [f32; 3],
     #[br(count = pixels[0] as usize * pixels[1] as usize * pixels[2] as usize)]
-    data: Vec<f32>,
+    pub data: Vec<f32>,
 }
 
 impl Image3D {
