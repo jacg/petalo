@@ -12,7 +12,7 @@ class image:
 
 class view:
 
-    def __init__(self, files, *, axis='x'):
+    def __init__(self, files, *, axis='z'):
         self.files = files
         self.ts = set('z')
         self.fig, self.ax = plt.subplots()
