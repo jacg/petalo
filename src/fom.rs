@@ -55,6 +55,8 @@ impl ROI {
     }
 }
 
+pub type PointValue = (Point, Intensity);
+
 // TODO replace vec with iterator in output
 impl Image {
 
@@ -66,6 +68,13 @@ impl Image {
             if roi_contains(p) { out.push(value) }
         }
         out
+    }
+
+    pub fn values_with_positions(&self) -> Vec<PointValue> {
+        self.data.iter().copied()
+            .enumerate()
+            .map(|(index, value)| (self.vbox.voxel_centre1(index), value))
+            .collect()
     }
 
 }
