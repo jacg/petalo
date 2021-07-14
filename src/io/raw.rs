@@ -104,6 +104,18 @@ impl From<&MLEMImage> for Image3D {
     }
 }
 
+impl From<&Image3D> for MLEMImage {
+    fn from(image: &Image3D) -> Self {
+        let [px, py, pz] = image.pixels;
+        let n = (px as usize, py as usize, pz as usize);
+        let [wx, wy, wz] = image.mm;
+        let half_width = (wx, wy, wz);
+        let vbox = crate::weights::VoxelBox::new(half_width, n);
+        let data = image.data.clone();
+        Self { vbox, data }
+    }
+}
+
 #[cfg(test)]
 use binrw::io::Cursor;
 
@@ -121,7 +133,7 @@ mod test_with_metadata {
     }
 
     #[test]
-    fn roundtrip() {
+    fn roundtrip_via_buffer() {
         // Create a test image
         let original = guinea_pig();
 
@@ -159,7 +171,14 @@ mod test_with_metadata {
         // Check that roundtrip didn't corrupt the data
         assert_eq!(original, recovered);
         Ok(())
+    }
 
+    #[test]
+    fn roundtrip_via_mlem_image() {
+        let original = guinea_pig();
+        let converted = crate::mlem::Image::from(&original);
+        let recovered = Image3D::from(&converted);
+        assert_eq!(original, recovered);
     }
 
 }
