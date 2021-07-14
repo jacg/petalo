@@ -18,6 +18,7 @@ pub enum ROI {
     CylinderX((Length, Length), Length),
     CylinderY((Length, Length), Length),
     CylinderZ((Length, Length), Length),
+    DiscZ((Length, Length, Length), Length),
 }
 
 impl ROI {
@@ -43,6 +44,10 @@ impl ROI {
                 x*x + y*y < radius*radius
             }),
 
+            ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Point| {
+                let (x, y) = (p.x - cx, p.y - cy);
+                z == p.z && x*x + y*y < radius*radius
+            }),
         }
     }
 }
