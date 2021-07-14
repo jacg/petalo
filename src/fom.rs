@@ -20,12 +20,9 @@ pub enum ROI {
     CylinderZ((Length, Length), Length),
 }
 
-// TODO replace vec with iterator in output
-impl Image {
-
-    pub fn values_inside_roi(&self, roi: ROI) -> ImageData {
-        let mut out = vec![];
-        let roi_contains: Box<dyn Fn(Point) -> bool> = match roi {
+impl ROI {
+    pub fn contains_fn(self) -> Box<dyn Fn(Point) -> bool> {
+        match self {
             ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
                 let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
                 x*x + y*y + z*z < radius * radius
@@ -44,9 +41,18 @@ impl Image {
             ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 x*x + y*y < radius*radius
-            })
+            }),
 
-        };
+        }
+    }
+}
+
+// TODO replace vec with iterator in output
+impl Image {
+
+    pub fn values_inside_roi(&self, roi: ROI) -> ImageData {
+        let mut out = vec![];
+        let roi_contains = roi.contains_fn();
         for (index, value) in self.data.iter().copied().enumerate() {
             let p = self.vbox.voxel_centre1(index);
             if roi_contains(p) { out.push(value) }
