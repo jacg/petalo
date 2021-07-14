@@ -21,8 +21,11 @@ pub enum ROI {
     DiscZ((Length, Length, Length), Length),
 }
 
+pub type InRoiFn = Box<dyn Fn(Point) -> bool>;
+
 impl ROI {
-    pub fn contains_fn(self) -> Box<dyn Fn(Point) -> bool> {
+
+    pub fn contains_fn(self) -> InRoiFn {
         match self {
             ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
                 let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
