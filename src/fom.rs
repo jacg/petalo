@@ -18,14 +18,15 @@ pub enum ROI {
     CylinderX((Length, Length), Length),
     CylinderY((Length, Length), Length),
     CylinderZ((Length, Length), Length),
+    DiscZ((Length, Length, Length), Length),
 }
 
-// TODO replace vec with iterator in output
-impl Image {
+pub type InRoiFn = Box<dyn Fn(Point) -> bool>;
 
-    pub fn values_inside_roi(&self, roi: ROI) -> ImageData {
-        let mut out = vec![];
-        let roi_contains: Box<dyn Fn(Point) -> bool> = match roi {
+impl ROI {
+
+    pub fn contains_fn(self) -> InRoiFn {
+        match self {
             ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
                 let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
                 x*x + y*y + z*z < radius * radius
@@ -44,14 +45,36 @@ impl Image {
             ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 x*x + y*y < radius*radius
-            })
+            }),
 
-        };
+            ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Point| {
+                let (x, y) = (p.x - cx, p.y - cy);
+                z == p.z && x*x + y*y < radius*radius
+            }),
+        }
+    }
+}
+
+pub type PointValue = (Point, Intensity);
+
+// TODO replace vec with iterator in output
+impl Image {
+
+    pub fn values_inside_roi(&self, roi: ROI) -> ImageData {
+        let mut out = vec![];
+        let roi_contains = roi.contains_fn();
         for (index, value) in self.data.iter().copied().enumerate() {
             let p = self.vbox.voxel_centre1(index);
             if roi_contains(p) { out.push(value) }
         }
         out
+    }
+
+    pub fn values_with_positions(&self) -> Vec<PointValue> {
+        self.data.iter().copied()
+            .enumerate()
+            .map(|(index, value)| (self.vbox.voxel_centre1(index), value))
+            .collect()
     }
 
 }
@@ -154,8 +177,17 @@ mod test_in_roi {
 }
 
 // TODO stop reinventing this wheel
-fn mean(data: &[Intensity]) -> Option<Intensity> {
+pub fn mean(data: &[Intensity]) -> Option<Intensity> {
     data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensity)
+}
+
+pub fn sd(data: &[Intensity]) -> Option<Intensity> {
+    if data.len() < 2 { return None; }
+    let mu = mean(data)?;
+    let sum_of_deltas: Intensity = data.iter()
+        .map(|x| {let d = x-mu; d*d})
+        .sum();
+    Some(sum_of_deltas / data.len() as Intensity)
 }
 
 fn mu_and_sigma(data: &[Intensity]) -> Option<(Intensity, Intensity)> {
