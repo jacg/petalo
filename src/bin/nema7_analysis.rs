@@ -24,7 +24,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Background ROIs should be placed at z-slices closest to 0, ±1, ±2 cm.
     // These are the z-positions of the centres of the nearest slices
-    let background_zs = zs_of_slices_closest_to([-20.0, -10.0, 0.0, 10.0, 20.0], z_half_width, z_voxel_size);
+    let background_zs = centres_of_slices_closest_to([-20.0, -10.0, 0.0, 10.0, 20.0],
+                                                     z_half_width, z_voxel_size);
 
     // Annotate each voxel value with its 3D position
     let pos_values = image.values_with_positions();
@@ -139,13 +140,16 @@ fn index_to_position(index: usize, half_width: f32, voxel_size: f32) -> f32 {
     (index as f32 + 0.5) * voxel_size - half_width
 }
 
-fn zs_of_slices_closest_to(z_targets: [f32; 5], half_width: f32, voxel_size: f32) -> Vec<f32> {
-    // z-indices of the slices closest to the targets
-    let z_indices = z_targets.iter()
-        .map(|z| position_to_index(*z, half_width, voxel_size))
-        .collect::<Vec<_>>();
-    // Exact z-positions of slices closest to targets
-    z_indices.iter().copied()
-        .map(|i| index_to_position(i, half_width, voxel_size))
-        .collect::<Vec<_>>()
+fn centre_of_slice_closest_to(half_width: f32, voxel_size: f32) -> impl Fn(f32) -> f32 {
+    move |x| {
+        let i = position_to_index(x, half_width, voxel_size);
+        let x = index_to_position(i, half_width, voxel_size);
+        x
+    }
+}
+
+fn centres_of_slices_closest_to(targets: [f32; 5], half_width: f32, voxel_size: f32) -> Vec<f32> {
+    targets.iter().copied()
+        .map(centre_of_slice_closest_to(half_width, voxel_size))
+        .collect()
 }
