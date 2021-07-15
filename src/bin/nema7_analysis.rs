@@ -16,17 +16,17 @@ use petalo::fom;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
-    let image_io   = Image3D::read_from_file(&args.input_file)?;
-    let image_mlem = petalo::mlem::Image::from(&image_io);
+    let image = Image3D::read_from_file(&args.input_file)?;
+    let image = petalo::mlem::Image::from(&image);
 
-    let z_voxel_size = image_mlem.vbox.voxel_size[2];
-    let z_half_width = image_mlem.vbox.half_width[2];
+    let z_voxel_size = image.vbox.voxel_size[2];
+    let z_half_width = image.vbox.half_width[2];
 
     // Background ROIs should be placed at z-slices closest to 0, ±1, ±2 cm.
     // These are the z-positions of the centres of the nearest slices
     let background_zs = zs_of_slices_closest_to([-20.0, -10.0, 0.0, 10.0, 20.0], z_half_width, z_voxel_size);
 
-    let pos_values = image_mlem.values_with_positions();
+    let pos_values = image.values_with_positions();
     let mut layer = vec![vec![]; 5];
     for (p,v) in pos_values {
         for i in 0..5 {
