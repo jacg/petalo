@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Collect voxels belonging to the 5 background ROI z-slices
     let mut slice = vec![vec![]; 5];
-    for (p,v) in pos_values {
+    for &(p,v) in &pos_values {
         for i in 0..5 {
             if p.z == background_zs[i] {
                 slice[i].push((p,v));
@@ -78,7 +78,37 @@ fn main() -> Result<(), Box<dyn Error>> {
         if sphere.r == 37.0/2.0 { bg_37 = Some(c) }
         println!("{:5.1}  {:5.1} ({:.0})", c, v, sphere.r * 2.0);
     }
-    println!("{:?}", bg_37);
+
+    // --- 7.4.2 ---------------------------------------------------------------------
+    // ignore slices which lie within 30mm of ends.
+    let hi_limit = 70.0         - 30.0;
+    let lo_limit = 70.0 - 180.0 + 30.0;
+    // Find voxel z-centres nearest to the limits
+    let nearest = centre_of_slice_closest_to(z_half_width, z_voxel_size);
+    let hi_centre = nearest(hi_limit);
+    let lo_centre = nearest(lo_limit);
+    // If centre is beyond the limit, move inwards by one voxel
+    let hi = if hi_centre <= hi_limit { hi_centre } else { nearest(hi_centre - z_voxel_size) };
+    let lo = if lo_centre >= lo_limit { lo_centre } else { nearest(lo_centre + z_voxel_size) };
+    // z-indices of first and last slices to be used
+    let index_of = |z| position_to_index(z, z_half_width, z_voxel_size);
+    let   pos_of = |z| index_to_position(z, z_half_width, z_voxel_size);
+    let hi_index = index_of(hi);
+    let lo_index = index_of(lo);
+
+    // Ignore voxels which lie outside of the lung insert
+    let lung = fom::ROI::CylinderZ((0.0, 0.0), 30.0/2.0);
+    let filter = lung.contains_fn();
+    let lung_voxels: Vec<_> = in_roi(filter, &pos_values).collect();
+
+    // For each z-slice divide mean within ROI, by 37mm background mean
+    let bg_37 = bg_37.unwrap();
+    let aocs = (lo_index..=hi_index).into_iter()
+        .map(|i| { mean_in_region(0.0, 0.0, pos_of(i), 30.0/2.0, &lung_voxels) })
+        .map(|v| 100.0 * v / bg_37)
+        .collect::<Vec<_>>();
+
+    println!("{:.1?}", aocs);
     Ok(())
 }
 
