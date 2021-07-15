@@ -81,8 +81,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     ];
 
     for sphere in hot_specs {
-        let f = crc(sphere, &background_xys, &background_zs, &layer, 4.0, 1.0);
-        println!("{:5.1}", f.unwrap());
+        let (c,v) = crc(sphere, &background_xys, &background_zs, &layer, 4.0, 1.0).unwrap();
+        println!("{:5.1}  {:5.1} ({:.0})", c, v, sphere.r * 2.0);
     }
     Ok(())
 }
@@ -100,7 +100,7 @@ fn crc(sphere: HotSphere,
        layers: &[Vec<fom::PointValue>],
        sphere_activity: f32,
        bg_activity: f32,
-) -> Option<f32> {
+) -> Option<(f32, f32)> {
     let HotSphere { x, y, r } = sphere;
     let sphere_roi = fom::ROI::DiscZ((x,y, background_zs[2]), r);
     let sphere_filter = sphere_roi.contains_fn();
@@ -119,7 +119,10 @@ fn crc(sphere: HotSphere,
         }
     }
     let bg_mean = fom::mean(&means)?;
-    Some(100.0 * ((sphere_mean / bg_mean) - 1.0) / ((sphere_activity / bg_activity) - 1.0) )
+    let bg_sd   = fom::sd  (&means)?;
+    let contrast = 100.0 * ((sphere_mean / bg_mean) - 1.0) / ((sphere_activity / bg_activity) - 1.0);
+    let background_variability = 100.0 * bg_sd / bg_mean;
+    Some((contrast, background_variability))
 }
 
 fn zzz(in_roi: fom::InRoiFn, voxels: &[fom::PointValue]) -> impl Iterator<Item = fom::PointValue> + '_ {
