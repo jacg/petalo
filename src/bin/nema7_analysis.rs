@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Background ROIs should be placed at z-slices closest to 0, ±1, ±2 cm.
     // These are the z-positions of the centres of the nearest slices
-    let background_zs = centres_of_slices_closest_to([-20.0, -10.0, 0.0, 10.0, 20.0],
+    let background_zs = centres_of_slices_closest_to(&[-20.0, -10.0, 0.0, 10.0, 20.0],
                                                      z_half_width, z_voxel_size);
 
     // Annotate each voxel value with its 3D position
@@ -148,7 +148,7 @@ fn centre_of_slice_closest_to(half_width: f32, voxel_size: f32) -> impl Fn(f32) 
     }
 }
 
-fn centres_of_slices_closest_to(targets: [f32; 5], half_width: f32, voxel_size: f32) -> Vec<f32> {
+fn centres_of_slices_closest_to(targets: &[f32], half_width: f32, voxel_size: f32) -> Vec<f32> {
     targets.iter().copied()
         .map(centre_of_slice_closest_to(half_width, voxel_size))
         .collect()
