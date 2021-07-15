@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Calculate the contrasts and background variabilities
     for sphere in spheres {
-        let (c,v) = crc(sphere, &background_xys, &background_zs, &slice, 4.0, 1.0).unwrap();
+        let (c,v) = contrast_and_variability(sphere, &background_xys, &background_zs, &slice, 4.0, 1.0).unwrap();
         if sphere.r == 37.0/2.0 { bg_37 = Some(c) }
         println!("{:5.1}  {:5.1} ({:.0})", c, v, sphere.r * 2.0);
     }
@@ -102,12 +102,12 @@ fn mean_in_region(x: f32, y: f32, z: f32, r: f32, voxels: &[fom::PointValue]) ->
     fom::mean(&values).unwrap()
 }
 
-fn crc(sphere: HotSphere,
-       background_xys: &[(f32, f32)],
-       background_zs : &[f32],
-       slices: &[Vec<fom::PointValue>],
-       sphere_activity: f32,
-       bg_activity: f32,
+fn contrast_and_variability(sphere: HotSphere,
+                            background_xys: &[(f32, f32)],
+                            background_zs : &[f32],
+                            slices: &[Vec<fom::PointValue>],
+                            sphere_activity: f32,
+                            bg_activity: f32,
 ) -> Option<(f32, f32)> {
     let HotSphere { x, y, r } = sphere;
     let sphere_mean = mean_in_region(x, y, background_zs[2], r, &slices[2]);
