@@ -37,8 +37,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    // x-y centres of the 12 background ROIs
     let background_xys = vec![
-        (   0.0, -86.0),
+        (   0.0, -86.0), // TODO all these should be 15 mm from edge of phantom
         (   0.0, -82.0),
         (  60.0, -82.0),
         ( -60.0, -82.0),
@@ -53,30 +54,32 @@ fn main() -> Result<(), Box<dyn Error>> {
         (   0.0,  82.0),
     ];
 
-    let r = 114.4 / 2.0;
-    let xyr = |sphere_position, diameter| {
-        let radians = std::f32::consts::TAU * sphere_position as f32;
-        HotSphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as f32 / 2.0}
-    };
 
-    let hot_specs = vec![
-        (xyr(0, 37)),
-        (xyr(1, 10)),
-        (xyr(2, 13)),
-        (xyr(3, 17)),
-        (xyr(4, 22)),
-        (xyr(5, 28)),
+    // The 6 hot spheres (position, diameter)
+    let spheres = vec![
+        (sphere(0, 37)),
+        (sphere(1, 10)),
+        (sphere(2, 13)),
+        (sphere(3, 17)),
+        (sphere(4, 22)),
+        (sphere(5, 28)),
 
     ];
 
     let mut bg_37 = None;
-    for sphere in hot_specs {
+    for sphere in spheres {
         let (c,v) = crc(sphere, &background_xys, &background_zs, &layer, 4.0, 1.0).unwrap();
         if sphere.r == 37.0/2.0 { bg_37 = Some(c) }
         println!("{:5.1}  {:5.1} ({:.0})", c, v, sphere.r * 2.0);
     }
     println!("{:?}", bg_37);
     Ok(())
+}
+
+fn sphere(sphere_position: u16, diameter: u16) -> HotSphere {
+    let r = 114.4 / 2.0;
+    let radians = std::f32::consts::TAU * sphere_position as f32;
+    HotSphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as f32 / 2.0}
 }
 
 #[derive(Clone, Copy)]
