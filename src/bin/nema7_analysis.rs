@@ -26,12 +26,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     // These are the z-positions of the centres of the nearest slices
     let background_zs = zs_of_slices_closest_to([-20.0, -10.0, 0.0, 10.0, 20.0], z_half_width, z_voxel_size);
 
+    // Annotate each voxel value with its 3D position
     let pos_values = image.values_with_positions();
-    let mut layer = vec![vec![]; 5];
+
+    // Collect voxels belonging to the 5 background ROI z-slices
+    let mut slice = vec![vec![]; 5];
     for (p,v) in pos_values {
         for i in 0..5 {
             if p.z == background_zs[i] {
-                layer[i].push((p,v));
+                slice[i].push((p,v));
                 break;
             }
         }
@@ -54,7 +57,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         (   0.0,  82.0),
     ];
 
-
     // The 6 hot spheres (position, diameter)
     let spheres = vec![
         (sphere(0, 37)),
@@ -63,12 +65,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         (sphere(3, 17)),
         (sphere(4, 22)),
         (sphere(5, 28)),
-
     ];
 
+    // The background count of the largest sphere (37mm) is also needed later
+    // for the Accuracy of Corrections calculation. Create a place to store it.
     let mut bg_37 = None;
+
+    // Calculate the contrasts and background variabilities
     for sphere in spheres {
-        let (c,v) = crc(sphere, &background_xys, &background_zs, &layer, 4.0, 1.0).unwrap();
+        let (c,v) = crc(sphere, &background_xys, &background_zs, &slice, 4.0, 1.0).unwrap();
         if sphere.r == 37.0/2.0 { bg_37 = Some(c) }
         println!("{:5.1}  {:5.1} ({:.0})", c, v, sphere.r * 2.0);
     }
@@ -92,23 +97,23 @@ struct HotSphere {
 fn crc(sphere: HotSphere,
        background_xys: &[(f32, f32)],
        background_zs : &[f32],
-       layers: &[Vec<fom::PointValue>],
+       slices: &[Vec<fom::PointValue>],
        sphere_activity: f32,
        bg_activity: f32,
 ) -> Option<(f32, f32)> {
     let HotSphere { x, y, r } = sphere;
     let sphere_roi = fom::ROI::DiscZ((x,y, background_zs[2]), r);
     let sphere_filter = sphere_roi.contains_fn();
-    let sphere_values: Vec<_> = in_roi(sphere_filter, &layers[2]).map(|(_,v)| v).collect();
+    let sphere_values: Vec<_> = in_roi(sphere_filter, &slices[2]).map(|(_,v)| v).collect();
     let sphere_mean = fom::mean(&sphere_values)?;
 
     let mut means = vec![];
 
     for (x,y) in background_xys {
-        for (z, layer) in background_zs.iter().zip(layers) {
+        for (z, slice) in background_zs.iter().zip(slices) {
             let bg_roi = fom::ROI::DiscZ((*x,*y,*z), r);
             let bg_filter = bg_roi.contains_fn();
-            let bg_values: Vec<_> = in_roi(bg_filter, &layer).map(|(_,v)| v).collect();
+            let bg_values: Vec<_> = in_roi(bg_filter, &slice).map(|(_,v)| v).collect();
             let bg_mean = fom::mean(&bg_values)?;
             means.push(bg_mean);
         }
