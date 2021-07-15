@@ -95,6 +95,13 @@ struct HotSphere {
     r: f32,
 }
 
+fn mean_in_region(x: f32, y: f32, z: f32, r: f32, voxels: &[fom::PointValue]) -> f32 {
+    let roi = fom::ROI::DiscZ((x,y,z), r);
+    let filter = roi.contains_fn();
+    let values: Vec<_> = in_roi(filter, voxels).map(|(_,v)| v).collect();
+    fom::mean(&values).unwrap()
+}
+
 fn crc(sphere: HotSphere,
        background_xys: &[(f32, f32)],
        background_zs : &[f32],
@@ -103,24 +110,16 @@ fn crc(sphere: HotSphere,
        bg_activity: f32,
 ) -> Option<(f32, f32)> {
     let HotSphere { x, y, r } = sphere;
-    let sphere_roi = fom::ROI::DiscZ((x,y, background_zs[2]), r);
-    let sphere_filter = sphere_roi.contains_fn();
-    let sphere_values: Vec<_> = in_roi(sphere_filter, &slices[2]).map(|(_,v)| v).collect();
-    let sphere_mean = fom::mean(&sphere_values)?;
+    let sphere_mean = mean_in_region(x, y, background_zs[2], r, &slices[2]);
 
-    let mut means = vec![];
-
+    let mut bg_means = vec![];
     for (x,y) in background_xys {
         for (z, slice) in background_zs.iter().zip(slices) {
-            let bg_roi = fom::ROI::DiscZ((*x,*y,*z), r);
-            let bg_filter = bg_roi.contains_fn();
-            let bg_values: Vec<_> = in_roi(bg_filter, &slice).map(|(_,v)| v).collect();
-            let bg_mean = fom::mean(&bg_values)?;
-            means.push(bg_mean);
+            bg_means.push(mean_in_region(*x, *y,*z, r, &slice));
         }
     }
-    let bg_mean = fom::mean(&means)?;
-    let bg_sd   = fom::sd  (&means)?;
+    let bg_mean = fom::mean(&bg_means)?;
+    let bg_sd   = fom::sd  (&bg_means)?;
     let contrast = 100.0 * ((sphere_mean / bg_mean) - 1.0) / ((sphere_activity / bg_activity) - 1.0);
     let background_variability = 100.0 * bg_sd / bg_mean;
     Some((contrast, background_variability))
