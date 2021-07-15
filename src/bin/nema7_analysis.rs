@@ -19,22 +19,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let image_io   = Image3D::read_from_file(&args.input_file)?;
     let image_mlem = petalo::mlem::Image::from(&image_io);
 
-    println!("{:?} {:?}", image_io.pixels, image_io.mm);
-    println!("{:?}", image_mlem.vbox);
+    let z_voxel_size = image_mlem.vbox.voxel_size[2];
+    let z_half_width = image_mlem.vbox.half_width[2];
 
-    let voxel_size = image_mlem.vbox.voxel_size[2];
-    let half_width = image_mlem.vbox.half_width[2];
-    let z_targets = vec![-20.0, -10.0, 0.0, 10.0, 20.0];
-    let z_indices = z_targets.into_iter()
-        .map(|z| position_to_index(z, half_width, voxel_size))
-        .collect::<Vec<_>>();
-    println!("{:?}", z_indices);
-    let background_zs = z_indices.iter().copied()
-        .map(|i| index_to_position(i, half_width, voxel_size))
-        .collect::<Vec<_>>();
-    println!("{:?}", background_zs);
-
-    let z = background_zs[3];
+    // Background ROIs should be placed at z-slices closest to 0, ±1, ±2 cm.
+    // These are the z-positions of the centres of the nearest slices
+    let background_zs = zs_of_slices_closest_to([-20.0, -10.0, 0.0, 10.0, 20.0], z_half_width, z_voxel_size);
 
     let pos_values = image_mlem.values_with_positions();
     let mut layer = vec![vec![]; 5];
@@ -46,7 +36,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     }
-
 
     let background_xys = vec![
         (   0.0, -86.0),
@@ -80,10 +69,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     ];
 
+    let mut bg_37 = None;
     for sphere in hot_specs {
         let (c,v) = crc(sphere, &background_xys, &background_zs, &layer, 4.0, 1.0).unwrap();
+        if sphere.r == 37.0/2.0 { bg_37 = Some(c) }
         println!("{:5.1}  {:5.1} ({:.0})", c, v, sphere.r * 2.0);
     }
+    println!("{:?}", bg_37);
     Ok(())
 }
 
@@ -137,4 +129,15 @@ fn position_to_index(position: f32, half_width: f32, voxel_size: f32) -> usize {
 
 fn index_to_position(index: usize, half_width: f32, voxel_size: f32) -> f32 {
     (index as f32 + 0.5) * voxel_size - half_width
+}
+
+fn zs_of_slices_closest_to(z_targets: [f32; 5], half_width: f32, voxel_size: f32) -> Vec<f32> {
+    // z-indices of the slices closest to the targets
+    let z_indices = z_targets.iter()
+        .map(|z| position_to_index(*z, half_width, voxel_size))
+        .collect::<Vec<_>>();
+    // Exact z-positions of slices closest to targets
+    z_indices.iter().copied()
+        .map(|i| index_to_position(i, half_width, voxel_size))
+        .collect::<Vec<_>>()
 }
