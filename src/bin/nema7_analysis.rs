@@ -104,7 +104,7 @@ fn crc(sphere: HotSphere,
     let HotSphere { x, y, r } = sphere;
     let sphere_roi = fom::ROI::DiscZ((x,y, background_zs[2]), r);
     let sphere_filter = sphere_roi.contains_fn();
-    let sphere_values: Vec<_> = zzz(sphere_filter, &layers[2]).map(|(_,v)| v).collect();
+    let sphere_values: Vec<_> = in_roi(sphere_filter, &layers[2]).map(|(_,v)| v).collect();
     let sphere_mean = fom::mean(&sphere_values)?;
 
     let mut means = vec![];
@@ -113,7 +113,7 @@ fn crc(sphere: HotSphere,
         for (z, layer) in background_zs.iter().zip(layers) {
             let bg_roi = fom::ROI::DiscZ((*x,*y,*z), r);
             let bg_filter = bg_roi.contains_fn();
-            let bg_values: Vec<_> = zzz(bg_filter, &layer).map(|(_,v)| v).collect();
+            let bg_values: Vec<_> = in_roi(bg_filter, &layer).map(|(_,v)| v).collect();
             let bg_mean = fom::mean(&bg_values)?;
             means.push(bg_mean);
         }
@@ -125,7 +125,7 @@ fn crc(sphere: HotSphere,
     Some((contrast, background_variability))
 }
 
-fn zzz(in_roi: fom::InRoiFn, voxels: &[fom::PointValue]) -> impl Iterator<Item = fom::PointValue> + '_ {
+fn in_roi(in_roi: fom::InRoiFn, voxels: &[fom::PointValue]) -> impl Iterator<Item = fom::PointValue> + '_ {
     voxels.iter()
         .filter(move |(p,_)| in_roi(*p))
         .copied()
