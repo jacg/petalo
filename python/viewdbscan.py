@@ -6,6 +6,8 @@ from numpy.linalg import norm
 import matplotlib.pyplot as plt
 import h5py
 from sklearn.cluster import DBSCAN
+from synchronize import synchronize
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('infile', type=str, help='HDF5 file containing MC event data')
@@ -35,19 +37,6 @@ def first_vertices_in_event(event_vertices):
 def first_vertices(event_vertex_groups):
     for event_no, group in event_vertex_groups:
         yield event_no, first_vertices_in_event(group)
-
-def synchronize_events(iterators, labels):
-    while True:
-        evnos_and_data = list(map(next, iterators))
-        highest_event_number = max(map(itemgetter(0), evnos_and_data))
-        for i, evn_and_data in enumerate(evnos_and_data):
-            evn_and_data = list(evn_and_data) # enable mutation later in the loop
-            while evn_and_data[0] < highest_event_number:
-                if labels[i]: print(f'skipping event {evn_and_data[0]} in {labels[i]}')
-                evn_and_data[0], evn_and_data[1] = next(iterators[i])
-            evnos_and_data[i] = evn_and_data
-        yield highest_event_number, tuple(map(itemgetter(1), evnos_and_data))
-
 
 def cluster(hits, eps=MAXIMUM_DISTANCE_TO_NEIGHBOUR, min_samples=MINIMUM_CLUSTER_SIZE):
     label = DBSCAN(eps=eps, min_samples=min_samples).fit_predict(hits)
@@ -123,8 +112,10 @@ event_primaries = ((evno, (x,y,z)) for evno, x,y,z, *p in primaries)
 
 reco_misses = { tuple(pos): [] for pos in nema3_sources}
 
-for (n,(v,h,p)) in synchronize_events((event_first_vertices, event_hit_positions, event_primaries),
-                                       ("TRUE", "RECO", None)):
+get0 = itemgetter(0)
+
+for (n,((_,v),(_,h),(_,p))) in synchronize((event_first_vertices, event_hit_positions, event_primaries),
+                                           (get0, get0, get0)):
     c = cluster(h)
     centroids = centroids_from_clusters(c)
     if len(centroids) == 2 and len (v) == 2:
