@@ -10,12 +10,6 @@ class image:
         self.pixel_size = tuple(l/n for l,n in zip(full_lengths, shape))
 
 
-import numpy as np
-def circle(x,y,r):
-    xs = [x + r * np.cos(n * np.pi / 50) for n in range(100)]
-    ys = [y + r * np.sin(n * np.pi / 50) for n in range(100)]
-    return xs,ys
-
 class view:
 
     def __init__(self, files, *, axis='z'):
@@ -35,19 +29,6 @@ class view:
         self.aximage = self.ax.images[0]
         self.fig.canvas.mpl_connect('key_press_event', self.process_key)
         self.update()
-        r = 37 / 2
-        self.ax.plot(*circle(   0, 82, r))
-        self.ax.plot(*circle(  60, 82, r))
-        self.ax.plot(*circle( -60, 82, r))
-        self.ax.plot(*circle(-100, 62, r))
-        self.ax.plot(*circle( 100, 62, r))
-        self.ax.plot(*circle(-110, 20, r))
-        self.ax.plot(*circle( 110, 20, r))
-        self.ax.plot(*circle( -85,-40, r))
-        self.ax.plot(*circle(  85,-40, r))
-        self.ax.plot(*circle( -52,-72, r))
-        self.ax.plot(*circle(  52,-72, r))
-        self.ax.plot(*circle(   0,-82, r))
         plt.show()
 
     def data_to_be_shown(self):
