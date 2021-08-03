@@ -25,9 +25,9 @@ in
 
   home-manager = let
     src = builtins.fetchGit {
-      name = "home-manager-2020-11-06";
+      name = "home-manager-release-21.05-2021-08-03";
       url = https://github.com/nix-community/home-manager;
-      rev = "4cc1b77c3fc4f4b3bc61921dda72663eea962fa3";
+      rev = "b39647e52ed3c0b989e9d5c965e598ae4c38d7ef";
     };
   # `path` is required for `home-manager` to find its own sources
   in pkgs.callPackage "${src}/home-manager" { path = "${src}"; };
