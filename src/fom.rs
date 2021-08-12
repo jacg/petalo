@@ -283,6 +283,6 @@ impl Image {
 
 #[cfg(test)]
 mod test_crc {
-    use super::*;
+    //use super::*;
 
 }
