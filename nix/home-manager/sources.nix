@@ -1,17 +1,18 @@
 # To get a more recent version of nixpkgs, go to https://status.nixos.org/,
 # which lists the latest commit that passes all the tests for any release.
 # Unless there is an overriding reason, pick the latest stable NixOS release, at
-# the time of writing this is nixos-20.09.
+# the time of writing this is nixos-21.05.
 
 { pkgs }:
 
 let
   random_pkgs = import <nixpkgs> {};
-  nixpkgs-commit-id = "ea7d4aa9b8225abd6147339f0d56675d6f1f0fd1"; # nixos-unstable on 2021-05-25
+  nixpkgs-commit-id = "d4590d21006387dcb190c516724cb1e41c0f8fdf"; # nixos-21.05 on 2021-08-03
   nixpkgs-url = "https://github.com/nixos/nixpkgs/archive/${nixpkgs-commit-id}.tar.gz";
+  oxalica-commit-id = "53b758596e8bd17e9fc764e14ba3e7686030bad3";
   pkgs = import (fetchTarball nixpkgs-url) {
       overlays = map (uri: import (fetchTarball uri)) [
-        https://github.com/oxalica/rust-overlay/archive/master.tar.gz
+        "https://github.com/oxalica/rust-overlay/archive/${oxalica-commit-id}.tar.gz"
       ];
     };
 in
@@ -25,9 +26,9 @@ in
 
   home-manager = let
     src = builtins.fetchGit {
-      name = "home-manager-2020-11-06";
+      name = "home-manager-release-21.05-2021-08-03";
       url = https://github.com/nix-community/home-manager;
-      rev = "4cc1b77c3fc4f4b3bc61921dda72663eea962fa3";
+      rev = "b39647e52ed3c0b989e9d5c965e598ae4c38d7ef";
     };
   # `path` is required for `home-manager` to find its own sources
   in pkgs.callPackage "${src}/home-manager" { path = "${src}"; };
