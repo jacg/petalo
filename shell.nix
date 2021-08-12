@@ -136,7 +136,7 @@ let
     (linux pkgs.graphviz) # used by kcachegrind
     pkgs.cargo-flamegraph
     pkgs.cargo-asm
-    pkgs.valgrind
+    (linux pkgs.valgrind) # broken on Darwin as of 2021-08-12
 
     # Benchmarking
     pkgs.hyperfine
