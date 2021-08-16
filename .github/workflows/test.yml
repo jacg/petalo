@@ -28,7 +28,7 @@ jobs:
           nix_path: nixpkgs=channel:nixos-20.09
       - uses: Swatinem/rust-cache@v1
       - run: nix-shell --argstr py ${{ matrix.py }}
-      - run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test --color=always -- --skip weights::test::sum_of_weights_equals_length_through_box"
+      - run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test --color=always"
       - run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test --color=always -p cmlem"
 
   home-manager:
