@@ -1,7 +1,0 @@
-#! /usr/bin/env nix-shell
-#! nix-shell -i sh -p git
-
-nix-shell -E \
-  "{ pkgs ? import <nixpkgs> {} }: \
-  pkgs.mkShell { buildInputs = [ (pkgs.callPackage ./sources.nix { }).home-manager ]; }" \
-  --run "home-manager -f ./nixpkgs/home.nix switch"

@@ -5,17 +5,14 @@
 # Installation
 
 
-The following instructions assume that you have
-[installed](doc/nix/install-nix/README.md)
+The following instructions assume that you have installed
 [Nix](https://nixos.org/) and enabled [`direnv`](https://direnv.net/).
 
 If you haven't installed Nix ... well, it's a few orders of magnitude easier to
 install Nix, than to attempt to run this software without it.
 
 If you have not enabled `direnv`, you can still use this software: see the note
-below, at the point where you `cd petalo`. If you want to enable direnv, This
-[automated procedure](doc/nix/home-manager/README.md) will (among other things!)
-do it for you.
+below, at the point where you `cd petalo`.
 
 Assuming you have Nix ...
 
@@ -36,8 +33,26 @@ Assuming you have Nix ...
 
 ## Input data
 
-You will need an input data file containing a table with the following 21
-columns of float-64s:
+The `mlem` executable takes as input, HDF5 files describing LORs, with the
+following columns of floats:
+
+```
+dx x1 y1 z1 x2 y2 z2
+```
+
+All distances are in mm, and `dx = (t2 - t1) * c`
+
+
+Tell the program where this file is located with the `-f` (`--input-file`)
+option. Oterwise it will look for `data/in/full_body_phantom_reco_combined.h5`
+
+The program assumes that the table is in a dataset called `reco_info/table`. You
+can override this with the `-d` (`--dataset`) CLI option.
+
+### Legacy LOR format
+
+`mlem` also understands the legacy input data file containing a table with the
+following 21 columns of floats:
 
 ```
 event_id, true_energy,
@@ -49,11 +64,7 @@ reco_r2, reco_phi2, reco_z2, reco_t2,
 not_sel
 ```
 
-Tell the program where this file is located with the `-f` (`--input-file`)
-option. Oterwise it will look for `data/in/full_body_phantom_reco_combined.h5`
-
-The program assumes that the table is in a dataset called `reco_info/table`. You
-can override this with the `-d` (`--dataset`) CLI option.
+To use this legacy format, pass the `--legacy-input-format` option to `mlem`.
 
 By default, the reco coordinates are used, but you can opt for the true ones
 with `--use-true`.
