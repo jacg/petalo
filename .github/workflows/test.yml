@@ -30,6 +30,7 @@ jobs:
       - run: nix-shell --argstr py ${{ matrix.py }}
       - run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test --color=always"
       - run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test --color=always -p cmlem"
+      - run: nix-shell --argstr py ${{ matrix.py }} --run "PYTEST_ADDOPTS=--color=yes pytest -v python bindings"
 
 
 
