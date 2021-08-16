@@ -160,7 +160,7 @@ mod test_n_clusters {
     fn test_n_clusters() {
         let a = array![None, None];
         assert_eq!(xxx(&a), 0);
-        let a = array![Some(2)];
+        let _a = array![Some(2)];
     }
 }
 
@@ -449,12 +449,12 @@ mod test_hdf5_array {
 
 #[cfg(test)]
 mod test_dbscan {
-    use linfa_clustering::{DbscanHyperParams, Dbscan, AppxDbscan, generate_blobs};
+    use linfa_clustering::{Dbscan, AppxDbscan, generate_blobs};
     use linfa::traits::Transformer;
-    use ndarray::{Axis, array, s};
+    use ndarray::{Axis, array};
     use ndarray_rand::rand::SeedableRng;
     use rand_isaac::Isaac64Rng;
-    use approx::assert_abs_diff_eq;
+    //use approx::assert_abs_diff_eq;
 
     #[test]
     fn test_appx () {
@@ -467,7 +467,7 @@ mod test_dbscan {
         let expected_centroids = array![[0., 1.], [-10., 20.], [-1., 10.]];
         // Let's generate a synthetic dataset: three blobs of observations
         // (100 points each) centered around our `expected_centroids`
-        let observations = generate_blobs(100, &expected_centroids, &mut rng);
+        let _observations = generate_blobs(100, &expected_centroids, &mut rng);
 
         let observations = array![[1.0, 1.0, 3.0],
                                   [1.1, 1.1, 3.0],
