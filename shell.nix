@@ -93,6 +93,8 @@ let
 
     pkgs.pkgconfig
 
+    pkgs.just
+
     # for kiss3d visualization
     pkgs.xorg.libX11
     pkgs.xorg.libXcursor
