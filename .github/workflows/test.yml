@@ -41,24 +41,3 @@ jobs:
       - name: Test PyO3
         run: nix-shell --argstr py ${{ matrix.py }} --run "PYTEST_ADDOPTS=--color=yes pytest -v bindings"
         if: runner.os == 'Linux'
-
-
-
-# To debug interactively via tmate, add the following step to the steps above,
-# at the point where you want the action to stop and give you control:
-
-      # # Probably best to run this on only one matrix entry
-      # # In tmate: `nix-shell -I nixpkgs=channel:nixos-unstable`
-      # - name: Debug interactively
-      #   uses: csexton/debugger-action@master
-
-# When it reaches this point, the action log will show something like
-#
-#   ssh fV3pb4MynAFQKFFsWG4W5cSVp@nyc1.tmate.io
-#
-# + Copy-paste the ssh <...> above, into a terminal
-# + press `q`
-# + type `touch /tmp/keepalive`
-# + type `nix-shell -I nixpkgs=channel:nixos-unstable`
-#
-# This will leave you in the build/deveopment environment of your project.
