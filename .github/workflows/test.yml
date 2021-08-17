@@ -33,10 +33,14 @@ jobs:
         run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test --color=always"
       - name: Test Rust/C
         run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test --color=always -p cmlem"
+      - name: Test Pure Python
+        run: nix-shell --argstr py ${{ matrix.py }} --run "PYTEST_ADDOPTS=--color=yes pytest -v python"
       - name: Compile PyO3
         run: nix-shell --argstr py ${{ matrix.py }} --run "cd bindings && cargo build"
+        if: matrix.os == 'ubuntu-latest'
       - name: Test Python
-        run: nix-shell --argstr py ${{ matrix.py }} --run "PYTEST_ADDOPTS=--color=yes pytest -v python bindings"
+        run: nix-shell --argstr py ${{ matrix.py }} --run "PYTEST_ADDOPTS=--color=yes pytest -v bindings"
+        if: matrix.os == 'ubuntu-latest'
 
 
 
