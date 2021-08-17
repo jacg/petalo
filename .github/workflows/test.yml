@@ -12,14 +12,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-10.15]
-        py: [38]
+        py: [38, 39]
         allow-fail: [false]
         include:
           - os: ubuntu-latest
-            py: 39
+            py: 310
             allow-fail: true
           - os: macos-10.15
-            py: 39
+            py: 310
             allow-fail: true
     steps:
       - uses: actions/checkout@v2
