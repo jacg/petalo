@@ -25,8 +25,8 @@ let
   rust-tcfile  = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain;
 
   rust-latest  = pkgs.rust-bin.stable .latest      .default;
-  rust-beta    = pkgs.rust-bin.beta   ."2021-08-11".default;
-  rust-nightly = pkgs.rust-bin.nightly."2021-08-11".default;
+  rust-beta    = pkgs.rust-bin.beta   ."2021-08-28".default;
+  rust-nightly = pkgs.rust-bin.nightly."2021-08-28".default;
   rust-stable  = pkgs.rust-bin.stable ."1.54.0"    .default;
 
   # Rust system to be used in buldiInputs. Choose between
@@ -90,6 +90,8 @@ let
   buildInputs = [
     rust
     pkgs.rust-analyzer
+
+    (linux pkgs.julia_16-bin)
 
     pkgs.pkgconfig
 
