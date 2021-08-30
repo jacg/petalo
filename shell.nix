@@ -91,7 +91,7 @@ let
     rust
     pkgs.rust-analyzer
 
-    pkgs.julia_16-bin
+    (linux pkgs.julia_16-bin)
 
     pkgs.pkgconfig
 
