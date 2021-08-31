@@ -1,7 +1,11 @@
 # Quick and dirty instructions
 
-(Assuming you are on Linux: MacOS (as always) is more complicated.)
+Assumptions:
 
-+ cd into this directory
-+ `cargo build --release`
-+ `pytest`
+1. You are on Linux: MacOS (as always) is more complicated.
+
+2. You have activated the Nix environment defined by `shell.nix` in the toplevel of the project
+
+To compile and test the Python/Rust bindings in this directory:
+
++ `just test-python-bindings`

@@ -29,6 +29,10 @@ Assuming you have Nix ...
    - if you have not enabled `direnv` you will have to type `nix-shell` (inside
      this directory) to enable the environment.
 
+# Check installation
+
+Running `just` should compile and test all components, including Rust, Python and Julia.
+
 # Running the code
 
 ## Input data

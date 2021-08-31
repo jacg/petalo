@@ -32,22 +32,22 @@ jobs:
         run: nix-shell --argstr py ${{ matrix.py }}
 
       - name: Test Pure Rust
-        run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test --color=always"
+        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-rust-pure   --color=always"
 
       - name: Test Rust/C
-        run: nix-shell --argstr py ${{ matrix.py }} --run "cargo test --color=always -p cmlem"
+        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-rust-c      --color=always"
 
       - name: Test Pure Python
-        run: nix-shell --argstr py ${{ matrix.py }} --run "PYTEST_ADDOPTS=--color=yes pytest -v python"
+        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-pure  --color=yes"
 
       - name: Compile PyO3
-        run: nix-shell --argstr py ${{ matrix.py }} --run "cd bindings && cargo build"
+        run: nix-shell --argstr py ${{ matrix.py }} --run "just python-build-bindings"
         if: runner.os == 'Linux'
 
       - name: Test PyO3
-        run: nix-shell --argstr py ${{ matrix.py }} --run "PYTEST_ADDOPTS=--color=yes pytest -v bindings"
+        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-bindings --color=yes"
         if: runner.os == 'Linux'
 
       - name: Test Julia
-        run: nix-shell --argstr py ${{ matrix.py }} --run "julia --color=yes julia/testme.jl"
+        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-julia           --color=yes"
         if: runner.os == 'Linux'
