@@ -12,7 +12,6 @@ class Synchronizer:
     def step(self):
         self.data  = next(self.iterator)
         self.count = self.key(self.data)
-        return self.count
 
 def min_count(sources): return min(sources, key=attrgetter('count')).count
 def max_count(sources): return max(sources, key=attrgetter('count')).count
