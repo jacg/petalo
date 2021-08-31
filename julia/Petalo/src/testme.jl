@@ -6,11 +6,13 @@ using Petalo
 
 using Test
 
-@testset "trivial stuff" begin
-    @test Petalo.double(2) == 4
-    @test Petalo.double(π) ≈ 3π rtol = 0.35
+@testset "Synchronize" begin
+    a = (1,2,3,4,  6,7,  9)
+    b = (1,2,  4,5,6,  8,9)
+    x = (1,2,  4,  6,    9)
+    synced = collect(synchronize((a,b), (identity, identity)))
+    expected = collect(((n, [n,n]) for n in x))
+    @test synced == expected
 end
 
-@testset "Resumable functions" begin
-    @test collect(Petalo.onetwothree()) == [1, 2, 3]
-end
+# TODO should be empty when any input is empty
