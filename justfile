@@ -27,7 +27,7 @@ test-python-bindings colours='': python-build-bindings
 
 
 test-julia colours='':
-	julia julia/testme.jl
+	cd julia/Petalo && julia {{colours}} src/testme.jl
 
 
 python-build-bindings profile='default':

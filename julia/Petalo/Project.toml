@@ -1,0 +1,4 @@
+name = "Petalo"
+uuid = "99f2aae4-53cc-4a67-a30b-d0fe8a0d6e61"
+authors = ["Jacek Generowicz <jacg@my-post-office.net>"]
+version = "0.1.0"
