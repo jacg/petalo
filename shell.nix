@@ -1,7 +1,7 @@
 # To get more recent versions of the packages, you need to update
 # `nixpkgs-commit-id` in `nix/sources.nix`.
 {
-  py ? "38" # To override the default python version:  nix-shell shell.nix --argstr py 37
+  py ? "39" # To override the default python version:  nix-shell shell.nix --argstr py 37
 }:
 let
   random_pkgs = import <nixpkgs> {};
@@ -25,9 +25,9 @@ let
   rust-tcfile  = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain;
 
   rust-latest  = pkgs.rust-bin.stable .latest      .default;
-  rust-beta    = pkgs.rust-bin.beta   ."2021-08-28".default;
-  rust-nightly = pkgs.rust-bin.nightly."2021-08-28".default;
-  rust-stable  = pkgs.rust-bin.stable ."1.54.0"    .default;
+  rust-beta    = pkgs.rust-bin.beta   ."2021-09-18".default;
+  rust-nightly = pkgs.rust-bin.nightly."2021-09-18".default;
+  rust-stable  = pkgs.rust-bin.stable ."1.55.0"    .default;
 
   # Rust system to be used in buldiInputs. Choose between
   # latest/beta/nightly/stable on the next line
