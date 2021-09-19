@@ -1,7 +1,7 @@
 # To get more recent versions of the packages, you need to update
 # `nixpkgs-commit-id` in `nix/sources.nix`.
 {
-  py ? "38" # To override the default python version:  nix-shell shell.nix --argstr py 37
+  py ? "39" # To override the default python version:  nix-shell shell.nix --argstr py 37
 }:
 let
   random_pkgs = import <nixpkgs> {};
