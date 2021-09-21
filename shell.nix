@@ -35,7 +35,6 @@ let
 
   # ----- Python -------------------------------------------------------------------
   python = builtins.getAttr ("python" + py) pkgs;
-  pypkgs = python.pkgs;
 
   # ----- tofpet3d original C version ----------------------------------------------
   tofpet3d = pkgs.stdenv.mkDerivation {
