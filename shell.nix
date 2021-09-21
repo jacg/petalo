@@ -35,7 +35,6 @@ let
 
   # ----- Python -------------------------------------------------------------------
   python = builtins.getAttr ("python" + py) pkgs;
-  pypkgs = python.pkgs;
 
   # ----- tofpet3d original C version ----------------------------------------------
   tofpet3d = pkgs.stdenv.mkDerivation {
@@ -110,12 +109,15 @@ let
     pkgs.hdf5
 
     # python
-    pypkgs.cffi
-    pypkgs.jupyter
-    pypkgs.matplotlib
-    pypkgs.pytest
-    pypkgs.h5py
-    pypkgs.scikit-learn
+    (python.withPackages (ps: [
+      ps.numpy
+      ps.cffi
+      ps.jupyter
+      ps.matplotlib
+      ps.pytest
+      ps.h5py
+      ps.scikit-learn
+    ]))
 
     # Needed for compilation to succeed on Macs
     (darwin darwin-frameworks.AppKit)
