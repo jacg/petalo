@@ -103,5 +103,9 @@ class view:
 
 if __name__ == '__main__':
     from sys import argv
-
-    v = view(argv[1:])
+    filenames = list(f for f in argv[1:] if not f.startswith('--'))
+    if '--header-only' in argv:
+        for filename in filenames:
+            print(read_raw(filename, header_only=True))
+    else:
+        v = view(filenames)

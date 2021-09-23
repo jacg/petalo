@@ -37,13 +37,15 @@ def show_image(image, *, axis, slice_, extent, shape, ax=plt):
     if axis == 'z': ax.imshow(image[:, :, s].T , extent = [-xe,xe, -ye,ye], origin = 'lower')
 
 
-def read_raw(filename):
+def read_raw(filename, header_only=False):
     buffer = open(filename, 'rb').read()
     metadata_length = 18
     metadata = buffer[: metadata_length  ]
     data     = buffer[  metadata_length :]
     pixels = struct.unpack_from('>HHH', metadata[:6])
     mm     = struct.unpack_from('>fff', metadata[6:])
+    if header_only:
+        return pixels, mm
     data   = struct.unpack_from('>'+'f' * (len(data) // 4), data)
     return (pixels, mm), data
 
