@@ -1,4 +1,4 @@
-from utils import read_raw, wrap_1d_into_3d, plt
+from utils import read_raw, wrap_1d_into_3d, plt, np
 
 class image:
 
@@ -42,6 +42,7 @@ class view:
             it = it.sum(axis = naxis)
         if self.axis in self.ts:
             it = it.transpose()
+        it = np.flip(it,0)
         return it
 
     def process_key(self, event):
