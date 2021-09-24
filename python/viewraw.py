@@ -1,4 +1,4 @@
-from utils import read_raw, wrap_1d_into_3d, plt
+from utils import read_raw, wrap_1d_into_3d, plt, np
 
 class image:
 
@@ -42,6 +42,7 @@ class view:
             it = it.sum(axis = naxis)
         if self.axis in self.ts:
             it = it.transpose()
+        it = np.flip(it,0)
         return it
 
     def process_key(self, event):
@@ -54,6 +55,7 @@ class view:
         if k == 't': self.flipT()
         if k in ('right', 'left'): self.switch_image(1 if k == 'right' else -1)
         if k == 'i': self.integrate = not self.integrate
+        if k in 'c0': self.set_slice(0)
         self.update()
 
     def switch_image(self, n):
@@ -94,7 +96,16 @@ class view:
 
     def change_slice(self, n):
         ax = self.naxis
-        self.pos[ax] = (self.pos[ax] + n) % self.images[self.image_number].shape[ax] # wrap around at edges
+        self.pos[ax] = self.wrap(self.pos[ax] + n)
+
+    def set_slice(self, n):
+        ax = self.naxis
+        self.pos[ax] = self.wrap(self.images[self.image_number].shape[ax] // 2 + n)
+
+    def wrap(self, slice_):
+        "Wrap around edges"
+        return slice_ % self.images[self.image_number].shape[self.naxis]
+
 
     @property
     def naxis(self):
@@ -103,5 +114,9 @@ class view:
 
 if __name__ == '__main__':
     from sys import argv
-
-    v = view(argv[1:])
+    filenames = list(f for f in argv[1:] if not f.startswith('--'))
+    if '--header-only' in argv:
+        for filename in filenames:
+            print(read_raw(filename, header_only=True))
+    else:
+        v = view(filenames)
