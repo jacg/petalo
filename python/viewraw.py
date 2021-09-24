@@ -55,6 +55,7 @@ class view:
         if k == 't': self.flipT()
         if k in ('right', 'left'): self.switch_image(1 if k == 'right' else -1)
         if k == 'i': self.integrate = not self.integrate
+        if k in 'c0': self.set_slice(0)
         self.update()
 
     def switch_image(self, n):
@@ -95,7 +96,16 @@ class view:
 
     def change_slice(self, n):
         ax = self.naxis
-        self.pos[ax] = (self.pos[ax] + n) % self.images[self.image_number].shape[ax] # wrap around at edges
+        self.pos[ax] = self.wrap(self.pos[ax] + n)
+
+    def set_slice(self, n):
+        ax = self.naxis
+        self.pos[ax] = self.wrap(self.images[self.image_number].shape[ax] // 2 + n)
+
+    def wrap(self, slice_):
+        "Wrap around edges"
+        return slice_ % self.images[self.image_number].shape[self.naxis]
+
 
     @property
     def naxis(self):
