@@ -76,8 +76,10 @@ impl Image {
             // Accumulator for all backprojection contributions in this iteration
             let backprojection = self.zeros_buffer();
 
-            // Storage space for the weights and indices of the active voxels
-            // (allocating new result vectors for each LOR had a noticeable runtime cost)
+            // Storage space for the weights and indices of the active voxels:
+            // these weights are the non-zero elements of the system matrix in
+            // the row that corresponds to a single LOR. (allocating new result
+            // vectors for each LOR had a noticeable runtime cost)
             let (weights, indices) = {
                 let [nx, ny, nz] = self.vbox.n;
                 let max_number_of_active_voxels_possible = nx + ny + nz - 2;
@@ -97,7 +99,7 @@ impl Image {
         #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
         #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
 
-        // -------- find active voxels in all LORs ------------------------------
+        // -------- Project all LORs forwards and backwards ---------------------
 
         let fold_result = iter.fold(initial_thread_state, project_one_lor);
 
@@ -119,7 +121,7 @@ impl Image {
                     |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
         };
 
-        // ----------------------------------------------------------------------
+        // -------- Correct for attenuation and detector sensitivity ------------
 
         apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
 
@@ -186,7 +188,7 @@ where
             back_project(&mut backprojection, &weights, &indices, projection);
         }
     }
-    // Return the final state collected on this thread
+    // Return updated FoldState
     (backprojection, weights, indices, image, tof)
 }
 
