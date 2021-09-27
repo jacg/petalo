@@ -112,7 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Define extent and granularity of voxels
     let vbox = VoxelBox::new(args.size, args.nvoxels);
     // TODO: sensitivity matrix, all ones for now
-    let sensitivity_matrix = Image::ones(vbox).data;
+    let sensitivity_image = Image::ones(vbox).data;
 
     let file_pattern = guess_filename(&args);
 
@@ -134,7 +134,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(_)  => println!("Using up to {} threads.", args.num_threads),
         }
 
-        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix))
+        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_image))
             .take(args.iterations)
             .enumerate() {
                 report_time(&format!("Iteration {:2}", n));
@@ -204,7 +204,7 @@ fn run_cmlem(
     files.push('0'); // Leading zero too!
 
     // TODO: Dummy sensitivity matrix, for now
-    let sensitivity_matrix = vec![1.0; nx * ny * nz];
+    let sensitivity_image = vec![1.0; nx * ny * nz];
 
     cmlem::cmlem(
         args.iterations,
@@ -217,7 +217,7 @@ fn run_cmlem(
         lors.len(),
         x1, y1, z1, t1,
         x2, y2, z2, t2,
-        sensitivity_matrix,
+        sensitivity_image,
         files,
         1, // save every iteration
     );

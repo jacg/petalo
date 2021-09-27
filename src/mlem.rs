@@ -123,7 +123,7 @@ impl Image {
 
         // -------- Correct for attenuation and detector sensitivity ------------
 
-        apply_sensitivity_matrix(&mut self.data, &backprojection, smatrix);
+        apply_sensitivity_image(&mut self.data, &backprojection, smatrix);
 
     }
 
@@ -210,7 +210,7 @@ fn back_project(backprojection: &mut Vec<Length>, weights: &[Length], indices: &
 }
 
 
-fn apply_sensitivity_matrix(image: &mut ImageData, backprojection: &[Length], smatrix: &[Intensity]) {
+fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Length], smatrix: &[Intensity]) {
     //  TODO express with Option<matrix> and mul reciprocal
     // Apply Sensitivity matrix
     azip!((voxel in image, &b in backprojection, &s in smatrix) {
