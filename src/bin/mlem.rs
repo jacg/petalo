@@ -35,7 +35,7 @@ pub struct Cli {
 
     /// LORs to read in
     #[structopt(short = "f", long, default_value = "data/in/full_body_phantom_reco_combined.h5")]
-    pub input_file: String,
+    pub input_file: String, // TODO replace String with PathBuf here and wherever else appropriate
 
     /// The dataset location inside the input file
     #[structopt(short, long, default_value = "reco_info/lors")]
@@ -44,6 +44,10 @@ pub struct Cli {
     /// Which rows of the input file should be loaded
     #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
     pub event_range: Option<std::ops::Range<usize>>,
+
+    /// Attenuation image to be used for corrections
+    #[structopt(short, long)]
+    pub attenuation_image: Option<PathBuf>,
 
     #[cfg(feature = "ccmlem")]
     /// Use the C version of the MLEM algorithm
@@ -99,6 +103,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{}: {} ms", message, group_digits(now.elapsed().as_millis()));
         now = Instant::now();
     };
+
+    let _attenuation_image = read_attenuation_image(&args);
 
     // Read event data from disk into memory
     let                      Cli{ input_file, dataset, event_range, use_true, legacy_input_format,
@@ -157,6 +163,28 @@ fn guess_filename(args: &Cli) -> String {
         let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0}", x));
         format!("data/out/{c}mlem/{nx}_{ny}_{nz}_tof_{tof}",
                 c=c, nx=nx, ny=ny, nz=nz, tof=tof)
+    }
+}
+
+fn read_attenuation_image(args: &Cli) -> Result<Option<Image>, Box<dyn Error>>{
+    match &args.attenuation_image {
+        Some(path) => {
+            use io::raw::Image3D;
+            let Image3D { pixels: [anx, any, anz], mm: [adx,ady,adz], data} = Image3D::read_from_file(path)?;
+            let [anx, any, anz]: [usize; 3] = [anx.into(), any.into(), anz.into()];
+            let (onx, ony, onz) = args.n_voxels;
+            let (odx, ody, odz) = args.size;
+            if ! ((onx, ony, onz) == (anx, any, anz) && (odx, ody, odz) == (adx, ady, adz)) {
+                // TODO enable use of attenuation images with different
+                // pixelizations as long as they cover the whole FOV.
+                println!("Mismatch between attenuation image and output image size:");
+                println!("Attenuation image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", anx,any,anz, adx,ady,adz);
+                println!("     Output image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", onx,ony,onz, odx,ody,odz);
+                panic!("For now, the attenuation image must match the dimensions of the output image exactly.");
+            }
+            Ok(Some(Image::new(VoxelBox::new((adx,ady,adz), (anx,any,anz)), data)))
+        }
+        None => Ok(None),
     }
 }
 
