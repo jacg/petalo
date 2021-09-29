@@ -152,9 +152,9 @@ dependencies = [
 
 [[package]]
 name = "binrw"
-version = "0.4.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b48a1a44cb9dc4fcc444607eced56dc4aaf7969635d9640678a3ebe7ced2f732"
+checksum = "e0ea6657d8c856eff03c8c61952e0fdad63854d04df5bb4a2cf453e5136e4912"
 dependencies = [
  "array-init",
  "binrw_derive",
@@ -162,10 +162,11 @@ dependencies = [
 
 [[package]]
 name = "binrw_derive"
-version = "0.4.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "011b8eb647ebddc5a72d3a3b2d0eaa93079f8e8c1d0ac538a5d6a3286b7e632b"
+checksum = "3310aa564b46e12c28e893f14e47241334c31e49ad5164c5ff835154e3ce8ce2"
 dependencies = [
+ "owo-colors",
  "proc-macro2",
  "quote",
  "syn",
@@ -1890,6 +1891,12 @@ checksum = "9f923fb806c46266c02ab4a5b239735c144bdeda724a50ed058e5226f594cde3"
 dependencies = [
  "ttf-parser",
 ]
+
+[[package]]
+name = "owo-colors"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a61765925aec40abdb23812a3a1a01fafc6ffb9da22768b2ce665a9e84e527c"
 
 [[package]]
 name = "parking_lot"
