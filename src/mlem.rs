@@ -48,21 +48,84 @@ impl Image {
                     measured_lors: &'a [LOR],
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
-                    smatrix      : &'a [Intensity],
+                    sensitivity  :     Option<Self>,
     ) -> impl Iterator<Item = Image> + 'a {
 
         // Start off with a uniform image
         let mut image = Self::ones(vbox);
 
+        let sensitivity = sensitivity.or_else(|| Some(Self::ones(vbox))).unwrap();
+
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
         std::iter::from_fn(move || {
-            image.one_iteration(measured_lors, smatrix, sigma, cutoff);
+            image.one_iteration(measured_lors, &sensitivity.data, sigma, cutoff);
             Some(image.clone()) // TODO see if we can sensibly avoid cloning
         })
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], smatrix: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
+    // Too much copy-paste code reuse from project_one_lor. This is because the
+    // latter (and the functions it uses) was heavily optimized, at the cost of
+    // ease of reuse.
+    pub fn sensitivity_image(vbox: VoxelBox, density: Option<Self>, lors: &[LOR]) -> Self {
+        match density {
+            Some(density) => {
+                let a = &vbox;
+                let b = &density.vbox;
+                if a.n != b.n || a.half_width != b.half_width {
+                    panic!("For now, attenuation and output image dimensions must match exactly.")
+                }
+                // TODO convert from density to attenuation coefficient
+                let attenuation = density;
+                let (mut image, mut weights, mut indices) = projection_buffers(vbox);
+                // TODO Create sensitivity image by backprojecting a bunch of
+                // LORs. Still don't have a good plan for deciding which LORs
+                // these should be. The next block needs to be repeated for each
+                // LOR.
+
+                // TOF should not be used as LOR attenuation is independent of decay point
+                let notof = make_gauss_option(None, None);
+
+                for lor in lors {
+                    // Find active voxels (slice of system matrix) WITHOUT TOF
+                    // Analyse point where LOR hits voxel box
+                    match lor_vbox_hit(lor, vbox) {
+
+                        // LOR missed voxel box: nothing to be done
+                        None => continue,
+
+                        // Data needed by `find_active_voxels`
+                        Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+
+                            // Throw away previous LOR's values
+                            weights.clear();
+                            indices.clear();
+
+                            // Find active voxels and their weights
+                            find_active_voxels(
+                                &mut indices, &mut weights,
+                                next_boundary, voxel_size,
+                                index, delta_index, remaining,
+                                tof_peak, &notof
+                            );
+
+                            // Backprojection of LOR onto image
+                            back_project_attenuation(&mut image, &weights, &indices, &attenuation.data);
+                        }
+                    }
+
+                    // Create the sensitivity matrix by backprojecting LORs.
+                    back_project_attenuation(&mut image, &weights, &indices, &attenuation.data);
+                }
+                let l = image.len() as f32;
+                for e in image.iter_mut() { *e /= l }
+                Self::new(vbox, image)
+            }
+            None => { Self::ones(vbox) }
+        }
+    }
+
+    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
 
         // -------- Prepare state required by serial/parallel fold --------------
 
@@ -72,20 +135,7 @@ impl Image {
         // Closure preparing the state needed by `fold`: will be called by
         // `fold` at the start of every thread that is launched.
         let initial_thread_state = || {
-
-            // Accumulator for all backprojection contributions in this iteration
-            let backprojection = self.zeros_buffer();
-
-            // Storage space for the weights and indices of the active voxels:
-            // these weights are the non-zero elements of the system matrix in
-            // the row that corresponds to a single LOR. (allocating new result
-            // vectors for each LOR had a noticeable runtime cost)
-            let (weights, indices) = {
-                let [nx, ny, nz] = self.vbox.n;
-                let max_number_of_active_voxels_possible = nx + ny + nz - 2;
-                (Vec::with_capacity(max_number_of_active_voxels_possible),
-                 Vec::with_capacity(max_number_of_active_voxels_possible))
-            };
+            let (backprojection, weights, indices) = projection_buffers(self.vbox);
             (backprojection, weights, indices, &self, &tof)
         };
 
@@ -117,18 +167,16 @@ impl Image {
             // Keep only the backprojection (ignore weights and indices)
             .map(|tuple| tuple.0)
             // Sum the backprojections calculated on each thread
-            .reduce(|   | self.zeros_buffer(),
+            .reduce(|   | zeros_buffer(self.vbox),
                     |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
         };
 
         // -------- Correct for attenuation and detector sensitivity ------------
 
-        apply_sensitivity_image(&mut self.data, &backprojection, smatrix);
+        apply_sensitivity_image(&mut self.data, &backprojection, sensitivity);
 
     }
 
-    // A new empty data store with matching size
-    fn zeros_buffer(&self) -> ImageData { vec![0.0; self.data.len()] }
     pub fn ones(vbox: VoxelBox) -> Self {
         let [x,y,z] = vbox.n;
         let size = x * y * z;
@@ -148,8 +196,24 @@ impl Image {
         let [x,y,z] = vbox.n;
         Self::new(vbox, vec![0.0; x*y*z])
     }
-
 }
+
+fn projection_buffers(vbox: VoxelBox) -> (ImageData, Vec<Length>, Vec<usize>) {
+    // The backprojection (or sensitivity image) being constructed in a
+    // given MLEM iteration (or sensitivity image calculation).
+    let image = zeros_buffer(vbox);
+    // Weights and indices are sparse storage of the slice through the
+    // system matrix which corresponds to the current LOR. (Allocating these
+    // anew for each LOR had a noticeable runtime cost.)
+    let [nx, ny, nz] = vbox.n;
+    let max_number_of_active_voxels_possible = nx + ny + nz - 2;
+    let weights = Vec::with_capacity(max_number_of_active_voxels_possible);
+    let indices = Vec::with_capacity(max_number_of_active_voxels_possible);
+    (image, weights, indices)
+}
+
+// A new empty data store with matching size
+fn zeros_buffer(vbox: VoxelBox) -> ImageData { let [x,y,z] = vbox.n; vec![0.0; x*y*z] }
 
 
 type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>);
@@ -169,7 +233,7 @@ where
         // Data needed by `find_active_voxels`
         Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
 
-            // Throw away previous search results
+            // Throw away previous LOR's values
             weights.clear();
             indices.clear();
 
@@ -209,12 +273,18 @@ fn back_project(backprojection: &mut Vec<Length>, weights: &[Length], indices: &
     }
 }
 
+#[inline]
+fn back_project_attenuation(backprojection: &mut Vec<Length>, weights: &[Length], indices: &[usize], attenuation: &[Length]) {
+    for (w, j) in weights.iter().zip(indices.iter()) {
+        backprojection[*j] += w * attenuation[*j];
+    }
+}
 
-fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Length], smatrix: &[Intensity]) {
+fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Length], sensitivity: &[Intensity]) {
     //  TODO express with Option<matrix> and mul reciprocal
     // Apply Sensitivity matrix
-    azip!((voxel in image, &b in backprojection, &s in smatrix) {
-        if s > 0.0 { *voxel *= b / s }
+    azip!((voxel in image, &b in backprojection, &s in sensitivity) {
+        if s > 0.0 { *voxel *= b * s }
         else       { *voxel  = 0.0   }
     })
 }

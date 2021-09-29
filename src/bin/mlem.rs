@@ -45,9 +45,9 @@ pub struct Cli {
     #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
     pub event_range: Option<std::ops::Range<usize>>,
 
-    /// Attenuation image to be used for corrections
+    /// Density image to be used for corrections
     #[structopt(short, long)]
-    pub attenuation_image: Option<PathBuf>,
+    pub density_image: Option<PathBuf>,
 
     #[cfg(feature = "ccmlem")]
     /// Use the C version of the MLEM algorithm
@@ -104,7 +104,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         now = Instant::now();
     };
 
-    let _attenuation_image = read_attenuation_image(&args);
+    let density_image = read_density_image(&args)?;
+    report_time("Startup");
 
     // Read event data from disk into memory
     let                      Cli{ input_file, dataset, event_range, use_true, legacy_input_format,
@@ -115,15 +116,24 @@ fn main() -> Result<(), Box<dyn Error>> {
     let measured_lors = io::hdf5::read_lors(io_args)?;
     report_time("Loaded LOR data from disk");
 
-    // Define extent and granularity of voxels
+    // Define field of view extent and voxelization
     let vbox = VoxelBox::new(args.size, args.nvoxels);
-    // TODO: sensitivity matrix, all ones for now
-    let sensitivity_image = Image::ones(vbox).data;
 
     let file_pattern = guess_filename(&args);
 
     // If the directory where results will be written does not exist yet, make it
     create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
+
+    // Calculate the sensitivity image
+    let sensitivity_image = density_image
+        .map(|d| Image::sensitivity_image(vbox, Some(d), &measured_lors))
+        .or_else(|| Some(Image::ones(vbox)));
+    report_time("Turned density image into sensitivity image");
+    if let Some(sensitivity_image) = &sensitivity_image {
+        let path = std::path::PathBuf::from("sensitivity.raw");
+        petalo::io::raw::Image3D::from(sensitivity_image).write_to_file(&path).unwrap();
+        report_time("Wrote sensitivity image");
+    }
 
     // Perform MLEM iterations
     #[cfg    (feature = "ccmlem") ] let use_c = args.use_c;
@@ -140,7 +150,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(_)  => println!("Using up to {} threads.", args.num_threads),
         }
 
-        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_image))
+        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, density_image))
             .take(args.iterations)
             .enumerate() {
                 report_time(&format!("Iteration {:2}", n));
@@ -166,21 +176,21 @@ fn guess_filename(args: &Cli) -> String {
     }
 }
 
-fn read_attenuation_image(args: &Cli) -> Result<Option<Image>, Box<dyn Error>>{
-    match &args.attenuation_image {
+fn read_density_image(args: &Cli) -> Result<Option<Image>, Box<dyn Error>>{
+    match &args.density_image {
         Some(path) => {
             use io::raw::Image3D;
             let Image3D { pixels: [anx, any, anz], mm: [adx,ady,adz], data} = Image3D::read_from_file(path)?;
             let [anx, any, anz]: [usize; 3] = [anx.into(), any.into(), anz.into()];
-            let (onx, ony, onz) = args.n_voxels;
+            let (onx, ony, onz) = args.nvoxels;
             let (odx, ody, odz) = args.size;
             if ! ((onx, ony, onz) == (anx, any, anz) && (odx, ody, odz) == (adx, ady, adz)) {
-                // TODO enable use of attenuation images with different
+                // TODO enable use of density images with different
                 // pixelizations as long as they cover the whole FOV.
-                println!("Mismatch between attenuation image and output image size:");
+                println!("Mismatch between density image and output image size:");
                 println!("Attenuation image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", anx,any,anz, adx,ady,adz);
                 println!("     Output image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", onx,ony,onz, odx,ody,odz);
-                panic!("For now, the attenuation image must match the dimensions of the output image exactly.");
+                panic!("For now, the density image must match the dimensions of the output image exactly.");
             }
             Ok(Some(Image::new(VoxelBox::new((adx,ady,adz), (anx,any,anz)), data)))
         }
