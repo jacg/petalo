@@ -1,11 +1,9 @@
-use nalgebra as na;
-
 use kiss3d::light::Light;
 use kiss3d::window::Window;
 use kiss3d::event::{Action, WindowEvent};
-use kiss3d::scene::{SceneNode};
-use kiss3d::camera::{ArcBall};
-use na::{Point3, Translation3};
+use kiss3d::scene::SceneNode;
+use kiss3d::camera::ArcBall;
+use kiss3d::nalgebra::{Point3, Translation3};
 
 use crate::types::{Length, Ratio, mm_to_ps};
 use crate::weights::{VoxelBox, LOR};
