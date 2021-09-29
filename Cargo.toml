@@ -17,25 +17,25 @@ structopt = "0.3"
 ndarray = { version = "0.14", features = ["rayon"] }
 rayon = "1.5"
 serde = { version = "1.0", features = ["derive"] }
-nalgebra = "0.24"
-ncollide3d = "0.27"
-kiss3d = "0.29"
+nalgebra = "0.29"
+ncollide3d = "0.32"
+kiss3d = "0.31"
 num-traits = "0.2"
 hdf5 = "0.7.1"
 uom = "0.31"
-ordered-float = "2.2"
+ordered-float = "2.8"
 cmlem = { path = "cmlem" }
 indicatif = "0.16.2"
 itertools = "0.10.1"
 binwrite = "0.2.1"
-binrw = "0.4.0"
+binrw = "0.7.0"
 linfa = "0.4.0"
 linfa-clustering = "0.4.0"
 
 
 [dev-dependencies]
-rstest = "0.6.4"
-pretty_assertions = "0.6.1"
+rstest = "0.11"
+pretty_assertions = "1.0"
 assert_approx_eq = "1.1"
 proptest = "1.0.0"
 tempfile = "3.2"
