@@ -113,9 +113,6 @@ impl Image {
                             back_project_attenuation(&mut image, &weights, &indices, &attenuation.data);
                         }
                     }
-
-                    // Create the sensitivity matrix by backprojecting LORs.
-                    back_project_attenuation(&mut image, &weights, &indices, &attenuation.data);
                 }
                 let l = image.len() as f32;
                 for e in image.iter_mut() { *e /= l }

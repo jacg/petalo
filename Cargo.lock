@@ -1980,6 +1980,7 @@ dependencies = [
  "ordered-float",
  "pretty_assertions",
  "proptest",
+ "rand",
  "rand_core",
  "rand_isaac",
  "rayon",

@@ -17,6 +17,7 @@ structopt = "0.3"
 ndarray = { version = "0.15.4", features = ["rayon"] }
 rayon = "1.5.1"
 serde = { version = "1.0", features = ["derive"] }
+rand = "0.8.4"
 tap = "1.0.1"
 nalgebra = "0.29"
 ncollide3d = "0.32"

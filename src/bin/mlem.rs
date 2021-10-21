@@ -49,6 +49,14 @@ pub struct Cli {
     #[structopt(short, long)]
     pub density_image: Option<PathBuf>,
 
+    /// Detector length for attenuation correction
+    #[structopt(long, default_value = "1000")]
+    pub detector_length: F,
+
+    /// Detector diameter for attenuation correction
+    #[structopt(long, default_value = "710")]
+    pub detector_diameter: F,
+
     #[cfg(feature = "ccmlem")]
     /// Use the C version of the MLEM algorithm
     #[structopt(short = "c", long)]
@@ -125,12 +133,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
 
     // Calculate the sensitivity image
+    let potential_lors = find_potential_lors(&args);
     let sensitivity_image = density_image
-        .map(|d| Image::sensitivity_image(vbox, Some(d), &measured_lors))
+        .map(|d| Image::sensitivity_image(vbox, Some(d), &potential_lors))
         .or_else(|| Some(Image::ones(vbox)));
     report_time("Turned density image into sensitivity image");
     if let Some(sensitivity_image) = &sensitivity_image {
-        let path = std::path::PathBuf::from("sensitivity.raw");
+        let path = std::path::PathBuf::from("sensitivity-v2.raw");
         petalo::io::raw::Image3D::from(sensitivity_image).write_to_file(&path).unwrap();
         report_time("Wrote sensitivity image");
     }
@@ -150,7 +159,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(_)  => println!("Using up to {} threads.", args.num_threads),
         }
 
-        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, density_image))
+        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, sensitivity_image))
             .take(args.iterations)
             .enumerate() {
                 report_time(&format!("Iteration {:2}", n));
@@ -196,6 +205,31 @@ fn read_density_image(args: &Cli) -> Result<Option<Image>, Box<dyn Error>>{
         }
         None => Ok(None),
     }
+}
+
+fn find_potential_lors(args: &Cli) -> Vec<petalo::weights::LOR> {
+    let n_lors = 5_000_000;
+    let mut lors = Vec::with_capacity(n_lors);
+    let (l,r) = (args.detector_length, args.detector_diameter / 2.0);
+    let fov = VoxelBox::new(args.size, args.nvoxels);
+    while lors.len() < n_lors {
+        let p1 = random_point_on_cylinder(l,r);
+        let p2 = random_point_on_cylinder(l,r);
+        if let Some(_) = fov.entry(&p1, &p2) {
+            lors.push(petalo::weights::LOR::new(0.0, 0.0, p1, p2))
+        }
+    }
+    lors
+}
+
+fn random_point_on_cylinder(l: F, r: F) -> petalo::types::Point {
+    use std::f32::consts::TAU;
+    use rand::random;
+    let z     = l   * (random::<F>() - 0.5);
+    let theta = TAU *  random::<F>();
+    let x = r * theta.cos();
+    let y = r * theta.sin();
+    petalo::types::Point::new(x, y, z)
 }
 
 // ---- Use the original tofpet3d libmlem (C version), instead of our own Rust version ---
