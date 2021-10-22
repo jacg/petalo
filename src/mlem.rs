@@ -67,6 +67,9 @@ impl Image {
     // Too much copy-paste code reuse from project_one_lor. This is because the
     // latter (and the functions it uses) was heavily optimized, at the cost of
     // ease of reuse.
+
+    /// Create sensitivity image by backprojecting LORs. In theory this should
+    /// use *all* possible LORs. In practice use a representative sample.
     pub fn sensitivity_image(vbox: VoxelBox, density: Option<Self>, lors: &[LOR]) -> Self {
         match density {
             Some(density) => {
@@ -78,10 +81,6 @@ impl Image {
                 // TODO convert from density to attenuation coefficient
                 let attenuation = density;
                 let (mut image, mut weights, mut indices) = projection_buffers(vbox);
-                // TODO Create sensitivity image by backprojecting a bunch of
-                // LORs. Still don't have a good plan for deciding which LORs
-                // these should be. The next block needs to be repeated for each
-                // LOR.
 
                 // TOF should not be used as LOR attenuation is independent of decay point
                 let notof = make_gauss_option(None, None);
@@ -114,6 +113,8 @@ impl Image {
                         }
                     }
                 }
+                // TODO this keeps the reconstructed activities nearish to 1 but
+                // it's not correct.
                 let l = image.len() as f32;
                 for e in image.iter_mut() { *e /= l }
                 Self::new(vbox, image)
