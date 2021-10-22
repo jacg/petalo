@@ -12,7 +12,7 @@ pub struct Cli {
 
     /// Input file with MC/primaries dataset
     #[structopt(short = "f", long)]
-    pub input_file: String,
+    pub input_files: Vec<String>,
 
     /// Image output file
     #[structopt(short, long, default_value = "primaries.raw")]
@@ -38,16 +38,24 @@ type L = Length;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
-    let Cli{ input_file, nvoxels, out_file, .. } = args.clone();
+    let Cli{ input_files, nvoxels, out_file, .. } = args.clone();
+    let mut all_events: Vec<Primary> = vec![];
     let event_range = None;
     let dataset = "MC/primaries";
-    let events = read_table::<Primary>(&input_file, dataset, event_range)?;
-
-    let size = if let Some((x,y,z)) = args.size {
+    for file in input_files {
+        // TODO: replace this loop with a chain of iterators
+        let events = read_table::<Primary>(&file, dataset, event_range.clone())?; //.iter();
+        //let events = &input_files.iter().flat_map(|f| xxx(f));
+        for event in events.iter() {
+            all_events.push(event.clone());
+        }
+    }
+	  // Determine size of output image
+    let size = if let Some((x,y,z)) = args.size { // from CLI args
         (x,y,z)
-    } else {
+    } else { // from extrema of positions in input files
         let (mut xmax, mut ymax, mut zmax): (L, L, L) = (10.0, 10.0, 10.0);
-        for &Primary{ x,y,z, ..} in events.iter() {
+        for &Primary{ x,y,z, ..} in all_events.iter() {
             xmax = xmax.max(x.abs());
             ymax = ymax.max(y.abs());
             zmax = zmax.max(z.abs());
@@ -70,7 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let k = pos_to_index1(z, zs, zn, zh)?;
         Some([i,j,k])
     };
-    for &Primary{ x,y,z, ..} in events.iter() {
+    for &Primary{ x,y,z, ..} in all_events.iter() {
         if let Some(i3) = pos_to_index3(x,y,z) {
             image[i3] += 1.0;
         }
