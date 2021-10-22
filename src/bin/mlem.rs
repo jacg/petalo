@@ -57,6 +57,10 @@ pub struct Cli {
     #[structopt(long, default_value = "710")]
     pub detector_diameter: F,
 
+    /// Number of random LORs to use in sensitivity image generation
+    #[structopt(long, default_value = "5000000")]
+    pub n_sensitivity_lors: usize,
+
     #[cfg(feature = "ccmlem")]
     /// Use the C version of the MLEM algorithm
     #[structopt(short = "c", long)]
@@ -136,7 +140,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let sensitivity_image = match density_image {
         Some(d) => {
             let potential_lors = find_potential_lors(&args);
-            report_time("Generated LORs for sensitivity image construction");
+            report_time(&format!("Generated {} LORs for sensitivity image construction", args.n_sensitivity_lors));
             let sensitivity_image = Image::sensitivity_image(vbox, Some(d), &potential_lors);
             report_time("Turned density image into sensitivity image");
             let inverted = sensitivity_image.inverted();
@@ -216,7 +220,7 @@ fn read_density_image(args: &Cli) -> Result<Option<Image>, Box<dyn Error>>{
 }
 
 fn find_potential_lors(args: &Cli) -> Vec<petalo::weights::LOR> {
-    let n_lors = 5_000_000;
+    let n_lors = args.n_sensitivity_lors;
     let mut lors = Vec::with_capacity(n_lors);
     let (l,r) = (args.detector_length, args.detector_diameter / 2.0);
     let fov = VoxelBox::new(args.size, args.nvoxels);
