@@ -132,22 +132,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     // If the directory where results will be written does not exist yet, make it
     create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
 
-    // Calculate the sensitivity image
-    let potential_lors = find_potential_lors(&args);
-    let sensitivity_image = density_image
-        .map(|d| Image::sensitivity_image(vbox, Some(d), &potential_lors))
-        .or_else(|| Some(Image::ones(vbox)));
-    report_time("Turned density image into sensitivity image");
-    if let Some(sensitivity_image) = &sensitivity_image {
-        let path  = std::path::PathBuf::from("sensitivity.raw");
-        let pathi = std::path::PathBuf::from("sensitivity-inverted.raw");
-        let inverted = sensitivity_image.inverted();
-
-        petalo::io::raw::Image3D::from( sensitivity_image).write_to_file(&path ).unwrap();
-        petalo::io::raw::Image3D::from(&inverted         ).write_to_file(&pathi).unwrap();
-        report_time(&format!("Wrote sensitivity images '{}' and '{}'",
-                             path.display(), pathi.display()));
-    }
+    // Calculate the sensitivity image, if required
+    let sensitivity_image = match density_image {
+        Some(d) => {
+            let potential_lors = find_potential_lors(&args);
+            report_time("Generated LORs for sensitivity image construction");
+            let sensitivity_image = Image::sensitivity_image(vbox, Some(d), &potential_lors);
+            report_time("Turned density image into sensitivity image");
+            let inverted = sensitivity_image.inverted();
+            report_time("Inverted sensitivity image");
+            let path  = std::path::PathBuf::from("sensitivity.raw");
+            let pathi = std::path::PathBuf::from("sensitivity-inverted.raw");
+            petalo::io::raw::Image3D::from(&sensitivity_image).write_to_file(&path ).unwrap();
+            petalo::io::raw::Image3D::from(&inverted         ).write_to_file(&pathi).unwrap();
+            report_time(&format!("Wrote sensitivity images '{}' and '{}'",
+                                 path.display(), pathi.display()));
+            Some(sensitivity_image)
+        },
+        None => None
+    };
 
     // Perform MLEM iterations
     #[cfg    (feature = "ccmlem") ] let use_c = args.use_c;
