@@ -136,6 +136,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // If the directory where results will be written does not exist yet, make it
     create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
 
+    // TODO Add option to reuse stored sensitivity image?
     // Calculate the sensitivity image, if required
     let sensitivity_image = match density_image {
         Some(d) => {
