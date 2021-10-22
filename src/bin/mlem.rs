@@ -139,9 +139,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         .or_else(|| Some(Image::ones(vbox)));
     report_time("Turned density image into sensitivity image");
     if let Some(sensitivity_image) = &sensitivity_image {
-        let path = std::path::PathBuf::from("sensitivity-v2.raw");
-        petalo::io::raw::Image3D::from(sensitivity_image).write_to_file(&path).unwrap();
-        report_time(&format!("Wrote sensitivity image '{}'", path.display()));
+        let path  = std::path::PathBuf::from("sensitivity.raw");
+        let pathi = std::path::PathBuf::from("sensitivity-inverted.raw");
+        let inverted = sensitivity_image.inverted();
+
+        petalo::io::raw::Image3D::from( sensitivity_image).write_to_file(&path ).unwrap();
+        petalo::io::raw::Image3D::from(&inverted         ).write_to_file(&pathi).unwrap();
+        report_time(&format!("Wrote sensitivity images '{}' and '{}'",
+                             path.display(), pathi.display()));
     }
 
     // Perform MLEM iterations

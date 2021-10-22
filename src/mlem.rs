@@ -193,6 +193,12 @@ impl Image {
         let [x,y,z] = vbox.n;
         Self::new(vbox, vec![0.0; x*y*z])
     }
+
+    pub fn inverted(&self) -> Self {
+        let mut inverted = self.clone();
+        for e in inverted.data.iter_mut() { *e = 1.0 / *e }
+        inverted
+    }
 }
 
 fn projection_buffers(vbox: VoxelBox) -> (ImageData, Vec<Length>, Vec<usize>) {
