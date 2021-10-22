@@ -141,7 +141,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Some(sensitivity_image) = &sensitivity_image {
         let path = std::path::PathBuf::from("sensitivity-v2.raw");
         petalo::io::raw::Image3D::from(sensitivity_image).write_to_file(&path).unwrap();
-        report_time("Wrote sensitivity image");
+        report_time(&format!("Wrote sensitivity image '{}'", path.display()));
     }
 
     // Perform MLEM iterations
