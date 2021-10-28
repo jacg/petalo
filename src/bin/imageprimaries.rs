@@ -63,6 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ((2.0 * xmax).ceil(), (2.0 * ymax).ceil(), (2.0 * zmax).ceil())
     };
 
+	// Create empty image of appropriate size
     let vbox = VoxelBox::new(size, nvoxels);
     let mut image = Image::empty(vbox);
 
@@ -78,11 +79,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         let k = pos_to_index1(z, zs, zn, zh)?;
         Some([i,j,k])
     };
+
+    // Collect event data into image
     for &Primary{ x,y,z, ..} in all_events.iter() {
         if let Some(i3) = pos_to_index3(x,y,z) {
             image[i3] += 1.0;
         }
     }
+
+    // Write image to file
     petalo::io::raw::Image3D::from(&image).write_to_file(out_file.clone())?;
     println!("Wrote image with phisical size {} x {} x {} and {} x {} x {} voxels to {}",
                                              xe,  ye,  ze,    xn,  yn,  zn,    out_file);
