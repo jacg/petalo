@@ -13,3 +13,4 @@ callgrind.out.*
 cachegrind.out.*
 oprofile_data
 flamegraphs
+*.raw
