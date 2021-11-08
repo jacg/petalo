@@ -110,7 +110,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file_pattern = guess_filename(&args);
 
     // If the directory where results will be written does not exist yet, make it
-    create_dir_all(PathBuf::from(format!("{:02}_00.raw", file_pattern)).parent().unwrap())?;
+    create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
 
     // Regions of interest for CRC
     fn polar(r: f32, phi: f32) -> (f32, f32, f32) { (r * phi.cos(), r * phi.sin(), 0.0) }
@@ -169,7 +169,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .take(args.iterations)
             .enumerate() {
                 report_time(&format!("Iteration {:2}", n));
-                let path = PathBuf::from(format!("{}_{:02}.raw", file_pattern, n));
+                let path = PathBuf::from(format!("{}{:02}.raw", file_pattern, n));
                 petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
                 report_time("  Wrote raw bin");
                 // TODO: step_by for print every
