@@ -229,11 +229,11 @@ fn run_cmlem(
         x1.push(lor.p1.x);
         y1.push(lor.p1.y);
         z1.push(lor.p1.z);
-        t1.push(lor.t1);
+        t1.push(0.0);
         x2.push(lor.p2.x);
         y2.push(lor.p2.y);
         z2.push(lor.p2.z);
-        t2.push(lor.t2);
+        t2.push(petalo::types::mm_to_ps(lor.dx));
     }
 
     // Add underscore to separate base name from suffix (to match what happens
