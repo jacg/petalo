@@ -171,7 +171,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 report_time(&format!("Iteration {:2}", n));
                 let path = PathBuf::from(format!("{}{:02}.raw", file_pattern, n));
                 petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
-                report_time("  Wrote raw bin");
+                report_time("                               Wrote raw bin");
                 // TODO: step_by for print every
                 if let Some(mut fom_buf) = fom_buf.as_mut() {
                     use std::io::Write;
