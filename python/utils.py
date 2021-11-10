@@ -51,7 +51,11 @@ def read_raw(filename, header_only=False):
 
 
 def wrap_1d_into_3d(data, shape, row_major=False):
-    assert len(data) == reduce(mul, shape)
+    size_data = len(data)
+    size_expected = reduce(mul, shape)
+    if size_data != size_expected:
+        x,y,z = shape
+        exit(f'Error: Data length {size_data} does not match voxelization {x} x {y} x {z} = {size_expected}')
     image = np.zeros(shape)
     nx, ny, nz = shape
     for index, x in enumerate(data):
@@ -61,3 +65,9 @@ def wrap_1d_into_3d(data, shape, row_major=False):
         if row_major: image[k,j,i] = x
         else        : image[i,j,k] = x
     return image
+
+
+def read_raw_without_header(filename):
+    data = open(filename, 'rb').read()
+    data = struct.unpack_from('>'+'f' * (len(data) // 4), data)
+    return data

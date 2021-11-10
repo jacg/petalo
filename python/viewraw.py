@@ -1,4 +1,5 @@
-from utils import read_raw, wrap_1d_into_3d, plt, np
+import struct
+from utils import read_raw, read_raw_without_header, wrap_1d_into_3d, plt, np
 
 class image:
 
@@ -12,12 +13,17 @@ class image:
 
 class view:
 
-    def __init__(self, files, *, axis='z'):
+    def __init__(self, files, *, axis='z', header=None):
         self.files = files
         self.ts = set('z')
         self.fig, self.ax = plt.subplots()
-        self.images = tuple(image(wrap_1d_into_3d(data, shape), shape, full_lengths)
-                            for (shape, full_lengths), data in map(read_raw, files))
+        if header:
+            shape, full_lengths = header
+            self.images = tuple(image(wrap_1d_into_3d(data, shape), shape, full_lengths)
+                                for data in map(read_raw_without_header, files))
+        else:
+            self.images = tuple(image(wrap_1d_into_3d(data, shape), shape, full_lengths)
+                                for (shape, full_lengths), data in map(read_raw, files))
 
         self.maxima = [im.data.max() for im in self.images]
         self.image_number = 0
@@ -112,11 +118,71 @@ class view:
         ax = self.axis
         return 2 if ax == 'z' else 1 if ax == 'y' else 0
 
+
+def add_header(filenames):
+    for name in filenames:
+        in_ = open(name     , 'rb').read()
+        out = open(name+'_h', 'wb')
+        pixels = struct.pack('>HHH', nx, ny, nz)
+        mm     = struct.pack('>fff', dx, dy, dz)
+        out.write(pixels)
+        out.write(mm)
+        out.write(in_)
+
+
+def usage(argv):
+    return f"""Usage:
+
+    {argv[0]} FILENAMES...
+
+       View raw 3D image files which contain a self-describing size header.
+
+    {argv[0]} --show-header FILENAMES...
+
+       Show size headers included in self-describing raw 3D image files.
+
+    {argv[0]} --assume-header  NX NY NZ   DX DY DZ  FILENAMES...
+
+       View headerless raw 3D image. Specify size on command line.
+
+       NX, NY, NZ: number of voxels in each dimension
+       dx, DY, DZ: full extent of FOV in each dimension
+
+    {argv[0]} --add-header   NX NY NZ   DX DY DZ  FILENAMES...
+
+       Add headers to headerless raw 3D image files.
+
+       The original files will not be modified. The headers will be added to new
+       files matching the original names with the suffix `_h`
+    """
+
+
 if __name__ == '__main__':
     from sys import argv
-    filenames = list(f for f in argv[1:] if not f.startswith('--'))
-    if '--header-only' in argv:
+
+    if '-h' in argv or '--help' in argv:
+        exit(usage(argv))
+    filenames = list(f for f in argv[1:] if not f.startswith('-'))
+
+    header_on_cli = None
+
+    if argv[1] in ('--add-header', '--assume-header'):
+        prog_, flag, nx,ny,nz, dx,dy,dz, *filenames = argv
+        nx,ny,nz = map(int  , (nx,ny,nz))
+        dx,dy,dz = map(float, (dx,dy,dz))
+
+        if flag == '--add-header':
+            add_header(filenames)
+            exit(0)
+
+        else:
+            header_on_cli = (nx,ny,nz), (dx,dy,dz)
+
+    if '--show-header' in argv:
+        longest = len(max(filenames, key=len))
         for filename in filenames:
-            print(read_raw(filename, header_only=True))
+            (nx,ny,nz), (dx,dy,dz) = read_raw(filename, header_only=True)
+            print(f'{filename:{longest}}:   {nx} {ny} {nz}   {dx} {dy} {dz}')
+
     else:
-        v = view(filenames)
+        v = view(filenames, header=header_on_cli)
