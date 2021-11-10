@@ -112,11 +112,34 @@ class view:
         ax = self.axis
         return 2 if ax == 'z' else 1 if ax == 'y' else 0
 
+def usage(argv):
+    return f"""Usage:
+
+    {argv[0]} FILENAMES...
+
+       View raw 3D image files which contain a self-describing size header.
+
+    {argv[0]} --show-headers FILENAMES...
+
+       Show size headers included in self-describing raw 3D image files.
+
+    {argv[0]} --assume-header  NX NY NZ   DX DY DZ  FILENAMES...
+
+       View headerless raw 3D image. Specify size on command line.
+
+       NX, NY, NZ: number of voxels in each dimension
+       dx, DY, DZ: full extent of FOV in each dimension
+    """
+
 if __name__ == '__main__':
     from sys import argv
-    filenames = list(f for f in argv[1:] if not f.startswith('--'))
-    if '--header-only' in argv:
+    if '-h' in argv or '--help' in argv:
+        exit(usage(argv))
+    filenames = list(f for f in argv[1:] if not f.startswith('-'))
+    if '--show-headers' in argv:
+        longest = len(max(filenames, key=len))
         for filename in filenames:
-            print(read_raw(filename, header_only=True))
+            (nx,ny,nz), (dx,dy,dz) = read_raw(filename, header_only=True)
+            print(f'{filename:{longest}}:   {nx} {ny} {nz}   {dx} {dy} {dz}')
     else:
         v = view(filenames)
