@@ -1,4 +1,4 @@
-from utils import read_raw, wrap_1d_into_3d, plt, np
+from utils import read_raw, read_raw_without_header, wrap_1d_into_3d, plt, np
 
 class image:
 
@@ -12,12 +12,17 @@ class image:
 
 class view:
 
-    def __init__(self, files, *, axis='z'):
+    def __init__(self, files, *, axis='z', header=None):
         self.files = files
         self.ts = set('z')
         self.fig, self.ax = plt.subplots()
-        self.images = tuple(image(wrap_1d_into_3d(data, shape), shape, full_lengths)
-                            for (shape, full_lengths), data in map(read_raw, files))
+        if header:
+            shape, full_lengths = header
+            self.images = tuple(image(wrap_1d_into_3d(data, shape), shape, full_lengths)
+                                for data in map(read_raw_without_header, files))
+        else:
+            self.images = tuple(image(wrap_1d_into_3d(data, shape), shape, full_lengths)
+                                for (shape, full_lengths), data in map(read_raw, files))
 
         self.maxima = [im.data.max() for im in self.images]
         self.image_number = 0
@@ -133,13 +138,24 @@ def usage(argv):
 
 if __name__ == '__main__':
     from sys import argv
+
     if '-h' in argv or '--help' in argv:
         exit(usage(argv))
     filenames = list(f for f in argv[1:] if not f.startswith('-'))
+
+    if argv[1] == '--assume-header':
+        prog_, flag_, nx,ny,nz, dx,dy,dz, *filenames = argv
+        nx,ny,nz = map(int  , (nx,ny,nz))
+        dx,dy,dz = map(float, (dx,dy,dz))
+        header = (nx,ny,nz), (dx,dy,dz)
+    else:
+        header = None
+
     if '--show-headers' in argv:
         longest = len(max(filenames, key=len))
         for filename in filenames:
             (nx,ny,nz), (dx,dy,dz) = read_raw(filename, header_only=True)
             print(f'{filename:{longest}}:   {nx} {ny} {nz}   {dx} {dy} {dz}')
+
     else:
-        v = view(filenames)
+        v = view(filenames, header=header)
