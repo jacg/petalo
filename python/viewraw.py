@@ -1,3 +1,4 @@
+import struct
 from utils import read_raw, read_raw_without_header, wrap_1d_into_3d, plt, np
 
 class image:
@@ -117,6 +118,18 @@ class view:
         ax = self.axis
         return 2 if ax == 'z' else 1 if ax == 'y' else 0
 
+
+def add_header(filenames):
+    for name in filenames:
+        in_ = open(name     , 'rb').read()
+        out = open(name+'_h', 'wb')
+        pixels = struct.pack('>HHH', nx, ny, nz)
+        mm     = struct.pack('>fff', dx, dy, dz)
+        out.write(pixels)
+        out.write(mm)
+        out.write(in_)
+
+
 def usage(argv):
     return f"""Usage:
 
@@ -124,7 +137,7 @@ def usage(argv):
 
        View raw 3D image files which contain a self-describing size header.
 
-    {argv[0]} --show-headers FILENAMES...
+    {argv[0]} --show-header FILENAMES...
 
        Show size headers included in self-describing raw 3D image files.
 
@@ -134,7 +147,15 @@ def usage(argv):
 
        NX, NY, NZ: number of voxels in each dimension
        dx, DY, DZ: full extent of FOV in each dimension
+
+    {argv[0]} --add-header   NX NY NZ   DX DY DZ  FILENAMES...
+
+       Add headers to headerless raw 3D image files.
+
+       The original files will not be modified. The headers will be added to new
+       files matching the original names with the suffix `_h`
     """
+
 
 if __name__ == '__main__':
     from sys import argv
@@ -143,19 +164,25 @@ if __name__ == '__main__':
         exit(usage(argv))
     filenames = list(f for f in argv[1:] if not f.startswith('-'))
 
-    if argv[1] == '--assume-header':
-        prog_, flag_, nx,ny,nz, dx,dy,dz, *filenames = argv
+    header_on_cli = None
+
+    if argv[1] in ('--add-header', '--assume-header'):
+        prog_, flag, nx,ny,nz, dx,dy,dz, *filenames = argv
         nx,ny,nz = map(int  , (nx,ny,nz))
         dx,dy,dz = map(float, (dx,dy,dz))
-        header = (nx,ny,nz), (dx,dy,dz)
-    else:
-        header = None
 
-    if '--show-headers' in argv:
+        if flag == '--add-header':
+            add_header(filenames)
+            exit(0)
+
+        else:
+            header_on_cli = (nx,ny,nz), (dx,dy,dz)
+
+    if '--show-header' in argv:
         longest = len(max(filenames, key=len))
         for filename in filenames:
             (nx,ny,nz), (dx,dy,dz) = read_raw(filename, header_only=True)
             print(f'{filename:{longest}}:   {nx} {ny} {nz}   {dx} {dy} {dz}')
 
     else:
-        v = view(filenames, header=header)
+        v = view(filenames, header=header_on_cli)
