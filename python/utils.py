@@ -55,7 +55,7 @@ def wrap_1d_into_3d(data, shape, row_major=False):
     size_expected = reduce(mul, shape)
     if size_data != size_expected:
         x,y,z = shape
-        exit(f'Error: Data length {size_data} does not match voxelization {x}x{y}x{z}={size_expected}')
+        exit(f'Error: Data length {size_data} does not match voxelization {x} x {y} x {z} = {size_expected}')
     image = np.zeros(shape)
     nx, ny, nz = shape
     for index, x in enumerate(data):
