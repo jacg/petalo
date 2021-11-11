@@ -11,6 +11,11 @@ class image:
         self.pixel_size = tuple(l/n for l,n in zip(full_lengths, shape))
 
 
+def image_and_voxel_size(voxel_values, n_voxels, fov_size):
+    img  = image(wrap_1d_into_3d(voxel_values, n_voxels), n_voxels, fov_size)
+    voxsize = tuple(s/n for n,s in zip(n_voxels, fov_size))
+    return img, voxsize
+
 class view:
 
     def __init__(self, files, *, axis='z', header=None):
@@ -19,12 +24,13 @@ class view:
         self.fig, self.ax = plt.subplots()
         if header:
             shape, full_lengths = header
-            self.images = tuple(image(wrap_1d_into_3d(data, shape), shape, full_lengths)
-                                for data in map(read_raw_without_header, files))
+            tmp = tuple(image_and_voxel_size(data, shape, full_lengths)
+                        for                        data in map(read_raw_without_header, files))
         else:
-            self.images = tuple(image(wrap_1d_into_3d(data, shape), shape, full_lengths)
-                                for (shape, full_lengths), data in map(read_raw, files))
+            tmp = tuple(image_and_voxel_size(data, shape, full_lengths)
+                        for (shape, full_lengths), data in map(read_raw,                files))
 
+        self.images, self.voxel_sizes = tuple(zip(*tmp))
         self.maxima = [im.data.max() for im in self.images]
         self.image_number = 0
         self.axis = axis
@@ -95,7 +101,9 @@ class view:
         i = self.pos[nax]
         pixel_size = self.images[self.image_number].pixel_size
         p = 'integrated' if self.integrate else f'{(i + 0.5) * pixel_size[nax] - half_size[nax]:6.1f}'
-        self.ax.set_title(f'{self.axis} = {p}\n{self.files[self.image_number]}')
+        nx,ny,nz = self.voxel_sizes[self.image_number]
+        self.ax.set_title(f'''{self.axis} = {p}        voxel size = {nx:.2} x {ny:.2} x {nz:.2} mm
+        {self.files[self.image_number]}''')
         self.ax.set_xlabel(xl)
         self.ax.set_ylabel(yl)
         self.fig.canvas.draw()
