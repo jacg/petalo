@@ -37,7 +37,7 @@ def show_image(image, *, axis, slice_, extent, shape, ax=plt):
     if axis == 'z': ax.imshow(image[:, :, s].T , extent = [-xe,xe, -ye,ye], origin = 'lower')
 
 
-def read_raw(filename, header_only=False):
+def read_raw(filename, header_only=False, end='>'):
     buffer = open(filename, 'rb').read()
     metadata_length = 18
     metadata = buffer[: metadata_length  ]
@@ -46,7 +46,7 @@ def read_raw(filename, header_only=False):
     mm     = struct.unpack_from('>fff', metadata[6:])
     if header_only:
         return pixels, mm
-    data   = struct.unpack_from('>'+'f' * (len(data) // 4), data)
+    data   = struct.unpack_from(end + 'f' * (len(data) // 4), data)
     return (pixels, mm), data
 
 
@@ -67,7 +67,7 @@ def wrap_1d_into_3d(data, shape, row_major=False):
     return image
 
 
-def read_raw_without_header(filename):
+def read_raw_without_header(filename, end='>'):
     data = open(filename, 'rb').read()
-    data = struct.unpack_from('>'+'f' * (len(data) // 4), data)
+    data = struct.unpack_from(end + 'f' * (len(data) // 4), data)
     return data
