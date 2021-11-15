@@ -272,7 +272,9 @@ fn find_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
 /// Distance from entry point to the LOR's TOF peak
 #[inline]
 fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dx: Length) -> Length {
-    let p1_to_peak = 0.5 * ((p1 - p2).norm() - dx);
+    let half_lor_length = (p1 - p2).norm() / 2.0;
+    let tof_shift = dx / 2.0;
+    let p1_to_peak = half_lor_length - tof_shift;
     let p1_to_entry = (entry_point - p1).norm();
     p1_to_peak - p1_to_entry
 }
