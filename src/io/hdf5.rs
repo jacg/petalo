@@ -77,10 +77,13 @@ impl Event {
 
 }
 
+#[allow(nonstandard_style)]
 pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
+    let cut = 434.35;
     let it: Vec<LOR> = if ! args.legacy_input_format {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
+            .filter(|Hdf5Lor{E1, E2, ..}| E1 > &cut && E2 > &cut)
             .map(LOR::from)
             .collect()
     } else {
