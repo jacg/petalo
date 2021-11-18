@@ -178,29 +178,31 @@ pub struct SensorHit {
 
 // The LOR used by mlem contains fields (the points) with types (ncollide Point)
 // which hdf5 appears not to be able to digest, so hack around the problem for
-// now, by creating a LOR type that is hdf5able
+// now, by creating a LOR type that is hdf5able.
+// Additionally, we now want to store extra information corresponding to the LOR
+// (energies, charges) which are useful for applying different cuts later on,
+// but irrelevant to MLEM, so two separate LOR types (with and without metadata)
+// might actually be the right way to go.
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
+#[allow(nonstandard_style)]
 pub struct Hdf5Lor {
-    dx: f32,
-    x1: f32,
-    y1: f32,
-    z1: f32,
-    x2: f32,
-    y2: f32,
-    z2: f32,
-}
-
-impl From<LOR> for Hdf5Lor {
-    fn from(lor: LOR) -> Self {
-        let LOR{ dx, p1, p2 } = lor;
-        Self { dx, x1:p1.x, y1: p1.y, z1: p1.z, x2: p2.x, y2: p2.y, z2: p2.z }
-    }
+    pub dx: f32,
+    pub x1: f32,
+    pub y1: f32,
+    pub z1: f32,
+    pub x2: f32,
+    pub y2: f32,
+    pub z2: f32,
+    pub q1: f32,
+    pub q2: f32,
+    pub E1: f32,
+    pub E2: f32,
 }
 
 impl From<Hdf5Lor> for LOR {
     fn from(lor: Hdf5Lor) -> Self {
-        let Hdf5Lor{dx, x1, y1, z1, x2, y2, z2} = lor;
+        let Hdf5Lor{dx, x1, y1, z1, x2, y2, z2, ..} = lor;
         Self { dx, p1: Point::new(x1, y1, z1), p2: Point::new(x2, y2, z2)}
     }
 }

@@ -1,7 +1,7 @@
 use structopt::StructOpt;
 use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
-use petalo::{io, weights::LOR};
+use petalo::{io, types::ns_to_mm, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::types::{Point, Time};
 
@@ -76,18 +76,19 @@ fn main() -> hdf5::Result<()> {
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 Ok((lors_from(&events, lor_from_vertices), events.len()))
             }),
-        Reco::Half{q} => Box::new(
-            move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
-                let qts = read_qts(infile)?;
-                let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
-                Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
-            }),
-        Reco::Dbscan { q, min_count, max_distance } => Box::new(
-            move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
-                let qts = read_qts(infile)?;
-                let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
-                Ok((lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
-            }),
+        // Reco::Half{q} => Box::new(
+        //     move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+        //         let qts = read_qts(infile)?;
+        //         let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
+        //         Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
+        //     }),
+        // Reco::Dbscan { q, min_count, max_distance } => Box::new(
+        //     move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+        //         let qts = read_qts(infile)?;
+        //         let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
+        //         Ok((lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
+        //     }),
+        _ => panic!("LOR reconstruction algorithm not updated for new schema yet"),
     };
 
 
@@ -122,18 +123,20 @@ fn main() -> hdf5::Result<()> {
     Ok(())
 }
 
-fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<LOR>) -> Vec<Hdf5Lor> {
+fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<Hdf5Lor>) -> Vec<Hdf5Lor> {
     events.iter()
         .flat_map(|data| one_lor(&data)) // TODO try to remove reference juggling
-        .map(|l| l.into())
         .collect()
 }
 
-fn lor_from_vertices(vertices: &[Vertex]) -> Option<LOR> {
+fn lor_from_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
     let mut in_lxe = vertices.iter().filter(|v| v.volume_id == 0);
     let &Vertex{x:x2, y:y2, z:z2, t:t2, ..} = in_lxe.find(|v| v.track_id == 2)?;
     let &Vertex{x:x1, y:y1, z:z1, t:t1, ..} = in_lxe.find(|v| v.track_id == 1)?;
-    Some(LOR::from_components(t1, t2, x1,y1,z1, x2,y2,z2))
+    Some(Hdf5Lor {
+        dx: ns_to_mm(t2 - t1),             x1, y1, z1,   x2, y2, z2,
+        q1: f32::NAN, q2: f32::NAN,        E1: f32::NAN, E2: f32::NAN,
+    })
 }
 
 fn lor_from_hits(hits: &[QT], xyzs: &SensorMap) -> Option<LOR> {
