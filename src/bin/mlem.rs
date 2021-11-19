@@ -69,6 +69,10 @@ pub struct Cli {
     /// Ignore events with gamma energy/keV below this value
     #[structopt(short = "E", long)]
     pub ecut: Option<Energy>,
+
+    /// Ignore events with detected charge/pes below this value
+    #[structopt(short, long)]
+    pub qcut: Option<Charge>,
 }
 
 // --------------------------------------------------------------------------------
@@ -77,7 +81,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::types::{Length, Time, Ratio, Energy};
+use petalo::types::{Length, Time, Ratio, Energy, Charge};
 use petalo::weights::VoxelBox;
 use petalo::mlem::Image;
 use petalo::io;
@@ -99,8 +103,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // Read event data from disk into memory
-    let                      Cli{ input_file, dataset, event_range, use_true, legacy_input_format, ecut, .. } = args.clone();
-    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, legacy_input_format, ecut };
+    let                      Cli{ input_file, dataset, event_range, use_true, legacy_input_format,
+                                  ecut, qcut, .. } = args.clone();
+    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, legacy_input_format,
+                                  ecut, qcut };
     println!("Reading LOR data from disk ...");
     let measured_lors = io::hdf5::read_lors(io_args)?;
     report_time("Loaded LOR data from local disk");
