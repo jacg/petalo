@@ -18,17 +18,19 @@ def image_and_voxel_size(voxel_values, n_voxels, fov_size):
 
 class view:
 
-    def __init__(self, files, *, axis='z', header=None):
+    def __init__(self, files, *, axis='z', header=None, end='>'):
         self.files = files
         self.ts = set('z')
         self.fig, self.ax = plt.subplots()
         if header:
             shape, full_lengths = header
+            def read_file(f): return read_raw_without_header(f, end=end)
             tmp = tuple(image_and_voxel_size(data, shape, full_lengths)
-                        for                        data in map(read_raw_without_header, files))
+                        for                        data in map(read_file, files))
         else:
+            def read_file(f): return read_raw(f, end=end)
             tmp = tuple(image_and_voxel_size(data, shape, full_lengths)
-                        for (shape, full_lengths), data in map(read_raw,                files))
+                        for (shape, full_lengths), data in map(read_file, files))
 
         self.images, self.voxel_sizes = tuple(zip(*tmp))
         self.maxima = [im.data.max() for im in self.images]
@@ -162,7 +164,10 @@ def usage(argv):
 
        The original files will not be modified. The headers will be added to new
        files matching the original names with the suffix `_h`
-    """
+
+    --swap-endianness : Assume the input files contain little-endian data
+                        (rather than big-endian, as guaranteed to be written by
+                        the Rust version of MLEM) """
 
 
 if __name__ == '__main__':
@@ -170,9 +175,16 @@ if __name__ == '__main__':
 
     if '-h' in argv or '--help' in argv:
         exit(usage(argv))
+
+    endianness = '>'
+    if '--swap-endianness' in argv:
+        endianness =  '<'
+        argv.remove('--swap-endianness')
+
     filenames = list(f for f in argv[1:] if not f.startswith('-'))
 
     header_on_cli = None
+
 
     if argv[1] in ('--add-header', '--assume-header'):
         prog_, flag, nx,ny,nz, dx,dy,dz, *filenames = argv
@@ -193,4 +205,4 @@ if __name__ == '__main__':
             print(f'{filename:{longest}}:   {nx} {ny} {nz}   {dx} {dy} {dz}')
 
     else:
-        v = view(filenames, header=header_on_cli)
+        v = view(filenames, header=header_on_cli, end=endianness)
