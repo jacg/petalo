@@ -107,6 +107,7 @@ let
 
     # HDF5
     pkgs.hdf5
+    (linux pkgs.hdfview)
 
     # python
     (python.withPackages (ps: [
