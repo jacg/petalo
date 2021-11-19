@@ -3,6 +3,7 @@ pub type Time   = Length;
 pub type Weight = Length;
 pub type Ratio  = Length;
 pub type Energy = Length;
+pub type Charge = Length;
 pub type Intensity = Length;
 
 pub type Index1 = usize;

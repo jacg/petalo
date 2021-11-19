@@ -10,6 +10,7 @@ pub struct Args {
     pub use_true: bool,
     pub legacy_input_format: bool,
     pub ecut: Option<Energy>,
+    pub qcut: Option<crate::types::Charge>,
 }
 
 use ndarray::{s, Array1};
@@ -83,7 +84,11 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
     let it: Vec<LOR> = if ! args.legacy_input_format {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
-            .filter(|Hdf5Lor{E1, E2, ..}| if let Some(cut) = args.ecut {E1 > &cut && E2 > &cut} else {true})
+            .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
+                let eok = if let Some(cut) = args.ecut {E1 > &cut && E2 > &cut} else {true};
+                let qok = if let Some(cut) = args.qcut {q1 > &cut && q2 > &cut} else {true};
+                eok && qok
+            })
             .map(LOR::from)
             .collect()
     } else {
@@ -116,6 +121,8 @@ mod test {
             event_range: Some(0..4),
             use_true: false,
             legacy_input_format: true,
+            ecut: None,
+            qcut: None,
         };
         let lors = read_lors(args.clone()).unwrap();
         assert_approx_eq!(lors[2].p1.coords.x, -120.7552004817734, 1e-5);
@@ -136,6 +143,8 @@ mod test {
             event_range: Some(0..4),
             use_true: false,
             legacy_input_format: true,
+            ecut: None,
+            qcut: None,
         };
 
         let events = read_table::<Event>(&args.input_file, &args.dataset, args.event_range)?;
