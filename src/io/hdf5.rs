@@ -9,11 +9,12 @@ pub struct Args {
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
     pub legacy_input_format: bool,
+    pub ecut: Option<Energy>,
 }
 
 use ndarray::{s, Array1};
 
-use crate::types::{Length, Point};
+use crate::types::{Length, Point, Energy};
 use crate::weights::LOR;
 type F = Length;
 
@@ -79,11 +80,10 @@ impl Event {
 
 #[allow(nonstandard_style)]
 pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
-    let cut = 434.35;
     let it: Vec<LOR> = if ! args.legacy_input_format {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
-            .filter(|Hdf5Lor{E1, E2, ..}| E1 > &cut && E2 > &cut)
+            .filter(|Hdf5Lor{E1, E2, ..}| if let Some(cut) = args.ecut {E1 > &cut && E2 > &cut} else {true})
             .map(LOR::from)
             .collect()
     } else {
