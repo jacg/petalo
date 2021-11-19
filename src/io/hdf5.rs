@@ -92,7 +92,7 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
             .map(|e| e.to_lor(args.use_true))
             .collect()
     };
-    println!("Using {} events", it.len());
+    println!("Using {} LORs", it.len());
     Ok(it)
 }
 
