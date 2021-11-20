@@ -109,7 +109,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                   ecut, qcut };
     println!("Reading LOR data from disk ...");
     let measured_lors = io::hdf5::read_lors(io_args)?;
-    report_time("Loaded LOR data from local disk");
+    report_time("Loaded LOR data from disk");
 
     // Define extent and granularity of voxels
     let vbox = VoxelBox::new(args.size, args.n_voxels);
