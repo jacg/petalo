@@ -199,7 +199,7 @@ pub struct SensorHit {
 #[repr(C)]
 #[allow(nonstandard_style)]
 pub struct Hdf5Lor {
-    pub dx: f32,
+    pub dt: f32,
     pub x1: f32,
     pub y1: f32,
     pub z1: f32,
@@ -214,8 +214,8 @@ pub struct Hdf5Lor {
 
 impl From<Hdf5Lor> for LOR {
     fn from(lor: Hdf5Lor) -> Self {
-        let Hdf5Lor{dx, x1, y1, z1, x2, y2, z2, ..} = lor;
-        Self { dx, p1: Point::new(x1, y1, z1), p2: Point::new(x2, y2, z2)}
+        let Hdf5Lor{dt, x1, y1, z1, x2, y2, z2, ..} = lor;
+        Self { dt, p1: Point::new(x1, y1, z1), p2: Point::new(x2, y2, z2)}
     }
 }
 

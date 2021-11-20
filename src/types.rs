@@ -26,6 +26,9 @@ pub const C: Length = 0.299_792_458; // mm / ps
 #[inline] pub fn ns_to_mm(dt: Time) -> Length { ps_to_mm(dt) * 1000.0 }
 #[inline] pub fn mm_to_ns(dx: Length) -> Time { mm_to_ps(dx) / 1000.0  }
 
+#[inline] pub fn ns_to_ps(dt: Time) -> Time { dt * 1000.0 }
+
+
 #[cfg(test)]
 mod test_conversions {
     use super::*;

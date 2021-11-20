@@ -135,7 +135,7 @@ fn lor_from_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
     let &Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_lxe.find(|v| v.track_id == 2)?;
     let &Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_lxe.find(|v| v.track_id == 1)?;
     Some(Hdf5Lor {
-        dx: ns_to_mm(t2 - t1),             x1, y1, z1,   x2, y2, z2,
+        dt: t2 - t1,                   x1, y1, z1,   x2, y2, z2,
         q1: f32::NAN, q2: f32::NAN,        E1,           E2,
     })
 }

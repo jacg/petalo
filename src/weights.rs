@@ -173,7 +173,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     };
 
     // How far the entry point is from the TOF peak
-    let tof_peak = find_tof_peak(entry_point, p1, p2, lor.dx);
+    let tof_peak = find_tof_peak(entry_point, p1, p2, lor.dt);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     let entry_point = find_entry_point(entry_point, vbox);
@@ -271,9 +271,9 @@ fn find_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
 
 /// Distance from entry point to the LOR's TOF peak
 #[inline]
-fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dx: Length) -> Length {
+fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
     let half_lor_length = (p1 - p2).norm() / 2.0;
-    let tof_shift = dx / 2.0;
+    let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
     let p1_to_peak = half_lor_length - tof_shift;
     let p1_to_entry = (entry_point - p1).norm();
     p1_to_peak - p1_to_entry
@@ -444,12 +444,12 @@ mod test_voxel_box {
 pub struct LOR {
     pub p1: Point,
     pub p2: Point,
-    pub dx: Length,
+    pub dt: Time,
 }
 
 impl LOR {
     pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self {
-        Self { p1, p2, dx: ns_to_mm(t2 - t1) }
+        Self { p1, p2, dt: t2 - t1 }
     }
 
     pub fn from_components(t1: Time, t2: Time,
@@ -487,10 +487,10 @@ use core::fmt;
 impl fmt::Display for LOR {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (p, q) = (self.p1, self.p2);
-        write!(f, "<LOR ({:8.2} {:8.2} {:8.2}) ({:8.2} {:8.2} {:8.2}) {:7.2} /{:7.2} >",
+        write!(f, "<LOR ({:8.2} {:8.2} {:8.2}) ({:8.2} {:8.2} {:8.2}) {:7.2}ns {:7.2}mm /{:7.2} >",
                p.x, p.y, p.z,
                q.x, q.y, q.z,
-               self.dx,
+               self.dt, ns_to_mm(self.dt) / 2.0,
                (p-q).norm()
         )
     }

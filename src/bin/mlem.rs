@@ -242,7 +242,7 @@ fn run_cmlem(
         x2.push(lor.p2.x);
         y2.push(lor.p2.y);
         z2.push(lor.p2.z);
-        t2.push(petalo::types::mm_to_ps(lor.dx));
+        t2.push(petalo::types::ns_to_ps(lor.dt));
     }
 
     // Add underscore to separate base name from suffix (to match what happens

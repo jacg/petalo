@@ -5,7 +5,7 @@ use kiss3d::scene::SceneNode;
 use kiss3d::camera::ArcBall;
 use kiss3d::nalgebra::{Point3, Translation3};
 
-use crate::types::{Length, Ratio, mm_to_ps};
+use crate::types::{Length, Ratio, ns_to_ps};
 use crate::weights::{VoxelBox, LOR};
 
 use structopt::clap::arg_enum;
@@ -206,7 +206,7 @@ pub fn vislor_command(vbox: &VoxelBox, lor: &LOR) -> String {
         ny = vbox.n[1],
         nz = vbox.n[2],
         t1 = 0.0,
-        t2 = mm_to_ps(lor.dx),
+        t2 = ns_to_ps(lor.dt),
         x1 = lor.p1.x,
         y1 = lor.p1.y,
         z1 = lor.p1.z,
