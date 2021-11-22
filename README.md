@@ -41,10 +41,13 @@ The `mlem` executable takes as input, HDF5 files describing LORs, with the
 following columns of floats:
 
 ```
-dx x1 y1 z1 x2 y2 z2
+dt x1 y1 z1 x2 y2 z2 q1 q2 E1 E2
 ```
 
-All distances are in mm, and `dx = (t2 - t1) * c`
++ `dt` is in `ns`
++ All distances are in `mm`
++ `q`s are in *pes*
++ `E`s are in `keV`
 
 
 Tell the program where this file is located with the `-f` (`--input-file`)
