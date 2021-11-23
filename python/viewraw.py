@@ -1,4 +1,30 @@
+"""View 3D raw image files
+
+Usage: viewraw.py [--little-endian]                                     FILES...
+       viewraw.py --show-header                                         FILES...
+       viewraw.py [--assume-header NX NY NZ DX DY DZ] [--little-endian] FILES...
+       viewraw.py    [--add-header NX NY NZ DX DY DZ]                   FILES...
+
+Arguments:
+  FILES  3D raw image files to be loaded into viewer
+
+Options:
+  --assume-header  View headerless raw 3D image, specifying number of voxels
+                   and physicals size of FOV
+  --little-endian  Assume the input files contain little-endian data (rather
+                   than big-endian, as guaranteed to be written by the Rust
+                   version of MLEM)
+  --show-header    Show size headers included in self-describing raw 3D image
+                   files, without visualizing the file in viewer
+  --add-header     Add headers to headerless image files. The original files
+                   will not be modified. The headers will be added to new
+                   files matching the originals with the suffix
+"""
+
 import struct
+from operator import itemgetter
+from docopt import docopt
+
 from utils import read_raw, read_raw_without_header, wrap_1d_into_3d, plt, np
 
 class image:
@@ -140,69 +166,29 @@ def add_header(filenames):
         out.write(in_)
 
 
-def usage(argv):
-    return f"""Usage:
-
-    {argv[0]} FILENAMES...
-
-       View raw 3D image files which contain a self-describing size header.
-
-    {argv[0]} --show-header FILENAMES...
-
-       Show size headers included in self-describing raw 3D image files.
-
-    {argv[0]} --assume-header  NX NY NZ   DX DY DZ  FILENAMES...
-
-       View headerless raw 3D image. Specify size on command line.
-
-       NX, NY, NZ: number of voxels in each dimension
-       dx, DY, DZ: full extent of FOV in each dimension
-
-    {argv[0]} --add-header   NX NY NZ   DX DY DZ  FILENAMES...
-
-       Add headers to headerless raw 3D image files.
-
-       The original files will not be modified. The headers will be added to new
-       files matching the original names with the suffix `_h`
-
-    --swap-endianness : Assume the input files contain little-endian data
-                        (rather than big-endian, as guaranteed to be written by
-                        the Rust version of MLEM) """
-
-
 if __name__ == '__main__':
-    from sys import argv
+    args = docopt(__doc__)
 
-    if '-h' in argv or '--help' in argv:
-        exit(usage(argv))
+    endianness = '<' if args['--little-endian'] else '>'
+    filenames = args['FILES']
 
-    endianness = '>'
-    if '--swap-endianness' in argv:
-        endianness =  '<'
-        argv.remove('--swap-endianness')
+    # Parse header from CLI, if necessary
+    if args['--add-header'] or args['--assume-header']:
+        nx,ny,nz = map(int  , itemgetter('NX','NY','NZ')(args))
+        dx,dy,dz = map(float, itemgetter('DX','DY','DZ')(args))
+        header_on_cli = (nx,ny,nz), (dx,dy,dz)
+    else:
+        header_on_cli = None
 
-    filenames = list(f for f in argv[1:] if not f.startswith('-'))
+    if args['--add-header']:
+        add_header(filenames)
+        exit(0)
 
-    header_on_cli = None
-
-
-    if argv[1] in ('--add-header', '--assume-header'):
-        prog_, flag, nx,ny,nz, dx,dy,dz, *filenames = argv
-        nx,ny,nz = map(int  , (nx,ny,nz))
-        dx,dy,dz = map(float, (dx,dy,dz))
-
-        if flag == '--add-header':
-            add_header(filenames)
-            exit(0)
-
-        else:
-            header_on_cli = (nx,ny,nz), (dx,dy,dz)
-
-    if '--show-header' in argv:
+    if args['--show-header']:
         longest = len(max(filenames, key=len))
         for filename in filenames:
             (nx,ny,nz), (dx,dy,dz) = read_raw(filename, header_only=True)
             print(f'{filename:{longest}}:   {nx} {ny} {nz}   {dx} {dy} {dz}')
+        exit(0)
 
-    else:
-        v = view(filenames, header=header_on_cli, end=endianness)
+    v = view(filenames, header=header_on_cli, end=endianness)
