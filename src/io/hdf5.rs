@@ -9,11 +9,13 @@ pub struct Args {
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
     pub legacy_input_format: bool,
+    pub ecut: Option<Energy>,
+    pub qcut: Option<crate::types::Charge>,
 }
 
 use ndarray::{s, Array1};
 
-use crate::types::{Length, Point};
+use crate::types::{Length, Point, Energy};
 use crate::weights::LOR;
 type F = Length;
 
@@ -77,10 +79,18 @@ impl Event {
 
 }
 
+#[allow(nonstandard_style)]
 pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
+    let mut rejected = 0;
     let it: Vec<LOR> = if ! args.legacy_input_format {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
+            .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
+                let eok = if let Some(cut) = args.ecut {E1 > &cut && E2 > &cut} else {true};
+                let qok = if let Some(cut) = args.qcut {q1 > &cut && q2 > &cut} else {true};
+                if eok && qok { true }
+                else { rejected += 1; false }
+            })
             .map(LOR::from)
             .collect()
     } else {
@@ -89,7 +99,9 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
             .map(|e| e.to_lor(args.use_true))
             .collect()
     };
-    println!("Using {} events", it.len());
+    let used = it.len();
+    let used_pct = 100 * used / (used + rejected);
+    println!("Using {} LORs (rejected {}, kept {}%)", used, rejected, used_pct);
     Ok(it)
 }
 
@@ -113,6 +125,8 @@ mod test {
             event_range: Some(0..4),
             use_true: false,
             legacy_input_format: true,
+            ecut: None,
+            qcut: None,
         };
         let lors = read_lors(args.clone()).unwrap();
         assert_approx_eq!(lors[2].p1.coords.x, -120.7552004817734, 1e-5);
@@ -133,6 +147,8 @@ mod test {
             event_range: Some(0..4),
             use_true: false,
             legacy_input_format: true,
+            ecut: None,
+            qcut: None,
         };
 
         let events = read_table::<Event>(&args.input_file, &args.dataset, args.event_range)?;
@@ -178,30 +194,32 @@ pub struct SensorHit {
 
 // The LOR used by mlem contains fields (the points) with types (ncollide Point)
 // which hdf5 appears not to be able to digest, so hack around the problem for
-// now, by creating a LOR type that is hdf5able
+// now, by creating a LOR type that is hdf5able.
+// Additionally, we now want to store extra information corresponding to the LOR
+// (energies, charges) which are useful for applying different cuts later on,
+// but irrelevant to MLEM, so two separate LOR types (with and without metadata)
+// might actually be the right way to go.
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
+#[allow(nonstandard_style)]
 pub struct Hdf5Lor {
-    dx: f32,
-    x1: f32,
-    y1: f32,
-    z1: f32,
-    x2: f32,
-    y2: f32,
-    z2: f32,
-}
-
-impl From<LOR> for Hdf5Lor {
-    fn from(lor: LOR) -> Self {
-        let LOR{ dx, p1, p2 } = lor;
-        Self { dx, x1:p1.x, y1: p1.y, z1: p1.z, x2: p2.x, y2: p2.y, z2: p2.z }
-    }
+    pub dt: f32,
+    pub x1: f32,
+    pub y1: f32,
+    pub z1: f32,
+    pub x2: f32,
+    pub y2: f32,
+    pub z2: f32,
+    pub q1: f32,
+    pub q2: f32,
+    pub E1: f32,
+    pub E2: f32,
 }
 
 impl From<Hdf5Lor> for LOR {
     fn from(lor: Hdf5Lor) -> Self {
-        let Hdf5Lor{dx, x1, y1, z1, x2, y2, z2} = lor;
-        Self { dx, p1: Point::new(x1, y1, z1), p2: Point::new(x2, y2, z2)}
+        let Hdf5Lor{dt, x1, y1, z1, x2, y2, z2, ..} = lor;
+        Self { dt, p1: Point::new(x1, y1, z1), p2: Point::new(x2, y2, z2)}
     }
 }
 

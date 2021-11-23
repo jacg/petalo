@@ -66,6 +66,13 @@ pub struct Cli {
     #[structopt(long)]
     pub fom: bool,
 
+    /// Ignore events with gamma energy/keV below this value
+    #[structopt(short = "E", long)]
+    pub ecut: Option<Energy>,
+
+    /// Ignore events with detected charge/pes below this value
+    #[structopt(short, long)]
+    pub qcut: Option<Charge>,
 }
 
 // --------------------------------------------------------------------------------
@@ -74,7 +81,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::types::{Length, Time, Ratio};
+use petalo::types::{Length, Time, Ratio, Energy, Charge};
 use petalo::weights::VoxelBox;
 use petalo::mlem::Image;
 use petalo::io;
@@ -96,11 +103,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // Read event data from disk into memory
-    let                      Cli{ input_file, dataset, event_range, use_true, legacy_input_format, .. } = args.clone();
-    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, legacy_input_format };
+    let                      Cli{ input_file, dataset, event_range, use_true, legacy_input_format,
+                                  ecut, qcut, .. } = args.clone();
+    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, legacy_input_format,
+                                  ecut, qcut };
     println!("Reading LOR data from disk ...");
     let measured_lors = io::hdf5::read_lors(io_args)?;
-    report_time("Loaded LOR data from local disk");
+    report_time("Loaded LOR data from disk");
 
     // Define extent and granularity of voxels
     let vbox = VoxelBox::new(args.size, args.n_voxels);
@@ -233,7 +242,7 @@ fn run_cmlem(
         x2.push(lor.p2.x);
         y2.push(lor.p2.y);
         z2.push(lor.p2.z);
-        t2.push(petalo::types::mm_to_ps(lor.dx));
+        t2.push(petalo::types::ns_to_ps(lor.dt));
     }
 
     // Add underscore to separate base name from suffix (to match what happens
