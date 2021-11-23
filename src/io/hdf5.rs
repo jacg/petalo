@@ -81,13 +81,15 @@ impl Event {
 
 #[allow(nonstandard_style)]
 pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
+    let mut rejected = 0;
     let it: Vec<LOR> = if ! args.legacy_input_format {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
             .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
                 let eok = if let Some(cut) = args.ecut {E1 > &cut && E2 > &cut} else {true};
                 let qok = if let Some(cut) = args.qcut {q1 > &cut && q2 > &cut} else {true};
-                eok && qok
+                if eok && qok { true }
+                else { rejected += 1; false }
             })
             .map(LOR::from)
             .collect()
@@ -97,7 +99,9 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
             .map(|e| e.to_lor(args.use_true))
             .collect()
     };
-    println!("Using {} LORs", it.len());
+    let used = it.len();
+    let used_pct = 100 * used / (used + rejected);
+    println!("Using {} LORs (rejected {}, kept {}%)", used, rejected, used_pct);
     Ok(it)
 }
 
