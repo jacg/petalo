@@ -118,6 +118,7 @@ let
       ps.pytest
       ps.h5py
       ps.scikit-learn
+      ps.docopt
     ]))
 
     # Needed for compilation to succeed on Macs
