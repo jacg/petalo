@@ -53,6 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     progress.tick();
     // --- Collect all events --------------------------------------------------------
     for file in input_files {
+        progress.set_message(format!("Processing file {}", file));
         // TODO: replace this loop with a chain of iterators
         if let Ok(events) = read_table::<Primary>(&file, dataset, event_range.clone()) {
             for event in events.iter() {
