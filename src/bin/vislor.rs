@@ -60,7 +60,7 @@ pub struct Cli {
     pub input_file: Option<String>,
 
     /// The dataset location inside the input file
-    #[structopt(short, long, default_value = "reco_info/table")]
+    #[structopt(short, long, default_value = "reco_info/lors")]
     pub dataset: String,
 
     /// Event number (in <file>) to be displayed
