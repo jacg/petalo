@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
 
-    let size = args.vbox_size;
+    let size = args.size;
     let nvox = args.nvoxels;
 
     let vbox = VoxelBox::new(size, nvox);
@@ -67,11 +67,11 @@ pub struct Cli {
     #[structopt(short, long, default_value = "0")]
     event: usize,
 
-    /// Dimensions of voxel box in mm
+    /// Field Of View full-widths in mm
     #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "180,180,180")]
-    vbox_size: (Length, Length, Length),
+    size: (Length, Length, Length),
 
-    /// Dimensions of voxel box in voxels
+    /// Field Of View size in number of voxels
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
     nvoxels: (usize, usize, usize),
 

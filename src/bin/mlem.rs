@@ -12,13 +12,13 @@ pub struct Cli {
     #[structopt(short, long, default_value = "5")]
     pub iterations: usize,
 
-    /// Image size full-widths in mm
+    /// Field Of View full-widths in mm
     #[structopt(short, long, parse(try_from_str = parse_triplet::<F>), default_value = "180,180,180")]
     pub size: (F, F, F),
 
-    /// Image size in number of voxels
+    /// Field Of View size in number of voxels
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
-    pub n_voxels: (usize, usize, usize),
+    pub nvoxels: (usize, usize, usize),
 
     /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored
     #[structopt(short = "r", long)]
@@ -112,7 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time("Loaded LOR data from disk");
 
     // Define extent and granularity of voxels
-    let vbox = VoxelBox::new(args.size, args.n_voxels);
+    let vbox = VoxelBox::new(args.size, args.nvoxels);
     // TODO: sensitivity matrix, all ones for now
     let sensitivity_matrix = Image::ones(vbox).data;
 
@@ -201,7 +201,7 @@ fn guess_filename(args: &Cli) -> String {
     } else {
         #[cfg    (feature = "ccmlem") ] let c = if args.use_c { "c" } else { "" };
         #[cfg(not(feature = "ccmlem"))] let c = "";
-        let (nx, ny, nz) = args.n_voxels;
+        let (nx, ny, nz) = args.nvoxels;
         let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0}", x));
         format!("data/out/{c}mlem/{nx}_{ny}_{nz}_tof_{tof}",
                 c=c, nx=nx, ny=ny, nz=nz, tof=tof)
@@ -228,7 +228,7 @@ fn run_cmlem(
     lors: &Vec<LOR>
 ) {
     // Image dimensions
-    let (nx, ny, nz) = args.n_voxels;
+    let (nx, ny, nz) = args.nvoxels;
     let (sx, sy, sz) = args.size;
 
     // decompose LORs into separate vectors
