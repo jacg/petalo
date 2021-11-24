@@ -18,7 +18,7 @@ pub struct Cli {
     #[structopt(short, long, default_value = "primaries.raw")]
     pub out_file: String,
 
-    /// Field Of View full-widths in mm
+    /// Field Of View full-widths in mm [default: fit to data]
     #[structopt(short, long, parse(try_from_str = parse_triplet::<L>))]
     pub size: Option<(L, L, L)>,
 
