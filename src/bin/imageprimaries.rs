@@ -42,13 +42,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut all_events: Vec<Primary> = vec![];
     let event_range = None;
     let dataset = "MC/primaries";
+    let mut failed_files = vec![];
     for file in input_files {
         // TODO: replace this loop with a chain of iterators
-        let events = read_table::<Primary>(&file, dataset, event_range.clone())?; //.iter();
-        //let events = &input_files.iter().flat_map(|f| xxx(f));
-        for event in events.iter() {
-            all_events.push(event.clone());
-        }
+        if let Ok(events) = read_table::<Primary>(&file, dataset, event_range.clone()) {
+            for event in events.iter() {
+                all_events.push(event.clone());
+            }
+        } else { failed_files.push(file); }
     }
     // Determine size of output image
     let size = if let Some((x,y,z)) = args.size { // from CLI args
@@ -85,6 +86,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         if let Some(i3) = pos_to_index3(x,y,z) {
             image[i3] += 1.0;
         }
+    }
+
+    // --- Report any files that failed no be read -----------------------------------
+    if !failed_files.is_empty() {
+        println!("Warning: failed to read the following files:");
+        for file in failed_files.iter() {
+            println!("  {}", file);
+        }
+        println!("Warning: failed to read {} files:", failed_files.len());
     }
 
     // Write image to file
