@@ -23,7 +23,7 @@ pub struct Cli {
     pub size: Option<(L, L, L)>,
 
     /// Field Of View size in number of voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "61,61,61")]
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
     pub nvoxels: (usize, usize, usize),
 
 }

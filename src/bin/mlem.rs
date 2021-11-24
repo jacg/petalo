@@ -13,11 +13,11 @@ pub struct Cli {
     pub iterations: usize,
 
     /// Field Of View full-widths in mm
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<F>), default_value = "180,180,180")]
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<F>), default_value = "300,300,300")]
     pub size: (F, F, F),
 
     /// Field Of View size in number of voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "61,61,61")]
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
     pub nvoxels: (usize, usize, usize),
 
     /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored
