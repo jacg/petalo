@@ -107,10 +107,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Warning: failed to read {} file{}:", n, plural);
     }
     // --- Write image to file -------------------------------------------------------
-    progress.finish_with_message("<finished processing files>");
+    let message =
+        format!("Wrote image with phisical size {} x {} x {} and {} x {} x {} voxels to {}",
+                                                xe,  ye,  ze,    xn,  yn,  zn,    out_file);
+    progress.finish_with_message(message.clone());
     petalo::io::raw::Image3D::from(&image).write_to_file(out_file.clone())?;
-    println!("Wrote image with phisical size {} x {} x {} and {} x {} x {} voxels to {}",
-                                             xe,  ye,  ze,    xn,  yn,  zn,    out_file);
+    println!("{}", message);
     Ok(())
 }
 
