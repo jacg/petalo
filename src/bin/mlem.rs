@@ -17,7 +17,7 @@ pub struct Cli {
     pub size: (F, F, F),
 
     /// Field Of View size in number of voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "61,61,61")]
     pub nvoxels: (usize, usize, usize),
 
     /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored

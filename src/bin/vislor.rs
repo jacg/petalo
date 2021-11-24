@@ -72,7 +72,7 @@ pub struct Cli {
     size: (Length, Length, Length),
 
     /// Field Of View size in number of voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "61,61,61")]
     nvoxels: (usize, usize, usize),
 
     /// LOR to visualize: 't1 t2   x1 y1 z1   x2 y2 z2' (t: ps, xyz: mm)
