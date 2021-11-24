@@ -114,10 +114,13 @@ fn main() -> hdf5::Result<()> {
         .write(&lors)?;
     // --- Report any files that failed no be read -----------------------------------
     if !failed_files.is_empty() {
-        println!("Warning: failed to read {} files:", failed_files.len());
-        for file in failed_files {
+        println!("Warning: failed to read the following files:");
+        for file in failed_files.iter() {
             println!("  {}", file);
         }
+        let n = failed_files.len();
+        let plural = if n == 1 { "" } else { "s" };
+        println!("Warning: failed to read {} file{}:", n, plural);
     }
     Ok(())
 }
