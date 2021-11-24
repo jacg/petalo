@@ -94,7 +94,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         for file in failed_files.iter() {
             println!("  {}", file);
         }
-        println!("Warning: failed to read {} files:", failed_files.len());
+        let n = failed_files.len();
+        let plural = if n == 1 { "" } else { "s" };
+        println!("Warning: failed to read {} file{}:", n, plural);
     }
 
     // Write image to file
