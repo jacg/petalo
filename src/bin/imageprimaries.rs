@@ -51,6 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let event_range = None;
     let dataset = "MC/primaries";
     let mut failed_files = vec![];
+    // --- Collect all events --------------------------------------------------------
     for file in input_files {
         // TODO: replace this loop with a chain of iterators
         if let Ok(events) = read_table::<Primary>(&file, dataset, event_range.clone()) {
@@ -60,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         } else { failed_files.push(file); }
         progress.inc(1);
     }
-    // Determine size of output image
+    // --- Determine size of output image --------------------------------------------
     let size = if let Some((x,y,z)) = args.size { // from CLI args
         (x,y,z)
     } else { // from extrema of positions in input files
@@ -72,11 +73,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         ((2.0 * xmax).ceil(), (2.0 * ymax).ceil(), (2.0 * zmax).ceil())
     };
-
-    // Create empty image of appropriate size
+    // --- Create empty image of appropriate size ------------------------------------
     let vbox = VoxelBox::new(size, nvoxels);
     let mut image = Image::empty(vbox);
-
+    // --- Calculate how to translate spatial position into image index --------------
     let (xn, yn, zn) = args.nvoxels;
     let (xe, ye, ze) = size;
     let (xh, yh, zh) = (xe/2.0, ye/2.0, ze/2.0);
@@ -89,14 +89,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         let k = pos_to_index1(z, zs, zn, zh)?;
         Some([i,j,k])
     };
-
-    // Collect event data into image
+    // --- Collect event data into image ---------------------------------------------
     for &Primary{ x,y,z, ..} in all_events.iter() {
         if let Some(i3) = pos_to_index3(x,y,z) {
             image[i3] += 1.0;
         }
     }
-
     // --- Report any files that failed no be read -----------------------------------
     if !failed_files.is_empty() {
         println!("Warning: failed to read the following files:");
@@ -107,8 +105,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let plural = if n == 1 { "" } else { "s" };
         println!("Warning: failed to read {} file{}:", n, plural);
     }
-
-    // Write image to file
+    // --- Write image to file -------------------------------------------------------
     petalo::io::raw::Image3D::from(&image).write_to_file(out_file.clone())?;
     println!("Wrote image with phisical size {} x {} x {} and {} x {} x {} voxels to {}",
                                              xe,  ye,  ze,    xn,  yn,  zn,    out_file);
