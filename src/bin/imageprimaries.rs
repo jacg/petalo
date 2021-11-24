@@ -107,6 +107,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Warning: failed to read {} file{}:", n, plural);
     }
     // --- Write image to file -------------------------------------------------------
+
+    // TODO: Sometimes the final message fails to appear. Maybe it's being
+    // overwritten by the termination of the progress bar. But it also seems
+    // that the programs crashes, choking on some file, depending on which other
+    // files were processed before it. In some of these cases, the crash report
+    // is also hidden.
     let message =
         format!("Wrote image with phisical size {} x {} x {} and {} x {} x {} voxels to {}",
                                                 xe,  ye,  ze,    xn,  yn,  zn,    out_file);
