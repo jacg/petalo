@@ -18,13 +18,13 @@ pub struct Cli {
     #[structopt(short, long, default_value = "primaries.raw")]
     pub out_file: String,
 
-    /// Image size full-widths in mm
+    /// Field Of View full-widths in mm
     #[structopt(short, long, parse(try_from_str = parse_triplet::<L>))]
     pub size: Option<(L, L, L)>,
 
-    /// Image size in number of voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "61,61,61")]
-    pub n_voxels: (usize, usize, usize),
+    /// Field Of View size in number of voxels
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
+    pub nvoxels: (usize, usize, usize),
 
 }
 // --------------------------------------------------------------------------------
@@ -38,7 +38,7 @@ type L = Length;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
-    let Cli{ input_file, n_voxels, out_file, .. } = args.clone();
+    let Cli{ input_file, nvoxels, out_file, .. } = args.clone();
     let event_range = None;
     let dataset = "MC/primaries";
     let events = read_table::<Primary>(&input_file, dataset, event_range)?;
@@ -55,10 +55,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         ((2.0 * xmax).ceil(), (2.0 * ymax).ceil(), (2.0 * zmax).ceil())
     };
 
-    let vbox = VoxelBox::new(size, n_voxels);
+    let vbox = VoxelBox::new(size, nvoxels);
     let mut image = Image::empty(vbox);
 
-    let (xn, yn, zn) = args.n_voxels;
+    let (xn, yn, zn) = args.nvoxels;
     let (xe, ye, ze) = size;
     let (xh, yh, zh) = (xe/2.0, ye/2.0, ze/2.0);
     let (xs, ys, zs) = (xe / xn as L,
@@ -81,9 +81,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn pos_to_index1(position: L, voxel_size: L, n_voxels: usize, half_extent: L) -> Option<usize> {
+fn pos_to_index1(position: L, voxel_size: L, nvoxels: usize, half_extent: L) -> Option<usize> {
     if position.abs() >= half_extent { return None }
     let voxel_pos = position / voxel_size;
-    let it = ( voxel_pos + (n_voxels as L / 2.0)).floor() as usize;
+    let it = ( voxel_pos + (nvoxels as L / 2.0)).floor() as usize;
     Some(it)
 }

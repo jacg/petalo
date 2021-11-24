@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
 
-    let size = args.vbox_size;
+    let size = args.size;
     let nvox = args.nvoxels;
 
     let vbox = VoxelBox::new(size, nvox);
@@ -60,19 +60,19 @@ pub struct Cli {
     pub input_file: Option<String>,
 
     /// The dataset location inside the input file
-    #[structopt(short, long, default_value = "reco_info/table")]
+    #[structopt(short, long, default_value = "reco_info/lors")]
     pub dataset: String,
 
     /// Event number (in <file>) to be displayed
     #[structopt(short, long, default_value = "0")]
     event: usize,
 
-    /// Dimensions of voxel box in mm
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "180,180,180")]
-    vbox_size: (Length, Length, Length),
+    /// Field Of View full-widths in mm
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "300,300,300")]
+    size: (Length, Length, Length),
 
-    /// Dimensions of voxel box in voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "60,60,60")]
+    /// Field Of View size in number of voxels
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
     nvoxels: (usize, usize, usize),
 
     /// LOR to visualize: 't1 t2   x1 y1 z1   x2 y2 z2' (t: ps, xyz: mm)
