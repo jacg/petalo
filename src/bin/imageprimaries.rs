@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             all_events.push(event.clone());
         }
     }
-	  // Determine size of output image
+    // Determine size of output image
     let size = if let Some((x,y,z)) = args.size { // from CLI args
         (x,y,z)
     } else { // from extrema of positions in input files
@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ((2.0 * xmax).ceil(), (2.0 * ymax).ceil(), (2.0 * zmax).ceil())
     };
 
-	// Create empty image of appropriate size
+    // Create empty image of appropriate size
     let vbox = VoxelBox::new(size, nvoxels);
     let mut image = Image::empty(vbox);
 
