@@ -1,3 +1,4 @@
+use indicatif::{ProgressBar, ProgressStyle};
 /// Create raw image from the primary vertices generated in a MC run
 
 // ----------------------------------- CLI -----------------------------------
@@ -38,6 +39,13 @@ type L = Length;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
+    // --- Progress bar --------------------------------------------------------------
+    let progress = ProgressBar::new(args.input_files.len() as u64).with_message(args.input_files[0].clone());
+    progress.set_style(ProgressStyle::default_bar()
+                       .template("Processing file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
+    );
+    progress.tick();
+    // --- Process input files -------------------------------------------------------
     let Cli{ input_files, nvoxels, out_file, .. } = args.clone();
     let mut all_events: Vec<Primary> = vec![];
     let event_range = None;
@@ -50,6 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 all_events.push(event.clone());
             }
         } else { failed_files.push(file); }
+        progress.inc(1);
     }
     // Determine size of output image
     let size = if let Some((x,y,z)) = args.size { // from CLI args
