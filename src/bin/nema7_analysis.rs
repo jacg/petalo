@@ -73,10 +73,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut bg_37 = None;
 
     // Calculate the contrasts and background variabilities
+    println!("Sphere diameter / mm    contrast / %   variability of background");
     for sphere in spheres {
         let (c,v) = contrast_and_variability(sphere, &background_xys, &background_zs, &slice, 4.0, 1.0).unwrap();
         if sphere.r == 37.0/2.0 { bg_37 = Some(c) }
-        println!("{:5.1}  {:5.1} ({:.0})", c, v, sphere.r * 2.0);
+        println!("{:20.0} {:10.1} {:15.1} ", sphere.r * 2.0, c, v);
     }
 
     // --- 7.4.2 ---------------------------------------------------------------------
@@ -108,7 +109,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map(|v| 100.0 * v / bg_37)
         .collect::<Vec<_>>();
 
-    println!("{:.1?}", aocs);
+    println!("\nAOCs: {:.1?}", aocs);
     Ok(())
 }
 
