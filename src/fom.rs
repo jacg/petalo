@@ -80,6 +80,46 @@ impl Image {
 
 }
 
+/// Mean of values associated with the voxels contained in the region
+pub fn mean_in_region(roi: ROI, voxels: &[PointValue]) -> f32 {
+    let filter = roi.contains_fn();
+    let values: Vec<_> = in_roi(filter, voxels).map(|(_,v)| v).collect();
+    mean(&values).unwrap()
+}
+
+/// Iterator which filters out voxels that lie outside given ROI
+pub fn in_roi(in_roi: InRoiFn, voxels: &[PointValue]) -> impl Iterator<Item = PointValue> + '_ {
+    voxels.iter()
+        .filter(move |(p,_)| in_roi(*p))
+        .copied()
+}
+
+/// Convert 1D position to 1D index of containing voxel
+pub fn position_to_index(position: Length, half_width: Length, voxel_size: Length) -> usize {
+    ((position + half_width) / voxel_size) as usize
+}
+
+/// Convert 1D voxel index to 1D position of voxel's centre
+pub fn index_to_position(index: usize, half_width: Length, voxel_size: Length) -> Length {
+    (index as f32 + 0.5) * voxel_size - half_width
+}
+
+/// Return function which finds centre of nearest slice
+pub fn centre_of_slice_closest_to(half_width: Length, voxel_size: Length) -> impl Fn(Length) -> Length {
+    move |x| {
+        let i = position_to_index(x, half_width, voxel_size);
+        let x = index_to_position(i, half_width, voxel_size);
+        x
+    }
+}
+
+/// Adjust collection of 1D positions, to the centres of the nearest slices
+pub fn centres_of_slices_closest_to(targets: &[Length], half_width: Length, voxel_size: Length) -> Vec<Length> {
+    targets.iter().copied()
+        .map(centre_of_slice_closest_to(half_width, voxel_size))
+        .collect()
+}
+
 #[cfg(test)]
 mod test_in_roi {
     use super::*;

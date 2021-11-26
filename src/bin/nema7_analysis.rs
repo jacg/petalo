@@ -14,7 +14,7 @@ use std::error::Error;
 use petalo::io::raw::Image3D;
 use petalo::types::{Length, Intensity};
 use petalo::fom;
-use petalo::fom::{Sphere, ROI, PointValue};
+use petalo::fom::{Sphere, ROI, centres_of_slices_closest_to};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
@@ -87,27 +87,27 @@ fn main() -> Result<(), Box<dyn Error>> {
     let hi_limit = 70.0         - 30.0;
     let lo_limit = 70.0 - 180.0 + 30.0;
     // Find voxel z-centres nearest to the limits
-    let nearest = centre_of_slice_closest_to(z_half_width, z_voxel_size);
+    let nearest = fom::centre_of_slice_closest_to(z_half_width, z_voxel_size);
     let hi_centre = nearest(hi_limit);
     let lo_centre = nearest(lo_limit);
     // If centre is beyond the limit, move inwards by one voxel
     let hi = if hi_centre <= hi_limit { hi_centre } else { nearest(hi_centre - z_voxel_size) };
     let lo = if lo_centre >= lo_limit { lo_centre } else { nearest(lo_centre + z_voxel_size) };
     // z-indices of first and last slices to be used
-    let index_of = |z| position_to_index(z, z_half_width, z_voxel_size);
-    let   pos_of = |z| index_to_position(z, z_half_width, z_voxel_size);
+    let index_of = |z| fom::position_to_index(z, z_half_width, z_voxel_size);
+    let   pos_of = |z| fom::index_to_position(z, z_half_width, z_voxel_size);
     let hi_index = index_of(hi);
     let lo_index = index_of(lo);
 
     // Ignore voxels which lie outside of the lung insert
     let lung = ROI::CylinderZ((0.0, 0.0), 30.0/2.0);
     let filter = lung.contains_fn();
-    let lung_voxels: Vec<_> = in_roi(filter, &pos_values).collect();
+    let lung_voxels: Vec<_> = fom::in_roi(filter, &pos_values).collect();
 
     // For each z-slice divide mean within ROI, by 37mm background mean
     let bg_37 = bg_37.unwrap();
     let aocs = (lo_index..=hi_index).into_iter()
-        .map(|i| { mean_in_region(ROI::DiscZ((0.0, 0.0, pos_of(i)), 30.0/2.0), &lung_voxels) })
+        .map(|i| { fom::mean_in_region(ROI::DiscZ((0.0, 0.0, pos_of(i)), 30.0/2.0), &lung_voxels) })
         .map(|v| 100.0 * v / bg_37)
         .collect::<Vec<_>>();
 
@@ -122,27 +122,20 @@ fn nema7_sphere(sphere_position: u16, diameter: u16, activity: Intensity) -> Sph
     Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Length / 2.0, a: activity}
 }
 
-/// Mean of values associated with the voxels contained in the region
-fn mean_in_region(roi: ROI, voxels: &[PointValue]) -> f32 {
-    let filter = roi.contains_fn();
-    let values: Vec<_> = in_roi(filter, voxels).map(|(_,v)| v).collect();
-    fom::mean(&values).unwrap()
-}
-
 fn contrast_and_variability(sphere: Sphere,
                             background_xys: &[(Length, Length)],
                             background_zs : &[Length],
-                            slices: &[Vec<PointValue>],
+                            slices: &[Vec<fom::PointValue>],
                             bg_activity: f32,
 ) -> Option<(f32, f32)> {
     // Inspect single foreground ROI
     let Sphere { x, y, r, a: sphere_activity } = sphere;
-    let sphere_mean = mean_in_region(ROI::DiscZ((x, y, background_zs[2]), r), &slices[2]);
+    let sphere_mean = fom::mean_in_region(ROI::DiscZ((x, y, background_zs[2]), r), &slices[2]);
     // Inspect multiple background ROIs
     let mut bg_means = vec![];
     for (x,y) in background_xys {
         for (z, slice) in background_zs.iter().zip(slices) {
-            bg_means.push(mean_in_region(ROI::DiscZ((*x, *y,*z), r), &slice));
+            bg_means.push(fom::mean_in_region(ROI::DiscZ((*x, *y,*z), r), &slice));
         }
     }
     // Calculate background variability
@@ -152,37 +145,4 @@ fn contrast_and_variability(sphere: Sphere,
     // Calculate contrast
     let contrast = fom::crc(sphere_mean, sphere_activity, bg_mean, bg_activity);
     Some((contrast, background_variability))
-}
-
-/// Iterator which filters out voxels that lie outside given ROI
-fn in_roi(in_roi: fom::InRoiFn, voxels: &[PointValue]) -> impl Iterator<Item = PointValue> + '_ {
-    voxels.iter()
-        .filter(move |(p,_)| in_roi(*p))
-        .copied()
-}
-
-/// Convert 1D position to 1D index of containing voxel
-fn position_to_index(position: Length, half_width: Length, voxel_size: Length) -> usize {
-    ((position + half_width) / voxel_size) as usize
-}
-
-/// Convert 1D voxel index to 1D position of voxel's centre
-fn index_to_position(index: usize, half_width: Length, voxel_size: Length) -> Length {
-    (index as f32 + 0.5) * voxel_size - half_width
-}
-
-/// Return function which finds centre of nearest slice
-fn centre_of_slice_closest_to(half_width: Length, voxel_size: Length) -> impl Fn(Length) -> Length {
-    move |x| {
-        let i = position_to_index(x, half_width, voxel_size);
-        let x = index_to_position(i, half_width, voxel_size);
-        x
-    }
-}
-
-/// Adjust collection of 1D positions, to the centres of the nearest slices
-fn centres_of_slices_closest_to(targets: &[Length], half_width: Length, voxel_size: Length) -> Vec<Length> {
-    targets.iter().copied()
-        .map(centre_of_slice_closest_to(half_width, voxel_size))
-        .collect()
 }
