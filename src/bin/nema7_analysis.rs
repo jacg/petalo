@@ -12,7 +12,7 @@ pub struct Cli {
 
 use std::error::Error;
 use petalo::io::raw::Image3D;
-use petalo::types::{Length};
+use petalo::types::{Length, Intensity};
 use petalo::fom;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -59,14 +59,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         (   0.0,  82.0),
     ];
 
-    // The 6 hot spheres (position, diameter)
+    // The 6 hot spheres (position, diameter, activity)
     let spheres = vec![
-        (nema7_sphere(1, 10)),
-        (nema7_sphere(2, 13)),
-        (nema7_sphere(3, 17)),
-        (nema7_sphere(4, 22)),
-        (nema7_sphere(5, 28)),
-        (nema7_sphere(0, 37)),
+        (nema7_sphere(1, 10, 4.0)),
+        (nema7_sphere(2, 13, 4.0)),
+        (nema7_sphere(3, 17, 4.0)),
+        (nema7_sphere(4, 22, 4.0)),
+        (nema7_sphere(5, 28, 4.0)),
+        (nema7_sphere(0, 37, 4.0)),
     ];
 
     // The background count of the largest sphere (37mm) is also needed later
@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Calculate the contrasts and background variabilities
     println!("Sphere diameter / mm    contrast / %   variability of background");
     for sphere in spheres {
-        let (c,v) = contrast_and_variability(sphere, &background_xys, &background_zs, &slice, 4.0, 1.0).unwrap();
+        let (c,v) = contrast_and_variability(sphere, &background_xys, &background_zs, &slice, 1.0).unwrap();
         if sphere.r == 37.0/2.0 { bg_37 = Some(c) }
         println!("{:20.0} {:10.1} {:15.1} ", sphere.r * 2.0, c, v);
     }
@@ -115,10 +115,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 /// Place FOM sphere in Nth/6 angular position, with given diameter and activity
-fn nema7_sphere(sphere_position: u16, diameter: u16) -> Sphere {
+fn nema7_sphere(sphere_position: u16, diameter: u16, activity: Intensity) -> Sphere {
     let r = 114.4 / 2.0; // Radial displacement from centre
     let radians = std::f32::consts::TAU * sphere_position as f32;
-    Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Length / 2.0}
+    Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Length / 2.0, a: activity}
 }
 
 /// x,y,r of NEMA7 sphere
@@ -127,6 +127,7 @@ struct Sphere {
     x: Length,
     y: Length,
     r: Length,
+    a: Intensity,
 }
 
 /// Mean of values associated with the voxels contained in the region
@@ -140,11 +141,10 @@ fn contrast_and_variability(sphere: Sphere,
                             background_xys: &[(Length, Length)],
                             background_zs : &[Length],
                             slices: &[Vec<fom::PointValue>],
-                            sphere_activity: f32,
                             bg_activity: f32,
 ) -> Option<(f32, f32)> {
     // Inspect single foreground ROI
-    let Sphere { x, y, r } = sphere;
+    let Sphere { x, y, r, a: sphere_activity } = sphere;
     let sphere_mean = mean_in_region(fom::ROI::DiscZ((x, y, background_zs[2]), r), &slices[2]);
     // Inspect multiple background ROIs
     let mut bg_means = vec![];
