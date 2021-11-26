@@ -142,19 +142,22 @@ fn contrast_and_variability(sphere: HotSphere,
                             sphere_activity: f32,
                             bg_activity: f32,
 ) -> Option<(f32, f32)> {
+    // Inspect single foreground ROI
     let HotSphere { x, y, r } = sphere;
     let sphere_mean = mean_in_region(fom::ROI::DiscZ((x, y, background_zs[2]), r), &slices[2]);
-
+    // Inspect multiple background ROIs
     let mut bg_means = vec![];
     for (x,y) in background_xys {
         for (z, slice) in background_zs.iter().zip(slices) {
             bg_means.push(mean_in_region(fom::ROI::DiscZ((*x, *y,*z), r), &slice));
         }
     }
+    // Calculate background variability
     let bg_mean = fom::mean(&bg_means)?;
     let bg_sd   = fom::sd  (&bg_means)?;
-    let contrast = 100.0 * ((sphere_mean / bg_mean) - 1.0) / ((sphere_activity / bg_activity) - 1.0);
     let background_variability = 100.0 * bg_sd / bg_mean;
+    // Calculate contrast
+    let contrast = 100.0 * ((sphere_mean / bg_mean) - 1.0) / ((sphere_activity / bg_activity) - 1.0);
     Some((contrast, background_variability))
 }
 
