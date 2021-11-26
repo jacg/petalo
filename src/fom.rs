@@ -55,6 +55,7 @@ impl ROI {
     }
 }
 
+/// A 3D point with an associated value
 pub type PointValue = (Point, Intensity);
 
 // TODO replace vec with iterator in output

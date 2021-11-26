@@ -119,6 +119,7 @@ fn nema7_sphere(sphere_position: u16, diameter: u16) -> HotSphere {
     HotSphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as f32 / 2.0}
 }
 
+/// x,y,r of NEMA7 sphere
 #[derive(Clone, Copy)]
 struct HotSphere {
     x: f32,
@@ -156,20 +157,24 @@ fn contrast_and_variability(sphere: HotSphere,
     Some((contrast, background_variability))
 }
 
+/// Iterator which filters out voxels that lie outside given ROI
 fn in_roi(in_roi: fom::InRoiFn, voxels: &[fom::PointValue]) -> impl Iterator<Item = fom::PointValue> + '_ {
     voxels.iter()
         .filter(move |(p,_)| in_roi(*p))
         .copied()
 }
 
+/// Convert 1D position to 1D index of containing voxel
 fn position_to_index(position: f32, half_width: f32, voxel_size: f32) -> usize {
     ((position + half_width) / voxel_size) as usize
 }
 
+/// Convert 1D voxel index to 1D position of voxel's centre
 fn index_to_position(index: usize, half_width: f32, voxel_size: f32) -> f32 {
     (index as f32 + 0.5) * voxel_size - half_width
 }
 
+/// Return function which finds centre of nearest slice
 fn centre_of_slice_closest_to(half_width: f32, voxel_size: f32) -> impl Fn(f32) -> f32 {
     move |x| {
         let i = position_to_index(x, half_width, voxel_size);
@@ -178,6 +183,7 @@ fn centre_of_slice_closest_to(half_width: f32, voxel_size: f32) -> impl Fn(f32) 
     }
 }
 
+/// Adjust collection of 1D positions, to the centres of the nearest slices
 fn centres_of_slices_closest_to(targets: &[f32], half_width: f32, voxel_size: f32) -> Vec<f32> {
     targets.iter().copied()
         .map(centre_of_slice_closest_to(half_width, voxel_size))
