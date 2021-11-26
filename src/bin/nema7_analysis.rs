@@ -60,12 +60,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // The 6 hot spheres (position, diameter)
     let spheres = vec![
-        (nema7_sphere(0, 37)),
         (nema7_sphere(1, 10)),
         (nema7_sphere(2, 13)),
         (nema7_sphere(3, 17)),
         (nema7_sphere(4, 22)),
         (nema7_sphere(5, 28)),
+        (nema7_sphere(0, 37)),
     ];
 
     // The background count of the largest sphere (37mm) is also needed later
@@ -128,6 +128,7 @@ struct HotSphere {
     r: f32,
 }
 
+/// Mean of
 fn mean_in_region(x: f32, y: f32, z: f32, r: f32, voxels: &[fom::PointValue]) -> f32 {
     let roi = fom::ROI::DiscZ((x,y,z), r);
     let filter = roi.contains_fn();
