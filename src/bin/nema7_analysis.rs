@@ -60,12 +60,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // The 6 hot spheres (position, diameter)
     let spheres = vec![
-        (sphere(0, 37)),
-        (sphere(1, 10)),
-        (sphere(2, 13)),
-        (sphere(3, 17)),
-        (sphere(4, 22)),
-        (sphere(5, 28)),
+        (nema7_sphere(0, 37)),
+        (nema7_sphere(1, 10)),
+        (nema7_sphere(2, 13)),
+        (nema7_sphere(3, 17)),
+        (nema7_sphere(4, 22)),
+        (nema7_sphere(5, 28)),
     ];
 
     // The background count of the largest sphere (37mm) is also needed later
@@ -112,8 +112,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn sphere(sphere_position: u16, diameter: u16) -> HotSphere {
-    let r = 114.4 / 2.0;
+/// Place hot sphere in Nth/6 angular position, with given diameter
+fn nema7_sphere(sphere_position: u16, diameter: u16) -> HotSphere {
+    let r = 114.4 / 2.0; // Radial displacement from centre
     let radians = std::f32::consts::TAU * sphere_position as f32;
     HotSphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as f32 / 2.0}
 }
