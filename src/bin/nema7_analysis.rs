@@ -105,7 +105,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // For each z-slice divide mean within ROI, by 37mm background mean
     let bg_37 = bg_37.unwrap();
     let aocs = (lo_index..=hi_index).into_iter()
-        .map(|i| { mean_in_region(0.0, 0.0, pos_of(i), 30.0/2.0, &lung_voxels) })
+        .map(|i| { mean_in_region(fom::ROI::DiscZ((0.0, 0.0, pos_of(i)), 30.0/2.0), &lung_voxels) })
         .map(|v| 100.0 * v / bg_37)
         .collect::<Vec<_>>();
 
@@ -128,9 +128,8 @@ struct HotSphere {
     r: f32,
 }
 
-/// Mean of
-fn mean_in_region(x: f32, y: f32, z: f32, r: f32, voxels: &[fom::PointValue]) -> f32 {
-    let roi = fom::ROI::DiscZ((x,y,z), r);
+/// Mean of values associated with the voxels contained in the region
+fn mean_in_region(roi: fom::ROI, voxels: &[fom::PointValue]) -> f32 {
     let filter = roi.contains_fn();
     let values: Vec<_> = in_roi(filter, voxels).map(|(_,v)| v).collect();
     fom::mean(&values).unwrap()
@@ -144,12 +143,12 @@ fn contrast_and_variability(sphere: HotSphere,
                             bg_activity: f32,
 ) -> Option<(f32, f32)> {
     let HotSphere { x, y, r } = sphere;
-    let sphere_mean = mean_in_region(x, y, background_zs[2], r, &slices[2]);
+    let sphere_mean = mean_in_region(fom::ROI::DiscZ((x, y, background_zs[2]), r), &slices[2]);
 
     let mut bg_means = vec![];
     for (x,y) in background_xys {
         for (z, slice) in background_zs.iter().zip(slices) {
-            bg_means.push(mean_in_region(*x, *y,*z, r, &slice));
+            bg_means.push(mean_in_region(fom::ROI::DiscZ((*x, *y,*z), r), &slice));
         }
     }
     let bg_mean = fom::mean(&bg_means)?;
