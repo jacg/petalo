@@ -9,9 +9,10 @@ pub struct Cli {
 }
 
 // --------------------------------------------------------------------------------
-// TODO change f32 to Length etc.
+
 use std::error::Error;
 use petalo::io::raw::Image3D;
+use petalo::types::{Length};
 use petalo::fom;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -117,15 +118,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn nema7_sphere(sphere_position: u16, diameter: u16) -> Sphere {
     let r = 114.4 / 2.0; // Radial displacement from centre
     let radians = std::f32::consts::TAU * sphere_position as f32;
-    Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as f32 / 2.0}
+    Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Length / 2.0}
 }
 
 /// x,y,r of NEMA7 sphere
 #[derive(Clone, Copy)]
 struct Sphere {
-    x: f32,
-    y: f32,
-    r: f32,
+    x: Length,
+    y: Length,
+    r: Length,
 }
 
 /// Mean of values associated with the voxels contained in the region
@@ -136,8 +137,8 @@ fn mean_in_region(roi: fom::ROI, voxels: &[fom::PointValue]) -> f32 {
 }
 
 fn contrast_and_variability(sphere: Sphere,
-                            background_xys: &[(f32, f32)],
-                            background_zs : &[f32],
+                            background_xys: &[(Length, Length)],
+                            background_zs : &[Length],
                             slices: &[Vec<fom::PointValue>],
                             sphere_activity: f32,
                             bg_activity: f32,
@@ -169,17 +170,17 @@ fn in_roi(in_roi: fom::InRoiFn, voxels: &[fom::PointValue]) -> impl Iterator<Ite
 }
 
 /// Convert 1D position to 1D index of containing voxel
-fn position_to_index(position: f32, half_width: f32, voxel_size: f32) -> usize {
+fn position_to_index(position: Length, half_width: Length, voxel_size: Length) -> usize {
     ((position + half_width) / voxel_size) as usize
 }
 
 /// Convert 1D voxel index to 1D position of voxel's centre
-fn index_to_position(index: usize, half_width: f32, voxel_size: f32) -> f32 {
+fn index_to_position(index: usize, half_width: Length, voxel_size: Length) -> Length {
     (index as f32 + 0.5) * voxel_size - half_width
 }
 
 /// Return function which finds centre of nearest slice
-fn centre_of_slice_closest_to(half_width: f32, voxel_size: f32) -> impl Fn(f32) -> f32 {
+fn centre_of_slice_closest_to(half_width: Length, voxel_size: Length) -> impl Fn(Length) -> Length {
     move |x| {
         let i = position_to_index(x, half_width, voxel_size);
         let x = index_to_position(i, half_width, voxel_size);
@@ -188,7 +189,7 @@ fn centre_of_slice_closest_to(half_width: f32, voxel_size: f32) -> impl Fn(f32) 
 }
 
 /// Adjust collection of 1D positions, to the centres of the nearest slices
-fn centres_of_slices_closest_to(targets: &[f32], half_width: f32, voxel_size: f32) -> Vec<f32> {
+fn centres_of_slices_closest_to(targets: &[Length], half_width: Length, voxel_size: Length) -> Vec<Length> {
     targets.iter().copied()
         .map(centre_of_slice_closest_to(half_width, voxel_size))
         .collect()
