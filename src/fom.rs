@@ -266,19 +266,25 @@ impl Image {
         for (roi, roi_activity) in rois.iter().cloned() {
             let (roi_measured, roi_sigma) = mu_and_sigma(&self.values_inside_roi(roi)).unwrap();
             if !quiet {print!("{:9.1} ({})", roi_measured, roi_activity);}
-            crcs.push(100.0 *
-                if roi_activity > *background_activity { // hot CRC
-                    ((roi_measured / background_measured) - 1.0) /
-                    ((roi_activity / background_activity) - 1.0)
-                } else { // cold CRC
-                    1.0 - (roi_measured / background_measured)
-                }
-            );
-
+            crcs.push(crc(roi_measured, roi_activity, background_measured, *background_activity));
             snrs.push((roi_measured - background_measured) / roi_sigma); // TODO doesn't quite match antea
         }
         if !quiet {println!();}
         FOMS{crcs, snrs}
+    }
+}
+
+/// Calculate hot or cold Contrast Recovery Coefficient as percentage.
+///
+/// The exact calculation performed depends on whether the ROI is formally
+/// hotter or colder than the background.
+pub fn crc(roi_measured: Intensity, roi_activity: Intensity,
+           bgd_measured: Intensity, bgd_activity: Intensity) -> Ratio {
+    100.0 * if roi_activity > bgd_activity { // hot CRC
+        ((roi_measured / bgd_measured) - 1.0) /
+        ((roi_activity / bgd_activity) - 1.0)
+    } else { // cold CRC
+        1.0 - (roi_measured / bgd_measured)
     }
 }
 

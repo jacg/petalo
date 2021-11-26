@@ -157,7 +157,7 @@ fn contrast_and_variability(sphere: HotSphere,
     let bg_sd   = fom::sd  (&bg_means)?;
     let background_variability = 100.0 * bg_sd / bg_mean;
     // Calculate contrast
-    let contrast = 100.0 * ((sphere_mean / bg_mean) - 1.0) / ((sphere_activity / bg_activity) - 1.0);
+    let contrast = fom::crc(sphere_mean, sphere_activity, bg_mean, bg_activity);
     Some((contrast, background_variability))
 }
 
