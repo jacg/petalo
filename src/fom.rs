@@ -233,6 +233,15 @@ mod test_mean {
     }
 }
 
+/// x,y,r of FOM sphere
+#[derive(Clone, Copy)]
+pub struct Sphere {
+    pub x: Length,
+    pub y: Length,
+    pub r: Length,
+    pub a: Intensity,
+}
+
 #[derive(Debug)]
 pub struct FomConfig {
     pub rois: Vec<(ROI, Intensity)>,

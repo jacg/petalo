@@ -14,6 +14,7 @@ use std::error::Error;
 use petalo::io::raw::Image3D;
 use petalo::types::{Length, Intensity};
 use petalo::fom;
+use petalo::fom::{Sphere, ROI, PointValue};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
@@ -99,14 +100,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let lo_index = index_of(lo);
 
     // Ignore voxels which lie outside of the lung insert
-    let lung = fom::ROI::CylinderZ((0.0, 0.0), 30.0/2.0);
+    let lung = ROI::CylinderZ((0.0, 0.0), 30.0/2.0);
     let filter = lung.contains_fn();
     let lung_voxels: Vec<_> = in_roi(filter, &pos_values).collect();
 
     // For each z-slice divide mean within ROI, by 37mm background mean
     let bg_37 = bg_37.unwrap();
     let aocs = (lo_index..=hi_index).into_iter()
-        .map(|i| { mean_in_region(fom::ROI::DiscZ((0.0, 0.0, pos_of(i)), 30.0/2.0), &lung_voxels) })
+        .map(|i| { mean_in_region(ROI::DiscZ((0.0, 0.0, pos_of(i)), 30.0/2.0), &lung_voxels) })
         .map(|v| 100.0 * v / bg_37)
         .collect::<Vec<_>>();
 
@@ -121,17 +122,8 @@ fn nema7_sphere(sphere_position: u16, diameter: u16, activity: Intensity) -> Sph
     Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Length / 2.0, a: activity}
 }
 
-/// x,y,r of NEMA7 sphere
-#[derive(Clone, Copy)]
-struct Sphere {
-    x: Length,
-    y: Length,
-    r: Length,
-    a: Intensity,
-}
-
 /// Mean of values associated with the voxels contained in the region
-fn mean_in_region(roi: fom::ROI, voxels: &[fom::PointValue]) -> f32 {
+fn mean_in_region(roi: ROI, voxels: &[PointValue]) -> f32 {
     let filter = roi.contains_fn();
     let values: Vec<_> = in_roi(filter, voxels).map(|(_,v)| v).collect();
     fom::mean(&values).unwrap()
@@ -140,17 +132,17 @@ fn mean_in_region(roi: fom::ROI, voxels: &[fom::PointValue]) -> f32 {
 fn contrast_and_variability(sphere: Sphere,
                             background_xys: &[(Length, Length)],
                             background_zs : &[Length],
-                            slices: &[Vec<fom::PointValue>],
+                            slices: &[Vec<PointValue>],
                             bg_activity: f32,
 ) -> Option<(f32, f32)> {
     // Inspect single foreground ROI
     let Sphere { x, y, r, a: sphere_activity } = sphere;
-    let sphere_mean = mean_in_region(fom::ROI::DiscZ((x, y, background_zs[2]), r), &slices[2]);
+    let sphere_mean = mean_in_region(ROI::DiscZ((x, y, background_zs[2]), r), &slices[2]);
     // Inspect multiple background ROIs
     let mut bg_means = vec![];
     for (x,y) in background_xys {
         for (z, slice) in background_zs.iter().zip(slices) {
-            bg_means.push(mean_in_region(fom::ROI::DiscZ((*x, *y,*z), r), &slice));
+            bg_means.push(mean_in_region(ROI::DiscZ((*x, *y,*z), r), &slice));
         }
     }
     // Calculate background variability
@@ -163,7 +155,7 @@ fn contrast_and_variability(sphere: Sphere,
 }
 
 /// Iterator which filters out voxels that lie outside given ROI
-fn in_roi(in_roi: fom::InRoiFn, voxels: &[fom::PointValue]) -> impl Iterator<Item = fom::PointValue> + '_ {
+fn in_roi(in_roi: fom::InRoiFn, voxels: &[PointValue]) -> impl Iterator<Item = PointValue> + '_ {
     voxels.iter()
         .filter(move |(p,_)| in_roi(*p))
         .copied()
