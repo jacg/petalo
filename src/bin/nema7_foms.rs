@@ -2,7 +2,7 @@ use structopt::StructOpt;
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
-#[structopt(name = "nema7_analysis", about = "Calculate NEMA7 figures")]
+#[structopt(name = "nema7_foms", about = "Calculate NEMA7 Figures of Merit")]
 pub struct Cli {
     /// Image file to analyse
     pub input_file: String,
