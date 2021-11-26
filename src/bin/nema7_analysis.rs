@@ -113,16 +113,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Place hot sphere in Nth/6 angular position, with given diameter
-fn nema7_sphere(sphere_position: u16, diameter: u16) -> HotSphere {
+/// Place FOM sphere in Nth/6 angular position, with given diameter and activity
+fn nema7_sphere(sphere_position: u16, diameter: u16) -> Sphere {
     let r = 114.4 / 2.0; // Radial displacement from centre
     let radians = std::f32::consts::TAU * sphere_position as f32;
-    HotSphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as f32 / 2.0}
+    Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as f32 / 2.0}
 }
 
 /// x,y,r of NEMA7 sphere
 #[derive(Clone, Copy)]
-struct HotSphere {
+struct Sphere {
     x: f32,
     y: f32,
     r: f32,
@@ -135,7 +135,7 @@ fn mean_in_region(roi: fom::ROI, voxels: &[fom::PointValue]) -> f32 {
     fom::mean(&values).unwrap()
 }
 
-fn contrast_and_variability(sphere: HotSphere,
+fn contrast_and_variability(sphere: Sphere,
                             background_xys: &[(f32, f32)],
                             background_zs : &[f32],
                             slices: &[Vec<fom::PointValue>],
@@ -143,7 +143,7 @@ fn contrast_and_variability(sphere: HotSphere,
                             bg_activity: f32,
 ) -> Option<(f32, f32)> {
     // Inspect single foreground ROI
-    let HotSphere { x, y, r } = sphere;
+    let Sphere { x, y, r } = sphere;
     let sphere_mean = mean_in_region(fom::ROI::DiscZ((x, y, background_zs[2]), r), &slices[2]);
     // Inspect multiple background ROIs
     let mut bg_means = vec![];
