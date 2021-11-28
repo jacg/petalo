@@ -1,4 +1,13 @@
-use structopt::StructOpt;
+use structopt::{StructOpt, clap::arg_enum};
+use ordered_float::NotNan;
+
+arg_enum! {
+    #[derive(Debug, Clone)]
+    pub enum Phantom {
+        Nema7,
+        Jaszczak,
+    }
+}
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -6,6 +15,10 @@ use structopt::StructOpt;
 pub struct Cli {
     /// Image file to analyse
     pub input_file: String,
+
+    /// Which phantom is being analysed.
+    #[structopt(possible_values = &Phantom::variants(), case_insensitive = true)]
+    phantom: Phantom,
 }
 
 // --------------------------------------------------------------------------------
