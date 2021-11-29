@@ -116,7 +116,7 @@ mod test {
     fn read_lors_hdf5() -> hdf5::Result<()> {
 
         // suppress spamming stdout
-        let _suppress_errors = hdf5::silence_errors();
+        let _suppress_errors = hdf5::silence_errors(true);
 
         // First use the reco data to construct the LORs ...
         let args = Args {
@@ -159,8 +159,9 @@ mod test {
 
         // hdf5::File::create("test.h5")?
         //     .create_group("reco_info")?
-        //     .new_dataset::<Event>().create("table", 10)?
-        //     .write(&events)?;
+        //     .new_dataset_builder()
+        //     .with_data(&events)
+        //     .create("table")?;
 
         Ok(())
     }

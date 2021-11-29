@@ -14,23 +14,23 @@ debug = true
 
 [dependencies]
 structopt = "0.3"
-ndarray = { version = "0.14", features = ["rayon"] }
-rayon = "1.5"
+ndarray = { version = "0.15.4", features = ["rayon"] }
+rayon = "1.5.1"
 serde = { version = "1.0", features = ["derive"] }
 nalgebra = "0.29"
 ncollide3d = "0.32"
-kiss3d = "0.31"
-num-traits = "0.2"
-hdf5 = "0.7.1"
-uom = "0.31"
+kiss3d = "0.32"
+num-traits = "0.2.14"
+hdf5 = "0.8.1"
+uom = "0.31.1"
 ordered-float = "2.8"
 cmlem = { path = "cmlem" }
 indicatif = "0.16.2"
 itertools = "0.10.1"
 binwrite = "0.2.1"
-binrw = "0.7.0"
-linfa = "0.4.0"
-linfa-clustering = "0.4.0"
+binrw = "0.8.0"
+linfa = "0.5.0"
+linfa-clustering = "0.5.0"
 
 
 [dev-dependencies]
