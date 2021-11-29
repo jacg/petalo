@@ -197,7 +197,7 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
         (  0.0,   0.0),
     ];
 
-    let bg_zs = &[10.0, 20.0, 30.0, 40.0, 50.0, 60.0];
+    let bg_zs = &[5.0, 15.0, 25.0, 35.0, 45.0, 55.0, 65.0, 75.0];
     let bg_activity = 1.0;
 
     // Calculate the contrasts and background variabilities
