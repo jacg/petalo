@@ -218,6 +218,8 @@ fn sphere(from_centre: Length, sphere_position: u16, diameter: Length, activity:
     Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Length / 2.0, a: activity}
 }
 
+// TODO this duplicates a lot of the functionality of Image::foms. It's here
+// largely because of the idiosyncrasy of the NEMA7 requirements.
 fn contrast_and_variability(sphere: Sphere,
                             foreground_z: Length,
                             background_xys: &[(Length, Length)],
