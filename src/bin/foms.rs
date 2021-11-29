@@ -128,10 +128,10 @@ fn nema7_foms(image: &Image) -> Result<(), Box<dyn Error>> {
     // The background count of the largest sphere (37mm) is also needed later
     // for the Accuracy of Corrections calculation. Create a place to store it.
     let mut bg_37 = None;
-    println!("Sphere diameter / mm    CRC / %   bg var / %");
-    for fom::FOM{ r, crc, bg_variability, .. } in foms.iter() {
+    println!("Sphere diameter / mm    CRC %   bg var %    SNR %");
+    for fom::FOM{ r, crc, bg_variability, snr } in foms.iter() {
         if *r == 37.0/2.0 { bg_37 = Some(crc) }
-        println!("{:20.0} {:8.1} {:10.1} ", r * 2.0, crc, bg_variability);
+        println!("{:20.1} {:8.1} {:8.1} {:10.1}", r * 2.0, crc, bg_variability, snr);
     }
 
     // --- 7.4.2 ---------------------------------------------------------------------
@@ -203,9 +203,9 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
     // Calculate the contrasts and background variabilities
     let foms = sphere_foms(image, ring_r, sphere_z, &spheres, bg_zs, &bg_xys, bg_activity)?;
 
-    println!("Sphere diameter / mm    CRC / %   bg var / %");
-    for fom::FOM{ r, crc, bg_variability, .. } in foms.iter() {
-        println!("{:20.1} {:8.1} {:10.1} ", r * 2.0, crc, bg_variability);
+    println!("Sphere diameter / mm    CRC %   bg var %    SNR %");
+    for fom::FOM{ r, crc, bg_variability, snr } in foms.iter() {
+        println!("{:20.1} {:8.1} {:8.1} {:10.1}", r * 2.0, crc, bg_variability, snr);
     }
 
     Ok(())
@@ -227,7 +227,10 @@ fn contrast_and_variability(sphere: Sphere,
 ) -> Option<fom::FOM> {
     // Inspect single foreground ROI
     let Sphere { x, y, r, a: sphere_activity } = sphere;
-    let sphere_mean = fom::mean_in_region(ROI::DiscZ((x, y, foreground_z), r), &voxels);
+    let in_sphere: Vec<_> = fom::in_roi(ROI::DiscZ((x, y, foreground_z), r).contains_fn(), voxels)
+        .map(|(_,v)| v)
+        .collect();
+    let (sphere_mean, sphere_sigma) = fom::mu_and_sigma(&in_sphere)?;
     // Inspect multiple background ROIs
     let mut bg_means = vec![];
     for (x,y) in background_xys {
@@ -241,7 +244,8 @@ fn contrast_and_variability(sphere: Sphere,
     let bg_variability = 100.0 * bg_sd / bg_mean;
     // Calculate contrast
     let crc = fom::crc(sphere_mean, sphere_activity, bg_mean, bg_activity);
-    Some(fom::FOM{ r, crc, bg_variability, snr: f32::NAN })
+    let snr = 100.0 * (sphere_mean - bg_mean) / sphere_sigma;
+    Some(fom::FOM{ r, crc, bg_variability, snr })
 }
 
 /// Make an f32 that is Ord. Panic if NaN

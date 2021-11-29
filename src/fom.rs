@@ -242,7 +242,7 @@ pub fn sd(data: &[Intensity]) -> Option<Intensity> {
     Some(sum_of_deltas / data.len() as Intensity)
 }
 
-fn mu_and_sigma(data: &[Intensity]) -> Option<(Intensity, Intensity)> {
+pub fn mu_and_sigma(data: &[Intensity]) -> Option<(Intensity, Intensity)> {
     let mu = mean(data)?;
     let sigma = data.iter().cloned()
         .map(|x| x-mu)
