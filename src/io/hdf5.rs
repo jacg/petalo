@@ -116,7 +116,7 @@ mod test {
     fn read_lors_hdf5() -> hdf5::Result<()> {
 
         // suppress spamming stdout
-        let _suppress_errors = hdf5::silence_errors();
+        let _suppress_errors = hdf5::silence_errors(true);
 
         // First use the reco data to construct the LORs ...
         let args = Args {
