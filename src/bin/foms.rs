@@ -40,13 +40,69 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn nema7_foms(image: &Image) -> Result<(), Box<dyn Error>> {
-
+fn sphere_foms(
+    image         : &Image,
+    sphere_ring_r : Length,
+    sphere_z      : Length,
+    sphere_spec   : &[(u16, Length, Intensity)],
+    background_zs : &[Length],
+    background_xys: &[(Length, Length)],
+    background_a  : Intensity,
+) -> Result<Vec<fom::FOM>, Box<dyn Error>> {
     let z_voxel_size = image.vbox.voxel_size[2];
     let z_half_width = image.vbox.half_width[2];
 
+    // Ensure that the ROIs are z-aligned with some slice
+    let background_zs = centres_of_slices_closest_to(
+        background_zs, z_half_width, z_voxel_size
+    );
+    let foreground_z = fom::centre_of_slice_closest_to(z_half_width, z_voxel_size)(sphere_z);
+
+
+    let mut background_roi_centres = vec![];
+    for z in &background_zs {
+        for (cx, cy) in background_xys {
+            background_roi_centres.push((*cx,*cy,*z));
+        }
+    };
+
+    let spheres: Vec<_> = sphere_spec.iter()
+        .map(|&(n, d, a)| sphere(sphere_ring_r, n,d,a))
+        .collect();
+
+    let sphere_rois: Vec<_> = spheres.iter()
+        .map(|Sphere {x,y,r,..}| ROI::DiscZ((*x,*y,foreground_z), *r) )
+        .collect();
+
+    // Annotate each voxel value with its 3D position
+    let all_voxels = image.values_with_positions();
+
+    // Discard voxels which do not lie inside any of the ROIs
+    let relevant_voxels = discard_irrelevant_voxels(&sphere_rois, &background_roi_centres, &all_voxels);
+
+    Ok(spheres.into_iter()
+       .map(|sphere| contrast_and_variability(sphere, foreground_z,
+                                              &background_xys, &background_zs, 1.0,
+                                              &relevant_voxels).unwrap())
+       .collect())
+}
+
+fn nema7_foms(image: &Image) -> Result<(), Box<dyn Error>> {
+
+    // The 6 hot spheres
+    let ring_r = 114.4 / 2.0; // displacement of centre of sphere from centre of body
+    let sphere_z = 0.0;
+    let spheres = vec![ // (position, diameter, activity)
+        (1, 10.0, 4.0),
+        (2, 13.0, 4.0),
+        (3, 17.0, 4.0),
+        (4, 22.0, 4.0),
+        (5, 28.0, 4.0),
+        (0, 37.0, 4.0),
+    ];
+
     // x-y centres of the 12 background ROIs
-    let background_xys = vec![
+    let bg_xys = vec![
         (   0.0, -86.0), // TODO all these should be 15 mm from edge of phantom
         (   0.0, -82.0),
         (  60.0, -82.0),
@@ -63,54 +119,24 @@ fn nema7_foms(image: &Image) -> Result<(), Box<dyn Error>> {
     ];
 
     // Background ROIs should be placed at z-slices closest to 0, ±1, ±2 cm.
-    // These are the z-positions of the centres of the nearest slices
-    let background_zs = centres_of_slices_closest_to(&[-20.0, -10.0, 0.0, 10.0, 20.0],
-                                                     z_half_width, z_voxel_size);
+    let bg_zs = &[-20.0, -10.0, 0.0, 10.0, 20.0];
+    let bg_activity = 1.0;
 
-    let mut background_roi_centres = vec![];
-    for z in &background_zs {
-        for (cx, cy) in &background_xys {
-            background_roi_centres.push((*cx,*cy,*z));
-        }
-    };
-
-    // The 6 hot spheres (position, diameter, activity)
-    let r = 114.4 / 2.0; // displacement of centre of sphere from centre of body
-    let spheres = vec![
-        (sphere(r, 1, 10.0, 4.0)),
-        (sphere(r, 2, 13.0, 4.0)),
-        (sphere(r, 3, 17.0, 4.0)),
-        (sphere(r, 4, 22.0, 4.0)),
-        (sphere(r, 5, 28.0, 4.0)),
-        (sphere(r, 0, 37.0, 4.0)),
-    ];
-    let foreground_z = fom::centre_of_slice_closest_to(z_half_width, z_voxel_size)(0.0);
+    // Calculate the contrasts and background variabilities
+    let foms = sphere_foms(image, ring_r, sphere_z, &spheres, bg_zs, &bg_xys, bg_activity)?;
 
     // The background count of the largest sphere (37mm) is also needed later
     // for the Accuracy of Corrections calculation. Create a place to store it.
     let mut bg_37 = None;
-
-    let sphere_rois = spheres.iter()
-        .map(|Sphere {x,y,r,..}| ROI::DiscZ((*x,*y,foreground_z), *r) )
-        .collect::<Vec<_>>();
-
-    // Annotate each voxel value with its 3D position
-    let all_voxels = image.values_with_positions();
-
-    // Discard voxels which do not lie inside any of the ROIs
-    let relevant_voxels = discard_irrelevant_voxels(&sphere_rois, &background_roi_centres, &all_voxels);
-
-    // Calculate the contrasts and background variabilities
-    println!("Sphere diameter / mm    contrast / %   variability of background");
-    for sphere in spheres {
-        let (c,v) = contrast_and_variability(sphere, foreground_z,
-                                             &background_xys, &background_zs, 1.0,
-                                             &relevant_voxels).unwrap();
-        if sphere.r == 37.0/2.0 { bg_37 = Some(c) }
-        println!("{:20.0} {:10.1} {:15.1} ", sphere.r * 2.0, c, v);
+    println!("Sphere diameter / mm    contrast / %   variability of background / %");
+    for fom::FOM{ r, crc, bg_variability, .. } in foms.iter() {
+        if *r == 37.0/2.0 { bg_37 = Some(crc) }
+        println!("{:20.0} {:10.1} {:15.1} ", r * 2.0, crc, bg_variability);
     }
 
     // --- 7.4.2 ---------------------------------------------------------------------
+    let z_voxel_size = image.vbox.voxel_size[2];
+    let z_half_width = image.vbox.half_width[2];
     // ignore slices which lie within 30mm of ends.
     let hi_limit = 70.0         - 30.0;
     let lo_limit = 70.0 - 180.0 + 30.0;
@@ -127,6 +153,8 @@ fn nema7_foms(image: &Image) -> Result<(), Box<dyn Error>> {
     let hi_index = index_of(hi);
     let lo_index = index_of(lo);
 
+    // Annotate each voxel value with its 3D position
+    let all_voxels = image.values_with_positions();
     // Ignore voxels which lie outside of the lung insert
     let lung = ROI::CylinderZ((0.0, 0.0), 30.0/2.0);
     let filter = lung.contains_fn();
@@ -146,11 +174,20 @@ fn nema7_foms(image: &Image) -> Result<(), Box<dyn Error>> {
 
 fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
 
-    let z_voxel_size = image.vbox.voxel_size[2];
-    let z_half_width = image.vbox.half_width[2];
+    // The 6 hot spheres
+    let ring_r = 54.0; // displacement of centre of sphere from centre of body
+    let sphere_z = 34.0;
+    let spheres = vec![ // (position, diameter, activity)
+        (0,  9.5, 4.0),
+        (1, 12.7, 4.0),
+        (2, 15.9, 4.0),
+        (3, 19.1, 4.0),
+        (4, 25.4, 4.0),
+        (5, 31.8, 4.0),
+    ];
 
     // x-y centres of the background ROIs
-    let background_xys = vec![
+    let bg_xys = vec![
         ( 73.4, -32.0),
         ( 67.4,  35.2),
         (  1.5,  77.8),
@@ -160,49 +197,17 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
         (  0.0,   0.0),
     ];
 
-    // Ensure that the background ROIs are z-aligned with some slice
-    let background_zs = centres_of_slices_closest_to(&[10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
-                                                     z_half_width, z_voxel_size);
-
-
-    let mut background_roi_centres = vec![];
-    for z in &background_zs {
-        for (cx, cy) in &background_xys {
-            background_roi_centres.push((*cx,*cy,*z));
-        }
-    };
-
-    // The 6 hot spheres (position, diameter, activity)
-    let r = 54.0; // displacement of centre of sphere from centre of body
-    let spheres = vec![
-        (sphere(r, 0,  9.5, 4.0)),
-        (sphere(r, 1, 12.7, 4.0)),
-        (sphere(r, 2, 15.9, 4.0)),
-        (sphere(r, 3, 19.1, 4.0)),
-        (sphere(r, 4, 25.4, 4.0)),
-        (sphere(r, 5, 31.8, 4.0)),
-    ];
-    let foreground_z = fom::centre_of_slice_closest_to(z_half_width, z_voxel_size)(34.0);
-
-    let sphere_rois = spheres.iter()
-        .map(|Sphere {x,y,r,..}| ROI::DiscZ((*x,*y,foreground_z), *r) )
-        .collect::<Vec<_>>();
-
-    // Annotate each voxel value with its 3D position
-    let all_voxels = image.values_with_positions();
-
-    // Discard voxels which do not lie inside any of the ROIs
-    let relevant_voxels = discard_irrelevant_voxels(&sphere_rois, &background_roi_centres, &all_voxels);
+    let bg_zs = &[10.0, 20.0, 30.0, 40.0, 50.0, 60.0];
+    let bg_activity = 1.0;
 
     // Calculate the contrasts and background variabilities
-    println!("Sphere diameter / mm    contrast / %   variability of background / %");
-    for sphere in spheres {
-        let (c,v) = contrast_and_variability(sphere, foreground_z,
-                                             &background_xys, &background_zs, 1.0,
-                                             &relevant_voxels).unwrap();
-        println!("{:20.1} {:10.1} {:15.1} ", sphere.r * 2.0, c, v);
+    let foms = sphere_foms(image, ring_r, sphere_z, &spheres, bg_zs, &bg_xys, bg_activity)?;
 
+    println!("Sphere diameter / mm    contrast / %   variability of background / %");
+    for fom::FOM{ r, crc, bg_variability, .. } in foms.iter() {
+        println!("{:20.1} {:10.1} {:15.1} ", r * 2.0, crc, bg_variability);
     }
+
     Ok(())
 }
 
@@ -228,7 +233,7 @@ fn contrast_and_variability(sphere: Sphere,
                             background_zs : &[Length],
                             bg_activity: f32,
                             voxels: &[PointValue],
-) -> Option<(f32, f32)> {
+) -> Option<fom::FOM> {
     // Inspect single foreground ROI
     let Sphere { x, y, r, a: sphere_activity } = sphere;
     let sphere_mean = fom::mean_in_region(ROI::DiscZ((x, y, foreground_z), r), &voxels);
@@ -242,10 +247,10 @@ fn contrast_and_variability(sphere: Sphere,
     // Calculate background variability
     let bg_mean = fom::mean(&bg_means)?;
     let bg_sd   = fom::sd  (&bg_means)?;
-    let background_variability = 100.0 * bg_sd / bg_mean;
+    let bg_variability = 100.0 * bg_sd / bg_mean;
     // Calculate contrast
-    let contrast = fom::crc(sphere_mean, sphere_activity, bg_mean, bg_activity);
-    Some((contrast, background_variability))
+    let crc = fom::crc(sphere_mean, sphere_activity, bg_mean, bg_activity);
+    Some(fom::FOM{ r, crc, bg_variability, snr: f32::NAN })
 }
 
 /// Make an f32 that is Ord. Panic if NaN

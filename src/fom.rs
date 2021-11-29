@@ -312,6 +312,14 @@ pub struct FOMS {
     pub snrs: Vec<Ratio>,
 }
 
+#[allow(clippy::upper_case_acronyms)]
+pub struct FOM {
+    pub r: Length,
+    pub crc: Ratio,
+    pub bg_variability: Ratio,
+    pub snr: Ratio,
+}
+
 impl Image {
 
     pub fn foms(&self, config: &FomConfig, quiet: bool) -> FOMS {
