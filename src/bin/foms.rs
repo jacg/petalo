@@ -82,7 +82,7 @@ fn sphere_foms(
 
     Ok(spheres.into_iter()
        .map(|sphere| contrast_and_variability(sphere, foreground_z,
-                                              &background_xys, &background_zs, 1.0,
+                                              &background_xys, &background_zs, background_a,
                                               &relevant_voxels).unwrap())
        .collect())
 }
@@ -209,15 +209,6 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
-}
-
-/// Select voxels from the image which lie in any of the given ROIs, and
-/// annotate them with their values
-fn voxels_in_rois(image: Image, rois: Vec<ROI>) -> Vec<fom::PointValue> {
-    // Annotate each voxel value with its 3D position
-    let all_voxels = image.values_with_positions();
-    //let mut relevant_voxels = vec![];
-    todo!()
 }
 
 /// Place FOM sphere in Nth/6 angular position, with given diameter and activity
