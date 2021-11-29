@@ -110,7 +110,9 @@ fn main() -> hdf5::Result<()> {
     println!("Writing LORs to {}", args.out);
     hdf5::File::create(args.out)?
         .create_group("reco_info")?
-        .new_dataset::<Hdf5Lor>().create("lors")?
+        .new_dataset::<Hdf5Lor>()
+        .shape([lors.len()])
+        .create("lors")?
         .write(&lors)?;
     // --- Report any files that failed no be read -----------------------------------
     if !failed_files.is_empty() {
@@ -185,9 +187,10 @@ fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolera
         .collect::<Vec<_>>()
         .into();
     let params = AppxDbscan::params(min_points)
-        .tolerance(tolerance) // > 7mm between sipm centres
-        .build();
-    let labels = params.transform(&active_sensor_positions);
+        .tolerance(tolerance); // > 7mm between sipm centres
+    let labels = if let Ok(labels) = params.transform(&active_sensor_positions) {
+        labels
+    } else { return None };
     let n_clusters = xxx(&labels);
     if n_clusters != 2 { return None }
     let mut cluster: [Vec<f32>; 2] = [vec![], vec![]];
@@ -360,7 +363,7 @@ fn read_qts(infile: &String) -> hdf5::Result<Vec<QT>> {
 
 fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT> {
     let mut qts = vec![];
-    let mut titer = ts.into_iter();
+    let mut titer = ts.iter();
     for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
         while let Some(&Waveform{ event_id: te, sensor_id: ts, time:t}) = titer.next() {
             if event_id == te && sensor_id == ts {
@@ -418,7 +421,9 @@ mod test_nested_compound_hdf5 {
         {
             hdf5::File::create(file_path)?
                 .create_group("just-testing")?
-                .new_dataset::<Outer>().create("nested")?
+                .new_dataset::<Outer>()
+                .shape([test_data.len()])
+                .create("nested")?
                 .write(&test_data)?;
         }
         // read
@@ -460,7 +465,9 @@ mod test_hdf5_array {
         let filename = "just-testing.h5";
         hdf5::File::create(filename)?
             .create_group("foo")?
-            .new_dataset::<Waveform>().create("bar")?
+            .new_dataset::<Waveform>()
+            .shape([test_data.len()])
+            .create("bar")?
             .write(&test_data)?;
         Ok(())
     }
@@ -518,8 +525,7 @@ mod test_dbscan {
         let min_points = 3;
         let params = AppxDbscan::params(min_points)
             .tolerance(1.0)
-            .slack(1e-3)
-            .build();
+            .slack(1e-3);
         // Let's run the algorithm!
         let labels = params.transform(&observations);
         // Points are `None` if noise `Some(id)` if belonging to a cluster.
@@ -547,9 +553,10 @@ mod test_dbscan {
         // If you don't specify the others (e.g. `tolerance`)
         // default values will be used.
         let min_points = 3;
-        let labels: ndarray::Array1<Option<usize>> = Dbscan::params(min_points)
+        let labels = Dbscan::params(min_points)
             .tolerance(1.0)
-            .transform(&observations);
+            .transform(&observations)
+            .unwrap();
         // Points are `None` if noise `Some(id)` if belonging to a cluster.
 
         println!("\n\nobs\n{:?}", observations);
