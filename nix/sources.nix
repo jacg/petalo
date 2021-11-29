@@ -9,7 +9,7 @@ let
   random_pkgs = import <nixpkgs> {};
   nixpkgs-commit-id = "4f37689c8a219a9d756c5ff38525ad09349f422f"; # nixos-21.05 on 2021-11-28
   nixpkgs-url = "https://github.com/nixos/nixpkgs/archive/${nixpkgs-commit-id}.tar.gz";
-  oxalica-commit-id = "f72d85edf34b3ca7a07d6fe6c1ac97c31aed28ed";
+  oxalica-commit-id = "d9a664513558376595e838b21348cdac0ba3115e"; # 2021-11-28
   pkgs = import (fetchTarball nixpkgs-url) {
       overlays = map (uri: import (fetchTarball uri)) [
         "https://github.com/oxalica/rust-overlay/archive/${oxalica-commit-id}.tar.gz"
