@@ -25,37 +25,48 @@ pub type InRoiFn = Box<dyn Fn(Point) -> bool>;
 
 impl ROI {
 
-    pub fn contains_fn(self) -> InRoiFn {
+    pub fn contains_fn(&self) -> InRoiFn {
         match self {
-            ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
+            &ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
                 let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
                 x*x + y*y + z*z < radius * radius
             }),
 
-            ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Point| {
+            &ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Point| {
                 let (y, z) = (p.y - cy, p.z - cz);
                 y*y + z*z < radius*radius
             }),
 
-            ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Point| {
+            &ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Point| {
                 let (x, z) = (p.x - cx, p.z - cz);
                 x*x + z*z < radius*radius
             }),
 
-            ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
+            &ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 x*x + y*y < radius*radius
             }),
 
-            ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Point| {
+            &ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Point| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 z == p.z && x*x + y*y < radius*radius
             }),
         }
     }
+
+    pub fn r(&self) -> Length {
+        match self {
+            &ROI::Sphere   (_,r) => r,
+            &ROI::CylinderX(_,r) => r,
+            &ROI::CylinderY(_,r) => r,
+            &ROI::CylinderZ(_,r) => r,
+            &ROI::DiscZ    (_,r) => r,
+        }
+    }
+
 }
 
-/// A 3D point with an associated value
+/// A 3D point with an associated value. Used to represent voxels
 pub type PointValue = (Point, Intensity);
 
 // TODO replace vec with iterator in output
@@ -302,6 +313,7 @@ pub struct FOMS {
 }
 
 impl Image {
+
     pub fn foms(&self, config: &FomConfig, quiet: bool) -> FOMS {
         let FomConfig{ rois, background_rois, background_activity} = config;
         let background_measured = background_rois.iter().cloned()
@@ -321,6 +333,7 @@ impl Image {
         if !quiet {println!();}
         FOMS{crcs, snrs}
     }
+
 }
 
 /// Calculate hot or cold Contrast Recovery Coefficient as percentage.
