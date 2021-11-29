@@ -316,7 +316,7 @@ impl Image {
             let (roi_measured, roi_sigma) = mu_and_sigma(&self.values_inside_roi(roi)).unwrap();
             if !quiet {print!("{:9.1} ({})", roi_measured, roi_activity);}
             crcs.push(crc(roi_measured, roi_activity, background_measured, *background_activity));
-            snrs.push((roi_measured - background_measured) / roi_sigma); // TODO doesn't quite match antea
+            snrs.push((roi_measured - background_measured) / roi_sigma); // doesn't quite match antea
         }
         if !quiet {println!();}
         FOMS{crcs, snrs}
