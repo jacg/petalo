@@ -919,27 +919,27 @@ checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
 
 [[package]]
 name = "hdf5"
-version = "0.7.1"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a863396b1828dcb188209e0d3e380433415cc4c253f80fa367b5154cc3073db0"
+checksum = "bdcd9b131fd67bb827b386d0dc63d3e74196a14616ef800acf87ca5fef741a10"
 dependencies = [
  "bitflags",
+ "cfg-if 1.0.0",
  "hdf5-derive",
  "hdf5-sys",
  "hdf5-types",
  "lazy_static",
  "libc",
- "ndarray 0.14.0",
- "num-integer",
- "num-traits",
+ "ndarray 0.15.3",
  "parking_lot",
+ "paste 1.0.5",
 ]
 
 [[package]]
 name = "hdf5-derive"
-version = "0.7.1"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6eddba76f9d15423c8737a3f376128e3b556f01cd8927e44736ea8cc63bbcc02"
+checksum = "a5a77ac6a41e6880594d506118c0b8bc665ec959fe4636e0c84809756d224820"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -948,12 +948,12 @@ dependencies = [
 
 [[package]]
 name = "hdf5-sys"
-version = "0.7.1"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15fa1f3c5b34a7dd3815fc68aa8d64f0682e500b393b77b88f8dac206d2b16a9"
+checksum = "4842d5980dc311a7c8933c7b45534fdae84df5ae7939a0ae8e449a56d4beb3d2"
 dependencies = [
  "libc",
- "libloading 0.6.7",
+ "libloading 0.7.0",
  "pkg-config",
  "regex",
  "serde",
@@ -963,11 +963,13 @@ dependencies = [
 
 [[package]]
 name = "hdf5-types"
-version = "0.7.1"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4523a5d946b3ef2a0aa1d3643a844c581794dee09934c4a8e1ffb6dbb878872e"
+checksum = "b47268c0dfb499b1ffe5638b6e7694e7a87fe49fb92eca998a4346e5483e428f"
 dependencies = [
  "ascii",
+ "cfg-if 1.0.0",
+ "hdf5-sys",
  "libc",
 ]
 
@@ -3062,9 +3064,9 @@ dependencies = [
 
 [[package]]
 name = "winreg"
-version = "0.8.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d107f8c6e916235c4c01cabb3e8acf7bea8ef6a63ca2e7fa0527c049badfc48c"
+checksum = "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d"
 dependencies = [
  "serde",
  "winapi 0.3.9",
