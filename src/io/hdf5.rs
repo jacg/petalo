@@ -159,10 +159,9 @@ mod test {
 
         // hdf5::File::create("test.h5")?
         //     .create_group("reco_info")?
-        //     .new_dataset::<Event>()
-        //     .shape([10])
-        //     .create("table")?
-        //     .write(&events)?;
+        //     .new_dataset_builder()
+        //     .with_data(&events)
+        //     .create("table")?;
 
         Ok(())
     }

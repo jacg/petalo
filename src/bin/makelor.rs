@@ -110,10 +110,9 @@ fn main() -> hdf5::Result<()> {
     println!("Writing LORs to {}", args.out);
     hdf5::File::create(args.out)?
         .create_group("reco_info")?
-        .new_dataset::<Hdf5Lor>()
-        .shape([lors.len()])
-        .create("lors")?
-        .write(&lors)?;
+        .new_dataset_builder()
+        .with_data(&lors)
+        .create("lors")?;
     // --- Report any files that failed no be read -----------------------------------
     if !failed_files.is_empty() {
         println!("Warning: failed to read the following files:");
@@ -421,10 +420,9 @@ mod test_nested_compound_hdf5 {
         {
             hdf5::File::create(file_path)?
                 .create_group("just-testing")?
-                .new_dataset::<Outer>()
-                .shape([test_data.len()])
-                .create("nested")?
-                .write(&test_data)?;
+                .new_dataset_builder()
+                .with_data(&test_data)
+                .create("nested")?;
         }
         // read
         let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", None)?;
@@ -465,10 +463,9 @@ mod test_hdf5_array {
         let filename = "just-testing.h5";
         hdf5::File::create(filename)?
             .create_group("foo")?
-            .new_dataset::<Waveform>()
-            .shape([test_data.len()])
-            .create("bar")?
-            .write(&test_data)?;
+            .new_dataset_builder()
+            .with_data(&test_data)
+            .create("bar")?;
         Ok(())
     }
 }
