@@ -128,10 +128,10 @@ fn nema7_foms(image: &Image) -> Result<(), Box<dyn Error>> {
     // The background count of the largest sphere (37mm) is also needed later
     // for the Accuracy of Corrections calculation. Create a place to store it.
     let mut bg_37 = None;
-    println!("Sphere diameter / mm    contrast / %   variability of background / %");
+    println!("Sphere diameter / mm    CRC / %   bg var / %");
     for fom::FOM{ r, crc, bg_variability, .. } in foms.iter() {
         if *r == 37.0/2.0 { bg_37 = Some(crc) }
-        println!("{:20.0} {:10.1} {:15.1} ", r * 2.0, crc, bg_variability);
+        println!("{:20.0} {:8.1} {:10.1} ", r * 2.0, crc, bg_variability);
     }
 
     // --- 7.4.2 ---------------------------------------------------------------------
@@ -203,9 +203,9 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
     // Calculate the contrasts and background variabilities
     let foms = sphere_foms(image, ring_r, sphere_z, &spheres, bg_zs, &bg_xys, bg_activity)?;
 
-    println!("Sphere diameter / mm    contrast / %   variability of background / %");
+    println!("Sphere diameter / mm    CRC / %   bg var / %");
     for fom::FOM{ r, crc, bg_variability, .. } in foms.iter() {
-        println!("{:20.1} {:10.1} {:15.1} ", r * 2.0, crc, bg_variability);
+        println!("{:20.1} {:8.1} {:10.1} ", r * 2.0, crc, bg_variability);
     }
 
     Ok(())
