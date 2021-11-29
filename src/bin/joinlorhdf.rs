@@ -47,7 +47,7 @@ fn main() -> hdf5::Result<()> {
     println!("Writing data to {}", outname);
     hdf5::File::create(outname)?
         .create_group(&args.group)?
-        .new_dataset::<Data>().create(&args.dataset, joined.len())?
+        .new_dataset::<Data>().create(args.dataset.as_str())?
         .write(&joined)?;
 
     Ok(())

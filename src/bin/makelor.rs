@@ -110,7 +110,7 @@ fn main() -> hdf5::Result<()> {
     println!("Writing LORs to {}", args.out);
     hdf5::File::create(args.out)?
         .create_group("reco_info")?
-        .new_dataset::<Hdf5Lor>().create("lors", lors.len())?
+        .new_dataset::<Hdf5Lor>().create("lors")?
         .write(&lors)?;
     // --- Report any files that failed no be read -----------------------------------
     if !failed_files.is_empty() {
@@ -418,7 +418,7 @@ mod test_nested_compound_hdf5 {
         {
             hdf5::File::create(file_path)?
                 .create_group("just-testing")?
-                .new_dataset::<Outer>().create("nested", test_data.len())?
+                .new_dataset::<Outer>().create("nested")?
                 .write(&test_data)?;
         }
         // read
@@ -460,7 +460,7 @@ mod test_hdf5_array {
         let filename = "just-testing.h5";
         hdf5::File::create(filename)?
             .create_group("foo")?
-            .new_dataset::<Waveform>().create("bar", test_data.len())?
+            .new_dataset::<Waveform>().create("bar")?
             .write(&test_data)?;
         Ok(())
     }
