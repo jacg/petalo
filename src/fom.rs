@@ -25,36 +25,48 @@ pub type InRoiFn = Box<dyn Fn(Point) -> bool>;
 
 impl ROI {
 
-    pub fn contains_fn(self) -> InRoiFn {
+    pub fn contains_fn(&self) -> InRoiFn {
         match self {
-            ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
+            &ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
                 let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
                 x*x + y*y + z*z < radius * radius
             }),
 
-            ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Point| {
+            &ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Point| {
                 let (y, z) = (p.y - cy, p.z - cz);
                 y*y + z*z < radius*radius
             }),
 
-            ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Point| {
+            &ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Point| {
                 let (x, z) = (p.x - cx, p.z - cz);
                 x*x + z*z < radius*radius
             }),
 
-            ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
+            &ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 x*x + y*y < radius*radius
             }),
 
-            ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Point| {
+            &ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Point| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 z == p.z && x*x + y*y < radius*radius
             }),
         }
     }
+
+    pub fn r(&self) -> Length {
+        match self {
+            &ROI::Sphere   (_,r) => r,
+            &ROI::CylinderX(_,r) => r,
+            &ROI::CylinderY(_,r) => r,
+            &ROI::CylinderZ(_,r) => r,
+            &ROI::DiscZ    (_,r) => r,
+        }
+    }
+
 }
 
+/// A 3D point with an associated value. Used to represent voxels
 pub type PointValue = (Point, Intensity);
 
 // TODO replace vec with iterator in output
@@ -77,6 +89,46 @@ impl Image {
             .collect()
     }
 
+}
+
+/// Mean of values associated with the voxels contained in the region
+pub fn mean_in_region(roi: ROI, voxels: &[PointValue]) -> f32 {
+    let filter = roi.contains_fn();
+    let values: Vec<_> = in_roi(filter, voxels).map(|(_,v)| v).collect();
+    mean(&values).unwrap()
+}
+
+/// Iterator which filters out voxels that lie outside given ROI
+pub fn in_roi(in_roi: InRoiFn, voxels: &[PointValue]) -> impl Iterator<Item = PointValue> + '_ {
+    voxels.iter()
+        .filter(move |(p,_)| in_roi(*p))
+        .copied()
+}
+
+/// Convert 1D position to 1D index of containing voxel
+pub fn position_to_index(position: Length, half_width: Length, voxel_size: Length) -> usize {
+    ((position + half_width) / voxel_size) as usize
+}
+
+/// Convert 1D voxel index to 1D position of voxel's centre
+pub fn index_to_position(index: usize, half_width: Length, voxel_size: Length) -> Length {
+    (index as f32 + 0.5) * voxel_size - half_width
+}
+
+/// Return function which finds centre of nearest slice
+pub fn centre_of_slice_closest_to(half_width: Length, voxel_size: Length) -> impl Fn(Length) -> Length {
+    move |x| {
+        let i = position_to_index(x, half_width, voxel_size);
+        let x = index_to_position(i, half_width, voxel_size);
+        x
+    }
+}
+
+/// Adjust collection of 1D positions, to the centres of the nearest slices
+pub fn centres_of_slices_closest_to(targets: &[Length], half_width: Length, voxel_size: Length) -> Vec<Length> {
+    targets.iter().copied()
+        .map(centre_of_slice_closest_to(half_width, voxel_size))
+        .collect()
 }
 
 #[cfg(test)]
@@ -190,7 +242,7 @@ pub fn sd(data: &[Intensity]) -> Option<Intensity> {
     Some(sum_of_deltas / data.len() as Intensity)
 }
 
-fn mu_and_sigma(data: &[Intensity]) -> Option<(Intensity, Intensity)> {
+pub fn mu_and_sigma(data: &[Intensity]) -> Option<(Intensity, Intensity)> {
     let mu = mean(data)?;
     let sigma = data.iter().cloned()
         .map(|x| x-mu)
@@ -232,6 +284,15 @@ mod test_mean {
     }
 }
 
+/// x,y,r of FOM sphere
+#[derive(Clone, Copy)]
+pub struct Sphere {
+    pub x: Length,
+    pub y: Length,
+    pub r: Length,
+    pub a: Intensity,
+}
+
 #[derive(Debug)]
 pub struct FomConfig {
     pub rois: Vec<(ROI, Intensity)>,
@@ -251,7 +312,16 @@ pub struct FOMS {
     pub snrs: Vec<Ratio>,
 }
 
+#[allow(clippy::upper_case_acronyms)]
+pub struct FOM {
+    pub r: Length,
+    pub crc: Ratio,
+    pub bg_variability: Ratio,
+    pub snr: Ratio,
+}
+
 impl Image {
+
     pub fn foms(&self, config: &FomConfig, quiet: bool) -> FOMS {
         let FomConfig{ rois, background_rois, background_activity} = config;
         let background_measured = background_rois.iter().cloned()
@@ -265,19 +335,26 @@ impl Image {
         for (roi, roi_activity) in rois.iter().cloned() {
             let (roi_measured, roi_sigma) = mu_and_sigma(&self.values_inside_roi(roi)).unwrap();
             if !quiet {print!("{:9.1} ({})", roi_measured, roi_activity);}
-            crcs.push(100.0 *
-                if roi_activity > *background_activity { // hot CRC
-                    ((roi_measured / background_measured) - 1.0) /
-                    ((roi_activity / background_activity) - 1.0)
-                } else { // cold CRC
-                    1.0 - (roi_measured / background_measured)
-                }
-            );
-
-            snrs.push((roi_measured - background_measured) / roi_sigma); // TODO doesn't quite match antea
+            crcs.push(crc(roi_measured, roi_activity, background_measured, *background_activity));
+            snrs.push((roi_measured - background_measured) / roi_sigma); // doesn't quite match antea
         }
         if !quiet {println!();}
         FOMS{crcs, snrs}
+    }
+
+}
+
+/// Calculate hot or cold Contrast Recovery Coefficient as percentage.
+///
+/// The exact calculation performed depends on whether the ROI is formally
+/// hotter or colder than the background.
+pub fn crc(roi_measured: Intensity, roi_activity: Intensity,
+           bgd_measured: Intensity, bgd_activity: Intensity) -> Ratio {
+    100.0 * if roi_activity > bgd_activity { // hot CRC
+        ((roi_measured / bgd_measured) - 1.0) /
+        ((roi_activity / bgd_activity) - 1.0)
+    } else { // cold CRC
+        1.0 - (roi_measured / bgd_measured)
     }
 }
 
