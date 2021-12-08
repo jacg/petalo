@@ -13,7 +13,8 @@ Options:
                    and physicals size of FOV
   --little-endian  Assume the input files contain little-endian data (rather
                    than big-endian, as guaranteed to be written by the Rust
-                   version of MLEM)
+                   version of MLEM). When used with `--add-header`, produces
+                   a big-endian file.
   --show-header    Show size headers included in self-describing raw 3D image
                    files, without visualizing the file in viewer
   --add-header     Add headers to headerless image files. The original files
