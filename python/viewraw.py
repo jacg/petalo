@@ -124,11 +124,13 @@ class view:
         nax = self.naxis
         im.set_clim(0, data.max())
         #self.ax.set_aspect(ye/xe)
-        i = self.pos[nax]
+        p = self.pos[nax]
         pixel_size = self.images[self.image_number].pixel_size
-        p = 'integrated' if self.integrate else f'{(i + 0.5) * pixel_size[nax] - half_size[nax]:6.1f}'
+        pos = (p + 0.5) * pixel_size[nax] - half_size[nax]
+        slice_half_width = (1 + 2 * self.integrate) * pixel_size[nax]
+        poslabel =  f'{pos:6.1f} +/- {slice_half_width:6.1f} mm'
         nx,ny,nz = self.voxel_sizes[self.image_number]
-        self.ax.set_title(f'''{self.axis} = {p}        voxel size = {nx:.2} x {ny:.2} x {nz:.2} mm
+        self.ax.set_title(f'''{self.axis} = {poslabel}        voxel size = {nx:.2} x {ny:.2} x {nz:.2} mm
         {self.files[self.image_number]}''')
         self.ax.set_xlabel(xl)
         self.ax.set_ylabel(yl)
