@@ -62,7 +62,7 @@ class view:
         self.maxima = [im.data.max() for im in self.images]
         self.image_number = 0
         self.axis = axis
-        self.integrate = False
+        self.integrate = 0
         shape = self.images[self.image_number].shape
         self.pos = [n // 2 for n in shape] # start off in the middle along each axis
         self.ax.imshow(self.data_to_be_shown())
@@ -74,12 +74,11 @@ class view:
     def data_to_be_shown(self):
         s = [slice(None) for _ in range(3)]
         naxis = self.naxis
-        if not self.integrate:
-            s[naxis] = self.pos[naxis]
+        n, i = self.pos[naxis], self.integrate
+        s[naxis] = slice(n-i, n+i+1)
         image = self.images[self.image_number]
         it = image.data[s[0], s[1], s[2]]
-        if self.integrate:
-            it = it.sum(axis = naxis)
+        it = it.sum(axis = naxis)
         if self.axis in self.ts:
             it = it.transpose()
         it = np.flip(it,0)
@@ -94,7 +93,9 @@ class view:
         if k in 'xyz': self.axis = k
         if k == 't': self.flipT()
         if k in ('right', 'left'): self.switch_image(1 if k == 'right' else -1)
-        if k == 'i': self.integrate = not self.integrate
+        if k == 'i': self.integrate = max(self.integrate - 1, 0)
+        if k == 'I': self.integrate =     self.integrate + 1
+
         if k in 'c0': self.set_slice(0)
         self.update()
 
@@ -121,10 +122,7 @@ class view:
         extent = -xe,xe, -ye,ye
         im.set_extent(extent)
         nax = self.naxis
-        if self.integrate:
-            im.set_clim(0, data.max())
-        else:
-            im.set_clim(0, self.   maxima[self.image_number])
+        im.set_clim(0, data.max())
         #self.ax.set_aspect(ye/xe)
         i = self.pos[nax]
         pixel_size = self.images[self.image_number].pixel_size
