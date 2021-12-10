@@ -1,6 +1,6 @@
 """View 3D raw image files
 
-Usage: viewraw.py [--little-endian]                                     FILES...
+Usage: viewraw.py [--little-endian] [--prune PRUNE]                     FILES...
        viewraw.py --show-header                                         FILES...
        viewraw.py [--assume-header NX NY NZ DX DY DZ] [--little-endian] FILES...
        viewraw.py    [--add-header NX NY NZ DX DY DZ]                   FILES...
@@ -19,6 +19,9 @@ Options:
   --add-header     Add headers to headerless image files. The original files
                    will not be modified. The headers will be added to new
                    files matching the originals with the suffix
+  --prune          Remove this number of components from the start of the
+                   filename path, to shorten what appears in the image title
+                   [default: 0]
 """
 
 import struct
@@ -44,8 +47,9 @@ def image_and_voxel_size(voxel_values, n_voxels, fov_size):
 
 class view:
 
-    def __init__(self, files, *, axis='z', header=None, end='>'):
+    def __init__(self, files, *, axis='z', header=None, end='>', prune=0):
         self.files = files
+        self.pruned_files = tuple(map(prune_path(prune), files))
         self.ts = set('z')
         self.fig, self.ax = plt.subplots()
         if header:
@@ -62,7 +66,7 @@ class view:
         self.maxima = [im.data.max() for im in self.images]
         self.image_number = 0
         self.axis = axis
-        self.integrate = False
+        self.integrate = 0
         shape = self.images[self.image_number].shape
         self.pos = [n // 2 for n in shape] # start off in the middle along each axis
         self.ax.imshow(self.data_to_be_shown())
@@ -74,12 +78,11 @@ class view:
     def data_to_be_shown(self):
         s = [slice(None) for _ in range(3)]
         naxis = self.naxis
-        if not self.integrate:
-            s[naxis] = self.pos[naxis]
+        n, i = self.pos[naxis], self.integrate
+        s[naxis] = slice(n-i, n+i+1)
         image = self.images[self.image_number]
         it = image.data[s[0], s[1], s[2]]
-        if self.integrate:
-            it = it.sum(axis = naxis)
+        it = it.sum(axis = naxis)
         if self.axis in self.ts:
             it = it.transpose()
         it = np.flip(it,0)
@@ -94,7 +97,9 @@ class view:
         if k in 'xyz': self.axis = k
         if k == 't': self.flipT()
         if k in ('right', 'left'): self.switch_image(1 if k == 'right' else -1)
-        if k == 'i': self.integrate = not self.integrate
+        if k == 'i': self.integrate = max(self.integrate - 1, 0)
+        if k == 'I': self.integrate =     self.integrate + 1
+
         if k in 'c0': self.set_slice(0)
         self.update()
 
@@ -121,17 +126,16 @@ class view:
         extent = -xe,xe, -ye,ye
         im.set_extent(extent)
         nax = self.naxis
-        if self.integrate:
-            im.set_clim(0, data.max())
-        else:
-            im.set_clim(0, self.   maxima[self.image_number])
+        im.set_clim(0, data.max())
         #self.ax.set_aspect(ye/xe)
-        i = self.pos[nax]
+        p = self.pos[nax]
         pixel_size = self.images[self.image_number].pixel_size
-        p = 'integrated' if self.integrate else f'{(i + 0.5) * pixel_size[nax] - half_size[nax]:6.1f}'
-        nx,ny,nz = self.voxel_sizes[self.image_number]
-        self.ax.set_title(f'''{self.axis} = {p}        voxel size = {nx:.2} x {ny:.2} x {nz:.2} mm
-        {self.files[self.image_number]}''')
+        pos = (p + 0.5) * pixel_size[nax] - half_size[nax]
+        dx,dy,dz = pixel_size
+        slice_half_width = (1 + 2 * self.integrate) * pixel_size[nax]
+        poslabel =  f'{pos:6.1f} ± {slice_half_width:5.1f} mm'
+        self.ax.set_title(f'''{self.axis} = {poslabel}        voxel size = {dx:.2} x {dy:.2} x {dz:.2} mm
+        {self.pruned_files[self.image_number]}''')
         self.ax.set_xlabel(xl)
         self.ax.set_ylabel(yl)
         self.fig.canvas.draw()
@@ -165,6 +169,10 @@ def add_header(filenames):
         out.write(mm)
         out.write(in_)
 
+def prune_path(N):
+    def prune_path(path):
+        return '/'.join(path.split('/')[N:])
+    return prune_path
 
 if __name__ == '__main__':
     args = docopt(__doc__)
@@ -191,4 +199,5 @@ if __name__ == '__main__':
             print(f'{filename:{longest}}:   {nx} {ny} {nz}   {dx} {dy} {dz}')
         exit(0)
 
-    v = view(filenames, header=header_on_cli, end=endianness)
+    prune = int(args['PRUNE'])
+    v = view(filenames, header=header_on_cli, end=endianness, prune=prune)
