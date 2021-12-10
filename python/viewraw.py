@@ -1,6 +1,6 @@
 """View 3D raw image files
 
-Usage: viewraw.py [--little-endian] [--prune PRUNE]                     FILES...
+Usage: viewraw.py [--prune PRUNE] [--little-endian]                     FILES...
        viewraw.py --show-header                                         FILES...
        viewraw.py [--assume-header NX NY NZ DX DY DZ] [--little-endian] FILES...
        viewraw.py    [--add-header NX NY NZ DX DY DZ] [--little-endian] FILES...
@@ -20,7 +20,7 @@ Options:
   --add-header     Add headers to headerless image files. The original files
                    will not be modified. The headers will be added to new
                    files matching the originals with the suffix
-  --prune          Remove this number of components from the start of the
+  --prune=PRUNE    Remove this number of components from the start of the
                    filename path, to shorten what appears in the image title
                    [default: 0]
 """
@@ -206,5 +206,6 @@ if __name__ == '__main__':
             print(f'{filename:{longest}}:   {nx} {ny} {nz}   {dx} {dy} {dz}')
         exit(0)
 
-    prune = int(args['PRUNE'])
+    print(args)
+    prune = int(args['--prune'])
     v = view(filenames, header=header_on_cli, end=endianness, prune=prune)
