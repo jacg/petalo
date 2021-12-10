@@ -3,7 +3,7 @@
 Usage: viewraw.py [--little-endian] [--prune PRUNE]                     FILES...
        viewraw.py --show-header                                         FILES...
        viewraw.py [--assume-header NX NY NZ DX DY DZ] [--little-endian] FILES...
-       viewraw.py    [--add-header NX NY NZ DX DY DZ]                   FILES...
+       viewraw.py    [--add-header NX NY NZ DX DY DZ] [--little-endian] FILES...
 
 Arguments:
   FILES  3D raw image files to be loaded into viewer
@@ -13,7 +13,8 @@ Options:
                    and physicals size of FOV
   --little-endian  Assume the input files contain little-endian data (rather
                    than big-endian, as guaranteed to be written by the Rust
-                   version of MLEM)
+                   version of MLEM). When used with `--add-header`, produces
+                   a big-endian file.
   --show-header    Show size headers included in self-describing raw 3D image
                    files, without visualizing the file in viewer
   --add-header     Add headers to headerless image files. The original files
@@ -159,7 +160,7 @@ class view:
         return 2 if ax == 'z' else 1 if ax == 'y' else 0
 
 
-def add_header(filenames):
+def add_header(filenames, little_endian=False):
     for name in filenames:
         in_ = open(name     , 'rb').read()
         out = open(name+'_h', 'wb')
@@ -167,7 +168,13 @@ def add_header(filenames):
         mm     = struct.pack('>fff', dx, dy, dz)
         out.write(pixels)
         out.write(mm)
-        out.write(in_)
+        if little_endian:
+            fs = 'f' * (len(in_) // 4)
+            incoming = struct.unpack_from('>' + fs, in_)
+            outgoing = struct.  pack     ('<' + fs, *incoming)
+        else:
+            outgoing = in_
+        out.write(outgoing)
 
 def prune_path(N):
     def prune_path(path):
@@ -189,7 +196,7 @@ if __name__ == '__main__':
         header_on_cli = None
 
     if args['--add-header']:
-        add_header(filenames)
+        add_header(filenames, little_endian=args['--little-endian'])
         exit(0)
 
     if args['--show-header']:
