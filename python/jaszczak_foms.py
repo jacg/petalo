@@ -1,6 +1,5 @@
 import sys
 import subprocess
-from pathlib import Path
 from collections import namedtuple
 from matplotlib import pyplot as plt
 
@@ -18,8 +17,8 @@ def tof_name(tof): return 'tof{:->3}'.format(tof or '')
 def   q_name(q  ): return   'q{:->4}'.format(q   or '')
 def   E_name(E  ): return   'E{:->3}'.format(E   or '')
 
-def generate_dir(kind, lors, mm, tof, q, E):
-    return f'data/jaszczak/{kind}/udlx-s0-r0-b1-vacuum-nosteel-dz1m-noQrz-6/{lors}/LXe{mm}mm/{tof_name(tof)}-{q_name(q)}-{E_name(E)}'
+def generate_dir(lors, mm, tof, q, E):
+    return f'data/jaszczak/imgs/udlx-s0-r0-b1-vacuum-nosteel-dz1m-noQrz-6/{lors}/LXe{mm}mm/{tof_name(tof)}-{q_name(q)}-{E_name(E)}'
 
 runs = ((TRUE, 20, None, None,  434), #  0
         (TRUE, 20,   49, None,  434), #  1
@@ -58,7 +57,7 @@ sphere_diameters = 9.5, 12.7, 15.9, 19.1, 25.4, 31.8
 
 def get_foms(lors, mm, tof, q, E, it):
 
-    directory = generate_dir('imgs', lors, mm, tof, q, E)
+    directory = generate_dir(lors, mm, tof, q, E)
     command = f'cargo run --release --bin foms -- {directory}/{it:02}.raw jaszczak'
     o = subprocess.run(command, shell=True, capture_output=True)
     crcs = {}
@@ -77,19 +76,18 @@ def get_foms(lors, mm, tof, q, E, it):
 
 from contextlib import contextmanager
 @contextmanager
-def dummy(filename):
+def dummy(*args, **kwds):
     yield
 
-for run_spec in runs:
+for run_spec in runs[23:24]:
 
     def write(*args, **kwds):
         print(*args, **kwds, file=sys.stdout)
         print(*args, **kwds, file=outfile)
 
-    directory = generate_dir('foms', *run_spec)
+    directory = generate_dir(*run_spec)
     filename = f'{directory}/foms'
     print(filename)
-    Path(directory).mkdir(parents=True, exist_ok=True)
     with open(filename, 'w') as outfile:
         write('  ', end='')
         ds_header = ''.join(f'{d:7.1f}' for d in sphere_diameters)
@@ -104,11 +102,10 @@ for run_spec in runs:
             crcs, variabilities = tuple(zip(*((crc, var) for (r, (crc, var)) in crcs.items())))
             write(''.join(f'{c:6.1f} ' for c in crcs)         , end='         ')
             write(''.join(f'{v:6.1f} ' for v in variabilities), end='         ')
-            write(''.join(f'{r:6.1f} ' for r in snrs.values()))
+            write(''.join(f'{r:6.1f} ' for r in snrs.values())) # look broken in the Rust implementation of foms
 
-TODO write the foms file back into the directory containing the images, rather than a separate directory
 
-TODO add ability to read foms from generated fom files
+#TODO add ability to read foms from generated fom files
 
 exit(0)
 
