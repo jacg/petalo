@@ -1,7 +1,7 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::utils::{parse_triplet, parse_range, parse_maybe_cutoff, CutoffOption};
+use petalo::utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -62,13 +62,13 @@ pub struct Cli {
     #[structopt(long)]
     pub legacy_input_format: bool,
 
-    /// Ignore events with gamma energy/keV below this value
-    #[structopt(short = "E", long, parse(try_from_str = parse_range::<Energy>))]
-    pub ecut: Option<std::ops::Range<Energy>>,
+    /// Ignore events with gamma energy/keV outside this range
+    #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energy>))]
+    pub ecut: Option<BoundPair<Energy>>,
 
-    /// Ignore events with detected charge/pes below this value
-    #[structopt(short, long, parse(try_from_str = parse_range::<Charge>))]
-    pub qcut: Option<std::ops::Range<Charge>>,
+    /// Ignore events with detected charge/pes outside this range
+    #[structopt(short, long, parse(try_from_str = parse_bounds::<Charge>))]
+    pub qcut: Option<BoundPair<Charge>>,
 
 }
 
@@ -78,7 +78,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::types::{Length, Time, Ratio, Energy, Charge};
+use petalo::types::{Length, Time, Ratio, Energy, Charge, BoundPair};
 use petalo::weights::VoxelBox;
 use petalo::mlem::Image;
 use petalo::io;

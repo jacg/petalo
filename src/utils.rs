@@ -1,7 +1,7 @@
 use std::error::Error;
-use std::ops::Range;
+use std::ops::{Bound, Range};
 
-use crate::types::{Time, Length, Point, Ratio};
+use crate::types::{Time, Length, Point, Ratio, BoundPair};
 use crate::weights::{LOR};
 
 pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {
@@ -14,6 +14,31 @@ pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std:
     Ok(x..y)
 }
 
+pub fn parse_bounds<T: std::str::FromStr>(s: &str) -> Result<BoundPair<T>, <T as std::str::FromStr>::Err> {
+    let v = s.split("..").collect::<Vec<_>>();
+    if v.len() != 2 {
+        panic!("Could not find '..' when parsing range.");
+    }
+
+    Ok((option_to_included(parse_if_not_empty(v[0])?),
+        option_to_excluded(parse_if_not_empty(v[1])?)))
+
+}
+
+fn option_to_included<T>(x: Option<T>) -> Bound<T> {
+    if let Some(y) = x { Bound::Included(y) }
+    else               { Bound::Unbounded }
+}
+
+fn option_to_excluded<T>(x: Option<T>) -> Bound<T> {
+    if let Some(y) = x { Bound::Excluded(y) }
+    else               { Bound::Unbounded }
+}
+
+fn parse_if_not_empty<T: std::str::FromStr>(s: &str) -> Result<Option<T>, <T as std::str::FromStr>::Err> {
+    Ok(if s.len() == 0 { None }
+       else            { Some(s.parse()?) })
+}
 
 #[allow(clippy::many_single_char_names)]
 pub fn parse_triplet<T: std::str::FromStr>(s: &str) -> Result<(T,T,T), <T as std::str::FromStr>::Err> {

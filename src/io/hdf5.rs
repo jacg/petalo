@@ -1,6 +1,7 @@
 /// Read LORs from HDF5 tables
 
 use std::error::Error;
+use std::ops::RangeBounds;
 
 #[derive(Clone)]
 pub struct Args {
@@ -9,13 +10,13 @@ pub struct Args {
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
     pub legacy_input_format: bool,
-    pub ecut: Option<std::ops::Range<Energy>>,
-    pub qcut: Option<std::ops::Range<crate::types::Charge>>,
+    pub ecut: Option<BoundPair<Energy>>,
+    pub qcut: Option<BoundPair<crate::types::Charge>>,
 }
 
 use ndarray::{s, Array1};
 
-use crate::types::{Length, Point, Energy};
+use crate::types::{Length, Point, Energy, BoundPair};
 use crate::weights::LOR;
 type F = Length;
 
