@@ -5,7 +5,7 @@ use petalo::types::{Length, Ratio};
 use petalo::weights::{VoxelBox, LOR};
 use petalo::visualize::{lor_weights, Shape};
 
-use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, CutoffOption};
+use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, parse_bounds, CutoffOption};
 use petalo::io;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let event_range = args.event..args.event+1;
         let                      Cli{ dataset, use_true, legacy_input_format, .. } = args.clone();
         let io_args = io::hdf5::Args{ dataset, use_true, legacy_input_format, input_file,
-                                      ecut: None, qcut: None,
+                                      ecut: parse_bounds("..").unwrap(), qcut: parse_bounds("..").unwrap(),
                                       event_range: Some(event_range) };
         petalo::io::hdf5::read_lors(io_args)?[0]
     } else {

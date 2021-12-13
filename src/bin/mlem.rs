@@ -63,12 +63,12 @@ pub struct Cli {
     pub legacy_input_format: bool,
 
     /// Ignore events with gamma energy/keV outside this range
-    #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energy>))]
-    pub ecut: Option<BoundPair<Energy>>,
+    #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energy>), default_value = "..")]
+    pub ecut: BoundPair<Energy>,
 
     /// Ignore events with detected charge/pes outside this range
-    #[structopt(short, long, parse(try_from_str = parse_bounds::<Charge>))]
-    pub qcut: Option<BoundPair<Charge>>,
+    #[structopt(short, long, parse(try_from_str = parse_bounds::<Charge>), default_value = "..")]
+    pub qcut: BoundPair<Charge>,
 
 }
 

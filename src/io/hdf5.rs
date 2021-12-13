@@ -10,8 +10,8 @@ pub struct Args {
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
     pub legacy_input_format: bool,
-    pub ecut: Option<BoundPair<Energy>>,
-    pub qcut: Option<BoundPair<crate::types::Charge>>,
+    pub ecut: BoundPair<Energy>,
+    pub qcut: BoundPair<crate::types::Charge>,
 }
 
 use ndarray::{s, Array1};
@@ -87,8 +87,8 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
             .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
-                let eok = if let Some(range) = &args.ecut {range.contains(&E1) && range.contains(&E2)} else {true};
-                let qok = if let Some(range) = &args.qcut {range.contains(&q1) && range.contains(&q2)} else {true};
+                let eok = args.ecut.contains(&E1) && args.ecut.contains(&E2);
+                let qok = args.qcut.contains(&q1) && args.qcut.contains(&q2);
                 if eok && qok { true }
                 else { rejected += 1; false }
             })
@@ -110,6 +110,8 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
 #[cfg(test)]
 mod test {
 
+    use crate::utils;
+
     use super::*;
     use assert_approx_eq::assert_approx_eq;
 
@@ -126,8 +128,8 @@ mod test {
             event_range: Some(0..4),
             use_true: false,
             legacy_input_format: true,
-            ecut: None,
-            qcut: None,
+            ecut: utils::parse_bounds("..").unwrap(),
+            qcut: utils::parse_bounds("..").unwrap(),
         };
         let lors = read_lors(args.clone()).unwrap();
         assert_approx_eq!(lors[2].p1.coords.x, -120.7552004817734, 1e-5);
@@ -148,8 +150,8 @@ mod test {
             event_range: Some(0..4),
             use_true: false,
             legacy_input_format: true,
-            ecut: None,
-            qcut: None,
+            ecut: utils::parse_bounds("..").unwrap(),
+            qcut: utils::parse_bounds("..").unwrap(),
         };
 
         let events = read_table::<Event>(&args.input_file, &args.dataset, args.event_range)?;
