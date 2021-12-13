@@ -6,7 +6,9 @@ use crate::weights::{LOR};
 
 pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {
     let v = s.split("..").collect::<Vec<_>>();
-    assert!(v.len() == 2);
+    if v.len() != 2 {
+        panic!("Could not find '..' when parsing range.");
+    }
     let x = v[0].parse()?;
     let y = v[1].parse()?;
     Ok(x..y)
