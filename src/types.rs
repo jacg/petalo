@@ -16,6 +16,8 @@ use ncollide3d as nc;
 pub type Vector = nc::math ::Vector<Length>;
 pub type Point  = nc::math ::Point <Length>;
 
+pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
+
 // TODO: doesn't really belong in `types` ...
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
 pub const C: Length = 0.299_792_458; // mm / ps

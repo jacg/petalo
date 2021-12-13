@@ -1,6 +1,7 @@
 /// Read LORs from HDF5 tables
 
 use std::error::Error;
+use std::ops::RangeBounds;
 
 #[derive(Clone)]
 pub struct Args {
@@ -9,13 +10,13 @@ pub struct Args {
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
     pub legacy_input_format: bool,
-    pub ecut: Option<Energy>,
-    pub qcut: Option<crate::types::Charge>,
+    pub ecut: BoundPair<Energy>,
+    pub qcut: BoundPair<crate::types::Charge>,
 }
 
 use ndarray::{s, Array1};
 
-use crate::types::{Length, Point, Energy};
+use crate::types::{Length, Point, Energy, BoundPair};
 use crate::weights::LOR;
 type F = Length;
 
@@ -86,8 +87,8 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
             .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
-                let eok = if let Some(cut) = args.ecut {E1 > &cut && E2 > &cut} else {true};
-                let qok = if let Some(cut) = args.qcut {q1 > &cut && q2 > &cut} else {true};
+                let eok = args.ecut.contains(&E1) && args.ecut.contains(&E2);
+                let qok = args.qcut.contains(&q1) && args.qcut.contains(&q2);
                 if eok && qok { true }
                 else { rejected += 1; false }
             })
@@ -109,6 +110,8 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
 #[cfg(test)]
 mod test {
 
+    use crate::utils;
+
     use super::*;
     use assert_approx_eq::assert_approx_eq;
 
@@ -125,8 +128,8 @@ mod test {
             event_range: Some(0..4),
             use_true: false,
             legacy_input_format: true,
-            ecut: None,
-            qcut: None,
+            ecut: utils::parse_bounds("..").unwrap(),
+            qcut: utils::parse_bounds("..").unwrap(),
         };
         let lors = read_lors(args.clone()).unwrap();
         assert_approx_eq!(lors[2].p1.coords.x, -120.7552004817734, 1e-5);
@@ -147,8 +150,8 @@ mod test {
             event_range: Some(0..4),
             use_true: false,
             legacy_input_format: true,
-            ecut: None,
-            qcut: None,
+            ecut: utils::parse_bounds("..").unwrap(),
+            qcut: utils::parse_bounds("..").unwrap(),
         };
 
         let events = read_table::<Event>(&args.input_file, &args.dataset, args.event_range)?;
