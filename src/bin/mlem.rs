@@ -63,12 +63,13 @@ pub struct Cli {
     pub legacy_input_format: bool,
 
     /// Ignore events with gamma energy/keV below this value
-    #[structopt(short = "E", long)]
-    pub ecut: Option<Energy>,
+    #[structopt(short = "E", long, parse(try_from_str = parse_range::<Energy>))]
+    pub ecut: Option<std::ops::Range<Energy>>,
 
     /// Ignore events with detected charge/pes below this value
-    #[structopt(short, long)]
-    pub qcut: Option<Charge>,
+    #[structopt(short, long, parse(try_from_str = parse_range::<Charge>))]
+    pub qcut: Option<std::ops::Range<Charge>>,
+
 }
 
 // --------------------------------------------------------------------------------

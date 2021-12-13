@@ -9,8 +9,8 @@ pub struct Args {
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
     pub legacy_input_format: bool,
-    pub ecut: Option<Energy>,
-    pub qcut: Option<crate::types::Charge>,
+    pub ecut: Option<std::ops::Range<Energy>>,
+    pub qcut: Option<std::ops::Range<crate::types::Charge>>,
 }
 
 use ndarray::{s, Array1};
@@ -86,8 +86,8 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
             .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
-                let eok = if let Some(cut) = args.ecut {E1 > &cut && E2 > &cut} else {true};
-                let qok = if let Some(cut) = args.qcut {q1 > &cut && q2 > &cut} else {true};
+                let eok = if let Some(range) = &args.ecut {range.contains(&E1) && range.contains(&E2)} else {true};
+                let qok = if let Some(range) = &args.qcut {range.contains(&q1) && range.contains(&q2)} else {true};
                 if eok && qok { true }
                 else { rejected += 1; false }
             })
