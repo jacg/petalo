@@ -1,9 +1,19 @@
+"""Calculate FOMs for Jaszczak image files in a directory
+
+Usage: jaszczak_foms.py DIR
+
+Arguments:
+  DIR directory containing *NN.raw image files of Jaszczak phantom
+"""
+
 import sys
 import re
 from pathlib import Path
 import subprocess
 from collections import namedtuple
 from matplotlib import pyplot as plt
+from docopt import docopt
+
 
 FOMS = namedtuple('foms', 'crcs, snrs')
 CRC  = namedtuple('crc', 'crc, var')
@@ -77,13 +87,15 @@ from contextlib import contextmanager
 def dummy(*args, **kwds):
     yield
 
+cli_args = docopt(__doc__)
+
 for run_spec in runs[23:24]:
 
     def write(*args, **kwds):
         print(*args, **kwds, file=sys.stdout)
         print(*args, **kwds, file=outfile)
 
-    directory = sys.argv[1]
+    directory = cli_args['DIR']
     print(f'Calculating FOMs for images in {directory}')
     filename = f'{directory}/foms'
     images = sorted(Path(directory).glob('*.raw'))
