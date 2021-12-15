@@ -18,49 +18,8 @@ from docopt import docopt
 FOMS = namedtuple('foms', 'crcs, snrs')
 CRC  = namedtuple('crc', 'crc, var')
 
-iterations = (0, 4, 9, 14, 19, 24, 29)
-iterations = (0, 14, 29)
-#iterations = tuple(range(30))
-
 xxx = dict(true='Truelor', reco='mlor')
 TRUE, RECO = 'Truemlor', 'mlor'
-
-def tof_name(tof): return 'tof{:->3}'.format(tof or '')
-def   q_name(q  ): return   'q{:->4}'.format(q   or '')
-def   E_name(E  ): return   'E{:->3}'.format(E   or '')
-
-runs = ((TRUE, 20, None, None,  434), #  0
-        (TRUE, 20,   49, None,  434), #  1
-        (TRUE, 20,   98, None,  434), #  2
-        (TRUE, 20, None, 1900, None), #  3
-        (TRUE, 20,   49, 1900, None), #  4
-        (TRUE, 20,   98, 1900, None), #  5
-
-        (TRUE, 30, None, None,  434), #  6
-        (TRUE, 30,   62, None,  434), #  7
-        (TRUE, 30,  125, None,  434), #  8
-        (TRUE, 30, None, 1900, None), #  9
-        (TRUE, 30,   62, 1900, None), # 10
-        (TRUE, 30,  125, 1900, None), # 11
-
-        (TRUE, 40, None, None,  434), # 12
-        (TRUE, 40,   79, None,  434), # 13
-        (TRUE, 40,  157, None,  434), # 14
-        (TRUE, 40, None, 1700, None), # 15
-        (TRUE, 40,   79, 1700, None), # 16
-        (TRUE, 40,  157, 1700, None), # 17
-
-        (RECO, 20, None, 1900, None), # 18
-        (RECO, 20,   49, 1900, None), # 19
-        (RECO, 20,   98, 1900, None), # 20
-
-        (RECO, 30, None, 1900, None), # 21
-        (RECO, 30,   62, 1900, None), # 22
-        (RECO, 30,  125, 1900, None), # 23
-
-        (RECO, 40, None, 1700, None), # 24
-        (RECO, 40,   79, 1700, None), # 25
-        (RECO, 40,  157, 1700, None)) # 26
 
 sphere_diameters = 9.5, 12.7, 15.9, 19.1, 25.4, 31.8
 
@@ -89,32 +48,30 @@ def dummy(*args, **kwds):
 
 cli_args = docopt(__doc__)
 
-for run_spec in runs[23:24]:
+def write(*args, **kwds):
+    print(*args, **kwds, file=sys.stdout)
+    print(*args, **kwds, file=outfile)
 
-    def write(*args, **kwds):
-        print(*args, **kwds, file=sys.stdout)
-        print(*args, **kwds, file=outfile)
-
-    directory = cli_args['DIR']
-    print(f'Calculating FOMs for images in {directory}')
-    filename = f'{directory}/foms'
-    images = sorted(Path(directory).glob('*.raw'))
-    print(images)
-    with open(filename, 'w') as outfile:
-        write('  ', end='')
-        ds_header = ''.join(f'{d:7.1f}' for d in sphere_diameters)
-        write(f'{"CRCs":>25}        {"background variabilities":>53}          {"SNRs":>31}', end='\n\n')
-        write(f'  {ds_header}         {ds_header}         {ds_header}')
-        write()
-        for image_file_name in images:
-            iteration = int(re.search(r'.*([0-9]{2}).raw$', str(image_file_name)).group(1))
-            foms = get_foms(image_file_name)
-            crcs, snrs = foms
-            write(f'{iteration+1:2} ', end='')
-            crcs, variabilities = tuple(zip(*((crc, var) for (r, (crc, var)) in crcs.items())))
-            write(''.join(f'{c:6.1f} ' for c in crcs)         , end='         ')
-            write(''.join(f'{v:6.1f} ' for v in variabilities), end='         ')
-            write(''.join(f'{r:6.1f} ' for r in snrs.values())) # look broken in the Rust implementation of foms
+directory = cli_args['DIR']
+print(f'Calculating FOMs for images in {directory}')
+filename = f'{directory}/foms'
+images = sorted(Path(directory).glob('*.raw'))
+print(images)
+with open(filename, 'w') as outfile:
+    write('  ', end='')
+    ds_header = ''.join(f'{d:7.1f}' for d in sphere_diameters)
+    write(f'{"CRCs":>25}        {"background variabilities":>53}          {"SNRs":>31}', end='\n\n')
+    write(f'  {ds_header}         {ds_header}         {ds_header}')
+    write()
+    for image_file_name in images:
+        iteration = int(re.search(r'.*([0-9]{2}).raw$', str(image_file_name)).group(1))
+        foms = get_foms(image_file_name)
+        crcs, snrs = foms
+        write(f'{iteration+1:2} ', end='')
+        crcs, variabilities = tuple(zip(*((crc, var) for (r, (crc, var)) in crcs.items())))
+        write(''.join(f'{c:6.1f} ' for c in crcs)         , end='         ')
+        write(''.join(f'{v:6.1f} ' for v in variabilities), end='         ')
+        write(''.join(f'{r:6.1f} ' for r in snrs.values())) # look broken in the Rust implementation of foms
 
 
 #TODO add ability to read foms from generated fom files
