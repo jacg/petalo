@@ -1,4 +1,6 @@
 import sys
+import re
+from pathlib import Path
 import subprocess
 from collections import namedtuple
 from matplotlib import pyplot as plt
@@ -18,7 +20,9 @@ def   q_name(q  ): return   'q{:->4}'.format(q   or '')
 def   E_name(E  ): return   'E{:->3}'.format(E   or '')
 
 def generate_dir(lors, mm, tof, q, E):
+    return f'data/jaszczak/imgs/udlx-s4-r4-b1-airbody-nosteel-LXemagic-6'
     return f'data/jaszczak/imgs/udlx-s0-r0-b1-vacuum-nosteel-dz1m-noQrz-6/{lors}/LXe{mm}mm/{tof_name(tof)}-{q_name(q)}-{E_name(E)}'
+    return f'primaries-for-foms'
 
 runs = ((TRUE, 20, None, None,  434), #  0
         (TRUE, 20,   49, None,  434), #  1
@@ -55,10 +59,9 @@ runs = ((TRUE, 20, None, None,  434), #  0
 
 sphere_diameters = 9.5, 12.7, 15.9, 19.1, 25.4, 31.8
 
-def get_foms(lors, mm, tof, q, E, it):
+def get_foms(image_file_name):
 
-    directory = generate_dir(lors, mm, tof, q, E)
-    command = f'cargo run --release --bin foms -- {directory}/{it:02}.raw jaszczak'
+    command = f'cargo run --release --bin foms -- {image_file_name} jaszczak'
     o = subprocess.run(command, shell=True, capture_output=True)
     crcs = {}
     snrs = {}
@@ -86,19 +89,21 @@ for run_spec in runs[23:24]:
         print(*args, **kwds, file=outfile)
 
     directory = generate_dir(*run_spec)
+    print(f'Calculating FOMs for images in {directory}')
     filename = f'{directory}/foms'
-    print(filename)
+    images = sorted(Path(directory).glob('*.raw'))
+    print(images)
     with open(filename, 'w') as outfile:
         write('  ', end='')
         ds_header = ''.join(f'{d:7.1f}' for d in sphere_diameters)
         write(f'{"CRCs":>25}        {"background variabilities":>53}          {"SNRs":>31}', end='\n\n')
         write(f'  {ds_header}         {ds_header}         {ds_header}')
         write()
-        for it in range(30):
-            img_spec = run_spec + (it,)
-            foms = get_foms(*img_spec)
+        for image_file_name in images:
+            iteration = int(re.search(r'.*([0-9]{2}).raw$', str(image_file_name)).group(1))
+            foms = get_foms(image_file_name)
             crcs, snrs = foms
-            write(f'{it+1:2} ', end='')
+            write(f'{iteration+1:2} ', end='')
             crcs, variabilities = tuple(zip(*((crc, var) for (r, (crc, var)) in crcs.items())))
             write(''.join(f'{c:6.1f} ' for c in crcs)         , end='         ')
             write(''.join(f'{v:6.1f} ' for v in variabilities), end='         ')
