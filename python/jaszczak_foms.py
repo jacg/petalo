@@ -19,11 +19,6 @@ def tof_name(tof): return 'tof{:->3}'.format(tof or '')
 def   q_name(q  ): return   'q{:->4}'.format(q   or '')
 def   E_name(E  ): return   'E{:->3}'.format(E   or '')
 
-def generate_dir(lors, mm, tof, q, E):
-    return f'data/jaszczak/imgs/udlx-s4-r4-b1-airbody-nosteel-LXemagic-6'
-    return f'data/jaszczak/imgs/udlx-s0-r0-b1-vacuum-nosteel-dz1m-noQrz-6/{lors}/LXe{mm}mm/{tof_name(tof)}-{q_name(q)}-{E_name(E)}'
-    return f'primaries-for-foms'
-
 runs = ((TRUE, 20, None, None,  434), #  0
         (TRUE, 20,   49, None,  434), #  1
         (TRUE, 20,   98, None,  434), #  2
@@ -88,7 +83,7 @@ for run_spec in runs[23:24]:
         print(*args, **kwds, file=sys.stdout)
         print(*args, **kwds, file=outfile)
 
-    directory = generate_dir(*run_spec)
+    directory = sys.argv[1]
     print(f'Calculating FOMs for images in {directory}')
     filename = f'{directory}/foms'
     images = sorted(Path(directory).glob('*.raw'))
