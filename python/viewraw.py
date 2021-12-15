@@ -206,6 +206,5 @@ if __name__ == '__main__':
             print(f'{filename:{longest}}:   {nx} {ny} {nz}   {dx} {dy} {dz}')
         exit(0)
 
-    print(args)
     prune = int(args['--prune'])
     v = view(filenames, header=header_on_cli, end=endianness, prune=prune)
