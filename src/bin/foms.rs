@@ -214,7 +214,7 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
 /// Place FOM sphere in Nth/6 angular position, with given diameter and activity
 fn sphere(from_centre: Length, sphere_position: u16, diameter: Length, activity: Intensity) -> Sphere {
     let r = from_centre; // 114.4 / 2.0; // Radial displacement from centre
-    let radians = std::f32::consts::TAU * sphere_position as f32;
+    let radians = std::f32::consts::TAU * sphere_position as f32 / 6.0;
     Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Length / 2.0, a: activity}
 }
 
@@ -247,6 +247,7 @@ fn contrast_and_variability(sphere: Sphere,
     // Calculate contrast
     let crc = fom::crc(sphere_mean, sphere_activity, bg_mean, bg_activity);
     let snr = 100.0 * (sphere_mean - bg_mean) / sphere_sigma;
+    let snr = if sphere_activity > bg_activity { snr } else { -snr };
     Some(fom::FOM{ r, crc, bg_variability, snr })
 }
 
