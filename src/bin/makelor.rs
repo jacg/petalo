@@ -74,7 +74,7 @@ fn main() -> hdf5::Result<()> {
             |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
                 let vertices = read_vertices(infile)?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
-                Ok((lors_from(&events, lor_from_vertices), events.len()))
+                Ok((lors_from(&events, lor_from_first_vertices), events.len()))
             }),
         Reco::Half{q} => Box::new(
             move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
@@ -133,7 +133,7 @@ fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<Hdf5L
 }
 
 #[allow(nonstandard_style)]
-fn lor_from_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
+fn lor_from_first_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
     let mut in_lxe = vertices.iter().filter(|v| v.volume_id == 0);
     let &Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_lxe.find(|v| v.track_id == 2)?;
     let &Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_lxe.find(|v| v.track_id == 1)?;
