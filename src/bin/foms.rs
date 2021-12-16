@@ -214,7 +214,7 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
 /// Place FOM sphere in Nth/6 angular position, with given diameter and activity
 fn sphere(from_centre: Length, sphere_position: u16, diameter: Length, activity: Intensity) -> Sphere {
     let r = from_centre; // 114.4 / 2.0; // Radial displacement from centre
-    let radians = std::f32::consts::TAU * sphere_position as f32;
+    let radians = std::f32::consts::TAU * sphere_position as f32 / 6.0;
     Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Length / 2.0, a: activity}
 }
 
