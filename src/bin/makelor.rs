@@ -28,7 +28,7 @@ enum Reco {
 
     /// Reconstruct LORs from first vertices in LXe
     #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
-    True,
+    FirstVertex,
 
     /// Reconstruct LORs from clusters found by splitting cylinder in half
     #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -70,7 +70,7 @@ fn main() -> hdf5::Result<()> {
     let mut failed_files = vec![];
 
     let makelors: Box<dyn Fn(&String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>> = match args.reco {
-        Reco::True => Box::new(
+        Reco::FirstVertex => Box::new(
             |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
                 let vertices = read_vertices(infile)?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
