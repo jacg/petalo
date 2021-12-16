@@ -56,7 +56,6 @@ directory = cli_args['DIR']
 print(f'Calculating FOMs for images in {directory}')
 filename = f'{directory}/foms'
 images = sorted(Path(directory).glob('*.raw'))
-print(images)
 with open(filename, 'w') as outfile:
     write('  ', end='')
     ds_header = ''.join(f'{d:7.1f}' for d in sphere_diameters)
