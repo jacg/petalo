@@ -219,7 +219,7 @@ fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolera
 }
 
 fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Time)> {
-    let (x,y,z) = barycentre(hits, xyzs)?;
+    let (x,y,z) = sipm_charge_barycentre(hits, xyzs)?;
     let ts = k_smallest(10, hits.into_iter().map(|h| h.t))?;
     let t = mean(&ts)?;
     //let t = hits.iter().cloned().map(|h| Finite::<f32>::from(h.t0)).min()?.into();
@@ -272,7 +272,7 @@ fn group_into_clusters(hits: &[QT], xyzs: &SensorMap) -> Option<(Vec::<QT>, Vec:
 
 fn dot((x1,y1): (f32, f32), (x2,y2): (f32, f32)) -> f32 { x1*x2 + y1*y2 }
 
-fn barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
+fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
     if hits.len() == 0 { return None }
     let mut qs = 0_f32;
     let mut xx = 0.0;
