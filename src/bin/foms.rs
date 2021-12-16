@@ -247,6 +247,7 @@ fn contrast_and_variability(sphere: Sphere,
     // Calculate contrast
     let crc = fom::crc(sphere_mean, sphere_activity, bg_mean, bg_activity);
     let snr = 100.0 * (sphere_mean - bg_mean) / sphere_sigma;
+    let snr = if sphere_activity > bg_activity { snr } else { -snr };
     Some(fom::FOM{ r, crc, bg_variability, snr })
 }
 
