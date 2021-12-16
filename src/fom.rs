@@ -243,6 +243,7 @@ pub fn sd(data: &[Intensity]) -> Option<Intensity> {
 }
 
 pub fn mu_and_sigma(data: &[Intensity]) -> Option<(Intensity, Intensity)> {
+    print!("   len:  {} ", data.len());
     let mu = mean(data)?;
     let sigma = data.iter().cloned()
         .map(|x| x-mu)
@@ -350,12 +351,15 @@ impl Image {
 /// hotter or colder than the background.
 pub fn crc(roi_measured: Intensity, roi_activity: Intensity,
            bgd_measured: Intensity, bgd_activity: Intensity) -> Ratio {
-    100.0 * if roi_activity > bgd_activity { // hot CRC
+    print!("\nfgm: {:.2}    bgm: {:.2}   fga: {:.2}   bga: {:.2}  -> ", roi_measured, bgd_measured, roi_activity, bgd_activity);
+    let result = 100.0 * if roi_activity > bgd_activity { // hot CRC
         ((roi_measured / bgd_measured) - 1.0) /
         ((roi_activity / bgd_activity) - 1.0)
     } else { // cold CRC
         1.0 - (roi_measured / bgd_measured)
-    }
+    };
+    println!("CRC: {}\n", result);
+    result
 }
 
 #[cfg(test)]

@@ -67,7 +67,8 @@ fn sphere_foms(
     };
 
     let spheres: Vec<_> = sphere_spec.iter()
-        .map(|&(n, d, a)| sphere(sphere_ring_r, n,d,a))
+        .map(|&(n, d, a)| {println!("n: {}", n); sphere(sphere_ring_r, n,d,a)})
+        .map(|s@Sphere {x,y,..}| {println!("x: {:5.1}  y: {:5.1}  ", x, y);  s})
         .collect();
 
     let sphere_rois: Vec<_> = spheres.iter()
@@ -215,6 +216,7 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
 fn sphere(from_centre: Length, sphere_position: u16, diameter: Length, activity: Intensity) -> Sphere {
     let r = from_centre; // 114.4 / 2.0; // Radial displacement from centre
     let radians = std::f32::consts::TAU * sphere_position as f32 / 6.0;
+    println!("n: {} radians: {}  cos: {}", sphere_position, radians, radians.cos());
     Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Length / 2.0, a: activity}
 }
 
@@ -229,7 +231,9 @@ fn contrast_and_variability(sphere: Sphere,
 ) -> Option<fom::FOM> {
     // Inspect single foreground ROI
     let Sphere { x, y, r, a: sphere_activity } = sphere;
+    println!("r: {:5.2}  x: {:5.1}  y: {:5.1}", r, x, y);
     let in_sphere: Vec<_> = fom::in_roi(ROI::DiscZ((x, y, foreground_z), r).contains_fn(), voxels)
+        .map(|(p,v)| {println!("{:5.1} {:5.1} {:5.1}  {:4.0}", p[0], p[1], p[2], v); (p,v)})
         .map(|(_,v)| v)
         .collect();
     let (sphere_mean, sphere_sigma) = fom::mu_and_sigma(&in_sphere)?;
