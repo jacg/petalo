@@ -3,7 +3,7 @@ use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
 use petalo::{io, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
-use petalo::types::{Point, Time, Length};
+use petalo::types::{Point, Time, Length, Energy};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -163,10 +163,10 @@ fn lor_from_barycentre_of_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
         .filter(|v| v.volume_id == 0)
         .partition(|v| v.track_id == 1);
 
-    let (x1, y1, z1, t1) = vertex_barycentre(&a)?;
-    let (x2, y2, z2, t2) = vertex_barycentre(&b)?;
+    let (x1, y1, z1, t1, E1) = vertex_barycentre(&a)?;
+    let (x2, y2, z2, t2, E2) = vertex_barycentre(&b)?;
 
-    let nan = f32::NAN; let q1 = nan; let q2 = nan; let E1 = nan; let E2 = nan;
+    let nan = f32::NAN; let q1 = nan; let q2 = nan;
 
     Some(Hdf5Lor {
         dt: t2 - t1,   x1, y1, z1,   x2, y2, z2,
@@ -321,22 +321,22 @@ fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f3
 }
 
 #[allow(nonstandard_style)]
-fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Time)> {
+fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Time, Energy)> {
     if vertices.len() == 0 { return None }
-    let mut w  = 0_f32;
+    let mut delta_E  = 0_f32;
     let mut xx = 0.0;
     let mut yy = 0.0;
     let mut zz = 0.0;
     let mut tt = 0.0;
     for Vertex { x, y, z, t, pre_KE, post_KE, .. } in vertices {
-        let weight = pre_KE - post_KE;
-        w  +=     weight;
-        xx += x * weight;
-        yy += y * weight;
-        zz += z * weight;
-        tt += t * weight; // TODO figure out what *really* needs to be done here
+        let dE = pre_KE - post_KE;
+        delta_E += dE;
+        xx += x * dE;
+        yy += y * dE;
+        zz += z * dE;
+        tt += t * dE; // TODO figure out what *really* needs to be done here
     };
-    Some((xx / w, yy / w, zz / w, tt / w))
+    Some((xx / delta_E, yy / delta_E, zz / delta_E, tt / delta_E, delta_E))
 }
 
 #[derive(Clone, Debug)]
