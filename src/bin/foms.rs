@@ -178,12 +178,12 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
     let ring_r = 54.0; // displacement of centre of sphere from centre of body
     let sphere_z = 34.0;
     let spheres = vec![ // (position, diameter, activity)
-        (0,  9.5, 0.0),
-        (1, 12.7, 0.0),
-        (2, 15.9, 0.0),
-        (3, 19.1, 0.0),
-        (4, 25.4, 0.0),
-        (5, 31.8, 0.0),
+        (0,  9.5, 4.0),
+        (1, 12.7, 4.0),
+        (2, 15.9, 4.0),
+        (3, 19.1, 4.0),
+        (4, 25.4, 4.0),
+        (5, 31.8, 4.0),
     ];
 
     // x-y centres of the background ROIs
