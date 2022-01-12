@@ -3,7 +3,7 @@ use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
 use petalo::{io, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
-use petalo::types::{Point, Time};
+use petalo::types::{Point, Time, Length, Energy};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -28,7 +28,11 @@ enum Reco {
 
     /// Reconstruct LORs from first vertices in LXe
     #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
-    True,
+    FirstVertex,
+
+    /// Reconstruct LORs from barycentre of vertices in LXe
+    #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+    BaryVertex,
 
     /// Reconstruct LORs from clusters found by splitting cylinder in half
     #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -70,18 +74,27 @@ fn main() -> hdf5::Result<()> {
     let mut failed_files = vec![];
 
     let makelors: Box<dyn Fn(&String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>> = match args.reco {
-        Reco::True => Box::new(
+        Reco::FirstVertex => Box::new(
             |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
                 let vertices = read_vertices(infile)?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
-                Ok((lors_from(&events, lor_from_vertices), events.len()))
+                Ok((lors_from(&events, lor_from_first_vertices), events.len()))
             }),
+
+        Reco::BaryVertex => Box::new(
+            |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+                let vertices = read_vertices(infile)?;
+                let events = group_by(|v| v.event_id, vertices.into_iter());
+                Ok((lors_from(&events, lor_from_barycentre_of_vertices), events.len()))
+            }),
+
         Reco::Half{q} => Box::new(
             move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
                 let qts = read_qts(infile)?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
                 Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
             }),
+
         Reco::Dbscan { q, min_count, max_distance } => Box::new(
             move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
                 let qts = read_qts(infile)?;
@@ -133,13 +146,31 @@ fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<Hdf5L
 }
 
 #[allow(nonstandard_style)]
-fn lor_from_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
+fn lor_from_first_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
     let mut in_lxe = vertices.iter().filter(|v| v.volume_id == 0);
     let &Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_lxe.find(|v| v.track_id == 2)?;
     let &Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_lxe.find(|v| v.track_id == 1)?;
     Some(Hdf5Lor {
         dt: t2 - t1,                   x1, y1, z1,   x2, y2, z2,
         q1: f32::NAN, q2: f32::NAN,        E1,           E2,
+    })
+}
+
+#[allow(nonstandard_style)]
+fn lor_from_barycentre_of_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
+    let (a,b): (Vec<_>, Vec<_>) = vertices
+        .iter()
+        .filter(|v| v.volume_id == 0)
+        .partition(|v| v.track_id == 1);
+
+    let (x1, y1, z1, t1, E1) = vertex_barycentre(&a)?;
+    let (x2, y2, z2, t2, E2) = vertex_barycentre(&b)?;
+
+    let nan = f32::NAN; let q1 = nan; let q2 = nan;
+
+    Some(Hdf5Lor {
+        dt: t2 - t1,   x1, y1, z1,   x2, y2, z2,
+        q1, q2, E1, E2,
     })
 }
 
@@ -219,7 +250,7 @@ fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolera
 }
 
 fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Time)> {
-    let (x,y,z) = barycentre(hits, xyzs)?;
+    let (x,y,z) = sipm_charge_barycentre(hits, xyzs)?;
     let ts = k_smallest(10, hits.into_iter().map(|h| h.t))?;
     let t = mean(&ts)?;
     //let t = hits.iter().cloned().map(|h| Finite::<f32>::from(h.t0)).min()?.into();
@@ -272,7 +303,7 @@ fn group_into_clusters(hits: &[QT], xyzs: &SensorMap) -> Option<(Vec::<QT>, Vec:
 
 fn dot((x1,y1): (f32, f32), (x2,y2): (f32, f32)) -> f32 { x1*x2 + y1*y2 }
 
-fn barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
+fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
     if hits.len() == 0 { return None }
     let mut qs = 0_f32;
     let mut xx = 0.0;
@@ -287,6 +318,25 @@ fn barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
         zz += z * q;
     }
     Some((xx / qs, yy / qs, zz / qs))
+}
+
+#[allow(nonstandard_style)]
+fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Time, Energy)> {
+    if vertices.len() == 0 { return None }
+    let mut delta_E  = 0_f32;
+    let mut xx = 0.0;
+    let mut yy = 0.0;
+    let mut zz = 0.0;
+    let mut tt = 0.0;
+    for Vertex { x, y, z, t, pre_KE, post_KE, .. } in vertices {
+        let dE = pre_KE - post_KE;
+        delta_E += dE;
+        xx += x * dE;
+        yy += y * dE;
+        zz += z * dE;
+        tt += t * dE; // TODO figure out what *really* needs to be done here
+    };
+    Some((xx / delta_E, yy / delta_E, zz / delta_E, tt / delta_E, delta_E))
 }
 
 #[derive(Clone, Debug)]
