@@ -25,9 +25,9 @@ let
   rust-tcfile  = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain;
 
   rust-latest  = pkgs.rust-bin.stable .latest      .default;
-  rust-beta    = pkgs.rust-bin.beta   ."2021-11-28".default;
-  rust-nightly = pkgs.rust-bin.nightly."2021-11-28".default;
-  rust-stable  = pkgs.rust-bin.stable ."1.56.1"    .default;
+  rust-beta    = pkgs.rust-bin.beta   ."2022-01-11".default;
+  rust-nightly = pkgs.rust-bin.nightly."2022-01-11".default;
+  rust-stable  = pkgs.rust-bin.stable ."1.57.0"    .default;
 
   # Rust system to be used in buldiInputs. Choose between
   # latest/beta/nightly/stable on the next line
