@@ -34,7 +34,7 @@ pub struct Cli {
     pub out_files: Option<String>,
 
     /// LORs to read in
-    #[structopt(short = "f", long, default_value = "data/in/full_body_phantom_reco_combined.h5")]
+    #[structopt(short = "f", long, default_value = "MC.h5")]
     pub input_file: String, // TODO replace String with PathBuf here and wherever else appropriate
 
     /// The dataset location inside the input file
