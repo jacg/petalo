@@ -218,6 +218,9 @@ fn read_density_image(args: &Cli) -> Result<Option<Image>, Box<dyn Error>>{
     }
 }
 
+/// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
+/// with length and diameter specified in Cli and passing through the FOV
+/// specified in Cli.
 fn find_potential_lors(args: &Cli) -> Vec<petalo::weights::LOR> {
     let n_lors = args.n_sensitivity_lors;
     let mut lors = Vec::with_capacity(n_lors);
