@@ -46,7 +46,7 @@ pub struct Cli {
     pub event_range: Option<std::ops::Range<usize>>,
 
     /// Density image to be used for corrections
-    #[structopt(short, long)]
+    #[structopt(long)]
     pub density_image: Option<PathBuf>,
 
     /// Detector length for attenuation correction
