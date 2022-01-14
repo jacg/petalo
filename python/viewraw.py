@@ -70,7 +70,7 @@ class view:
         self.integrate = 0
         shape = self.images[self.image_number].shape
         self.pos = [n // 2 for n in shape] # start off in the middle along each axis
-        self.ax.imshow(self.data_to_be_shown())
+        self.ax.imshow(self.data_to_be_shown(), cmap='hot')
         self.aximage = self.ax.images[0]
         self.fig.canvas.mpl_connect('key_press_event', self.process_key)
         self.update()
