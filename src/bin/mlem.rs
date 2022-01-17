@@ -1,8 +1,8 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption,
-                    group_digits};
+use petalo::{io::raw::Image3D, utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption,
+                    group_digits}};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -141,7 +141,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let sensitivity_image = density_image.map(|d| {
         let potential_lors = find_potential_lors(&args);
-        report_time(&format!("Generated {} LORs for sensitivity image construction", args.n_sensitivity_lors));
+        report_time(&format!("Generated {} LORs for sensitivity image construction",
+                             group_digits(args.n_sensitivity_lors)));
         let sensitivity_image = Image::sensitivity_image(vbox, Some(d), &potential_lors);
         report_time("Turned density image into sensitivity image");
         let inverted = sensitivity_image.inverted();
