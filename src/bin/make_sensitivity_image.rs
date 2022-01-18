@@ -61,6 +61,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time("done");
 
     pre_report("Creating sensitivity image ... ")?;
+    // TODO parallelize
+    // TODO try to do it without holding all LORs in memory at once (good image uses > 25G RAM!)
     let sensitivity = mlem::Image::sensitivity_image(density.vbox, density, &lors);
     report_time("done");
 

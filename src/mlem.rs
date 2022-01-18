@@ -116,8 +116,22 @@ impl Image {
                         tof_peak, &notof
                     );
 
+                    // Remove problematic elements TODO: find out why they appear in the first place
+                    let mut clean_weights = Vec::with_capacity(weights.len());
+                    let mut clean_indices = Vec::with_capacity(weights.len());
+
+                    for (w, i) in weights.iter().zip(&indices) {
+                        if *i < image.len() {
+                            clean_weights.push(*w);
+                            clean_indices.push(*i);
+                        }
+                    }
+
+                    let integral = forward_project(&clean_weights, &clean_indices, &attenuation) / 100000.0; // TODO what should this fiddle factor be?
+                    let attenuation_factor = (-integral).exp();
+                    //println!("{}  ---  {}", integral, attenuation_factor);
                     // Backprojection of LOR onto image
-                    back_project_attenuation(&mut image, &weights, &indices, &attenuation.data);
+                    back_project(&mut image, &clean_weights, &clean_indices, attenuation_factor);
                 }
             }
         }
@@ -279,19 +293,6 @@ fn back_project(backprojection: &mut Vec<Length>, weights: &[Length], indices: &
     let projection_reciprocal = 1.0 / projection;
     for (w, j) in weights.iter().zip(indices.iter()) {
         backprojection[*j] += w * projection_reciprocal;
-    }
-}
-
-#[inline]
-fn back_project_attenuation(backprojection: &mut Vec<Length>, weights: &[Length], indices: &[usize], attenuation: &[Length]) {
-    static mut COUNT: usize = 0;
-    for (w, j) in weights.iter().zip(indices.iter()) {
-        if *j >= attenuation.len() {
-            unsafe {COUNT += 1};
-            println!("Index out of bounds {}", unsafe{COUNT});
-            continue
-        }
-        backprojection[*j] += w * attenuation[*j];
     }
 }
 
