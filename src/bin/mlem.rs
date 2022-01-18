@@ -1,8 +1,8 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::{io::raw::Image3D, utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption,
-                    group_digits}};
+use petalo::{utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption,
+                     group_digits}};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -45,21 +45,9 @@ pub struct Cli {
     #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
     pub event_range: Option<std::ops::Range<usize>>,
 
-    /// Density image to be used for corrections
+    /// Sensitivity image to be used for corrections
     #[structopt(long)]
-    pub density_image: Option<PathBuf>,
-
-    /// Detector length for attenuation correction
-    #[structopt(long, default_value = "1000")]
-    pub detector_length: F,
-
-    /// Detector diameter for attenuation correction
-    #[structopt(long, default_value = "710")]
-    pub detector_diameter: F,
-
-    /// Number of random LORs to use in sensitivity image generation
-    #[structopt(long, default_value = "5000000")]
-    pub n_sensitivity_lors: usize,
+    pub sensitivity_image: Option<PathBuf>,
 
     #[cfg(feature = "ccmlem")]
     /// Use the C version of the MLEM algorithm
@@ -102,7 +90,6 @@ use petalo::io;
 
 type F = Length;
 
-
 fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
@@ -116,7 +103,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         now = Instant::now();
     };
 
-    let density_image = read_density_image(&args)?;
     report_time("Startup");
 
     // Read event data from disk into memory
@@ -136,25 +122,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // If the directory where results will be written does not exist yet, make it
     create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
 
-    // TODO Add option to reuse stored sensitivity image?
-    // Calculate the sensitivity image, if required
-
-    let sensitivity_image = density_image.map(|d| {
-        let potential_lors = find_potential_lors(&args);
-        report_time(&format!("Generated {} LORs for sensitivity image construction",
-                             group_digits(args.n_sensitivity_lors)));
-        let sensitivity_image = Image::sensitivity_image(vbox, Some(d), &potential_lors);
-        report_time("Turned density image into sensitivity image");
-        let inverted = sensitivity_image.inverted();
-        report_time("Inverted sensitivity image");
-        let path  = std::path::PathBuf::from("sensitivity.raw");
-        let pathi = std::path::PathBuf::from("sensitivity-inverted.raw");
-        petalo::io::raw::Image3D::from(&sensitivity_image).write_to_file(&path ).unwrap();
-        petalo::io::raw::Image3D::from(&inverted         ).write_to_file(&pathi).unwrap();
-        report_time(&format!("Wrote sensitivity images '{}' and '{}'",
-                             path.display(), pathi.display()));
-        sensitivity_image
-    });
+    let sensitivity_image: Option<Image> = args.sensitivity_image.as_ref().map(|path| Image::from_raw_file(path)).transpose()?;
+    sensitivity_image.as_ref().map(|i| assert_image_sizes_match(i, args.nvoxels, args.size));
+    if sensitivity_image.is_some() { report_time("Loaded sensitivity image"); }
 
     // Perform MLEM iterations
     #[cfg    (feature = "ccmlem") ] let use_c = args.use_c;
@@ -197,54 +167,25 @@ fn guess_filename(args: &Cli) -> String {
     }
 }
 
-fn read_density_image(args: &Cli) -> Result<Option<Image>, Box<dyn Error>>{
-    match &args.density_image {
-        Some(path) => {
-            use io::raw::Image3D;
-            let Image3D { pixels: [anx, any, anz], mm: [adx,ady,adz], data} = Image3D::read_from_file(path)?;
-            let [anx, any, anz]: [usize; 3] = [anx.into(), any.into(), anz.into()];
-            let (onx, ony, onz) = args.nvoxels;
-            let (odx, ody, odz) = args.size;
-            if ! ((onx, ony, onz) == (anx, any, anz) && (odx, ody, odz) == (adx, ady, adz)) {
-                // TODO enable use of density images with different
-                // pixelizations as long as they cover the whole FOV.
-                println!("Mismatch between density image and output image size:");
-                println!("Attenuation image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", anx,any,anz, adx,ady,adz);
-                println!("     Output image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", onx,ony,onz, odx,ody,odz);
-                panic!("For now, the density image must match the dimensions of the output image exactly.");
-            }
-            Ok(Some(Image::new(VoxelBox::new((adx,ady,adz), (anx,any,anz)), data)))
-        }
-        None => Ok(None),
-    }
-}
 
-/// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
-/// with length and diameter specified in Cli and passing through the FOV
-/// specified in Cli.
-fn find_potential_lors(args: &Cli) -> Vec<petalo::weights::LOR> {
-    let n_lors = args.n_sensitivity_lors;
-    let mut lors = Vec::with_capacity(n_lors);
-    let (l,r) = (args.detector_length, args.detector_diameter / 2.0);
-    let fov = VoxelBox::new(args.size, args.nvoxels);
-    while lors.len() < n_lors {
-        let p1 = random_point_on_cylinder(l,r);
-        let p2 = random_point_on_cylinder(l,r);
-        if let Some(_) = fov.entry(&p1, &p2) {
-            lors.push(petalo::weights::LOR::new(0.0, 0.0, p1, p2))
-        }
-    }
-    lors
-}
+type FovSize = (Length, Length, Length);
+type NVoxels = (usize , usize , usize );
 
-fn random_point_on_cylinder(l: F, r: F) -> petalo::types::Point {
-    use std::f32::consts::TAU;
-    use rand::random;
-    let z     = l   * (random::<F>() - 0.5);
-    let theta = TAU *  random::<F>();
-    let x = r * theta.cos();
-    let y = r * theta.sin();
-    petalo::types::Point::new(x, y, z)
+/// Panic if the image size does not match the specified values
+fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) {
+    let size = image.vbox.half_width;
+    let (idx, idy, idz) = (size[0]*2.0, size[1]*2.0, size[2]*2.0);
+    let [inx, iny, inz] = image.vbox.n;
+    let (enx, eny, enz) = nvoxels;
+    let (edx, edy, edz) = fov_size;
+    if ! ((enx, eny, enz) == (inx, iny, inz) && (edx, edy, edz) == (idx, idy, idz)) {
+        // TODO enable use of density images with different
+        // pixelizations as long as they cover the whole FOV.
+        println!("Mismatch sensitivity image and output image size:");
+        println!("Sensitivity image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", inx,iny,inz, idx,idy,idz);
+        println!("     Output image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", enx,eny,enz, edx,edy,edz);
+        panic!("For now, the sensitivity image must match the dimensions of the output image exactly.");
+    }
 }
 
 // ---- Use the original tofpet3d libmlem (C version), instead of our own Rust version ---

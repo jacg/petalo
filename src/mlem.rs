@@ -3,7 +3,7 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::types::{Length, Time, Ratio, Index1, Index3, Intensity};
+use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
 use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR};
 use crate::gauss::make_gauss_option;
 
@@ -64,15 +64,23 @@ impl Image {
         })
     }
 
+    pub fn from_raw_file(path: &PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
+        Ok((&crate::io::raw::Image3D::read_from_file(path)?).into())
+    }
+
+    pub fn write_to_raw_file(&self, path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+        io::raw::Image3D::from(self).write_to_file(path)?;
+        Ok(())
+    }
+
     // Too much copy-paste code reuse from project_one_lor. This is because the
     // latter (and the functions it uses) was heavily optimized, at the cost of
     // ease of reuse.
 
+    // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(vbox: VoxelBox, density: Option<Self>, lors: &[LOR]) -> Self {
-        match density {
-            Some(density) => {
+    pub fn sensitivity_image(vbox: VoxelBox, density: Self, lors: &[LOR]) -> Self {
                 let a = &vbox;
                 let b = &density.vbox;
                 if a.n != b.n || a.half_width != b.half_width {
@@ -118,9 +126,6 @@ impl Image {
                 let l = image.len() as f32;
                 for e in image.iter_mut() { *e /= l }
                 Self::new(vbox, image)
-            }
-            None => { Self::ones(vbox) }
-        }
     }
 
     fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
@@ -279,7 +284,13 @@ fn back_project(backprojection: &mut Vec<Length>, weights: &[Length], indices: &
 
 #[inline]
 fn back_project_attenuation(backprojection: &mut Vec<Length>, weights: &[Length], indices: &[usize], attenuation: &[Length]) {
+    static mut COUNT: usize = 0;
     for (w, j) in weights.iter().zip(indices.iter()) {
+        if *j >= attenuation.len() {
+            unsafe {COUNT += 1};
+            println!("Index out of bounds {}", unsafe{COUNT});
+            continue
+        }
         backprojection[*j] += w * attenuation[*j];
     }
 }
@@ -296,7 +307,7 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Length], sen
 // --------------------------------------------------------------------------------
 //                  Conversion between 1d and 3d indices
 
-use std::ops::{Add, Div, Mul, Rem};
+use std::{ops::{Add, Div, Mul, Rem}, path::PathBuf};
 
 pub fn index3_to_1<T>([ix, iy, iz]: [T; 3], [nx, ny, _nz]: [T; 3]) -> T
 where
