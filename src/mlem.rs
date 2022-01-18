@@ -81,51 +81,51 @@ impl Image {
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
     pub fn sensitivity_image(vbox: VoxelBox, density: Self, lors: &[LOR]) -> Self {
-                let a = &vbox;
-                let b = &density.vbox;
-                if a.n != b.n || a.half_width != b.half_width {
-                    panic!("For now, attenuation and output image dimensions must match exactly.")
+        let a = &vbox;
+        let b = &density.vbox;
+        if a.n != b.n || a.half_width != b.half_width {
+            panic!("For now, attenuation and output image dimensions must match exactly.")
+        }
+        // TODO convert from density to attenuation coefficient
+        let attenuation = density;
+        let (mut image, mut weights, mut indices) = projection_buffers(vbox);
+
+        // TOF should not be used as LOR attenuation is independent of decay point
+        let notof = make_gauss_option(None, None);
+
+        for lor in lors {
+            // Find active voxels (slice of system matrix) WITHOUT TOF
+            // Analyse point where LOR hits voxel box
+            match lor_vbox_hit(lor, vbox) {
+
+                // LOR missed voxel box: nothing to be done
+                None => continue,
+
+                // Data needed by `find_active_voxels`
+                Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+
+                    // Throw away previous LOR's values
+                    weights.clear();
+                    indices.clear();
+
+                    // Find active voxels and their weights
+                    find_active_voxels(
+                        &mut indices, &mut weights,
+                        next_boundary, voxel_size,
+                        index, delta_index, remaining,
+                        tof_peak, &notof
+                    );
+
+                    // Backprojection of LOR onto image
+                    back_project_attenuation(&mut image, &weights, &indices, &attenuation.data);
                 }
-                // TODO convert from density to attenuation coefficient
-                let attenuation = density;
-                let (mut image, mut weights, mut indices) = projection_buffers(vbox);
-
-                // TOF should not be used as LOR attenuation is independent of decay point
-                let notof = make_gauss_option(None, None);
-
-                for lor in lors {
-                    // Find active voxels (slice of system matrix) WITHOUT TOF
-                    // Analyse point where LOR hits voxel box
-                    match lor_vbox_hit(lor, vbox) {
-
-                        // LOR missed voxel box: nothing to be done
-                        None => continue,
-
-                        // Data needed by `find_active_voxels`
-                        Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
-
-                            // Throw away previous LOR's values
-                            weights.clear();
-                            indices.clear();
-
-                            // Find active voxels and their weights
-                            find_active_voxels(
-                                &mut indices, &mut weights,
-                                next_boundary, voxel_size,
-                                index, delta_index, remaining,
-                                tof_peak, &notof
-                            );
-
-                            // Backprojection of LOR onto image
-                            back_project_attenuation(&mut image, &weights, &indices, &attenuation.data);
-                        }
-                    }
-                }
-                // TODO this keeps the reconstructed activities nearish to 1 but
-                // it's not correct.
-                let l = image.len() as f32;
-                for e in image.iter_mut() { *e /= l }
-                Self::new(vbox, image)
+            }
+        }
+        // TODO this keeps the reconstructed activities nearish to 1 but
+        // it's not correct.
+        let l = image.len() as f32;
+        for e in image.iter_mut() { *e /= l }
+        Self::new(vbox, image)
     }
 
     fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
