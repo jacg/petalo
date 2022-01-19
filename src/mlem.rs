@@ -93,7 +93,7 @@ impl Image {
         // TOF should not be used as LOR attenuation is independent of decay point
         let notof = make_gauss_option(None, None);
 
-        for lor in lors {
+        'lor: for lor in lors {
             // Find active voxels (slice of system matrix) WITHOUT TOF
             // Analyse point where LOR hits voxel box
             match lor_vbox_hit(lor, vbox) {
@@ -116,22 +116,16 @@ impl Image {
                         tof_peak, &notof
                     );
 
-                    // Remove problematic elements TODO: find out why they appear in the first place
-                    let mut clean_weights = Vec::with_capacity(weights.len());
-                    let mut clean_indices = Vec::with_capacity(weights.len());
-
-                    for (w, i) in weights.iter().zip(&indices) {
-                        if *i < image.len() {
-                            clean_weights.push(*w);
-                            clean_indices.push(*i);
-                        }
+                    // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
+                    for i in &indices {
+                        if *i >= image.len() { continue 'lor; }
                     }
 
-                    let integral = forward_project(&clean_weights, &clean_indices, &attenuation) / 100000.0; // TODO what should this fiddle factor be?
+                    let integral = forward_project(&weights, &indices, &attenuation) / 100000.0; // TODO what should this fiddle factor be?
                     let attenuation_factor = (-integral).exp();
-                    //println!("{}  ---  {}", integral, attenuation_factor);
+
                     // Backprojection of LOR onto image
-                    back_project(&mut image, &clean_weights, &clean_indices, attenuation_factor);
+                    back_project(&mut image, &weights, &indices, attenuation_factor);
                 }
             }
         }
