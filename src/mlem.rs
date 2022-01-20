@@ -80,7 +80,7 @@ impl Image {
     // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(vbox: VoxelBox, density: Self, lors: &[LOR]) -> Self {
+    pub fn sensitivity_image(vbox: VoxelBox, density: Self, lors: &[LOR], stradivarius: f32) -> Self {
         let a = &vbox;
         let b = &density.vbox;
         if a.n != b.n || a.half_width != b.half_width {
@@ -121,18 +121,15 @@ impl Image {
                         if *i >= image.len() { continue 'lor; }
                     }
 
-                    let integral = forward_project(&weights, &indices, &attenuation) / 100000.0; // TODO what should this fiddle factor be?
+                    let integral = forward_project(&weights, &indices, &attenuation) / stradivarius;
                     let attenuation_factor = (-integral).exp();
-
+                    //println!("{:<8.2e}  ---  {:<8.2e}", integral, attenuation_factor);
                     // Backprojection of LOR onto image
                     back_project(&mut image, &weights, &indices, attenuation_factor);
                 }
             }
         }
-        // TODO this keeps the reconstructed activities nearish to 1 but
-        // it's not correct.
-        let l = image.len() as f32;
-        for e in image.iter_mut() { *e /= l }
+
         Self::new(vbox, image)
     }
 

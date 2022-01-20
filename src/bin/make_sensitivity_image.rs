@@ -24,6 +24,10 @@ pub struct Cli {
     #[structopt(long, short="n", default_value = "5000000")]
     pub n_lors: usize,
 
+    /// Attenuation fiddle factor
+    #[structopt(long)]
+    pub rho: Length,
+
 }
 
 use structopt::StructOpt;
@@ -35,7 +39,7 @@ use petalo::{mlem, utils::group_digits, weights::VoxelBox, types::Length};
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let Cli{ input, output, detector_length, detector_diameter, n_lors } = Cli::from_args();
+    let Cli{ input, output, detector_length, detector_diameter, n_lors, rho } = Cli::from_args();
 
     // Set up progress reporting and timing
     use std::time::Instant;
@@ -63,7 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     pre_report("Creating sensitivity image ... ")?;
     // TODO parallelize
     // TODO try to do it without holding all LORs in memory at once (good image uses > 25G RAM!)
-    let sensitivity = mlem::Image::sensitivity_image(density.vbox, density, &lors);
+    let sensitivity = mlem::Image::sensitivity_image(density.vbox, density, &lors, rho);
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
