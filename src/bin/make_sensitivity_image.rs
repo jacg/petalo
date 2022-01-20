@@ -67,6 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
+    std::fs::create_dir_all(PathBuf::from(&outfile).parent().unwrap())?; // TODO turn into utility with cleaner interface
     sensitivity.write_to_raw_file(&outfile)?;
     report_time(&format!("Wrote sensitivity image to {:?}", outfile));
     Ok(())
