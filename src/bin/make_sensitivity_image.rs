@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let density = mlem::Image::from_raw_file(&input)?;
     report_time(&format!("Read density image {:?}", input));
 
-    pre_report(&format!("Generating {} LORs for sensitivity image backprojection ... ", group_digits(n_lors)))?;
+    pre_report(&format!("Generating {} LORs for sensitivity image projections ... ", group_digits(n_lors)))?;
     let lors = find_potential_lors(n_lors, density.vbox, detector_length, detector_diameter);
     report_time("done");
 
