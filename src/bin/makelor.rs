@@ -4,6 +4,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use petalo::{io, weights::LOR};
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::types::{Point, Time, Length, Energy};
+use petalo::utils::group_digits;
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -114,7 +115,7 @@ fn main() -> hdf5::Result<()> {
     for infile in args.infiles {
         // TODO message doesn't appear until end of iteration
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
-                                     infile.clone(), lors.len(), n_events,
+                                     infile.clone(), group_digits(lors.len()), group_digits(n_events),
                                      if n_events > 0 {100 * lors.len() / n_events} else {0}));
         if let Ok((new_lors, envlen)) = makelors(&infile) {
             n_events += envlen;
@@ -124,7 +125,7 @@ fn main() -> hdf5::Result<()> {
 
     }
     files_pb.finish_with_message("<finished processing files>");
-    println!("{} / {} ({}%) events produced LORs", lors.len(), n_events,
+    println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
              100 * lors.len() / n_events);
     // --- write lors to hdf5 --------------------------------------------------------
     println!("Writing LORs to {}", args.out);
