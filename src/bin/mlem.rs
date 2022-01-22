@@ -1,7 +1,8 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption};
+use petalo::utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption,
+                    group_digits};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -95,7 +96,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut now = Instant::now();
 
     let mut report_time = |message: &str| {
-        println!("{}: {} ms", message, now.elapsed().as_millis());
+        println!("{}: {} ms", message, group_digits(now.elapsed().as_millis()));
         now = Instant::now();
     };
 

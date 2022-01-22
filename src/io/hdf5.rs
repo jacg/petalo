@@ -102,7 +102,8 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
     };
     let used = it.len();
     let used_pct = 100 * used / (used + rejected);
-    println!("Using {} LORs (rejected {}, kept {}%)", used, rejected, used_pct);
+    use crate::utils::group_digits as g;
+    println!("Using {} LORs (rejected {}, kept {}%)", g(used), g(rejected), used_pct);
     Ok(it)
 }
 

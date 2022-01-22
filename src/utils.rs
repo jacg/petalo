@@ -77,3 +77,10 @@ pub type CutoffOption<T> = Option<T>;
 pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<Ratio>, std::num::ParseFloatError> {
     Ok(if s == "no" { None } else { Some(s.parse()?) })
 }
+
+
+/// Group numeric digits to facilitate reading long numbers
+pub fn group_digits<F: num_format::ToFormattedString>(n: F) -> String {
+    use num_format::{Locale};
+    n.to_formatted_string(&Locale::en)
+}
