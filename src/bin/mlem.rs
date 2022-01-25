@@ -1,8 +1,8 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption,
-                    group_digits};
+use petalo::{utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption,
+                     group_digits}};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -34,8 +34,8 @@ pub struct Cli {
     pub out_files: Option<String>,
 
     /// LORs to read in
-    #[structopt(short = "f", long, default_value = "data/in/full_body_phantom_reco_combined.h5")]
-    pub input_file: String,
+    #[structopt(short = "f", long, default_value = "MC.h5")]
+    pub input_file: String, // TODO replace String with PathBuf here and wherever else appropriate
 
     /// The dataset location inside the input file
     #[structopt(short, long, default_value = "reco_info/lors")]
@@ -44,6 +44,10 @@ pub struct Cli {
     /// Which rows of the input file should be loaded
     #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
     pub event_range: Option<std::ops::Range<usize>>,
+
+    /// Sensitivity image to be used for corrections
+    #[structopt(long)]
+    pub sensitivity_image: Option<PathBuf>,
 
     #[cfg(feature = "ccmlem")]
     /// Use the C version of the MLEM algorithm
@@ -86,7 +90,6 @@ use petalo::io;
 
 type F = Length;
 
-
 fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
@@ -100,6 +103,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         now = Instant::now();
     };
 
+    report_time("Startup");
+
     // Read event data from disk into memory
     let                      Cli{ input_file, dataset, event_range, use_true, legacy_input_format,
                                   ecut, qcut, .. } = args.clone();
@@ -109,15 +114,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     let measured_lors = io::hdf5::read_lors(io_args)?;
     report_time("Loaded LOR data from disk");
 
-    // Define extent and granularity of voxels
+    // Define field of view extent and voxelization
     let vbox = VoxelBox::new(args.size, args.nvoxels);
-    // TODO: sensitivity matrix, all ones for now
-    let sensitivity_matrix = Image::ones(vbox).data;
 
     let file_pattern = guess_filename(&args);
 
     // If the directory where results will be written does not exist yet, make it
     create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
+
+    let sensitivity_image: Option<Image> = args.sensitivity_image.as_ref().map(|path| Image::from_raw_file(path)).transpose()?;
+    sensitivity_image.as_ref().map(|i| assert_image_sizes_match(i, args.nvoxels, args.size));
+    if sensitivity_image.is_some() { report_time("Loaded sensitivity image"); }
 
     // Perform MLEM iterations
     #[cfg    (feature = "ccmlem") ] let use_c = args.use_c;
@@ -134,7 +141,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(_)  => println!("Using up to {} threads.", args.num_threads),
         }
 
-        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, &sensitivity_matrix))
+        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, sensitivity_image))
             .take(args.iterations)
             .enumerate() {
                 report_time(&format!("Iteration {:2}", n));
@@ -157,6 +164,27 @@ fn guess_filename(args: &Cli) -> String {
         let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0}", x));
         format!("data/out/{c}mlem/{nx}_{ny}_{nz}_tof_{tof}",
                 c=c, nx=nx, ny=ny, nz=nz, tof=tof)
+    }
+}
+
+
+type FovSize = (Length, Length, Length);
+type NVoxels = (usize , usize , usize );
+
+/// Panic if the image size does not match the specified values
+fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) {
+    let size = image.vbox.half_width;
+    let (idx, idy, idz) = (size[0]*2.0, size[1]*2.0, size[2]*2.0);
+    let [inx, iny, inz] = image.vbox.n;
+    let (enx, eny, enz) = nvoxels;
+    let (edx, edy, edz) = fov_size;
+    if ! ((enx, eny, enz) == (inx, iny, inz) && (edx, edy, edz) == (idx, idy, idz)) {
+        // TODO enable use of density images with different
+        // pixelizations as long as they cover the whole FOV.
+        println!("Mismatch sensitivity image and output image size:");
+        println!("Sensitivity image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", inx,iny,inz, idx,idy,idz);
+        println!("     Output image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", enx,eny,enz, edx,edy,edz);
+        panic!("For now, the sensitivity image must match the dimensions of the output image exactly.");
     }
 }
 
@@ -204,7 +232,7 @@ fn run_cmlem(
     files.push('0'); // Leading zero too!
 
     // TODO: Dummy sensitivity matrix, for now
-    let sensitivity_matrix = vec![1.0; nx * ny * nz];
+    let sensitivity_image = vec![1.0; nx * ny * nz];
 
     cmlem::cmlem(
         args.iterations,
@@ -217,7 +245,7 @@ fn run_cmlem(
         lors.len(),
         x1, y1, z1, t1,
         x2, y2, z2, t2,
-        sensitivity_matrix,
+        sensitivity_image,
         files,
         1, // save every iteration
     );
