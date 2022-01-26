@@ -7,7 +7,7 @@
 
 let
   random_pkgs = import <nixpkgs> {};
-  nixpkgs-commit-id = "4f37689c8a219a9d756c5ff38525ad09349f422f"; # nixos-21.05 on 2021-11-28
+  nixpkgs-commit-id = "604c44137d97b5111be1ca5c0d97f6e24fbc5c2c"; # nixos-21.11 on 2022-01-24
   nixpkgs-url = "https://github.com/nixos/nixpkgs/archive/${nixpkgs-commit-id}.tar.gz";
   oxalica-commit-id = "84c58400556c1c5fa796cbc3215ba5bbd3bd848f"; # 2022-01-11
   pkgs = import (fetchTarball nixpkgs-url) {
