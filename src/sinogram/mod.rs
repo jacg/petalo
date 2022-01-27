@@ -1,4 +1,4 @@
-mod axis;
+pub mod axis;
 
 use ndhistogram::{ndhistogram, VecHistogram, axis::Uniform, AxesTuple, HistND};
 
