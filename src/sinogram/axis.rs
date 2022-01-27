@@ -11,12 +11,12 @@ use serde::{Deserialize, Serialize};
 /// # Examples
 /// 1D histogram representing TODO
 /// ```
-/// use ndhistogram::{ndhistogram, Histogram};
-/// use ndhistogram::{Axis, BinInterval}
-/// use petalo::sinogram::Cyclic;
-/// let mut hist = ndhistogram!(Cyclic::new(4, 0.0, 360.0));
-/// let axis = &hist.axes().as_tuple().0;
-/// hist.
+/// // use ndhistogram::{ndhistogram, Histogram};
+/// // use ndhistogram::axis::{Axis, BinInterval};
+/// // use petalo::sinogram::Cyclic;
+/// // let mut hist = ndhistogram!(Cyclic::new(4, 0.0, 360.0));
+/// // let axis = &hist.axes().as_tuple().0;
+/// // hist.
 /// ```
 #[derive(Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize, Deserialize)]
 pub struct Cyclic<T = f64> {
@@ -87,52 +87,64 @@ impl<T: PartialOrd + NumCast + NumOps + Copy> Axis for Cyclic<T> {
     fn num_bins(&self) -> usize { self.nbins }
 
     fn bin(&self, index: usize) -> Option<<Self as Axis>::BinInterval> {
-
+        todo!()
     }
 }
 
 #[cfg(test)]
 mod test_index {
     use ndhistogram::axis::Uniform;
+    use rstest::rstest;
 
     use super::*;
 
-    #[test]
-    fn bin() {
-        let axis = Uniform::new(4, 0.0, 1.0);
-        assert_eq!(axis.bin(0), Some(BinInterval::underflow(0.0)));
-        assert_eq!(axis.bin(1), Some(BinInterval::new(0.00, 0.25)));
-        assert_eq!(axis.bin(2), Some(BinInterval::new(0.25, 0.50)));
-        assert_eq!(axis.bin(3), Some(BinInterval::new(0.50, 0.75)));
-        assert_eq!(axis.bin(4), Some(BinInterval::new(0.75, 1.00)));
-        assert_eq!(axis.bin(5), Some(BinInterval::overflow(1.0)));
-
+    #[rstest( bin_no, expected_interval,
+              case(0, Some(BinInterval::new(0.00, 0.25))),
+              case(1, Some(BinInterval::new(0.25, 0.50))),
+              case(2, Some(BinInterval::new(0.50, 0.75))),
+              case(3, Some(BinInterval::new(0.75, 1.00))),
+    )]
+    fn bin(bin_no: usize, expected_interval: Option<BinInterval<f32>>) {
         let axis = Cyclic::new(4, 0.0, 1.0);
-        assert_eq!(axis.bin(0), Some(BinInterval::new(0.00, 0.25)));
-        assert_eq!(axis.bin(1), Some(BinInterval::new(0.25, 0.50)));
-        assert_eq!(axis.bin(2), Some(BinInterval::new(0.50, 0.75)));
-        assert_eq!(axis.bin(3), Some(BinInterval::new(0.75, 1.00)));
+        assert_eq!(axis.bin(bin_no), expected_interval);
     }
 
-    #[test]
-    fn index() {
+    #[rstest( bin_no, expected_interval,
+              case(0, Some(BinInterval::underflow(0.0))),
+              case(1, Some(BinInterval::new(0.00, 0.25))),
+              case(0, Some(BinInterval::underflow(0.0))),
+              case(1, Some(BinInterval::new(0.00, 0.25))),
+              case(2, Some(BinInterval::new(0.25, 0.50))),
+              case(3, Some(BinInterval::new(0.50, 0.75))),
+              case(4, Some(BinInterval::new(0.75, 1.00))),
+              case(5, Some(BinInterval::overflow(1.0))),
+    )]
+    fn bin_uniform(bin_no: usize, expected_interval: Option<BinInterval<f32>>) {
+        let axis = Uniform::new(4, 0.0, 1.0);
+        assert_eq!(axis.bin(bin_no), expected_interval);
+    }
+
+    #[rstest(/**/ coordinate,      expected_index,
+             case(  0.0 , Some(0)),
+             case(  0.09, Some(0)),
+             case(  0.1 , Some(1)),
+             case(  0.19, Some(1)),
+             case(  0.2 , Some(2)),
+             case( 10.0 , Some(0)),
+             case( 20.33, Some(3)),
+             case( 50.99, Some(9)),
+             case( -0.1 , Some(9)),
+             case( -0.19, Some(9)),
+             case( -0.2 , Some(8)),
+             case( -0.9 , Some(1)),
+             case( -0.95, Some(0)),
+             case(-10.0 , Some(0)),
+             case(-10.05, Some(9)),
+             case(-10.1 , Some(8)),
+    )]
+    fn index(coordinate: f32, expected_index: Option<usize>) {
         let axis = Cyclic::new(10, 0.0, 1.0);
-        assert_eq!(axis.index(&  0.0 ), Some(0));
-        assert_eq!(axis.index(&  0.09), Some(0));
-        assert_eq!(axis.index(&  0.1 ), Some(1));
-        assert_eq!(axis.index(&  0.19), Some(1));
-        assert_eq!(axis.index(&  0.2 ), Some(2));
-        assert_eq!(axis.index(& 10.0 ), Some(0));
-        assert_eq!(axis.index(& 20.33), Some(3));
-        assert_eq!(axis.index(& 50.99), Some(9));
-        // assert_eq!(axis.index(& -0.1 ), Some(9));
-        // assert_eq!(axis.index(& -0.19), Some(9));
-        // assert_eq!(axis.index(& -0.2 ), Some(8));
-        // assert_eq!(axis.index(& -0.9 ), Some(1));
-        // assert_eq!(axis.index(& -0.95), Some(0));
-        // assert_eq!(axis.index(&-10.0 ), Some(0));
-        // assert_eq!(axis.index(&-10.05), Some(9));
-        // assert_eq!(axis.index(&-10.1 ), Some(8));
+        assert_eq!(axis.index(&coordinate), expected_index);
     }
 
     #[test]
