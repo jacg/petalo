@@ -6,3 +6,4 @@ pub mod types;
 pub mod mlem;
 pub mod gauss;
 pub mod fom;
+pub mod sinogram;
