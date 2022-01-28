@@ -35,7 +35,7 @@ linfa-clustering = "0.5.0"
 num-format = "0.4.0"
 
 [dev-dependencies]
-rstest = "0.11"
+rstest = "0.12"
 pretty_assertions = "1.0"
 assert_approx_eq = "1.1"
 proptest = "1.0.0"
