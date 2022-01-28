@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// ```
 /// use ndhistogram::{ndhistogram, Histogram};
 /// use ndhistogram::axis::{Axis, BinInterval};
-/// use petalo::sinogram::axis::Cyclic;
+/// use petalo::lorogram::axis::Cyclic;
 /// let mut hist = ndhistogram!(Cyclic::new(4, 0.0, 360.0));
 /// hist.fill(& 45.0         ); // Add entry at 45 degrees
 /// hist.fill(&(45.0 + 360.0)); // Add entry at 45 degrees + one whole turn
@@ -28,7 +28,7 @@ use serde::{Deserialize, Serialize};
 /// ```
 /// use ndhistogram::{ndhistogram, Histogram};
 /// use ndhistogram::axis::{Axis, BinInterval};
-/// use petalo::sinogram::axis::Cyclic;
+/// use petalo::lorogram::axis::Cyclic;
 /// let bins_per_day = 24;
 /// let hours_per_bin = 1;
 /// let start_at_zero = 0;
