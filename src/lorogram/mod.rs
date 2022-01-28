@@ -48,13 +48,13 @@ impl<T: Lorogram + Clone> Scattergram<T> {
     }
 
 }
+// --------------------------------------------------------------------------------
+type JustZHist = HistND<(Uniform<f32>,), usize>;
 
 #[derive(Clone)]
 pub struct JustZ {
     histogram: JustZHist,
 }
-
-type JustZHist = HistND<(Uniform<f32>,), usize>;
 
 impl JustZ {
     pub fn new(l: f32, nbins: usize) -> Self {
@@ -91,4 +91,59 @@ mod test_just_z {
         assert_eq!(n, 1);
     }
 }
+// --------------------------------------------------------------------------------
+type ZandTanThetaHist = HistND<(Uniform<f32>, Uniform<f32>), usize>;
 
+#[derive(Clone)]
+struct ZandTanTheta {
+    histogram: ZandTanThetaHist,
+}
+
+// impl Lorogram for ZandTanTheta {
+//     fn fill(&mut self, p1: Point, p2: Point) {
+//         let ((x1,y1,z1), (x2,y2,z2)) = (p1,p2);
+//         let z = (z1 + z2) / 2.0;
+//     }
+// }
+
+// #[derive(Clone)]
+// pub struct ZandTanTheta {
+
+// }
+
+// type Aa = HistND<(Uniform<f32>,   // lower z
+//                   Uniform<f32>,   // higher z
+//                   Cyclic <f32>,   // angle of lower z
+//                   Cyclic <f32>,), // angle of higher z
+//                   usize>;
+
+
+// pub struct Aaa {
+//     l: f32,
+//     r: f32,
+//     histogram: Aa,
+// }
+
+// impl Aaa {
+//     fn new(r: f32, l: f32, n_axial_bins: usize, n_angluar_bins: usize) -> Self {
+//         Self {
+//             l, r,
+//             histogram: ndhistogram!(
+//                 Uniform::new(n_axial_bins  , -l/2.0, l/2.0), // lower z
+//                 Uniform::new(n_axial_bins  , -l/2.0, l/2.0), // higher z
+//                 Cyclic ::new(n_angluar_bins,    0.0, TAU  ), // phi  : around z, anticlockwise from x
+//                 Cyclic ::new(n_angluar_bins,    0.0, TAU  ); // theta: around r, anticlockwise from perpendicular to z
+//                 usize
+//             )
+//         }
+//     }
+// }
+
+// impl Lorogram for Aaa {
+//     fn fill(&mut self, p1: Point, p2: Point) {
+//         // Ensure that p1 has the lower z-coordinate
+//         let (p1, p2) = if p1.2 < p2.2 { (p1, p2) } else { (p2, p1) };
+//     }
+//     fn value             (&self, p1: Point, p2: Point) -> usize { todo!() }
+//     fn interpolated_value(&self, p1: Point, p2: Point) -> f32   { todo!() }
+// }
