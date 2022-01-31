@@ -23,7 +23,7 @@ type VecOf<T> = ncollide3d::math::Vector<T>;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Time, Vector, ns_to_mm};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -437,19 +437,26 @@ mod test_voxel_box {
 }
 
 //--------------------------------------------------------------------------------
-/// Line Of Response: 2 spacetime vectors indicating the positions and times of
-/// coincident detector element activations
+/// Line Of Response.
+///
+/// 2 spacetime vectors indicating the positions and times of coincident
+/// detector element activations, and a weight-factor for additive corrections
 #[derive(Clone, Copy, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct LOR {
     pub p1: Point,
     pub p2: Point,
     pub dt: Time,
+    pub additive_correction: Ratio,
 }
 
 impl LOR {
     pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self {
-        Self { p1, p2, dt: t2 - t1 }
+        Self::corrected(0.0, t1, t2, p1, p2)
+    }
+
+    pub fn corrected(correction: Ratio, t1: Time, t2: Time, p1: Point, p2: Point) -> Self {
+        Self { p1, p2, dt: t2 - t1, additive_correction: correction }
     }
 
     pub fn from_components(t1: Time, t2: Time,
