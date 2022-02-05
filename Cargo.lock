@@ -1518,6 +1518,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ndhistogram"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80e7df27db1bc5bc0f095d2ccbb587acb79afb1c179d756dbff4eacbe4e75fb8"
+dependencies = [
+ "num-traits",
+ "serde",
+]
+
+[[package]]
 name = "ndk"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1899,6 +1909,7 @@ dependencies = [
  "ncollide3d",
  "ndarray",
  "ndarray-rand",
+ "ndhistogram",
  "num-format",
  "num-traits",
  "ordered-float",
