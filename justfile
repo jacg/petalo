@@ -1,4 +1,4 @@
-test: test-rust test-python test-julia
+test: test-rust
 
 
 test-rust colours='':
