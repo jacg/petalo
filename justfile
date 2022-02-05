@@ -3,15 +3,10 @@ test: test-rust test-python test-julia
 
 test-rust colours='':
 	just test-rust-pure {{colours}}
-	just test-rust-c    {{colours}}
 
 
 test-rust-pure colours='':
 	cargo {{colours}} test
-
-
-test-rust-c colours='':
-	cargo test {{colours}} -p cmlem
 
 
 test-python colours='': python-build-bindings

@@ -347,13 +347,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cmlem"
-version = "0.1.0"
-dependencies = [
- "bindgen",
-]
-
-[[package]]
 name = "cocoa"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1964,7 +1957,6 @@ dependencies = [
  "bindgen",
  "binrw",
  "binwrite",
- "cmlem",
  "hdf5",
  "indicatif",
  "itertools",

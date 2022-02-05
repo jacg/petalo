@@ -95,17 +95,12 @@ around around!
 
   Perform 6 MLEM iterations with TOF resolution of 20 picoseconds (`-r 20`).
 
-+ `cargo run --bin mlem --release -- -i 6 -r 20 -c`
-
-  Perform 6 MLEM iterations with TOF resolution of 20 picoseconds using the C
-  implementation (`-c`) from https://github.com/jerenner/tofpet3d
-
 + `cargo run --bin mlem --release -- -i 6 -r 20 -n 50,50,50`
 
   Use a different voxel resolution (`-n 50,50,50`)
 
-By default the resulting images will be written to the `data/out/mlem` and
-`data/out/cmlem` directories.
+By default the resulting images will be written to the `data/out/mlem`
+directory.
 
 To see all CLI options: `cargo run --bin mlem --release -- --help`
 

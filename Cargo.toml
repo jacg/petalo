@@ -1,5 +1,5 @@
 [workspace]
-members = ["mlem", "cmlem", "bindings"]
+members = ["mlem", "bindings"]
 
 [package]
 name = "petalo"
@@ -25,7 +25,6 @@ num-traits = "0.2.14"
 hdf5 = "0.8.1"
 uom = "0.31.1"
 ordered-float = "2.8"
-cmlem = { path = "cmlem" }
 indicatif = "0.16.2"
 itertools = "0.10.1"
 binwrite = "0.2.1"
@@ -51,4 +50,3 @@ bindgen = "0.57"
 [features]
 compile-error = []
 serial = []
-ccmlem = []
