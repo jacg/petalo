@@ -147,6 +147,9 @@
                           ps.docopt
                         ]))
 
+                        # julia
+                        (linux pkgs.julia_16-bin)
+
                       ];
                       packages = [
                       ];
