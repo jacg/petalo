@@ -129,7 +129,11 @@ impl Image {
                 }
             }
         }
-
+        // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
+        let size = lors.len() as f32;
+        for e in image.iter_mut() {
+            *e /= size
+        }
         Self::new(vbox, image)
     }
 
