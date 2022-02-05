@@ -48,6 +48,9 @@
             darwinList = list: if pkgs.stdenv.isDarwin then list else [];
             darwinStr  = str:  if pkgs.stdenv.isDarwin then str  else "";
 
+            # ----- Darwin-specific ----------------------------------------------------------
+            darwin-frameworks = pkgs.darwin.apple_sdk.frameworks;
+
             # ----- Rust versions and extensions ----------------------------------
             extras = {
               extensions = [
@@ -119,6 +122,9 @@
                 # HDF5
                 pkgs.hdf5
 
+                # Needed for compilation to succeed on Macs
+                (darwin darwin-frameworks.AppKit)
+                (darwin darwin-frameworks.CoreText)
 
                 # python
                 (pkgs.python39.withPackages (ps: [
