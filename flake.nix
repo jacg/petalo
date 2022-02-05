@@ -112,44 +112,56 @@
 
         in
           {
-            devShell = pkgs.mkShell {
-              name = "petalorust";
-              buildInputs = [
-                rust
-                pkgs.rust-analyzer
-                pkgs.just
+            devShell = self.devShells.${ system }.python39; # does not need `rec`
+            #devShell = devShells.python39;                 # simpler but needs `rec`
 
-                # HDF5
-                pkgs.hdf5
+            devShells =
+              builtins.listToAttrs (
+                builtins.map (
+                  pythonVersion: {
 
-                # Needed for compilation to succeed on Macs
-                (darwin darwin-frameworks.AppKit)
-                (darwin darwin-frameworks.CoreText)
+                    name = pythonVersion;
+                    value = pkgs.mkShell {
+                      name = "petalorust";
+                      buildInputs = [
+                        rust
+                        pkgs.rust-analyzer
+                        pkgs.just
 
-                # python
-                (pkgs.python39.withPackages (ps: [
-                  ps.numpy
-                  ps.cffi
-                  ps.jupyter
-                  ps.matplotlib
-                  ps.pytest
-                  ps.h5py
-                  ps.scikit-learn
-                  ps.docopt
-                ]))
+                        # HDF5
+                        pkgs.hdf5
 
-              ];
-              packages = [
-              ];
-              HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
-              shellHook =
-                ''
-                  export PS1="rust devshell> "
-                  alias foo='cowsay Foo'
-                  alias bar='exa -l | lolcat'
-                  alias baz='cowsay What is the difference between buildIntputs and packages? | lolcat'
+                        # Needed for compilation to succeed on Macs
+                        (darwin darwin-frameworks.AppKit)
+                        (darwin darwin-frameworks.CoreText)
+
+                        # python
+                        (pkgs.${ pythonVersion  }.withPackages (ps: [
+                          ps.numpy
+                          ps.cffi
+                          ps.jupyter
+                          ps.matplotlib
+                          ps.pytest
+                          ps.h5py
+                          ps.scikit-learn
+                          ps.docopt
+                        ]))
+
+                      ];
+                      packages = [
+                      ];
+                      HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
+                      shellHook =
+                        ''
+                          export PS1="rust devshell> "
+                          alias foo='cowsay Foo'
+                          alias bar='exa -l | lolcat'
+                          alias baz='cowsay What is the difference between buildIntputs and packages? | lolcat'
                 '';
-            };
+                    };
+                  }
+                ) [ "python37" "python38" "python39" "python310" ]
+              );
           }
       );
 }
