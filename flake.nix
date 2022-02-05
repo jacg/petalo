@@ -111,6 +111,19 @@
                 # HDF5
                 pkgs.hdf5
 
+
+                # python
+                (pkgs.python39.withPackages (ps: [
+                  ps.numpy
+                  ps.cffi
+                  ps.jupyter
+                  ps.matplotlib
+                  ps.pytest
+                  ps.h5py
+                  ps.scikit-learn
+                  ps.docopt
+                ]))
+
               ];
               packages = [
               ];
