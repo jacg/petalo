@@ -107,9 +107,14 @@
                 rust
                 pkgs.rust-analyzer
                 pkgs.just
+
+                # HDF5
+                pkgs.hdf5
+
               ];
               packages = [
               ];
+              HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
               shellHook =
                 ''
                   export PS1="rust devshell> "
