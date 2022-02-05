@@ -40,6 +40,14 @@
               # Any overlays you need can go here
               overlays = [ (import rust-overlay) ];
             };
+            # ----- Conditional inclusion ----------------------------------------------------
+            nothing = pkgs.coreutils;
+            linux      = drvn: if pkgs.stdenv.isLinux  then drvn else nothing;
+            darwin     = drvn: if pkgs.stdenv.isDarwin then drvn else nothing;
+            linuxList  = list: if pkgs.stdenv.isLinux  then list else [];
+            darwinList = list: if pkgs.stdenv.isDarwin then list else [];
+            darwinStr  = str:  if pkgs.stdenv.isDarwin then str  else "";
+
             # ----- Rust versions and extensions ----------------------------------
             extras = {
               extensions = [
