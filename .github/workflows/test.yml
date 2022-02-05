@@ -69,3 +69,7 @@ jobs:
       - name: Test PyO3
         run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-bindings --color=yes"
         if: runner.os == 'Linux'
+
+      - name: Test Julia
+        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-julia           --color=yes"
+        if: runner.os == 'Linux'
