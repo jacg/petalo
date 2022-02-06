@@ -110,6 +110,35 @@
             # latest/beta/nightly/stable on the next line
             rust = rust-stable.override extras;
 
+            mkBuildInputs = { pkgs, pythonVersion, rust }: [
+              rust
+              pkgs.rust-analyzer
+              pkgs.just
+
+              # HDF5
+              pkgs.hdf5
+
+              # Needed for compilation to succeed on Macs
+              (darwin darwin-frameworks.AppKit)
+              (darwin darwin-frameworks.CoreText)
+
+              # python
+              (pkgs.${ pythonVersion  }.withPackages (ps: [
+                ps.numpy
+                ps.cffi
+                ps.jupyter
+                ps.matplotlib
+                ps.pytest
+                ps.h5py
+                ps.scikit-learn
+                ps.docopt
+              ]))
+
+              # julia
+              (linux pkgs.julia_16-bin)
+
+            ];
+
         in
           {
             devShell = self.devShells.${ system }.python39; # does not need `rec`
@@ -123,34 +152,7 @@
                     name = pythonVersion;
                     value = pkgs.mkShell {
                       name = "petalorust";
-                      buildInputs = [
-                        rust
-                        pkgs.rust-analyzer
-                        pkgs.just
-
-                        # HDF5
-                        pkgs.hdf5
-
-                        # Needed for compilation to succeed on Macs
-                        (darwin darwin-frameworks.AppKit)
-                        (darwin darwin-frameworks.CoreText)
-
-                        # python
-                        (pkgs.${ pythonVersion  }.withPackages (ps: [
-                          ps.numpy
-                          ps.cffi
-                          ps.jupyter
-                          ps.matplotlib
-                          ps.pytest
-                          ps.h5py
-                          ps.scikit-learn
-                          ps.docopt
-                        ]))
-
-                        # julia
-                        (linux pkgs.julia_16-bin)
-
-                      ];
+                      buildInputs = mkBuildInputs { inherit pkgs pythonVersion rust; };
                       packages = [
                       ];
                       HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
