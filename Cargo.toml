@@ -1,5 +1,5 @@
-[workspace]
-members = ["mlem", "bindings"]
+# [workspace]
+# members = ["mlem", "bindings"]
 
 [package]
 name = "petalo"
