@@ -2,7 +2,7 @@
   description = "Nixified Rust project";
 
   inputs = {
-    nixpkgs         .url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs         .url = "github:nixos/nixpkgs/nixos-unstable"; # cargo2nix broken in 21.11
     utils           .url = "github:numtide/flake-utils";
     rust-overlay = { url = "github:oxalica/rust-overlay"; inputs.nixpkgs    .follows = "nixpkgs";
                                                           inputs.flake-utils.follows = "utils"; };
