@@ -59,7 +59,6 @@
               # See "Handling external dependencies" on
               # https://ryantm.github.io/nixpkgs/languages-frameworks/rust/#rust
               defaultCrateOverrides = pkgs.defaultCrateOverrides // {
-                ${name}  = old-attributes: { inherit buildInputs nativeBuildInputs; };
                 hdf5-sys = old-attributes: {
                   buildInupts = [ pkgs.hdf5 ];
                   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
