@@ -77,15 +77,20 @@
           defaultPackage = packages.${name};
 
           # ========== nix run ============================================================
-          defaultApp = apps.${name};
+          defaultApp = apps.mlem;
 
           apps.${name} = utils.lib.mkApp {
             inherit name;
             drv = packages.${name};
           };
 
-          apps.one = utils.lib.mkApp { drv = packages.${name}; name = "one"; };
-          apps.two = utils.lib.mkApp { drv = packages.${name}; name = "two"; };
+          apps.mlem                   = utils.lib.mkApp { drv = packages.${name}; name = "mlem"                  ; };
+          apps.makelor                = utils.lib.mkApp { drv = packages.${name}; name = "makelor"               ; };
+          apps.foms                   = utils.lib.mkApp { drv = packages.${name}; name = "foms"                  ; };
+          apps.imageprimaries         = utils.lib.mkApp { drv = packages.${name}; name = "imageprimaries"        ; };
+          apps.joinlorhdf             = utils.lib.mkApp { drv = packages.${name}; name = "joinlorhdf"            ; };
+          apps.vislor                 = utils.lib.mkApp { drv = packages.${name}; name = "vislor"                ; }; # TODO X11 missing at runtime
+          apps.make_sensitivity_image = utils.lib.mkApp { drv = packages.${name}; name = "make_sensitivity_image"; };
 
           # ========== nix develop ========================================================
           devShell = pkgs.mkShell {
