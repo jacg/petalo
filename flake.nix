@@ -72,7 +72,13 @@
               # https://ryantm.github.io/nixpkgs/languages-frameworks/rust/#rust
               defaultCrateOverrides = pkgs.defaultCrateOverrides // {
                 hdf5-sys = old-attributes: {
-                  buildInupts = [ pkgs.hdf5 ];
+                  buildInupts = [
+                    pkgs.hdf5
+
+                    # Needed for compilation to succeed on Macs
+                    (darwin darwin-frameworks.AppKit)
+                    (darwin darwin-frameworks.CoreText)
+                  ];
                   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
                 };
               };
