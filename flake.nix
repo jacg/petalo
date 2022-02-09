@@ -13,7 +13,7 @@
   outputs = { self, nixpkgs, utils, rust-overlay, crate2nix, ... }:
     let
       # This name must match the name in Cargo.toml
-      name = "nixified-rust-project";
+      name = "petalo";
     in
     utils.lib.eachDefaultSystem
       (system:
