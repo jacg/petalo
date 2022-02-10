@@ -77,26 +77,14 @@
                 };
 
                 hdf5-sys = old-attributes: {
-                  buildInupts = [
-                    pkgs.hdf5
-
-                    # Needed for compilation to succeed on Macs
-                    (darwin darwin-frameworks.AppKit)
-                    (darwin darwin-frameworks.CoreText)
-                  ];
+                  buildInupts = [ pkgs.hdf5 ];
                   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
                 };
               };
             };
 
           # non-Rust dependencies
-          buildInputs = [
-            pkgs.hdf5
-
-            # Needed for compilation to succeed on Macs
-            (darwin darwin-frameworks.AppKit)
-            (darwin darwin-frameworks.CoreText)
-          ];
+          buildInputs = [ pkgs.hdf5 ];
           nativeBuildInputs = [ pkgs.rustc pkgs.cargo ];
         in
         rec {
