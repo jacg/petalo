@@ -1,5 +1,5 @@
 {
-  description = "Nixified Rust project";
+  description = "Image Reconstruction for PET";
 
   inputs = {
     nixpkgs         .url = "github:nixos/nixpkgs/nixos-unstable"; # cargo2nix broken in 21.11
