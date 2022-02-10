@@ -77,7 +77,6 @@
                 };
 
                 hdf5-sys = old-attributes: {
-                  buildInupts = [ pkgs.hdf5 ];
                   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
                 };
               };
