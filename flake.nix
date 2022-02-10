@@ -71,6 +71,11 @@
               # See "Handling external dependencies" on
               # https://ryantm.github.io/nixpkgs/languages-frameworks/rust/#rust
               defaultCrateOverrides = pkgs.defaultCrateOverrides // {
+
+                petalo = old-attributes: {
+                  buildInputs = [ (darwin darwin-frameworks.AppKit) ];
+                };
+
                 hdf5-sys = old-attributes: {
                   buildInupts = [
                     pkgs.hdf5
