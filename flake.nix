@@ -83,7 +83,21 @@
             };
 
           # non-Rust dependencies
-          buildInputs = [ pkgs.hdf5 ];
+          buildInputs = [
+            pkgs.hdf5
+
+            # python
+            (let pythonVersion = "python39"; in
+            (pkgs.${pythonVersion}.withPackages (ps: [
+              ps.numpy
+              ps.matplotlib
+              ps.pytest
+              ps.h5py
+              ps.scikit-learn
+              ps.docopt
+            ])))
+
+          ];
           nativeBuildInputs = [ pkgs.rustc pkgs.cargo ];
         in
         rec {
@@ -115,7 +129,6 @@
               # Tools you need for development go here.
               pkgs.just
               pkgs.rust-analyzer-preview
-              pkgs.python39Packages.pytest
               #pkgs.rustup.rls pkgs.rustup.rust-analysis
             ];
             RUST_SRC_PATH = "${pkgs.rustup.rust-src}/lib/rustlib/src/rust/library";
