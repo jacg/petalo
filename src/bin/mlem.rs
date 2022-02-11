@@ -49,11 +49,6 @@ pub struct Cli {
     #[structopt(long)]
     pub sensitivity_image: Option<PathBuf>,
 
-    #[cfg(feature = "ccmlem")]
-    /// Use the C version of the MLEM algorithm
-    #[structopt(short = "c", long)]
-    pub use_c: bool,
-
     /// Use true rather than reco LOR data
     #[structopt(long)]
     use_true: bool,
@@ -126,31 +121,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     sensitivity_image.as_ref().map(|i| assert_image_sizes_match(i, args.nvoxels, args.size));
     if sensitivity_image.is_some() { report_time("Loaded sensitivity image"); }
 
-    // Perform MLEM iterations
-    #[cfg    (feature = "ccmlem") ] let use_c = args.use_c;
-    #[cfg(not(feature = "ccmlem"))] let use_c = false;
-
-    if use_c {
-        #[cfg(feature = "ccmlem")] run_cmlem(&args, &measured_lors)
-    } else {
-
-        #[cfg(not(feature = "serial"))]
-        // Set the maximum number of threads used by rayon for parallel iteration
-        match rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build_global() {
-            Err(e) => println!("{}", e),
-            Ok(_)  => println!("Using up to {} threads.", args.num_threads),
-        }
-
-        for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, sensitivity_image))
-            .take(args.iterations)
-            .enumerate() {
-                report_time(&format!("Iteration {:2}", n));
-                let path = PathBuf::from(format!("{}{:02}.raw", file_pattern, n));
-                petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
-                report_time("                               Wrote raw bin");
-                // TODO: step_by for print every
-            }
+    #[cfg(not(feature = "serial"))]
+    // Set the maximum number of threads used by rayon for parallel iteration
+    match rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build_global() {
+        Err(e) => println!("{}", e),
+        Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
+
+    for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, sensitivity_image))
+        .take(args.iterations)
+        .enumerate() {
+            report_time(&format!("Iteration {:2}", n));
+            let path = PathBuf::from(format!("{}{:02}.raw", file_pattern, n));
+            petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
+            report_time("                               Wrote raw bin");
+            // TODO: step_by for print every
+        }
     Ok(())
 }
 
@@ -158,12 +144,10 @@ fn guess_filename(args: &Cli) -> String {
     if let Some(pattern) = &args.out_files {
         pattern.to_string()
     } else {
-        #[cfg    (feature = "ccmlem") ] let c = if args.use_c { "c" } else { "" };
-        #[cfg(not(feature = "ccmlem"))] let c = "";
         let (nx, ny, nz) = args.nvoxels;
         let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0}", x));
-        format!("data/out/{c}mlem/{nx}_{ny}_{nz}_tof_{tof}",
-                c=c, nx=nx, ny=ny, nz=nz, tof=tof)
+        format!("data/out/mlem/{nx}_{ny}_{nz}_tof_{tof}",
+                nx=nx, ny=ny, nz=nz, tof=tof)
     }
 }
 
@@ -186,67 +170,4 @@ fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) 
         println!("     Output image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", enx,eny,enz, edx,edy,edz);
         panic!("For now, the sensitivity image must match the dimensions of the output image exactly.");
     }
-}
-
-// ---- Use the original tofpet3d libmlem (C version), instead of our own Rust version ---
-
-// TODO: this conversion function should really live in the cmlem package, but
-// that would require cmlem to depend on the petalo package, because that's
-// where types like LOR are defined ... but this crate is currently in the
-// petalo package, and it needs to depend on cmlem to call the cmlem function,
-// which introduces a circular package dependency, which cargo does not allow.
-// The solution is to move this mlem binary crate out of the petalo package, but
-// let's just get it working at all, for the time being, and reorganize the
-// packages later
-
-#[cfg(feature = "ccmlem")]
-use petalo::weights::LOR;
-
-#[cfg(feature = "ccmlem")]
-fn run_cmlem(
-    args: &Cli,
-    lors: &Vec<LOR>
-) {
-    // Image dimensions
-    let (nx, ny, nz) = args.nvoxels;
-    let (sx, sy, sz) = args.size;
-
-    // decompose LORs into separate vectors
-    let mut x1 = vec![]; let mut y1 = vec![]; let mut z1 = vec![]; let mut t1 = vec![];
-    let mut x2 = vec![]; let mut y2 = vec![]; let mut z2 = vec![]; let mut t2 = vec![];
-    for lor in lors {
-        x1.push(lor.p1.x);
-        y1.push(lor.p1.y);
-        z1.push(lor.p1.z);
-        t1.push(0.0);
-        x2.push(lor.p2.x);
-        y2.push(lor.p2.y);
-        z2.push(lor.p2.z);
-        t2.push(petalo::types::ns_to_ps(lor.dt));
-    }
-
-    // Add underscore to separate base name from suffix (to match what happens
-    // in the Rust version)
-    let mut files = guess_filename(&args);
-    files.push('_');
-    files.push('0'); // Leading zero too!
-
-    // TODO: Dummy sensitivity matrix, for now
-    let sensitivity_image = vec![1.0; nx * ny * nz];
-
-    cmlem::cmlem(
-        args.iterations,
-        args.tof.is_some(),
-        args.tof.unwrap_or(0.0),
-        if sx != sy { panic!("cmlem requires x and y FOVs to be equal") } else { sx },
-        sz,
-        if nx != ny { panic!("cmlem requires Nx and Ny to be equal") } else { nx },
-        nz,
-        lors.len(),
-        x1, y1, z1, t1,
-        x2, y2, z2, t2,
-        sensitivity_image,
-        files,
-        1, // save every iteration
-    );
 }

@@ -59,9 +59,6 @@ jobs:
       - name: Test Pure Rust
         run: nix-shell --argstr py ${{ matrix.py }} --run "just test-rust-pure   --color=always"
 
-      - name: Test Rust/C
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-rust-c      --color=always"
-
       - name: Test Pure Python
         run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-pure  --color=yes"
 

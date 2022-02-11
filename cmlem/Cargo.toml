@@ -1,9 +1,0 @@
-[package]
-name = "cmlem"
-version = "0.1.0"
-authors = ["Jacek Generowicz <jacg@my-post-office.net>"]
-edition = "2018"
-build = "build.rs"
-
-[build-dependencies]
-bindgen = "0.57"
