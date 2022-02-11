@@ -113,6 +113,7 @@
             inputsFrom = builtins.attrValues self.packages.${system};
             buildInputs = buildInputs ++ [
               # Tools you need for development go here.
+              pkgs.just
               pkgs.rust-analyzer-preview
               #pkgs.rustup.rls pkgs.rustup.rust-analysis
             ];
