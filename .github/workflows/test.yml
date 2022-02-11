@@ -109,6 +109,6 @@ jobs:
         continue-on-error: true
         run: |
           nix develop -c just test-julia           --color=yes
-          [[ "$(which julia)" == */nix/store* ]] # Check that julia comes from Nix
+          if ! [[ "$(which julia)" == */nix/store* ]] then; echo Julia is not provided by Nix; false; fi
         #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-julia           --color=yes"
         if: runner.os == 'Linux'
