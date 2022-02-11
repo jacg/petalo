@@ -53,23 +53,35 @@ jobs:
           nix_path: nixpkgs=channel:nixos-21.11
       - uses: Swatinem/rust-cache@v1
 
-      - name: Install dependencies with Nix
-        run: nix-shell --argstr py ${{ matrix.py }}
+      - name: Enable flakes
+        run: |
+          nix --version
+          pwd
+          mkdir -p .config/nix
+          echo "experimental-features = nix-command flakes" >> .config/nix/nix.conf
+
+      - name: Build Project
+        run: nix build
 
       - name: Test Pure Rust
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-rust-pure   --color=always"
+        run: nix develop -c just test-rust-pure --color=always
+        #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-rust-pure   --color=always"
 
       - name: Test Pure Python
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-pure  --color=yes"
+        run: nix develop -c just test-python-pure --color=yes
+        #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-pure  --color=yes"
 
       - name: Compile PyO3
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just python-build-bindings"
+        run: nix develop -c just python-build-bindings
+        #run: nix-shell --argstr py ${{ matrix.py }} --run "just python-build-bindings"
         if: runner.os == 'Linux'
 
       - name: Test PyO3
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-bindings --color=yes"
+        run: nix develop -c just test-python-bindings --color=yes
+        #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-bindings --color=yes"
         if: runner.os == 'Linux'
 
       - name: Test Julia
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-julia           --color=yes"
+        run: nix develop -c just test-julia           --color=yes
+        #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-julia           --color=yes"
         if: runner.os == 'Linux'
