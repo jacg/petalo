@@ -67,8 +67,26 @@ jobs:
           mkdir -p .config/nix
           echo "experimental-features = nix-command flakes" >> .config/nix/nix.conf
 
-      - name: Build Project
-        run: nix build
+      - name: Nix build
+        run: |
+          nix build
+          result/bin/mlem -h
+          result/bin/foms -h
+          result/bin/imageprimaries -h
+          result/bin/joinlorhdf -h
+          result/bin/make_sensitivity_image -h
+          result/bin/makelor -h
+          result/bin/vislor -h
+
+      - name: Nix shell
+        run: |
+          nix shell -c mlem -h
+          nix shell -c foms -h
+          nix shell -c imageprimaries -h
+          nix shell -c joinlorhdf -h
+          nix shell -c make_sensitivity_image -h
+          nix shell -c makelor -h
+          nix shell -c vislor -h
 
       - name: Test Pure Rust in development environment
         continue-on-error: true
