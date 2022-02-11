@@ -1,3 +1,5 @@
+# -*-Makefile-*-
+
 test: test-rust test-python test-julia
 
 
