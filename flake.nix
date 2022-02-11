@@ -129,6 +129,7 @@
               # Tools you need for development go here.
               pkgs.just
               pkgs.rust-analyzer-preview
+              pkgs.vscodium
               #pkgs.rustup.rls pkgs.rustup.rust-analysis
             ];
             RUST_SRC_PATH = "${pkgs.rustup.rust-src}/lib/rustlib/src/rust/library";
