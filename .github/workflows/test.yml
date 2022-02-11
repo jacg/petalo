@@ -94,6 +94,8 @@ jobs:
 
       - name: Test Julia in development environment
         continue-on-error: true
-        run: nix develop -c just test-julia           --color=yes
+        run: |
+          which julia
+          nix develop -c just test-julia           --color=yes
         #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-julia           --color=yes"
         if: runner.os == 'Linux'
