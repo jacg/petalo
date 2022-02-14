@@ -62,12 +62,13 @@
           inherit (import "${crate2nix}/tools.nix" { inherit pkgs; }) generatedCargoNix;
 
           # Create the cargo2nix project
-          project = pkgs.callPackage
+          project = import
             (generatedCargoNix {
               inherit name;
               src = ./.;
             })
             {
+              inherit pkgs;
               # See "Handling external dependencies" on
               # https://ryantm.github.io/nixpkgs/languages-frameworks/rust/#rust
               defaultCrateOverrides = pkgs.defaultCrateOverrides // {
