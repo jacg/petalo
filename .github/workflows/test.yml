@@ -47,29 +47,68 @@ jobs:
             allow-fail: true
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.4.0
       - uses: cachix/install-nix-action@v16
         with:
-          nix_path: nixpkgs=channel:nixos-21.11
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
       - uses: Swatinem/rust-cache@v1
+      - uses: cachix/cachix-action@v10
+        with:
+          name: rustpetalo # The name of the Cachix cache
+          # If you chose signing key for write access
+          #signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+          # If you chose API tokens for write access OR if you have a private cache
+          authToken: '${{ secrets.CACHIX_JACG_RUSTPETALO }}'
 
-      - name: Install dependencies with Nix
-        run: nix-shell --argstr py ${{ matrix.py }}
+      - name: Nix build
+        run: |
+          nix build
+          result/bin/mlem -h
+          result/bin/foms -h
+          result/bin/imageprimaries -h
+          result/bin/joinlorhdf -h
+          result/bin/make_sensitivity_image -h
+          result/bin/makelor -h
+          result/bin/vislor -h
 
-      - name: Test Pure Rust
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-rust-pure   --color=always"
+      - name: Nix shell
+        run: |
+          nix shell -c mlem -h
+          nix shell -c foms -h
+          nix shell -c imageprimaries -h
+          nix shell -c joinlorhdf -h
+          nix shell -c make_sensitivity_image -h
+          nix shell -c makelor -h
+          nix shell -c vislor -h
 
-      - name: Test Pure Python
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-pure  --color=yes"
+      - name: Test Pure Rust in development environment
+        continue-on-error: true
+        run: nix develop -c just test-rust-pure --color=always
+        #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-rust-pure   --color=always"
 
-      - name: Compile PyO3
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just python-build-bindings"
+      - name: Test Pure Python in development environment
+        continue-on-error: true
+        run: nix develop -c just test-python-pure --color=yes
+        #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-pure  --color=yes"
+
+      - name: Compile PyO3 in development environment
+        continue-on-error: true
+        run: nix develop -c just python-build-bindings
+        #run: nix-shell --argstr py ${{ matrix.py }} --run "just python-build-bindings"
         if: runner.os == 'Linux'
 
-      - name: Test PyO3
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-bindings --color=yes"
+      - name: Test PyO3 in development environment
+        continue-on-error: true
+        run: nix develop -c just test-python-bindings --color=yes
+        #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-bindings --color=yes"
         if: runner.os == 'Linux'
 
-      - name: Test Julia
-        run: nix-shell --argstr py ${{ matrix.py }} --run "just test-julia           --color=yes"
+      - name: Test Julia in development environment
+        continue-on-error: true
+        run: |
+          nix develop -c just test-julia           --color=yes
+          if ! [[ "$(which julia)" == */nix/store* ]]; then echo " *** FAILING BECAUSE JULIA IS NOT PROVIDED BY NIX ***"; false; fi
+        #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-julia           --color=yes"
         if: runner.os == 'Linux'

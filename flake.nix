@@ -1,5 +1,5 @@
 {
-  description = "Nixified Rust project";
+  description = "Image Reconstruction for PET";
 
   inputs = {
     nixpkgs         .url = "github:nixos/nixpkgs/nixos-unstable"; # cargo2nix broken in 21.11
@@ -77,13 +77,6 @@
                 };
 
                 hdf5-sys = old-attributes: {
-                  buildInupts = [
-                    pkgs.hdf5
-
-                    # Needed for compilation to succeed on Macs
-                    (darwin darwin-frameworks.AppKit)
-                    (darwin darwin-frameworks.CoreText)
-                  ];
                   HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
                 };
               };
@@ -93,9 +86,17 @@
           buildInputs = [
             pkgs.hdf5
 
-            # Needed for compilation to succeed on Macs
-            (darwin darwin-frameworks.AppKit)
-            (darwin darwin-frameworks.CoreText)
+            # python
+            (let pythonVersion = "python39"; in
+            (pkgs.${pythonVersion}.withPackages (ps: [
+              ps.numpy
+              ps.matplotlib
+              ps.pytest
+              ps.h5py
+              ps.scikit-learn
+              ps.docopt
+            ])))
+
           ];
           nativeBuildInputs = [ pkgs.rustc pkgs.cargo ];
         in
@@ -126,6 +127,7 @@
             inputsFrom = builtins.attrValues self.packages.${system};
             buildInputs = buildInputs ++ [
               # Tools you need for development go here.
+              pkgs.just
               pkgs.rust-analyzer-preview
               #pkgs.rustup.rls pkgs.rustup.rust-analysis
             ];

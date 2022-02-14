@@ -1,141 +1,113 @@
 ![Build and Test](https://github.com/jacg/petalo/workflows/Build%20and%20Test/badge.svg)
 [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
-
-# Installation
-
-
 The following instructions assume that you have installed
-[Nix](https://nixos.org/) and enabled [`direnv`](https://direnv.net/).
+[Nix](https://nixos.org/) and enabled the modern nix interface which includes
+the `nix` command and flakes.
+
+# For users
+
+To install the tools provided in this repository, as a user, you have a number
+of options. For casual users, I recommend the first two.
+
+1. Ephemeral installation with `nix shell`
+
+   ```shell
+   nix shell github:jacg/petalo/flakes  # (TODO remove `flakes` once merged into `master`)
+   ```
+
+   This will place you in a shell in which (the most recent version of) all the
+   tools are available. In this shell, try `mlem --help`
+
+   As soon as you exit the shell, the tools 'disappear'.
+
+   On the first invocation, entering the shell will take a considerable amount
+   of time as the software needs to be downloaded and compiled. On subsequent
+   invocations, it should be instantaneous, unless
+
+   1. A newer version is available (TODO discuss selecting revs)
+   2. You have garbage collected your Nix store
+
+2. Ad-hoc installation with `nix build`
+
+   ```shell
+   nix build github:jacg/petalo/flakes
+   ```
+
+   This will create a link called `result` in the working directory, which
+   points to a `bin` directory containing all the available tools.
+
+   After having run this command, you can try `result/bin/mlem --help`.
+
+3. Classical package manager-like installation with `nix profile`
+
+   This looks convenient and 'normal' to those used to non-Nix package managers,
+   but swims against the current of the principles which make Nix great: it is
+   therefore **NOT RECOMMENDED**!
+
+   ```shell
+   nix profile install github:jacg/petalo/flakes
+   ```
+
+   All the tools should now be available in your `PATH`: try `mlem --help`.
+
+4. Home Manager TODO
+
+   This is the recommended approach for the long term. Utilities to make
+   home-manager installation easy, are in the works.
+
+# For developers
+
+## Getting the source
+
+You can obtain the source code by cloning the repository directly via git. But
+Nix flakes provide an alternative:
+
+``` shell
+nix flake clone github:jacg/petalo/flakes --dest petalorust
+```
+
+## Development tools
+
+The Nix flake in the repository provides an environment containing the tools
+needed to work on the code, which can be activated with `nix develop`:
+
+``` shell
+cd petalorust  # or wherever you cloned the repository
+nix develop
+```
+`nix develop` places you in a shell containing all the necessary development
+tools for the project. Exit the shell do disable the development environment.
+
+### Automatic environment switching with `direnv`
+
+I recommend using [`direnv`](https://direnv.net/) to automate provision of
+development tools.
+
+If `direnv` is enabled, the environment required to work on this project will be
+enabled automatically, after you have given `direnv` permission to work in this
+directory with `direnv allow`. You can revoke permission with `direnv deny`. The
+first time the environment is enable, it will have to install all the required
+dependencies, which may take a significant amount of time. Thereafter, it should
+be instantaneous.
+
+`direnv` will disable the environment as soon as you leave the directory. If you
+want to use the environment in a different directory, you can always ask for it
+explicitly with either of these commands
+
++ `nix develop <path-to-your-clone-of-the-project>`
++ `nix develop github:jacg/petalo/flakes`
+
+`direnv` also automatically switches the environment to match the currently
+checked-out version of the project.
+
+## Without Nix
 
 If you haven't installed Nix ... well, it's a few orders of magnitude easier to
 install Nix, than to attempt to run this software without it.
 
-If you have not enabled `direnv`, you can still use this software: see the note
-below, at the point where you `cd petalo`.
-
-Assuming you have Nix ...
-
-+ `git clone https://github.com/jacg/petalo.git`
-
-+ `cd petalo`
-
-   - if `direnv` is enabled, the environment required to run this software will
-     be enabled automatically, after you have given `direnv` permission to work
-     in this directory direnv `with allow`. The first time this is done, it will
-     have to install all the required dependencies, which may take a significant
-     amount of time. Thereafter, it should be almost instantaneous.
-
-   - if you have not enabled `direnv` you will have to type `nix-shell` (inside
-     this directory) to enable the environment.
-
-# Check installation
+# Testing
 
 Running `just` should compile and test all components, including Rust, Python and Julia.
 
-# Running the code
-
-## Input data
-
-The `mlem` executable takes as input, HDF5 files describing LORs, with the
-following columns of floats:
-
-```
-dt x1 y1 z1 x2 y2 z2 q1 q2 E1 E2
-```
-
-+ `dt` is in `ns`
-+ All distances are in `mm`
-+ `q`s are in *pes*
-+ `E`s are in `keV`
-
-
-Tell the program where this file is located with the `-f` (`--input-file`)
-option. Oterwise it will look for `data/in/full_body_phantom_reco_combined.h5`
-
-The program assumes that the table is in a dataset called `reco_info/table`. You
-can override this with the `-d` (`--dataset`) CLI option.
-
-### Legacy LOR format
-
-`mlem` also understands the legacy input data file containing a table with the
-following 21 columns of floats:
-
-```
-event_id, true_energy,
-true_r1, true_phi1, true_z1, true_t1,
-true_r2, true_phi2, true_z2, true_t2,
-phot_like1, phot_like2,
-reco_r1, reco_phi1, reco_z1, reco_t1,
-reco_r2, reco_phi2, reco_z2, reco_t2,
-not_sel
-```
-
-To use this legacy format, pass the `--legacy-input-format` option to `mlem`.
-
-By default, the reco coordinates are used, but you can opt for the true ones
-with `--use-true`.
-
-## Compilation
-
-Nix has taken care of all the non-Rust dependencies, `cargo` (Rust's package
-manager) will take care of compiling our code, as well as any Rust dependencies.
-
-The first line below will have to compile a lot of Rust code (mine, and the
-libraries on which it depends): all this will take a few minutes the first time
-around around!
-
-## Some examples to try
-
-+ `cargo run --bin mlem --release -- -i 6`
-
-  Perform 6 MLEM iterations (`-i 6`) without TOF.
-
-+ `cargo run --bin mlem --release -- -i 6 -r 20`
-
-  Perform 6 MLEM iterations with TOF resolution of 20 picoseconds (`-r 20`).
-
-+ `cargo run --bin mlem --release -- -i 6 -r 20 -n 50,50,50`
-
-  Use a different voxel resolution (`-n 50,50,50`)
-
-By default the resulting images will be written to the `data/out/mlem`
-directory.
-
-To see all CLI options: `cargo run --bin mlem --release -- --help`
-
-# Pretty things
-
-[If your machine is not running NixOS, Nix may have trouble adapting to your
-graphics hardware, and these visualizations might not work: TODO!]
-
-Try the following
-
-[If your machine is not running NixOS, Nix may have trouble adapting to your
-graphics hardware, and these visualizations might not work. If that happens, try
-prepending `nixGL` to the command: i.e. replace `cargo run ...` with `nixGL
-cargo run ...`.]
-
-+ `cargo run --bin vislor -- ball`
-+ `cargo run --bin vislor -- ball -r 200`
-+ `cargo run --bin vislor -- ball -r 20`
-
-  These are visualizations of the voxel weights along a LOR in a 180mm / 60
-  voxel cube. The first case applies no TOF weighting, the next two apply TOF
-  weigting with resolutions of 200 and 20 ps respectively.
-
-+ `cargo run --bin vislor -- ball -f data/in/full_body_phantom_reco_combined.h5 -e 10`
-
-  Visualize the 10th event (`-e 10`) taken from the data file specified with `-f`.
-
-+ `cargo run --bin vislor -- box --vbox-size 160,100,80 --nvoxels 8,5,5 --lor '0 32   -155 126 -33    151 -131 35'`
-
-  Specify the voxel and LOR geometries to be visualized, directly on the command
-  line. (When a property-based test of the voxel weights fails, the test output
-  includes a CLI incantation of this sort which will visualize the failing
-  case.)
-
-## Extra
-
-You might like to try replacing `ball` with `box` in the visualization examples,
-and maybe even add a `-t 0.01`.
+TODO: Python and Julia not yet enabled in the flake
