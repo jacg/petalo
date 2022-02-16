@@ -14,7 +14,7 @@ script_names = '''viewraw
 
 setup(name        = 'rustpetalo-python-utils',
       version     = get_version_from_Cargo_toml(),
-      scripts     = [f'python/{name}.py' for name in script_names],
+      scripts     = [f'src/{name}.py' for name in script_names],
       py_modules  = ['utils'],
-      package_dir = {'': 'python'},
+      package_dir = {'': 'src'},
       )
