@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Calculate FOMs for Jaszczak image files in a directory
 
 Usage: jaszczak_foms.py DIR

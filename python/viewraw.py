@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """View 3D raw image files
 
 Usage: viewraw.py [--prune PRUNE] [--little-endian]                     FILES...

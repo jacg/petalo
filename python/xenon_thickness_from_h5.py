@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Calculate thickness of LXe from data in HDF5 MC/vertices
 
 Requires 1 command line argument: the name of the .h5 file
