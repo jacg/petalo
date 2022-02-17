@@ -59,6 +59,19 @@
           # ----- Darwin-specific ----------------------------------------------------------
           darwin-frameworks = pkgs.darwin.apple_sdk.frameworks;
 
+          # ----- Python -------------------------------------------------------------------
+          python-version = "python39";
+
+          my-python-packages = pypkgs: [
+            pypkgs.numpy
+            pypkgs.matplotlib
+            pypkgs.pytest
+            pypkgs.h5py
+            pypkgs.scikit-learn
+            pypkgs.docopt
+          ];
+
+
           inherit (import "${crate2nix}/tools.nix" { inherit pkgs; }) generatedCargoNix;
 
           # Create the cargo2nix project
@@ -84,28 +97,29 @@
             };
 
           # non-Rust dependencies
-          buildInputs = [
-            pkgs.hdf5
-
-            # python
-            (let pythonVersion = "python39"; in
-            (pkgs.${pythonVersion}.withPackages (ps: [
-              ps.numpy
-              ps.matplotlib
-              ps.pytest
-              ps.h5py
-              ps.scikit-learn
-              ps.docopt
-            ])))
-
-          ];
+          buildInputs = [ pkgs.hdf5 ];
           nativeBuildInputs = [ pkgs.rustc pkgs.cargo ];
         in
         rec {
-          packages.${name} = project.rootCrate.build;
+          packages."${name}-rust" = project.rootCrate.build;
+
+          packages."${name}-python" = pkgs.${python-version}.pkgs.buildPythonApplication {
+            pname = "${name}-python";
+            version = "TODO-version";
+            src = ./.;
+            propagatedBuildInputs = [ (my-python-packages pkgs.${python-version}.pkgs) ];
+          };
+
+          packages."${name}-all" = pkgs.buildEnv {
+            name = "${name}-all";
+            paths = [
+              packages."${name}-rust"
+              packages."${name}-python"
+            ];
+          };
 
           # ========== nix build =========================================================
-          defaultPackage = packages.${name};
+          defaultPackage = packages."${name}-all";
 
           # ========== nix run ============================================================
           defaultApp = apps.mlem;
@@ -115,13 +129,14 @@
             drv = packages.${name};
           };
 
-          apps.mlem                   = utils.lib.mkApp { drv = packages.${name}; name = "mlem"                  ; };
-          apps.makelor                = utils.lib.mkApp { drv = packages.${name}; name = "makelor"               ; };
-          apps.foms                   = utils.lib.mkApp { drv = packages.${name}; name = "foms"                  ; };
-          apps.imageprimaries         = utils.lib.mkApp { drv = packages.${name}; name = "imageprimaries"        ; };
-          apps.joinlorhdf             = utils.lib.mkApp { drv = packages.${name}; name = "joinlorhdf"            ; };
-          apps.vislor                 = utils.lib.mkApp { drv = packages.${name}; name = "vislor"                ; }; # TODO X11 missing at runtime
-          apps.make_sensitivity_image = utils.lib.mkApp { drv = packages.${name}; name = "make_sensitivity_image"; };
+          apps.mlem                   = utils.lib.mkApp { drv = packages."${name}-all"; name = "mlem"                  ; };
+          apps.makelor                = utils.lib.mkApp { drv = packages."${name}-all"; name = "makelor"               ; };
+          apps.foms                   = utils.lib.mkApp { drv = packages."${name}-all"; name = "foms"                  ; };
+          apps.imageprimaries         = utils.lib.mkApp { drv = packages."${name}-all"; name = "imageprimaries"        ; };
+          apps.joinlorhdf             = utils.lib.mkApp { drv = packages."${name}-all"; name = "joinlorhdf"            ; };
+          apps.vislor                 = utils.lib.mkApp { drv = packages."${name}-all"; name = "vislor"                ; }; # TODO X11 missing at runtime
+          apps.make_sensitivity_image = utils.lib.mkApp { drv = packages."${name}-all"; name = "make_sensitivity_image"; };
+          apps.viewraw                = utils.lib.mkApp { drv = packages."${name}-all"; name = "viewraw.py"; };
 
           # ========== nix develop ========================================================
           devShell = pkgs.mkShell {

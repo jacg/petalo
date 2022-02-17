@@ -12,11 +12,11 @@ test-rust-pure colours='':
 
 
 test-python colours='': python-build-bindings
-	pytest -v {{colours}} python bindings
+	pytest -v {{colours}} src bindings
 
 
 test-python-pure colours='':
-	pytest -v {{colours}} python
+	pytest -v {{colours}} src
 
 
 test-python-bindings colours='': python-build-bindings

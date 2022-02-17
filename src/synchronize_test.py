@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from synchronize import synchronize
 
 def test_synchronize_id():
