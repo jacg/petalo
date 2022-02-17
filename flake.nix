@@ -146,10 +146,6 @@
               pkgs.just
               pkgs.rust-analyzer-preview
               #pkgs.rustup.rls pkgs.rustup.rust-analysis
-
-              # python
-              (pkgs.${python-version}.withPackages my-python-packages)
-
             ];
             RUST_SRC_PATH = "${pkgs.rustup.rust-src}/lib/rustlib/src/rust/library";
             HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
