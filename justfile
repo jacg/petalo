@@ -8,7 +8,7 @@ test-rust colours='':
 
 
 test-rust-pure colours='':
-	cargo {{colours}} test
+	cargo nextest run {{colours}}
 
 
 test-python colours='': python-build-bindings

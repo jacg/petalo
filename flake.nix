@@ -45,6 +45,10 @@
                     cargo = rustup.default;
                     rust-analyzer-preview = rust-analyzer-preview-on "2022-02-07";
                   })
+              # ==== Cargo nextest ========================================================
+              (final: prev: {
+                cargo-nextest = final.callPackage ./overlays/cargo-nextest.nix {};
+              })
             ];
           };
 
@@ -145,6 +149,7 @@
               # Tools you need for development go here.
               pkgs.just
               pkgs.rust-analyzer-preview
+              pkgs.cargo-nextest
               #pkgs.rustup.rls pkgs.rustup.rust-analysis
             ];
             RUST_SRC_PATH = "${pkgs.rustup.rust-src}/lib/rustlib/src/rust/library";
