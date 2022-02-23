@@ -1535,9 +1535,8 @@ dependencies = [
 
 [[package]]
 name = "ndhistogram"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80e7df27db1bc5bc0f095d2ccbb587acb79afb1c179d756dbff4eacbe4e75fb8"
+version = "0.7.0"
+source = "git+https://github.com/jacg/ndhistogram?branch=develop#ca8a71f89ae24a1307a4c5f6cbb081407b6c89d2"
 dependencies = [
  "num-traits",
  "serde",
