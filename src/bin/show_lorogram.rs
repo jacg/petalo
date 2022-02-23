@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for z in (-525..=525).step_by(50) {
         let p = (0.0, 0.0, z as f32);
         let v = sgram.value(p, p);
-        println!("{v:3.1}");
+        println!("{z:5} {v:3.1}");
     }
 
     Ok(())
