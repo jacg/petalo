@@ -74,7 +74,7 @@ impl Lorogram for JustZ {
         *self.histogram.value(&z).unwrap_or(&0)
     }
 
-    fn interpolated_value(&self, p1: Point, p2: Point) -> f32   { todo!() }
+    fn interpolated_value(&self, _p1: Point, _p2: Point) -> f32   { todo!() }
 }
 
 #[cfg(test)]
@@ -94,7 +94,7 @@ type ZandTanThetaHist = HistND<(Uniform<f32>, Uniform<f32>), usize>;
 
 #[derive(Clone)]
 struct ZandTanTheta {
-    histogram: ZandTanThetaHist,
+    _histogram: ZandTanThetaHist,
 }
 
 // impl Lorogram for ZandTanTheta {
