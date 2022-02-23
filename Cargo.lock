@@ -1536,7 +1536,7 @@ dependencies = [
 [[package]]
 name = "ndhistogram"
 version = "0.7.0"
-source = "git+https://github.com/jacg/ndhistogram?branch=develop#ca8a71f89ae24a1307a4c5f6cbb081407b6c89d2"
+source = "git+https://github.com/jacg/ndhistogram?branch=cyclic-axis#3a37241b8292ee2eaa3410916573ad4c178b46da"
 dependencies = [
  "num-traits",
  "serde",

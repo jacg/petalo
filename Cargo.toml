@@ -33,7 +33,7 @@ binrw = "0.8.0"
 linfa = "0.5.0"
 linfa-clustering = "0.5.0"
 num-format = "0.4.0"
-ndhistogram = { git = "https://github.com/jacg/ndhistogram", branch = "develop" }
+ndhistogram = { git = "https://github.com/jacg/ndhistogram", branch = "cyclic-axis" }
 
 [dev-dependencies]
 rstest = "0.12"

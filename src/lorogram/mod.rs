@@ -1,5 +1,3 @@
-pub mod axis;
-
 use ndhistogram::{ndhistogram, axis::Uniform, Histogram, HistND};
 
 type Point = (f32, f32, f32);
