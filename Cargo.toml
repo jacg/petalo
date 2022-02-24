@@ -18,6 +18,7 @@ ndarray = { version = "0.15.4", features = ["rayon"] }
 rayon = "1.5.1"
 serde = { version = "1.0", features = ["derive"] }
 rand = "0.8.4"
+parry3d = "0.8.0"
 nalgebra = "0.29"
 ncollide3d = "0.32"
 kiss3d = "0.32"

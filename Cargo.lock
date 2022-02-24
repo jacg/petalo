@@ -1128,7 +1128,7 @@ dependencies = [
  "image",
  "instant",
  "libc",
- "nalgebra",
+ "nalgebra 0.29.0",
  "ncollide3d",
  "num-traits",
  "rusttype",
@@ -1425,7 +1425,22 @@ dependencies = [
  "num-complex",
  "num-rational 0.4.0",
  "num-traits",
- "simba",
+ "simba 0.6.0",
+ "typenum",
+]
+
+[[package]]
+name = "nalgebra"
+version = "0.30.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fb2d0de08694bed883320212c18ee3008576bfe8c306f4c3c4a58b4876998be"
+dependencies = [
+ "approx 0.5.0",
+ "matrixmultiply",
+ "num-complex",
+ "num-rational 0.4.0",
+ "num-traits",
+ "simba 0.7.1",
  "typenum",
 ]
 
@@ -1450,10 +1465,10 @@ dependencies = [
  "bitflags",
  "downcast-rs",
  "either",
- "nalgebra",
+ "nalgebra 0.29.0",
  "num-traits",
  "petgraph",
- "simba",
+ "simba 0.6.0",
  "slab",
  "slotmap 1.0.6",
  "smallvec",
@@ -1655,6 +1670,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-derive"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "876a53fff98e03a936a674b29568b0e605f06b29372c2489ff4de23f1949743d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "num-format"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1844,6 +1870,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "parry3d"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c418a03e2ba297c931c530a690b305ce3b3dcc675caf16777f4f8565c8e84732"
+dependencies = [
+ "approx 0.5.0",
+ "bitflags",
+ "downcast-rs",
+ "either",
+ "nalgebra 0.30.1",
+ "num-derive",
+ "num-traits",
+ "rustc-hash",
+ "simba 0.7.1",
+ "slab",
+ "smallvec",
+]
+
+[[package]]
 name = "partitions"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1905,7 +1950,7 @@ dependencies = [
  "kiss3d",
  "linfa",
  "linfa-clustering",
- "nalgebra",
+ "nalgebra 0.29.0",
  "ncollide3d",
  "ndarray",
  "ndarray-rand",
@@ -1913,6 +1958,7 @@ dependencies = [
  "num-format",
  "num-traits",
  "ordered-float",
+ "parry3d",
  "pretty_assertions",
  "proptest",
  "rand",
@@ -2362,6 +2408,19 @@ name = "simba"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0b7840f121a46d63066ee7a99fc81dcabbc6105e437cae43528cea199b5a05f"
+dependencies = [
+ "approx 0.5.0",
+ "num-complex",
+ "num-traits",
+ "paste 1.0.6",
+ "wide",
+]
+
+[[package]]
+name = "simba"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13a2609e876d4f77f6ab7ff5254fc39b4f1927ba8e6db3d18be7c32534d3725e"
 dependencies = [
  "approx 0.5.0",
  "num-complex",
