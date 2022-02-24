@@ -1,6 +1,11 @@
-use ndhistogram::{ndhistogram, axis::Uniform, Histogram, HistND};
+use ndhistogram::{ndhistogram, axis::{Uniform, Cyclic}, Histogram, HistND};
 
-type Point = (f32, f32, f32);
+// TODO: replace with uom
+type Length = f32;
+type Ratio  = f32;
+type Angle  = f32;
+
+type Point = (Length, Length, Length);
 
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }
@@ -8,7 +13,7 @@ pub enum Prompt { True, Scatter, Random }
 pub trait Lorogram {
     fn fill              (&mut self, p1: Point, p2: Point);
     fn value             (&    self, p1: Point, p2: Point) -> usize;
-    fn interpolated_value(&    self, p1: Point, p2: Point) -> f32;
+    fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio;
 }
 
 pub struct Scattergram<T: Lorogram> {
@@ -34,7 +39,7 @@ impl<T: Lorogram + Clone> Scattergram<T> {
     /// Multiplicative contribution of scatters to trues, in nearby LORs.
     ///
     /// `(scatters + trues) / trues`
-    pub fn value(&self, p1: Point, p2: Point) -> f32 {
+    pub fn value(&self, p1: Point, p2: Point) -> Ratio {
         let trues = self.trues.value(p1, p2);
         if trues > 0 {
             let scatters: f32 = self.scatters.value(p1, p2) as f32;
@@ -45,7 +50,7 @@ impl<T: Lorogram + Clone> Scattergram<T> {
 
 }
 // --------------------------------------------------------------------------------
-type JustZHist = HistND<(Uniform<f32>,), usize>;
+type JustZHist = HistND<(Uniform<Length>,), usize>;
 
 #[derive(Clone)]
 pub struct JustZ {
@@ -53,7 +58,7 @@ pub struct JustZ {
 }
 
 impl JustZ {
-    pub fn new(l: f32, nbins: usize) -> Self {
+    pub fn new(l: Length, nbins: usize) -> Self {
         Self { histogram: ndhistogram!(Uniform::new(nbins, -l/2.0, l/2.0); usize) }
     }
 }
@@ -63,17 +68,17 @@ impl Lorogram for JustZ {
     // TODO should the points be taken by reference?
 
     fn fill(&mut self, p1: Point, p2: Point) {
-        let z = (p1.2 + p2.2) / 2.0;
-        self.histogram.fill(&z);
+        self.histogram.fill(&z_of_midpoint(p1, p2));
     }
 
     fn value(&self, p1: Point, p2: Point) -> usize {
-        let z = (p1.2 + p2.2) / 2.0;
-        *self.histogram.value(&z).unwrap_or(&0)
+        *self.histogram.value(&z_of_midpoint(p1, p2)).unwrap_or(&0)
     }
 
     fn interpolated_value(&self, _p1: Point, _p2: Point) -> f32   { todo!() }
 }
+
+fn z_of_midpoint(p1: Point, p2: Point) -> Length { (p1.2 + p2.2) / 2.0 }
 
 #[cfg(test)]
 mod test_just_z {
@@ -87,6 +92,39 @@ mod test_just_z {
         assert_eq!(n, 1);
     }
 }
+// --------------------------------------------------------------------------------
+type JustPhiHist = HistND<(Cyclic<f32>,), usize>;
+
+#[derive(Clone)]
+pub struct JustPhi {
+    histogram: JustPhiHist,
+}
+
+impl JustPhi {
+    pub fn new(nbins: usize) -> Self {
+        Self { histogram: ndhistogram!(Cyclic::new(nbins, 0.0, std::f32::consts::PI); usize) }
+    }
+}
+
+impl Lorogram for JustPhi {
+    fn fill(&mut self, p1: Point, p2: Point) { self.histogram.fill(&phi(p1, p2)); }
+
+    fn value(&self, p1: Point, p2: Point) -> usize {
+        *self.histogram.value(&phi(p1, p2)).unwrap_or(&0)
+    }
+
+    fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio {
+        todo!()
+    }
+}
+
+fn phi(p1: Point, p2: Point) -> Angle {
+    let dx = p2.0 - p1.0;
+    let dy = p2.1 - p1.1;
+    phi_of_x_y(dx, dy)
+}
+
+fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
 // --------------------------------------------------------------------------------
 type ZandTanThetaHist = HistND<(Uniform<f32>, Uniform<f32>), usize>;
 
