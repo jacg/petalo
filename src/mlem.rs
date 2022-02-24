@@ -262,7 +262,7 @@ type FoldState<'r, 'i, 'g, G, L> = (ImageData , Vec<Length>, Vec<Index1> , &'r &
 fn project_one_lor<'r, 'i, 'g, G, L>(state: FoldState<'r, 'i, 'g, G, L>, lor: &LOR) -> FoldState<'r, 'i, 'g, G, L>
 where
     G: Fn(Length) -> Length,
-    L: Lorogram
+    L: Lorogram + Clone
 {
     let (mut backprojection, mut weights, mut indices, image, tof, scatter) = state;
 
@@ -289,7 +289,7 @@ where
 
             // LOR struct has additive_correction but ignore for now as LOR unmutable.
             let scatter_corr = if let Some(sgram) = &scatter {
-                sgram.value(lor.p1, lor.p2)
+                sgram.value((lor.p1.x, lor.p1.y, lor.p1.z), (lor.p2.x, lor.p2.y, lor.p2.z))
             } else {1.0};
 
             // Forward projection of current image into this LOR
