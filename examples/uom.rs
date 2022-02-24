@@ -56,8 +56,40 @@ fn main() {
 
     // Other example sets, defined below
     sep();    quantities();
+    sep();    angles();
     sep();    ncollide();
     sep();    parry();
+}
+// ===========================================================================
+// Example showing use of different angle units
+fn angles() {
+    use uom::si::f32::{Angle, Ratio};
+    use uom::si::angle::{radian, degree};
+    use uom::si::ratio::{percent, per_mille, ratio};
+    use std::f32::consts::TAU;
+
+    fn rad(x: f32) -> Angle { Angle::new::<radian>(x) }
+    fn deg(x: f32) -> Angle { Angle::new::<degree>(x) }
+
+    // TODO write a macro for this pattern
+    let frad = Angle::format_args(radian   , Abbreviation); let frad = |x| frad.with(x);
+    let fdeg = Angle::format_args(degree   , Abbreviation); let fdeg = |x| fdeg.with(x);
+    let frat = Ratio::format_args(ratio    , Abbreviation); let frat = |x| frat.with(x);
+    let fpct = Ratio::format_args(percent  , Abbreviation); let fpct = |x| fpct.with(x);
+    let fpml = Ratio::format_args(per_mille, Abbreviation); let fpml = |x| fpml.with(x);
+
+    let circle_from_degrees = deg(360.0);
+    let circle_from_radians = rad(TAU  );
+    //let circle_from_angle   = uom::si::angle::Angle::FULL_TURN;
+
+    println!("{} = {}", frad(circle_from_degrees), fdeg(circle_from_degrees));
+    println!("{} = {}", frad(circle_from_radians), fdeg(circle_from_radians));
+
+    let cos_pi_from_degrees: Ratio = deg(360.0).cos();
+    let cos_pi_from_radians: Ratio = rad(TAU  ).cos();
+    println!("{:10}   {:.1}", frat(cos_pi_from_radians), frat(cos_pi_from_degrees));
+    println!("{:10}   {:.1}", fpct(cos_pi_from_radians), fpct(cos_pi_from_degrees));
+    println!("{:10}   {:.1}", fpml(cos_pi_from_radians), fpml(cos_pi_from_degrees));
 }
 
 // ===========================================================================
