@@ -3,7 +3,8 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
+use crate::{io, types::{Length, Point, Time, Ratio, Index1, Index3, Intensity}};
+use crate::lorogram::{JustZ, Lorogram, Prompt, Scattergram};
 use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR};
 use crate::gauss::make_gauss_option;
 
@@ -214,6 +215,25 @@ impl Image {
         for e in inverted.data.iter_mut() { *e = 1.0 / *e }
         inverted
     }
+}
+
+/// Define the scatter prediction histogram (incomplete)
+pub fn scatter_prediction<T>(lors: &[LOR]) -> Option<Scattergram<T>>
+where
+    T: Lorogram
+{
+    // This function is not really what I want but it gets me started.
+    // Should probably allow type of Lorogram as parameter. JustZ for now
+    let scatters = Scattergram::new(JustZ::new(2000.0, 20));
+
+    // Just call every 10th LOR scatter for now.
+    for (n, lor) in lors.iter().enumerate() {
+        let lor_type = if n % 10 == 0 {Prompt::Scatter} else {Prompt::True};
+        scatters.fill(lor_type, lor.p1, lor.p2);
+    }
+
+    // The option is a bit pointless at the mo but incase someone wants to run without correction...
+    Some(scatters)
 }
 
 fn projection_buffers(vbox: VoxelBox) -> (ImageData, Vec<Length>, Vec<usize>) {
