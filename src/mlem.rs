@@ -145,11 +145,14 @@ impl Image {
         // TOF adjustment to apply to the weights
         let tof: Option<_> = make_gauss_option(sigma, cutoff);
 
+        // Just define a fake scattergram here for first tests, should be from input image or calculated from data.
+        let scatters = scatter_prediction(measured_lors);
+
         // Closure preparing the state needed by `fold`: will be called by
         // `fold` at the start of every thread that is launched.
         let initial_thread_state = || {
             let (backprojection, weights, indices) = projection_buffers(self.vbox);
-            (backprojection, weights, indices, &self, &tof)
+            (backprojection, weights, indices, &self, &tof, &scatters)
         };
 
         // Parallel fold takes a function which will return ID value;
