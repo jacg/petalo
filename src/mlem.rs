@@ -3,7 +3,7 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::{io, types::{Length, Point, Time, Ratio, Index1, Index3, Intensity}};
+use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
 use crate::lorogram::{JustZ, Lorogram, Prompt, Scattergram};
 use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR};
 use crate::gauss::make_gauss_option;
