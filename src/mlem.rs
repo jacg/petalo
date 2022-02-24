@@ -254,19 +254,20 @@ fn projection_buffers(vbox: VoxelBox) -> (ImageData, Vec<Length>, Vec<usize>) {
 fn zeros_buffer(vbox: VoxelBox) -> ImageData { let [x,y,z] = vbox.n; vec![0.0; x*y*z] }
 
 
-type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>);
+type FoldState<'r, 'i, 'g, G, L> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>, &'g Option<Scattergram<L>>);
 
-fn project_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
+fn project_one_lor<'r, 'i, 'g, G, L>(state: FoldState<'r, 'i, 'g, G, L>, lor: &LOR) -> FoldState<'r, 'i, 'g, G, L>
 where
-    G: Fn(Length) -> Length
+    G: Fn(Length) -> Length,
+    L: Lorogram
 {
-    let (mut backprojection, mut weights, mut indices, image, tof) = state;
+    let (mut backprojection, mut weights, mut indices, image, tof, scatter) = state;
 
     // Analyse point where LOR hits voxel box
     match lor_vbox_hit(lor, image.vbox) {
 
         // LOR missed voxel box: nothing to be done
-        None => return (backprojection, weights, indices, image, tof),
+        None => return (backprojection, weights, indices, image, tof, scatter),
 
         // Data needed by `find_active_voxels`
         Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
@@ -283,15 +284,20 @@ where
                 tof_peak, &tof
             );
 
+            // LOR struct has additive_correction but ignore for now as LOR unmutable.
+            let scatter_corr = if let Some(sgram) = &scatter {
+                sgram.value(lor.p1, lor.p2)
+            } else {1.0};
+
             // Forward projection of current image into this LOR
-            let projection = forward_project(&weights, &indices, image);
+            let projection = forward_project(&weights, &indices, image) * scatter_corr;
 
             // Backprojection of LOR onto image
             back_project(&mut backprojection, &weights, &indices, projection);
         }
     }
     // Return updated FoldState
-    (backprojection, weights, indices, image, tof)
+    (backprojection, weights, indices, image, tof, scatter)
 }
 
 #[inline]
