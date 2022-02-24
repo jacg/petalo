@@ -221,9 +221,7 @@ impl Image {
 }
 
 /// Define the scatter prediction histogram (incomplete)
-pub fn scatter_prediction<T>(lors: &[LOR]) -> Option<Scattergram<T>>
-where
-    T: Lorogram
+pub fn scatter_prediction(lors: &[LOR]) -> Option<Scattergram<JustZ>>
 {
     // This function is not really what I want but it gets me started.
     // Should probably allow type of Lorogram as parameter. JustZ for now
