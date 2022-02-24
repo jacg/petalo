@@ -232,7 +232,9 @@ where
     // Just call every 10th LOR scatter for now.
     for (n, lor) in lors.iter().enumerate() {
         let lor_type = if n % 10 == 0 {Prompt::Scatter} else {Prompt::True};
-        scatters.fill(lor_type, lor.p1, lor.p2);
+        let p1 = (lor.p1.x, lor.p1.y, lor.p1.z);
+        let p2 = (lor.p2.x, lor.p2.y, lor.p2.z);
+        scatters.fill(lor_type, p1, p2);
     }
 
     // The option is a bit pointless at the mo but incase someone wants to run without correction...
