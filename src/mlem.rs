@@ -225,7 +225,7 @@ pub fn scatter_prediction(lors: &[LOR]) -> Option<Scattergram<JustZ>>
 {
     // This function is not really what I want but it gets me started.
     // Should probably allow type of Lorogram as parameter. JustZ for now
-    let scatters = Scattergram::new(JustZ::new(2000.0, 20));
+    let mut scatters = Scattergram::new(JustZ::new(2000.0, 20));
 
     // Just call every 10th LOR scatter for now.
     for (n, lor) in lors.iter().enumerate() {
