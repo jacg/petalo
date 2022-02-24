@@ -57,6 +57,7 @@ fn main() {
     // Other example sets, defined below
     sep();    quantities();
     sep();    ncollide();
+    sep();    parry();
 }
 
 // ===========================================================================
@@ -122,8 +123,42 @@ fn ncollide() {
     println!("{:?}", vu.norm());
     println!("{:?}", vf.norm());
 }
+// ============================================================================
+// Using UOM units in parry3d vectors/points works up to a point. Here we show
+// that arithmetic ops on Point and Vector work, but Vector::norm() does not.
 
+fn parry() {
+    use parry3d as p3d;
 
+    type PL = p3d::math::Point<Length>;
+    type Pf = p3d::math::Point<f32>;
+
+    use p3d::math::{Vector, Point};
+
+    let p1f: Point<f32>    = Pf::new(  1.2,    1.3,    1.4);
+    let p2f                = Pf::new(  2.1,    3.1,    4.1);
+
+    let p1u: Point<Length> = PL::new(m(1.2), m(1.3), m(1.4));
+    let p2u                = PL::new(m(2.1), m(3.1), m(4.1));
+
+    let vf: Vector<f32>    = p2f - p1f;
+    let vu: Vector<Length> = p2u - p1u;
+
+    println!("{:?}", p2u - p1u);
+    println!("{:?}", p2f - p1f);
+
+    println!("{:?}", vf);
+    println!("{:?}", vu);
+
+    println!("{:?}", vf + vf);
+    println!("{:?}", vu + vu);
+
+    #[cfg(feature = "compile-error")]
+    println!("{:?}", vu.norm());
+    println!("{:?}", vf.norm());
+
+}
+// ============================================================================
 fn sep() {
     println!("================================================================================");
 }
