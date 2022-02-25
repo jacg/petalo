@@ -34,8 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("===== z dependence ======================================");
     let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-    let prototype = JustZ::new(2000.0, 20);
-    let mut sgram = Scattergram::new(prototype.clone());
+    let mut sgram = Scattergram::new(JustZ::new(2000.0, 20));
     for Hdf5Lor { x1, y1, z1, x2, y2, z2, E1, E2, .. } in lors {
         if x1.is_nan() || x2.is_nan() { continue }
         let p1 = (x1, y1, z1);
@@ -53,8 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("===== phi dependence ====================================");
     let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range)?;
     let n = 15;
-    let prototype = JustPhi::new(n);
-    let mut sgram = Scattergram::new(prototype.clone());
+    let mut sgram = Scattergram::new(JustPhi::new(n));
     for Hdf5Lor { x1, y1, z1, x2, y2, z2, E1, E2, .. } in lors {
         if x1.is_nan() || x2.is_nan() { continue }
         let p1 = (x1, y1, z1);
