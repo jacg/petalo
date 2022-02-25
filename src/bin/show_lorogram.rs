@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for z in (-525..=525).step_by(50) {
         let p = (0.0, 0.0, z as f32);
         let v = sgram.value(p, p);
-        println!("{z:5} {v:3.1}");
+        println!("{z:5}   {v:3.1}");
     }
 
     println!("===== phi dependence ====================================");
@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let p2 = (0.0, y, 0.0);
         let v = sgram.value(p1, p2);
         let phi = phi * 180.0 / PI;
-        println!("{phi:5.1} {v:3.1}");
+        println!("{phi:5.1}   {v:3.1}");
     }
 
     println!("===== r dependence ====================================");
@@ -70,7 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let p1 = (r,  100.0, 0.0);
         let p2 = (r, -100.0, 0.0);
         let v = sgram.value(p1, p2);
-        println!("{r:5.1} {v:3.1}");
+        println!("{r:5.1}   {v:3.2}");
     }
 
     Ok(())
