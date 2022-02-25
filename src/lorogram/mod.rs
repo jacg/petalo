@@ -93,6 +93,39 @@ mod test_just_z {
     }
 }
 // --------------------------------------------------------------------------------
+#[derive(Clone)]
+pub struct JustR {
+    histogram: Uniform1DHist,
+}
+
+impl JustR {
+    pub fn new(r: Length, nbins: usize) -> Self {
+        Self { histogram: ndhistogram!(Uniform::new(nbins, 0.0, r); usize) }
+    }
+}
+
+impl Lorogram for JustR {
+    fn fill(&mut self, p1: Point, p2: Point) {
+        self.histogram.fill(&distance_from_z_axis(p1, p2));
+    }
+
+    fn value(&self, p1: Point, p2: Point)  -> usize {
+        *self.histogram.value(&distance_from_z_axis(p1, p2)).unwrap_or(&0)
+    }
+
+    fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio {
+        todo!()
+    }
+}
+
+fn distance_from_z_axis(p1: Point, p2: Point) -> Length {
+    let dx = p2.0 - p1.0;
+    let dy = p2.1 - p1.1;
+    let x1 = p1.0;
+    let y1 = p1.1;
+    (dx * y1 - dy * x1).abs() / (dx*dx + dy*dy).sqrt()
+}
+// --------------------------------------------------------------------------------
 type Cyclic1DHist = HistND<(Cyclic<f32>,), usize>;
 
 #[derive(Clone)]

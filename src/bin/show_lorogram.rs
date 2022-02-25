@@ -59,6 +59,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("{phi:5.1} {v:3.1}");
     }
 
+    println!("===== r dependence ====================================");
+    let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range)?;
+    let nbins = 10;
+    let r_max = 50.0;
+    let sgram = fill_scattergram(JustR::new(r_max, nbins), lors);
+    let step = r_max / nbins as f32;
+    for i in 0..nbins {
+        let r = (i as f32 + 0.5) * step;
+        let p1 = (r,  100.0, 0.0);
+        let p2 = (r, -100.0, 0.0);
+        let v = sgram.value(p1, p2);
+        println!("{r:5.1} {v:3.1}");
+    }
+
     Ok(())
 }
 
