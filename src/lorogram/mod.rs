@@ -50,11 +50,11 @@ impl<T: Lorogram + Clone> Scattergram<T> {
 
 }
 // --------------------------------------------------------------------------------
-type JustZHist = HistND<(Uniform<Length>,), usize>;
+type Uniform1DHist = HistND<(Uniform<Length>,), usize>;
 
 #[derive(Clone)]
 pub struct JustZ {
-    histogram: JustZHist,
+    histogram: Uniform1DHist,
 }
 
 impl JustZ {
@@ -93,11 +93,11 @@ mod test_just_z {
     }
 }
 // --------------------------------------------------------------------------------
-type JustPhiHist = HistND<(Cyclic<f32>,), usize>;
+type Cyclic1DHist = HistND<(Cyclic<f32>,), usize>;
 
 #[derive(Clone)]
 pub struct JustPhi {
-    histogram: JustPhiHist,
+    histogram: Cyclic1DHist,
 }
 
 impl JustPhi {
