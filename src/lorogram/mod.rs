@@ -21,6 +21,19 @@ pub struct Scattergram<T: Lorogram> {
     scatters: T,
 }
 
+impl<T: Lorogram> Scattergram<T> {
+
+    pub fn triplet(&self, p1: Point, p2: Point) -> (Ratio, f32, f32) {
+        let trues = self.trues.value(p1, p2);
+        if trues > 0 {
+            let scatters: f32 = self.scatters.value(p1, p2) as f32;
+            let trues = trues as f32;
+            ((scatters + trues) / trues, trues, scatters)
+        } else { (1.0, 0.0, self.scatters.value(p1, p2) as f32) }
+    }
+
+}
+
 impl<T: Lorogram + Clone> Scattergram<T> {
     pub fn new(lorogram: T) -> Self {
         let trues = lorogram;
