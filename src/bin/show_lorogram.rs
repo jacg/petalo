@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 use petalo::utils::parse_range;
 use petalo::io::hdf5::{Hdf5Lor, read_table};
-use petalo::lorogram::{JustPhi, JustZ, Prompt, Scattergram};
+use petalo::lorogram::{JustPhi, JustR, JustZ, Prompt, Scattergram, Lorogram};
 use std::f32::consts::PI;
 
 
@@ -34,14 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("===== z dependence ======================================");
     let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-    let mut sgram = Scattergram::new(JustZ::new(2000.0, 20));
-    for Hdf5Lor { x1, y1, z1, x2, y2, z2, E1, E2, .. } in lors {
-        if x1.is_nan() || x2.is_nan() { continue }
-        let p1 = (x1, y1, z1);
-        let p2 = (x2, y2, z2);
-        let prompt = if E1.max(E2) < 511.0 { Prompt::Scatter } else { Prompt::True };
-        sgram.fill(prompt, p1, p2);
-    }
+    let sgram = fill_scattergram(JustZ::new(2000.0, 20), lors);
 
     for z in (-525..=525).step_by(50) {
         let p = (0.0, 0.0, z as f32);
@@ -50,16 +43,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("===== phi dependence ====================================");
-    let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range)?;
+    let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
     let n = 15;
-    let mut sgram = Scattergram::new(JustPhi::new(n));
-    for Hdf5Lor { x1, y1, z1, x2, y2, z2, E1, E2, .. } in lors {
-        if x1.is_nan() || x2.is_nan() { continue }
-        let p1 = (x1, y1, z1);
-        let p2 = (x2, y2, z2);
-        let prompt = if E1.max(E2) < 511.0 { Prompt::Scatter } else { Prompt::True };
-        sgram.fill(prompt, p1, p2);
-    }
+    let sgram = fill_scattergram(JustPhi::new(n), lors);
 
     for i in 0..n {
         let phi = PI * (i as f32 / n as f32);
@@ -74,4 +60,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+fn fill_scattergram<T: Lorogram + Clone>(prototype: T, lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram<T> {
+    let mut sgram = Scattergram::new(prototype);
+    for Hdf5Lor { x1, y1, z1, x2, y2, z2, E1, E2, .. } in lors {
+        if x1.is_nan() || x2.is_nan() { continue }
+        let p1 = (x1, y1, z1);
+        let p2 = (x2, y2, z2);
+        let prompt = if E1.max(E2) < 511.0 { Prompt::Scatter } else { Prompt::True };
+        sgram.fill(prompt, p1, p2);
+    }
+    sgram
 }
