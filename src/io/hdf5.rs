@@ -16,6 +16,8 @@ pub struct Args {
 
 use ndarray::{s, Array1};
 
+use crate::lorogram::{JustZ, Scattergram};
+use crate::mlem::scatter_prediction;
 use crate::types::{Length, Point, Energy, BoundPair};
 use crate::weights::LOR;
 type F = Length;
@@ -105,6 +107,31 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
     use crate::utils::group_digits as g;
     println!("Using {} LORs (rejected {}, kept {}%)", g(used), g(rejected), used_pct);
     Ok(it)
+}
+
+use std::path::PathBuf;
+pub fn generate_scattergram(args: Args, scatter_pdf: Option<PathBuf>) -> Option<Scattergram<JustZ>> {
+    if args.legacy_input_format {
+        println!("Scatter not implemented for old file format yet.");
+        return None;
+    };
+
+    fn points_and_energies(lor: &Hdf5Lor) -> ((f32, f32, f32), (f32, f32, f32), (f32, f32)) {
+        let Hdf5Lor { x1, y1, z1, x2, y2, z2, E1, E2, ..} = lor.clone();
+        ((x1, y1, z1), (x2, y2, z2), (E1, E2))
+    }
+    // Bit of overkill since should have been checked in the initial read.
+    let h5lors = match read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone()){
+        Err(_) => Vec::new(),
+        Ok(tbl)  => tbl.iter().cloned()
+                                                   .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
+                                                    let eok = args.ecut.contains(&E1) && args.ecut.contains(&E2);
+                                                    let qok = args.qcut.contains(&q1) && args.qcut.contains(&q2);
+                                                    if eok && qok { true }
+                                                    else { false }
+                                                }).map(|lor| points_and_energies(&lor)).collect(),
+    };
+    scatter_pdf.map(|_| scatter_prediction(&h5lors))
 }
 
 
