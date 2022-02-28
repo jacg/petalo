@@ -62,6 +62,10 @@ pub struct Cli {
     #[structopt(long)]
     pub legacy_input_format: bool,
 
+    /// Scatter PDF to be used (dummy)
+    #[structopt(long)]
+    pub scatter_pdf: Option<PathBuf>,
+
     /// Ignore events with gamma energy/keV outside this range
     #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energy>), default_value = "..")]
     pub ecut: BoundPair<Energy>,
@@ -107,6 +111,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                   ecut, qcut };
     println!("Reading LOR data from disk ...");
     let measured_lors = io::hdf5::read_lors(io_args)?;
+    let scatters = io::hdf5::generate_scattergram(io_args, scatter_pdf);
     report_time("Loaded LOR data from disk");
 
     // Define field of view extent and voxelization
@@ -128,7 +133,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
 
-    for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, sensitivity_image))
+    for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, sensitivity_image, scatters))
         .take(args.iterations)
         .enumerate() {
             report_time(&format!("Iteration {:2}", n));
