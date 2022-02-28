@@ -110,7 +110,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, legacy_input_format,
                                   ecut, qcut };
     println!("Reading LOR data from disk ...");
-    let measured_lors = io::hdf5::read_lors(io_args)?;
+    let measured_lors = io::hdf5::read_lors(io_args.clone())?;
+    let scatter_pdf = args.scatter_pdf.clone();
     let scatters = io::hdf5::generate_scattergram(io_args, scatter_pdf);
     report_time("Loaded LOR data from disk");
 
