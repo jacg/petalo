@@ -253,9 +253,9 @@ fn projection_buffers(vbox: VoxelBox) -> (ImageData, Vec<Length>, Vec<usize>) {
 fn zeros_buffer(vbox: VoxelBox) -> ImageData { let [x,y,z] = vbox.n; vec![0.0; x*y*z] }
 
 
-type FoldState<'r, 'i, 'g, G, L> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>, &'g Option<Scattergram<L>>);
+type FoldState<'r, 'i, 'g, 's, G, L> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>, &'s Option<&'s Scattergram<L>>);
 
-fn project_one_lor<'r, 'i, 'g, G, L>(state: FoldState<'r, 'i, 'g, G, L>, lor: &LOR) -> FoldState<'r, 'i, 'g, G, L>
+fn project_one_lor<'r, 'i, 'g, 's, G, L>(state: FoldState<'r, 'i, 'g, 's, G, L>, lor: &LOR) -> FoldState<'r, 'i, 'g, 's, G, L>
 where
     G: Fn(Length) -> Length,
     L: Lorogram + Clone
