@@ -50,6 +50,7 @@ impl Image {
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
                     sensitivity  :     Option<Self>,
+                    scatters     :     Option<Scattergram<JustZ>>,
     ) -> impl Iterator<Item = Image> + 'a {
 
         // Start off with a uniform image
@@ -60,7 +61,7 @@ impl Image {
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
         std::iter::from_fn(move || {
-            image.one_iteration(measured_lors, &sensitivity.data, sigma, cutoff);
+            image.one_iteration(measured_lors, &sensitivity.data, scatters.as_ref(), sigma, cutoff);
             Some(image.clone()) // TODO see if we can sensibly avoid cloning
         })
     }
@@ -138,15 +139,12 @@ impl Image {
         Self::new(vbox, image)
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], scatters: Option<&Scattergram<JustZ>>, sigma: Option<Time>, cutoff: Option<Ratio>) {
 
         // -------- Prepare state required by serial/parallel fold --------------
 
         // TOF adjustment to apply to the weights
         let tof: Option<_> = make_gauss_option(sigma, cutoff);
-
-        // Just define a fake scattergram here for first tests, should be from input image or calculated from data.
-        let scatters = scatter_prediction(measured_lors);
 
         // Closure preparing the state needed by `fold`: will be called by
         // `fold` at the start of every thread that is launched.
@@ -221,22 +219,20 @@ impl Image {
 }
 
 /// Define the scatter prediction histogram (incomplete)
-pub fn scatter_prediction(lors: &[LOR]) -> Option<Scattergram<JustZ>>
+pub fn scatter_prediction(lors: &[((f32, f32, f32), (f32, f32, f32), (f32, f32))]) -> Scattergram<JustZ>
 {
     // This function is not really what I want but it gets me started.
     // Should probably allow type of Lorogram as parameter. JustZ for now
-    let mut scatters = Scattergram::new(JustZ::new(2000.0, 20));
+    let zgram = JustZ::new(2000.0, 20);
+    let mut scatters = Scattergram::new(zgram.clone());
 
     // Just call every 10th LOR scatter for now.
-    for (n, lor) in lors.iter().enumerate() {
-        let lor_type = if n % 10 == 0 {Prompt::Scatter} else {Prompt::True};
-        let p1 = (lor.p1.x, lor.p1.y, lor.p1.z);
-        let p2 = (lor.p2.x, lor.p2.y, lor.p2.z);
-        scatters.fill(lor_type, p1, p2);
+    for (p1, p2, engs) in lors.iter() {
+        let lor_type = if engs.0 < 511.0 || engs.1 < 511.0 {Prompt::Scatter} else {Prompt::True};
+        scatters.fill(lor_type, *p1, *p2);
     }
 
-    // The option is a bit pointless at the mo but incase someone wants to run without correction...
-    Some(scatters)
+    scatters
 }
 
 fn projection_buffers(vbox: VoxelBox) -> (ImageData, Vec<Length>, Vec<usize>) {
