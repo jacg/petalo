@@ -34,12 +34,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("===== z dependence ======================================");
     let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-    let sgram = fill_scattergram(JustZ::new(2000.0, 20), lors);
+    let nbins = 20;
+    let l = 200.0;
+    let sgram = fill_scattergram(JustZ::new(l, nbins), lors);
+    let l0 = - l / 2.0;
+    let dl = l / (nbins as f32);
 
-    for z in (-525..=525).step_by(50) {
+    for i in 0..nbins {
+        let z = l0 + i as f32 * dl;
         let p = (0.0, 0.0, z as f32);
         let (v, t, s) = sgram.triplet(p, p);
-        println!("{z:5}   {v:10.2}    {t:8}  {s:8}");
+        println!("{z:7.1}   {v:10.2}    {t:8}  {s:8}");
     }
 
     println!("===== phi dependence ====================================");
@@ -56,13 +61,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let p2 = (0.0, y, 0.0);
         let (v, t, s) = sgram.triplet(p1, p2);
         let phi = phi * 180.0 / PI;
-        println!("{phi:5.1}   {v:10.2}    {t:8}  {s:8}");
+        println!("{phi:7.1}   {v:10.2}    {t:8}  {s:8}");
     }
 
     println!("===== r dependence ====================================");
     let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range)?;
-    let nbins = 400;
-    let r_max = 400.0;
+    let nbins = 15;
+    let r_max = 120.0;
     let sgram = fill_scattergram(JustR::new(r_max, nbins), lors);
     let step = r_max / nbins as f32;
     for i in 0..nbins {
