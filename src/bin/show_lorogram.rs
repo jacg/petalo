@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 use petalo::utils::parse_range;
 use petalo::io::hdf5::{Hdf5Lor, read_table};
-use petalo::lorogram::{JustDeltaZ, JustPhi, JustR, JustZ, Prompt, Scattergram, Lorogram};
+use petalo::lorogram::{JustDeltaZ, JustPhi, JustR, JustZ, ZAndDeltaZ, Prompt, Scattergram, Lorogram};
 use std::f32::consts::PI;
 
 
@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     {
         println!("===== obliqueness ====================================");
-        let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range)?;
+        let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let nbins = 20;
         let dz_max = 1000.0;
         let sgram = fill_scattergram(JustDeltaZ::new(dz_max, nbins), lors);
@@ -98,6 +98,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{dz:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
     }
+    {
+        println!("===== z and dz ====================================");
+        let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
+        let (nbins_z, nbins_dz) = (20, 20);
+        let (l, dz_max) = (200.0, 1000.0);
+        let sgram = fill_scattergram(ZAndDeltaZ::new(l, nbins_z, dz_max, nbins_dz), lors);
+        let l0 = - l / 2.0;
+        let dl = l / (nbins_z as f32);
+        let step = dz_max / nbins_dz as f32;
+        for i in 0..nbins_z {
+            let z = (l0 + (i as f32 + 0.5) * dl) as f32;
+            print!("z={z:6.1}    ");
+            for j in 0..nbins_dz {
+                let dz = (j as f32 + 0.5) * step;
+                let p1 = (0.0, 0.0, z + dz/2.0);
+                let p2 = (0.0, 0.0, z - dz/2.0);
+                let (v, t, s) = sgram.triplet(p1, p2);
+                print!(" {v:6.1}");
+            }
+            println!();
+        }
+    }
+
     Ok(())
 }
 

@@ -60,7 +60,6 @@ impl<T: Lorogram + Clone> Scattergram<T> {
             (scatters + trues) / trues
         } else { 1.0 }
     }
-
 }
 // --------------------------------------------------------------------------------
 type Uniform1DHist = HistND<(Uniform<Length>,), usize>;
