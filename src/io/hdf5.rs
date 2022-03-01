@@ -112,8 +112,7 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
 use std::path::PathBuf;
 pub fn generate_scattergram(args: Args, scatter_pdf: Option<PathBuf>) -> Option<Scattergram<impl Lorogram + Clone>> {
     if args.legacy_input_format {
-        println!("Scatter not implemented for old file format yet.");
-        return None;
+        panic!("Scatter not implemented for old file format yet.");
     };
 
     fn points_and_energies(lor: &Hdf5Lor) -> ((f32, f32, f32), (f32, f32, f32), (f32, f32)) {
