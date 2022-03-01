@@ -62,8 +62,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let p1 = (x, 0.0, 0.0);
             let p2 = (0.0, y, 0.0);
             let (v, t, s) = sgram.triplet(p1, p2);
-            let phi = phi * 180.0 / PI;
-            println!("{phi:7.1}   {v:10.2}    {t:8}  {s:8}");
+            let phi_in_degrees = phi * 180.0 / PI;
+            println!("{phi_in_degrees:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
     }
     {
