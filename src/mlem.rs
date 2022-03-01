@@ -45,13 +45,16 @@ impl core::ops::Index<Index3> for Image {
 
 impl Image {
 
-    pub fn mlem<'a>(vbox: VoxelBox,
+    pub fn mlem<'a, L>(vbox: VoxelBox,
                     measured_lors: &'a [LOR],
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
                     sensitivity  :     Option<Self>,
-                    scatters     :     Option<Scattergram<JustZ>>,
-    ) -> impl Iterator<Item = Image> + 'a {
+                    scatters     :     Option<Scattergram<L>>,
+    ) -> impl Iterator<Item = Image> + 'a
+    where
+        L: Lorogram + Clone + 'a + std::marker::Sync
+    {
 
         // Start off with a uniform image
         let mut image = Self::ones(vbox);
@@ -139,7 +142,10 @@ impl Image {
         Self::new(vbox, image)
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], scatters: Option<&Scattergram<JustZ>>, sigma: Option<Time>, cutoff: Option<Ratio>) {
+    fn one_iteration<L>(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], scatters: Option<&Scattergram<L>>, sigma: Option<Time>, cutoff: Option<Ratio>)
+    where
+        L: Lorogram + Clone + std::marker::Sync
+    {
 
         // -------- Prepare state required by serial/parallel fold --------------
 
