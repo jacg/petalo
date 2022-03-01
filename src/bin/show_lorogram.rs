@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 use petalo::utils::parse_range;
 use petalo::io::hdf5::{Hdf5Lor, read_table};
-use petalo::lorogram::{JustPhi, JustR, JustZ, Prompt, Scattergram, Lorogram};
+use petalo::lorogram::{JustDeltaZ, JustPhi, JustR, JustZ, Prompt, Scattergram, Lorogram};
 use std::f32::consts::PI;
 
 
@@ -82,8 +82,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{r:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
     }
+    {
+        println!("===== obliqueness ====================================");
+        let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range)?;
+        let nbins = 20;
+        let dz_max = 1000.0;
+        let sgram = fill_scattergram(JustDeltaZ::new(dz_max, nbins), lors);
+        let step = dz_max / nbins as f32;
+        println!("     dz      (s/t) + 1     trues   scatters");
+        for i in 0..nbins {
+            let dz = (i as f32 + 0.5) * step;
+            let p1 = (0.0, 0.0,  dz/2.0);
+            let p2 = (0.0, 0.0, -dz/2.0);
+            let (v, t, s) = sgram.triplet(p1, p2);
+            println!("{dz:7.1}   {v:10.2}    {t:8}  {s:8}");
+        }
     }
-
     Ok(())
 }
 

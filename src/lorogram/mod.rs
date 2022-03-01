@@ -159,6 +159,28 @@ fn phi(p1: Point, p2: Point) -> Angle {
 
 fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
 // --------------------------------------------------------------------------------
+#[derive(Clone)]
+pub struct JustDeltaZ {
+    histogram: Uniform1DHist,
+}
+
+impl JustDeltaZ {
+    pub fn new(dz_max: Length, nbins: usize) -> Self {
+        Self { histogram: ndhistogram!(Uniform::new(nbins, 0.0, dz_max); usize) }
+    }
+}
+
+impl Lorogram for JustDeltaZ {
+    fn fill (&mut self, p1: Point, p2: Point)          {  self.histogram.fill (&delta_z(p1, p2)); }
+    fn value(&    self, p1: Point, p2: Point) -> usize { *self.histogram.value(&delta_z(p1, p2)).unwrap_or(&0) }
+
+    fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio {
+        todo!()
+    }
+}
+
+fn delta_z(p1: Point, p2: Point) -> Length { (p1.2 - p2.2).abs() }
+// --------------------------------------------------------------------------------
 type ZandTanThetaHist = HistND<(Uniform<f32>, Uniform<f32>), usize>;
 
 #[derive(Clone)]
