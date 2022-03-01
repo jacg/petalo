@@ -440,14 +440,13 @@ mod test_voxel_box {
 /// Line Of Response.
 ///
 /// 2 spacetime vectors indicating the positions and times of coincident
-/// detector element activations, and a weight-factor for additive corrections
+/// detector element activations
 #[derive(Clone, Copy, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct LOR {
     pub p1: Point,
     pub p2: Point,
     pub dt: Time,
-    pub additive_correction: Ratio,
 }
 
 impl LOR {
@@ -456,7 +455,7 @@ impl LOR {
     }
 
     pub fn corrected(correction: Ratio, t1: Time, t2: Time, p1: Point, p2: Point) -> Self {
-        Self { p1, p2, dt: t2 - t1, additive_correction: correction }
+        Self { p1, p2, dt: t2 - t1 }
     }
 
     pub fn from_components(t1: Time, t2: Time,
