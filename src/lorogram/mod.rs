@@ -80,13 +80,8 @@ impl Lorogram for JustZ {
 
     // TODO should the points be taken by reference?
 
-    fn fill(&mut self, p1: Point, p2: Point) {
-        self.histogram.fill(&z_of_midpoint(p1, p2));
-    }
-
-    fn value(&self, p1: Point, p2: Point) -> usize {
-        *self.histogram.value(&z_of_midpoint(p1, p2)).unwrap_or(&0)
-    }
+    fn fill (&mut self, p1: Point, p2: Point)          {  self.histogram.fill (&z_of_midpoint(p1, p2)); }
+    fn value(&    self, p1: Point, p2: Point) -> usize { *self.histogram.value(&z_of_midpoint(p1, p2)).unwrap_or(&0) }
 
     fn interpolated_value(&self, _p1: Point, _p2: Point) -> f32   { todo!() }
 }
@@ -118,13 +113,8 @@ impl JustR {
 }
 
 impl Lorogram for JustR {
-    fn fill(&mut self, p1: Point, p2: Point) {
-        self.histogram.fill(&distance_from_z_axis(p1, p2));
-    }
-
-    fn value(&self, p1: Point, p2: Point)  -> usize {
-        *self.histogram.value(&distance_from_z_axis(p1, p2)).unwrap_or(&0)
-    }
+    fn fill (&mut self, p1: Point, p2: Point)          {  self.histogram.fill (&distance_from_z_axis(p1, p2));}
+    fn value(&    self, p1: Point, p2: Point) -> usize { *self.histogram.value(&distance_from_z_axis(p1, p2)).unwrap_or(&0) }
 
     fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio {
         todo!()
@@ -153,11 +143,8 @@ impl JustPhi {
 }
 
 impl Lorogram for JustPhi {
-    fn fill(&mut self, p1: Point, p2: Point) { self.histogram.fill(&phi(p1, p2)); }
-
-    fn value(&self, p1: Point, p2: Point) -> usize {
-        *self.histogram.value(&phi(p1, p2)).unwrap_or(&0)
-    }
+    fn fill (&mut self, p1: Point, p2: Point)          {  self.histogram.fill (&phi(p1, p2)); }
+    fn value(&    self, p1: Point, p2: Point) -> usize { *self.histogram.value(&phi(p1, p2)).unwrap_or(&0) }
 
     fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio {
         todo!()
