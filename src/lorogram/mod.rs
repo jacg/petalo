@@ -180,3 +180,30 @@ impl Lorogram for JustDeltaZ {
 }
 
 fn delta_z(p1: Point, p2: Point) -> Length { (p1.2 - p2.2).abs() }
+// --------------------------------------------------------------------------------
+type Uniform2DHist = HistND<(Uniform<Length>, Uniform<Length>), usize>;
+
+#[derive(Clone)]
+pub struct ZAndDeltaZ {
+    histogram: Uniform2DHist
+}
+
+impl ZAndDeltaZ {
+    pub fn new(l: Length, nbins_z: usize, dz_max: Length, nbins_dz: usize) -> Self {
+        Self {
+            histogram: ndhistogram!(
+                Uniform::new(nbins_z, 0.0, dz_max),
+                Uniform::new(nbins_dz, -l/2.0, l/2.0);
+                usize)
+        }
+    }
+}
+
+impl Lorogram for ZAndDeltaZ {
+    fn fill (&mut self, p1: Point, p2: Point)          {  self.histogram.fill (&(z_of_midpoint(p1, p2), delta_z(p1, p2))); }
+    fn value(&    self, p1: Point, p2: Point) -> usize { *self.histogram.value(&(z_of_midpoint(p1, p2), delta_z(p1, p2))).unwrap_or(&0) }
+
+    fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio {
+        todo!()
+    }
+}
