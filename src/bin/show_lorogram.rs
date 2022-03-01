@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dl = l / (nbins as f32);
 
     for i in 0..nbins {
-        let z = l0 + i as f32 * dl;
+        let z = l0 + (i as f32 + 0.5) * dl;
         let p = (0.0, 0.0, z as f32);
         let (v, t, s) = sgram.triplet(p, p);
         println!("{z:7.1}   {v:10.2}    {t:8}  {s:8}");
@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sgram = fill_scattergram(JustPhi::new(n), lors);
 
     for i in 0..n {
-        let phi = PI * (i as f32 / n as f32);
+        let phi = PI * ((i as f32 + 0.5) / n as f32);
         let x = phi.cos();
         let y = phi.sin();
         //println!("{:10.1} {:10.1} {:10.1} {:10.1} {}", x, y, phi, phi/PI, i);
