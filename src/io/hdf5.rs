@@ -130,7 +130,7 @@ pub fn generate_scattergram(args: Args, scatter_pdf: Option<PathBuf>) -> Option<
                                                     else { false }
                                                 }).map(|lor| points_and_energies(&lor)).collect(),
     };
-    scatter_pdf.map(|_| scatter_prediction(&h5lors))
+    scatter_pdf.map(|ltype| scatter_prediction(ltype, &h5lors))
 }
 
 

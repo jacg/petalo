@@ -4,7 +4,7 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
-use crate::lorogram::{JustZ, Lorogram, Prompt, Scattergram};
+use crate::lorogram::{JustR, JustZ, Lorogram, Prompt, Scattergram};
 use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR};
 use crate::gauss::make_gauss_option;
 
@@ -225,12 +225,24 @@ impl Image {
 }
 
 /// Define the scatter prediction histogram (incomplete)
-pub fn scatter_prediction(lors: &[((f32, f32, f32), (f32, f32, f32), (f32, f32))]) -> Scattergram<JustZ>
+fn define_lorogram(lgram_name: str) -> dyn Lorogram + Clone
+{
+    if lgram_name.contains("JustZ") {
+        JustZ::new(200.0, 20)
+    } else if lgram_name.contains("JustR") {
+        JustR::new(120.0, 15)
+    } else {
+        panic!("Unknown lorogram implementation.")
+    }
+}
+
+pub fn scatter_prediction<L: Lorogram + Clone>(lgram_type: PathBuf, lors: &[((f32, f32, f32), (f32, f32, f32), (f32, f32))]) -> Scattergram<L>
 {
     // This function is not really what I want but it gets me started.
-    // Should probably allow type of Lorogram as parameter. JustZ for now
-    let zgram = JustZ::new(2000.0, 20);
-    let mut scatters = Scattergram::new(zgram.clone());
+    // Use the test binning for each type copied from show_lorograms
+    let lgram_name = lgram_type.to_str().unwrap();
+    let lgram = define_lorogram(lgram_name);
+    let mut scatters = Scattergram::new(lgram.clone());
 
     // Just call every 10th LOR scatter for now.
     for (p1, p2, engs) in lors.iter() {
