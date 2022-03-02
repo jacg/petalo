@@ -4,7 +4,7 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
-use crate::lorogram::{JustR, JustZ, Lorogram, Prompt, Scattergram};
+use crate::lorogram::{JustR, JustZ, JustPhi, JustDeltaZ, ZAndDeltaZ, Lorogram, Prompt, Scattergram};
 use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR};
 use crate::gauss::make_gauss_option;
 
@@ -45,15 +45,13 @@ impl core::ops::Index<Index3> for Image {
 
 impl Image {
 
-    pub fn mlem<'a, L>(vbox: VoxelBox,
+    pub fn mlem<'a>(vbox: VoxelBox,
                     measured_lors: &'a [LOR],
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
                     sensitivity  :     Option<Self>,
-                    scatters     :     Option<Scattergram<L>>,
+                    scatters     :     Option<Scattergram>,
     ) -> impl Iterator<Item = Image> + 'a
-    where
-        L: Lorogram + Clone + 'a + std::marker::Sync
     {
 
         // Start off with a uniform image
@@ -142,9 +140,7 @@ impl Image {
         Self::new(vbox, image)
     }
 
-    fn one_iteration<L>(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], scatters: Option<&Scattergram<L>>, sigma: Option<Time>, cutoff: Option<Ratio>)
-    where
-        L: Lorogram + Clone + std::marker::Sync
+    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], scatters: Option<&Scattergram>, sigma: Option<Time>, cutoff: Option<Ratio>)
     {
 
         // -------- Prepare state required by serial/parallel fold --------------
@@ -225,24 +221,30 @@ impl Image {
 }
 
 /// Define the scatter prediction histogram (incomplete)
-fn define_lorogram(lgram_name: str) -> dyn Lorogram + Clone
+fn define_lorogram(lgram_name: &str) -> Box<dyn Lorogram>
 {
     if lgram_name.contains("JustZ") {
-        JustZ::new(200.0, 20)
+        Box::new(JustZ::new(200.0, 20))
     } else if lgram_name.contains("JustR") {
-        JustR::new(120.0, 15)
+        Box::new(JustR::new(120.0, 15))
+    } else if lgram_name.contains("JustPhi") {
+        Box::new(JustPhi::new(15))
+    } else if lgram_name.contains("JustDelta") {
+        Box::new(JustDeltaZ::new(1000.0, 20))
+    } else if lgram_name.contains("ZAndDelta") {
+        Box::new(ZAndDeltaZ::new(100.0, 20, 1000.0, 20))
     } else {
         panic!("Unknown lorogram implementation.")
     }
 }
 
-pub fn scatter_prediction<L: Lorogram + Clone>(lgram_type: PathBuf, lors: &[((f32, f32, f32), (f32, f32, f32), (f32, f32))]) -> Scattergram<L>
+pub fn scatter_prediction(lgram_type: PathBuf, lors: &[((f32, f32, f32), (f32, f32, f32), (f32, f32))]) -> Scattergram
 {
     // This function is not really what I want but it gets me started.
     // Use the test binning for each type copied from show_lorograms
     let lgram_name = lgram_type.to_str().unwrap();
     let lgram = define_lorogram(lgram_name);
-    let mut scatters = Scattergram::new(lgram.clone());
+    let mut scatters = Scattergram::new(lgram);
 
     // Just call every 10th LOR scatter for now.
     for (p1, p2, engs) in lors.iter() {
@@ -271,12 +273,11 @@ fn projection_buffers(vbox: VoxelBox) -> (ImageData, Vec<Length>, Vec<usize>) {
 fn zeros_buffer(vbox: VoxelBox) -> ImageData { let [x,y,z] = vbox.n; vec![0.0; x*y*z] }
 
 
-type FoldState<'r, 'i, 'g, 's, G, L> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>, &'s Option<&'s Scattergram<L>>);
+type FoldState<'r, 'i, 'g, 's, G> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>, &'s Option<&'s Scattergram>);
 
-fn project_one_lor<'r, 'i, 'g, 's, G, L>(state: FoldState<'r, 'i, 'g, 's, G, L>, lor: &LOR) -> FoldState<'r, 'i, 'g, 's, G, L>
+fn project_one_lor<'r, 'i, 'g, 's, G>(state: FoldState<'r, 'i, 'g, 's, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, 's, G>
 where
-    G: Fn(Length) -> Length,
-    L: Lorogram + Clone
+    G: Fn(Length) -> Length
 {
     let (mut backprojection, mut weights, mut indices, image, tof, scatter) = state;
 

@@ -16,7 +16,7 @@ pub struct Args {
 
 use ndarray::{s, Array1};
 
-use crate::lorogram::{Lorogram, Scattergram};
+use crate::lorogram::Scattergram;
 use crate::mlem::scatter_prediction;
 use crate::types::{Length, Point, Energy, BoundPair};
 use crate::weights::LOR;
@@ -110,7 +110,7 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
 }
 
 use std::path::PathBuf;
-pub fn generate_scattergram(args: Args, scatter_pdf: Option<PathBuf>) -> Option<Scattergram<impl Lorogram + Clone>> {
+pub fn generate_scattergram(args: Args, scatter_pdf: Option<PathBuf>) -> Option<Scattergram> {
     if args.legacy_input_format {
         panic!("Scatter not implemented for old file format yet.");
     };
