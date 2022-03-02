@@ -12,7 +12,7 @@ type Point = (Length, Length, Length);
 pub enum Prompt { True, Scatter, Random }
 
 #[clonable]
-pub trait Lorogram: Clone {
+pub trait Lorogram: Clone + Sync {
     fn fill              (&mut self, p1: Point, p2: Point);
     fn value             (&    self, p1: Point, p2: Point) -> usize;
     fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio;
