@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let nbins = 20;
         let l = 200.0;
-        let sgram = fill_scattergram(JustZ::new(l, nbins), lors);
+        let sgram = fill_scattergram(Box::new(JustZ::new(l, nbins)), lors);
         let l0 = - l / 2.0;
         let dl = l / (nbins as f32);
 
@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("===== phi dependence ====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let nbins = 15;
-        let sgram = fill_scattergram(JustPhi::new(nbins), lors);
+        let sgram = fill_scattergram(Box::new(JustPhi::new(nbins)), lors);
 
         println!("   phi       (s/t) + 1     trues   scatters");
         for i in 0..nbins {
@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let nbins = 15;
         let r_max = 120.0;
-        let sgram = fill_scattergram(JustR::new(r_max, nbins), lors);
+        let sgram = fill_scattergram(Box::new(JustR::new(r_max, nbins)), lors);
         let step = r_max / nbins as f32;
         println!("     r       (s/t) + 1     trues   scatters");
         for i in 0..nbins {
@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let nbins = 20;
         let dz_max = 1000.0;
-        let sgram = fill_scattergram(JustDeltaZ::new(dz_max, nbins), lors);
+        let sgram = fill_scattergram(Box::new(JustDeltaZ::new(dz_max, nbins)), lors);
         let step = dz_max / nbins as f32;
         println!("     dz      (s/t) + 1     trues   scatters");
         for i in 0..nbins {
@@ -103,7 +103,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let (nbins_z, nbins_dz) = (20, 20);
         let (l, dz_max) = (200.0, 1000.0);
-        let sgram = fill_scattergram(ZAndDeltaZ::new(l, nbins_z, dz_max, nbins_dz), lors);
+        let sgram = fill_scattergram(Box::new(ZAndDeltaZ::new(l, nbins_z, dz_max, nbins_dz)), lors);
         let l0 = - l / 2.0;
         let dl = l / (nbins_z as f32);
         let step = dz_max / nbins_dz as f32;
@@ -124,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn fill_scattergram<T: Lorogram + Clone>(prototype: T, lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram<T> {
+fn fill_scattergram(prototype: Box<dyn Lorogram>, lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
     let mut sgram = Scattergram::new(prototype);
     for Hdf5Lor { x1, y1, z1, x2, y2, z2, E1, E2, .. } in lors {
         if x1.is_nan() || x2.is_nan() { continue }
@@ -134,4 +134,10 @@ fn fill_scattergram<T: Lorogram + Clone>(prototype: T, lors: ndarray::Array1<Hdf
         sgram.fill(prompt, p1, p2);
     }
     sgram
+}
+
+// Example of how to return dynamically-typed lorogram
+fn return_dynamic_lorogram(a: bool) -> Box<dyn Lorogram> {
+    if a { Box::new(JustZ::new(100.0, 10)) }
+    else { Box::new(JustR::new(100.0, 10)) }
 }

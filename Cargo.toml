@@ -34,6 +34,7 @@ linfa = "0.5.0"
 linfa-clustering = "0.5.0"
 num-format = "0.4.0"
 ndhistogram = { git = "https://github.com/jacg/ndhistogram", branch = "cyclic-axis" }
+dyn-clonable = "0.9.0"
 
 [dev-dependencies]
 rstest = "0.12"

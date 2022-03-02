@@ -1,4 +1,5 @@
 use ndhistogram::{ndhistogram, axis::{Uniform, Cyclic}, Histogram, HistND};
+use dyn_clonable::*;
 
 // TODO: replace with uom
 type Length = f32;
@@ -10,34 +11,23 @@ type Point = (Length, Length, Length);
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }
 
-pub trait Lorogram {
+#[clonable]
+pub trait Lorogram: Clone {
     fn fill              (&mut self, p1: Point, p2: Point);
     fn value             (&    self, p1: Point, p2: Point) -> usize;
     fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio;
 }
 
-pub struct Scattergram<T: Lorogram> {
-    trues: T,
-    scatters: T,
+pub struct Scattergram {
+    trues  : Box<dyn Lorogram>,
+    scatters:Box<dyn Lorogram>,
 }
 
-impl<T: Lorogram> Scattergram<T> {
+impl Scattergram {
 
-    pub fn triplet(&self, p1: Point, p2: Point) -> (Ratio, f32, f32) {
-        let trues = self.trues.value(p1, p2);
-        if trues > 0 {
-            let scatters: f32 = self.scatters.value(p1, p2) as f32;
-            let trues = trues as f32;
-            ((scatters + trues) / trues, trues, scatters)
-        } else { (1.0, 0.0, self.scatters.value(p1, p2) as f32) }
-    }
-
-}
-
-impl<T: Lorogram + Clone> Scattergram<T> {
-    pub fn new(lorogram: T) -> Self {
-        let trues = lorogram;
-        let scatters = trues.clone();
+    pub fn new(prototype_empty_lorogram: Box<dyn Lorogram>) -> Self {
+        let trues = *dyn_clone::clone_box(&prototype_empty_lorogram);
+        let scatters = prototype_empty_lorogram;
         Self { trues, scatters }
     }
 
@@ -59,6 +49,15 @@ impl<T: Lorogram + Clone> Scattergram<T> {
             let trues = trues as f32;
             (scatters + trues) / trues
         } else { 1.0 }
+    }
+
+    pub fn triplet(&self, p1: Point, p2: Point) -> (Ratio, f32, f32) {
+        let trues = self.trues.value(p1, p2);
+        if trues > 0 {
+            let scatters: f32 = self.scatters.value(p1, p2) as f32;
+            let trues = trues as f32;
+            ((scatters + trues) / trues, trues, scatters)
+        } else { (1.0, 0.0, self.scatters.value(p1, p2) as f32) }
     }
 }
 // --------------------------------------------------------------------------------
