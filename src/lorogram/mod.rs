@@ -1,5 +1,4 @@
 use ndhistogram::{ndhistogram, axis::{Uniform, Cyclic}, Histogram, HistND};
-use dyn_clonable::*;
 
 // TODO: replace with uom
 type Length = f32;
@@ -11,8 +10,7 @@ type Point = (Length, Length, Length);
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }
 
-#[clonable]
-pub trait Lorogram: Clone {
+pub trait Lorogram {
     fn fill              (&mut self, p1: Point, p2: Point);
     fn value             (&    self, p1: Point, p2: Point) -> usize;
     fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio;
@@ -25,9 +23,9 @@ pub struct Scattergram {
 
 impl Scattergram {
 
-    pub fn new(prototype_empty_lorogram: Box<dyn Lorogram>) -> Self {
-        let trues = *dyn_clone::clone_box(&prototype_empty_lorogram);
-        let scatters = prototype_empty_lorogram;
+    pub fn new(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>)) -> Self {
+        let trues    = make_empty_lorogram();
+        let scatters = make_empty_lorogram();
         Self { trues, scatters }
     }
 
@@ -63,7 +61,6 @@ impl Scattergram {
 // --------------------------------------------------------------------------------
 type Uniform1DHist = HistND<(Uniform<Length>,), usize>;
 
-#[derive(Clone)]
 pub struct JustZ {
     histogram: Uniform1DHist,
 }
@@ -99,7 +96,6 @@ mod test_just_z {
     }
 }
 // --------------------------------------------------------------------------------
-#[derive(Clone)]
 pub struct JustR {
     histogram: Uniform1DHist,
 }
@@ -129,7 +125,6 @@ fn distance_from_z_axis(p1: Point, p2: Point) -> Length {
 // --------------------------------------------------------------------------------
 type Cyclic1DHist = HistND<(Cyclic<f32>,), usize>;
 
-#[derive(Clone)]
 pub struct JustPhi {
     histogram: Cyclic1DHist,
 }
@@ -157,7 +152,6 @@ fn phi(p1: Point, p2: Point) -> Angle {
 
 fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
 // --------------------------------------------------------------------------------
-#[derive(Clone)]
 pub struct JustDeltaZ {
     histogram: Uniform1DHist,
 }
@@ -181,7 +175,6 @@ fn delta_z(p1: Point, p2: Point) -> Length { (p1.2 - p2.2).abs() }
 // --------------------------------------------------------------------------------
 type Uniform2DHist = HistND<(Uniform<Length>, Uniform<Length>), usize>;
 
-#[derive(Clone)]
 pub struct ZAndDeltaZ {
     histogram: Uniform2DHist
 }
