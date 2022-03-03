@@ -1,19 +1,19 @@
 use ndhistogram::{ndhistogram, axis::{Uniform, Cyclic}, Histogram, HistND};
+use crate::weights::LOR;
+use crate::types::Point;
 
 // TODO: replace with uom
 type Length = f32;
 type Ratio  = f32;
 type Angle  = f32;
 
-type Point = (Length, Length, Length);
-
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }
 
 pub trait Lorogram {
-    fn fill              (&mut self, p1: Point, p2: Point);
-    fn value             (&    self, p1: Point, p2: Point) -> usize;
-    fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio;
+    fn fill              (&mut self, lor: &LOR);
+    fn value             (&    self, lor: &LOR) -> usize;
+    fn interpolated_value(&    self, lor: &LOR) -> Ratio;
 }
 
 pub struct Scattergram {
@@ -29,10 +29,10 @@ impl Scattergram {
         Self { trues, scatters }
     }
 
-    pub fn fill(&mut self, kind: Prompt, p1: Point, p2: Point) {
+    pub fn fill(&mut self, kind: Prompt, lor: &LOR) {
         match kind {
-            Prompt::True    => self.trues.   fill(p1, p2),
-            Prompt::Scatter => self.scatters.fill(p1, p2),
+            Prompt::True    => self.trues.   fill(lor),
+            Prompt::Scatter => self.scatters.fill(lor),
             Prompt::Random  => panic!("Not expecting any random events yet."),
         }
     } 
@@ -40,22 +40,22 @@ impl Scattergram {
     /// Multiplicative contribution of scatters to trues, in nearby LORs.
     ///
     /// `(scatters + trues) / trues`
-    pub fn value(&self, p1: Point, p2: Point) -> Ratio {
-        let trues = self.trues.value(p1, p2);
+    pub fn value(&self, lor: &LOR) -> Ratio {
+        let trues = self.trues.value(lor);
         if trues > 0 {
-            let scatters: f32 = self.scatters.value(p1, p2) as f32;
+            let scatters: f32 = self.scatters.value(lor) as f32;
             let trues = trues as f32;
             (scatters + trues) / trues
         } else { 1.0 }
     }
 
-    pub fn triplet(&self, p1: Point, p2: Point) -> (Ratio, f32, f32) {
-        let trues = self.trues.value(p1, p2);
+    pub fn triplet(&self, lor: &LOR) -> (Ratio, f32, f32) {
+        let trues = self.trues.value(lor);
         if trues > 0 {
-            let scatters: f32 = self.scatters.value(p1, p2) as f32;
+            let scatters: f32 = self.scatters.value(lor) as f32;
             let trues = trues as f32;
             ((scatters + trues) / trues, trues, scatters)
-        } else { (1.0, 0.0, self.scatters.value(p1, p2) as f32) }
+        } else { (1.0, 0.0, self.scatters.value(lor) as f32) }
     }
 }
 // --------------------------------------------------------------------------------
@@ -72,16 +72,18 @@ impl JustZ {
 }
 
 impl Lorogram for JustZ {
-
-    // TODO should the points be taken by reference?
-
-    fn fill (&mut self, p1: Point, p2: Point)          {  self.histogram.fill (&z_of_midpoint(p1, p2)); }
-    fn value(&    self, p1: Point, p2: Point) -> usize { *self.histogram.value(&z_of_midpoint(p1, p2)).unwrap_or(&0) }
-
-    fn interpolated_value(&self, _p1: Point, _p2: Point) -> f32   { todo!() }
+    fn fill (&mut self, lor: &LOR)          {  self.histogram.fill (&z_of_midpoint(lor)); }
+    fn value(&    self, lor: &LOR) -> usize { *self.histogram.value(&z_of_midpoint(lor)).unwrap_or(&0) }
+    fn interpolated_value(&self, lor: &LOR) -> f32   { todo!() }
 }
 
-fn z_of_midpoint(p1: Point, p2: Point) -> Length { (p1.2 + p2.2) / 2.0 }
+fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Length { (p1.z + p2.z) / 2.0 }
+
+impl From<((f32, f32, f32), (f32, f32, f32))> for LOR {
+    fn from(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> Self {
+        Self { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: 0.0  }
+    }
+}
 
 #[cfg(test)]
 mod test_just_z {
@@ -90,8 +92,8 @@ mod test_just_z {
     #[test]
     fn retrieve() {
         let mut lg = JustZ::new(1000.0, 10);
-        lg.fill         ((0.0, 0.0, 111.0), (0.0, 0.0, 555.0));
-        let n = lg.value((1.0, 2.0, 222.0), (9.0, 8.0, 444.0));
+        lg.fill         (&LOR::from(((0.0, 0.0, 111.0), (0.0, 0.0, 555.0))));
+        let n = lg.value(&LOR::from(((1.0, 2.0, 222.0), (9.0, 8.0, 444.0))));
         assert_eq!(n, 1);
     }
 }
@@ -107,19 +109,19 @@ impl JustR {
 }
 
 impl Lorogram for JustR {
-    fn fill (&mut self, p1: Point, p2: Point)          {  self.histogram.fill (&distance_from_z_axis(p1, p2));}
-    fn value(&    self, p1: Point, p2: Point) -> usize { *self.histogram.value(&distance_from_z_axis(p1, p2)).unwrap_or(&0) }
+    fn fill (&mut self, lor: &LOR)          {  self.histogram.fill (&distance_from_z_axis(lor));}
+    fn value(&    self, lor: &LOR) -> usize { *self.histogram.value(&distance_from_z_axis(lor)).unwrap_or(&0) }
 
-    fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio {
+    fn interpolated_value(&    self, lor: &LOR) -> Ratio {
         todo!()
     }
 }
 
-fn distance_from_z_axis(p1: Point, p2: Point) -> Length {
-    let dx = p2.0 - p1.0;
-    let dy = p2.1 - p1.1;
-    let x1 = p1.0;
-    let y1 = p1.1;
+fn distance_from_z_axis(LOR{ p1, p2, .. }: &LOR) -> Length {
+    let dx = p2.x - p1.x;
+    let dy = p2.y - p1.y;
+    let x1 = p1.x;
+    let y1 = p1.y;
     (dx * y1 - dy * x1).abs() / (dx*dx + dy*dy).sqrt()
 }
 // --------------------------------------------------------------------------------
@@ -136,17 +138,17 @@ impl JustPhi {
 }
 
 impl Lorogram for JustPhi {
-    fn fill (&mut self, p1: Point, p2: Point)          {  self.histogram.fill (&phi(p1, p2)); }
-    fn value(&    self, p1: Point, p2: Point) -> usize { *self.histogram.value(&phi(p1, p2)).unwrap_or(&0) }
+    fn fill (&mut self, lor: &LOR)          {  self.histogram.fill (&phi(lor)); }
+    fn value(&    self, lor: &LOR) -> usize { *self.histogram.value(&phi(lor)).unwrap_or(&0) }
 
-    fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio {
+    fn interpolated_value(&    self, lor: &LOR) -> Ratio {
         todo!()
     }
 }
 
-fn phi(p1: Point, p2: Point) -> Angle {
-    let dx = p2.0 - p1.0;
-    let dy = p2.1 - p1.1;
+fn phi(LOR{ p1, p2, .. }: &LOR) -> Angle {
+    let dx = p2.x - p1.x;
+    let dy = p2.y - p1.y;
     phi_of_x_y(dx, dy)
 }
 
@@ -163,15 +165,15 @@ impl JustDeltaZ {
 }
 
 impl Lorogram for JustDeltaZ {
-    fn fill (&mut self, p1: Point, p2: Point)          {  self.histogram.fill (&delta_z(p1, p2)); }
-    fn value(&    self, p1: Point, p2: Point) -> usize { *self.histogram.value(&delta_z(p1, p2)).unwrap_or(&0) }
+    fn fill (&mut self, lor: &LOR)          {  self.histogram.fill (&delta_z(lor)); }
+    fn value(&    self, lor: &LOR) -> usize { *self.histogram.value(&delta_z(lor)).unwrap_or(&0) }
 
-    fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio {
+    fn interpolated_value(&    self, lor: &LOR) -> Ratio {
         todo!()
     }
 }
 
-fn delta_z(p1: Point, p2: Point) -> Length { (p1.2 - p2.2).abs() }
+fn delta_z(LOR{p1, p2, ..}: &LOR) -> Length { (p1.z - p2.z).abs() }
 // --------------------------------------------------------------------------------
 type Uniform2DHist = HistND<(Uniform<Length>, Uniform<Length>), usize>;
 
@@ -191,10 +193,10 @@ impl ZAndDeltaZ {
 }
 
 impl Lorogram for ZAndDeltaZ {
-    fn fill (&mut self, p1: Point, p2: Point)          {  self.histogram.fill (&(z_of_midpoint(p1, p2), delta_z(p1, p2))); }
-    fn value(&    self, p1: Point, p2: Point) -> usize { *self.histogram.value(&(z_of_midpoint(p1, p2), delta_z(p1, p2))).unwrap_or(&0) }
+    fn fill (&mut self, lor: &LOR)          {  self.histogram.fill (&(z_of_midpoint(lor), delta_z(lor))); }
+    fn value(&    self, lor: &LOR) -> usize { *self.histogram.value(&(z_of_midpoint(lor), delta_z(lor))).unwrap_or(&0) }
 
-    fn interpolated_value(&    self, p1: Point, p2: Point) -> Ratio {
+    fn interpolated_value(&    self, lor: &LOR) -> Ratio {
         todo!()
     }
 }
