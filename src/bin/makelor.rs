@@ -67,8 +67,7 @@ fn main() -> hdf5::Result<()> {
     // write the result to the requested destination. If the directory where
     // results will be written does not exist yet, make it. Panic if that's impossible.
     std::fs::create_dir_all(std::path::PathBuf::from(&args.out).parent().unwrap())
-        .expect(&format!("Can't write to {}", args.out));
-
+        .unwrap_or_else(|e| panic!("\n\nCan't write to \n\n   {}\n\n because \n\n   {e}\n\n", args.out));
     // --- Progress bar --------------------------------------------------------------
     let files_pb = ProgressBar::new(args.infiles.len() as u64).with_message(args.infiles[0].clone());
     files_pb.set_style(ProgressStyle::default_bar()
