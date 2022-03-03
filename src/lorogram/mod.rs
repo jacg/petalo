@@ -74,7 +74,7 @@ impl JustZ {
 impl Lorogram for JustZ {
     fn fill (&mut self, lor: &LOR)          {  self.histogram.fill (&z_of_midpoint(lor)); }
     fn value(&    self, lor: &LOR) -> usize { *self.histogram.value(&z_of_midpoint(lor)).unwrap_or(&0) }
-    fn interpolated_value(&self, lor: &LOR) -> f32   { todo!() }
+    fn interpolated_value(&self, _lor: &LOR) -> f32   { todo!() }
 }
 
 fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Length { (p1.z + p2.z) / 2.0 }
@@ -112,7 +112,7 @@ impl Lorogram for JustR {
     fn fill (&mut self, lor: &LOR)          {  self.histogram.fill (&distance_from_z_axis(lor));}
     fn value(&    self, lor: &LOR) -> usize { *self.histogram.value(&distance_from_z_axis(lor)).unwrap_or(&0) }
 
-    fn interpolated_value(&    self, lor: &LOR) -> Ratio {
+    fn interpolated_value(&    self, _lor: &LOR) -> Ratio {
         todo!()
     }
 }
@@ -141,7 +141,7 @@ impl Lorogram for JustPhi {
     fn fill (&mut self, lor: &LOR)          {  self.histogram.fill (&phi(lor)); }
     fn value(&    self, lor: &LOR) -> usize { *self.histogram.value(&phi(lor)).unwrap_or(&0) }
 
-    fn interpolated_value(&    self, lor: &LOR) -> Ratio {
+    fn interpolated_value(&    self, _lor: &LOR) -> Ratio {
         todo!()
     }
 }
@@ -168,7 +168,7 @@ impl Lorogram for JustDeltaZ {
     fn fill (&mut self, lor: &LOR)          {  self.histogram.fill (&delta_z(lor)); }
     fn value(&    self, lor: &LOR) -> usize { *self.histogram.value(&delta_z(lor)).unwrap_or(&0) }
 
-    fn interpolated_value(&    self, lor: &LOR) -> Ratio {
+    fn interpolated_value(&    self, _lor: &LOR) -> Ratio {
         todo!()
     }
 }
@@ -196,7 +196,7 @@ impl Lorogram for ZAndDeltaZ {
     fn fill (&mut self, lor: &LOR)          {  self.histogram.fill (&(z_of_midpoint(lor), delta_z(lor))); }
     fn value(&    self, lor: &LOR) -> usize { *self.histogram.value(&(z_of_midpoint(lor), delta_z(lor))).unwrap_or(&0) }
 
-    fn interpolated_value(&    self, lor: &LOR) -> Ratio {
+    fn interpolated_value(&    self, _lor: &LOR) -> Ratio {
         todo!()
     }
 }

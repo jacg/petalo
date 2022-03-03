@@ -87,8 +87,8 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
             .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
-                let eok = args.ecut.contains(&E1) && args.ecut.contains(&E2);
-                let qok = args.qcut.contains(&q1) && args.qcut.contains(&q2);
+                let eok = args.ecut.contains(E1) && args.ecut.contains(E2);
+                let qok = args.qcut.contains(q1) && args.qcut.contains(q2);
                 if eok && qok { true }
                 else { rejected += 1; false }
             })

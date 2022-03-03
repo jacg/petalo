@@ -118,7 +118,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
 
     let sensitivity_image: Option<Image> = args.sensitivity_image.as_ref().map(|path| Image::from_raw_file(path)).transpose()?;
-    sensitivity_image.as_ref().map(|i| assert_image_sizes_match(i, args.nvoxels, args.size));
+    if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, args.nvoxels, args.size) };
     if sensitivity_image.is_some() { report_time("Loaded sensitivity image"); }
 
     #[cfg(not(feature = "serial"))]

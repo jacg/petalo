@@ -82,7 +82,7 @@ fn sphere_foms(
 
     Ok(spheres.into_iter()
        .map(|sphere| contrast_and_variability(sphere, foreground_z,
-                                              &background_xys, &background_zs, background_a,
+                                              background_xys, &background_zs, background_a,
                                               &relevant_voxels).unwrap())
        .collect())
 }
@@ -237,7 +237,7 @@ fn contrast_and_variability(sphere: Sphere,
     let mut bg_means = vec![];
     for (x,y) in background_xys {
         for z in background_zs {
-            bg_means.push(fom::mean_in_region(ROI::DiscZ((*x, *y,*z), r), &voxels));
+            bg_means.push(fom::mean_in_region(ROI::DiscZ((*x, *y,*z), r), voxels));
         }
     }
     // Calculate background variability
@@ -268,7 +268,7 @@ fn discard_irrelevant_voxels(
         .unwrap();
 
     // Background ROIs corresponding to biggest sphere
-    let bg_rois = background_roi_centres.into_iter()
+    let bg_rois = background_roi_centres.iter()
         .map(|&(x,y,z)| ROI::DiscZ((x,y,z), max_roi_radius))
         .collect::<Vec<_>>();
 

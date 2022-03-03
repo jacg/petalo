@@ -115,7 +115,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let dz = (j as f32 + 0.5) * step;
                 let p1 = (0.0, 0.0, z + dz/2.0);
                 let p2 = (0.0, 0.0, z - dz/2.0);
-                let (v, t, s) = sgram.triplet(&LOR::from((p1, p2)));
+                let v = sgram.value(&LOR::from((p1, p2)));
                 print!(" {v:6.1}");
             }
             println!();
@@ -135,10 +135,4 @@ fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), lors:
         sgram.fill(prompt, &LOR::from((p1, p2)));
     }
     sgram
-}
-
-// Example of how to return dynamically-typed lorogram
-fn return_dynamic_lorogram(a: bool) -> Box<dyn Lorogram> {
-    if a { Box::new(JustZ::new(100.0, 10)) }
-    else { Box::new(JustR::new(100.0, 10)) }
 }

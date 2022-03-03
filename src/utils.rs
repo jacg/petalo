@@ -36,7 +36,7 @@ fn option_to_excluded<T>(x: Option<T>) -> Bound<T> {
 }
 
 fn parse_if_not_empty<T: std::str::FromStr>(s: &str) -> Result<Option<T>, <T as std::str::FromStr>::Err> {
-    Ok(if s.len() == 0 { None }
+    Ok(if s.is_empty() { None }
        else            { Some(s.parse()?) })
 }
 
