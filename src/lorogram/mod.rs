@@ -1,4 +1,4 @@
-use ndhistogram::{ndhistogram, axis::{Axis, Uniform, Cyclic}, Histogram, HistND};
+use ndhistogram::{axis::{Axis, Uniform, Cyclic}, Histogram};
 use crate::weights::LOR;
 use crate::types::Point;
 use std::f32::consts::PI;
@@ -137,6 +137,7 @@ pub fn axis_phi(nbins: usize) -> LorAxC {
 #[cfg(test)]
 mod test_mapped_axes {
     use super::*;
+    use ndhistogram::ndhistogram;
 
     #[test]
     fn uniform() {
