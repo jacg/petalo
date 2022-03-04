@@ -59,19 +59,19 @@ impl Scattergram {
     }
 }
 // --------------------------------------------------------------------------------
-struct MappedAxis<T,A>
+pub struct MappedAxis<T,A>
 where
     A: Axis,
 {
     axis: A,
-    map: dyn Fn(&T) -> A::Coordinate,
+    map: Box<dyn Fn(&T) -> A::Coordinate>,
 }
 
 impl<T,A> Axis for MappedAxis<T,A>
 where
-    A: Axis<Coordinate = T>,
+    A: Axis,
 {
-    type Coordinate = A::Coordinate;
+    type Coordinate = T;
 
     type BinInterval = A::BinInterval;
 
@@ -88,7 +88,34 @@ where
     }
 }
 // --------------------------------------------------------------------------------
+pub type LorAxU = MappedAxis<LOR, Uniform<Length>>;
+pub type LorAxC = MappedAxis<LOR, Cyclic <Length>>;
+pub type LorogramU   = HistND<(LorAxU,               ), usize>;
+pub type LorogramC   = HistND<(LorAxC,               ), usize>;
+pub type LorogramUU  = HistND<(LorAxU, LorAxU        ), usize>;
+pub type LorogramUC  = HistND<(LorAxU, LorAxC        ), usize>;
+pub type LorogramUUU = HistND<(LorAxU, LorAxU, LorAxU), usize>;
+pub type LorogramUUC = HistND<(LorAxU, LorAxU, LorAxC), usize>;
 
+#[cfg(test)]
+mod test_mapped_axes {
+    use super::*;
+
+    #[test]
+    fn uniform() {
+        let nbins = 10;
+        let l = 1000.0;
+        let axis = LorAxU {
+            axis: Uniform::new(nbins, -l/2.0, l/2.0),
+            map: Box::new(z_of_midpoint)
+        };
+        assert_eq!(axis.num_bins(), nbins+2);
+        let mut h = ndhistogram!(axis; usize);
+        h.fill         (&LOR::from(((0.0, 0.0, 111.0), (0.0, 0.0, 555.0))));
+        let n = h.value(&LOR::from(((1.0, 2.0, 222.0), (9.0, 8.0, 444.0)))).unwrap_or(&0);
+        assert_eq!(n, &1);
+    }
+}
 // --------------------------------------------------------------------------------
 type Uniform1DHist = HistND<(Uniform<Length>,), usize>;
 
