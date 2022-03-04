@@ -85,13 +85,6 @@ where
 // --------------------------------------------------------------------------------
 pub type LorAxU = MappedAxis<LOR, Uniform<Length>>;
 pub type LorAxC = MappedAxis<LOR, Cyclic <Length>>;
-pub type LorogramU   = HistND<(LorAxU,               ), usize>;
-pub type LorogramC   = HistND<(LorAxC,               ), usize>;
-pub type LorogramUU  = HistND<(LorAxU, LorAxU        ), usize>;
-pub type LorogramUC  = HistND<(LorAxU, LorAxC        ), usize>;
-pub type LorogramUUU = HistND<(LorAxU, LorAxU, LorAxU), usize>;
-pub type LorogramUUC = HistND<(LorAxU, LorAxU, LorAxC), usize>;
-
 
 fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Length { (p1.z + p2.z) / 2.0 }
 
