@@ -144,6 +144,30 @@ mod test_mapped_axes {
         let n = h.value(&LOR::from(((b*x, b*y, dummy3), (-b*x, -b*y, dummy4)))).unwrap_or(&0);
         assert_eq!(n, &1);
     }
+
+    #[test]
+    fn two_dimensions() {
+        let nbins_z = 10;
+        let nbins_dz = 10;
+        let l = 1000.0;
+        let max_dz = l;
+        let mut h = ndhistogram!(
+            axis_z      (nbins_z , -l/2.0, l/2.0),
+            axis_delta_z(nbins_dz, max_dz);
+            usize
+        );
+        let (z, delta) = (123.4, 543.2);
+        // Irrelevant values
+        let (i1, i2, i3, i4, i5, i6, i7, i8) = (10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0);
+
+        let l1 = LOR::from(((i1, i2, z-delta), (i3, i4, z+delta)));
+        let l2 = LOR::from(((i5, i6, z+delta), (i7, i8, z-delta)));
+        h.fill         (&(l1, l1));
+        let n = h.value(&(l2, l2)).unwrap_or(&0);
+
+        assert_eq!(n, &1);
+    }
+
 }
 // --------------------------------------------------------------------------------
 type Uniform1DHist = HistND<(Uniform<Length>,), usize>;
