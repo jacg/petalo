@@ -183,12 +183,26 @@ mod test_mapped_axes {
 
         let l1 = LOR::from(((i1, i2, z-delta), (i3, i4, z+delta)));
         let l2 = LOR::from(((i5, i6, z+delta), (i7, i8, z-delta)));
-        h.fill         (&(l1, l1));
-        let n = h.value(&(l2, l2)).unwrap_or(&0);
+        h.put        (&l1);
+        let n = h.get(&l2);
 
-        assert_eq!(n, &1);
+        assert_eq!(n, 1);
     }
 
+}
+// --------------------------------------------------------------------------------
+pub trait LorogramBis {
+    fn put(&mut self, lor: &LOR);
+    fn get(&    self, lor: &LOR) -> usize;
+}
+
+impl<X, Y> LorogramBis for ndhistogram::Hist2D<X, Y, usize>
+where
+    X: Axis<Coordinate = LOR>,
+    Y: Axis<Coordinate = LOR>,
+{
+    fn put(&mut self, lor: &LOR)          {  self.fill (&(*lor, *lor)) }
+    fn get(&    self, lor: &LOR) -> usize { *self.value(&(*lor, *lor)).unwrap_or(&0) }
 }
 // --------------------------------------------------------------------------------
 type Uniform1DHist = HistND<(Uniform<Length>,), usize>;
