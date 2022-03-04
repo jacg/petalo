@@ -97,6 +97,13 @@ pub type LorogramUC  = HistND<(LorAxU, LorAxC        ), usize>;
 pub type LorogramUUU = HistND<(LorAxU, LorAxU, LorAxU), usize>;
 pub type LorogramUUC = HistND<(LorAxU, LorAxU, LorAxC), usize>;
 
+pub fn axis_z(nbins: usize, min: Length, max: Length) -> LorAxU {
+    LorAxU {
+        axis: Uniform::new(nbins, min, max),
+        map: Box::new(z_of_midpoint),
+    }
+}
+
 #[cfg(test)]
 mod test_mapped_axes {
     use super::*;
@@ -105,10 +112,7 @@ mod test_mapped_axes {
     fn uniform() {
         let nbins = 10;
         let l = 1000.0;
-        let axis = LorAxU {
-            axis: Uniform::new(nbins, -l/2.0, l/2.0),
-            map: Box::new(z_of_midpoint)
-        };
+        let axis = axis_z(10, -l/2.0, l/2.0);
         assert_eq!(axis.num_bins(), nbins+2);
         let mut h = ndhistogram!(axis; usize);
         h.fill         (&LOR::from(((0.0, 0.0, 111.0), (0.0, 0.0, 555.0))));
