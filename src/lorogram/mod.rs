@@ -59,19 +59,17 @@ impl Scattergram {
     }
 }
 // --------------------------------------------------------------------------------
-struct MappedAxis<T,A,F>
+struct MappedAxis<T,A>
 where
     A: Axis,
-    F: Fn(&T) -> A::Coordinate
 {
     axis: A,
-    map: F,
+    map: dyn Fn(&T) -> A::Coordinate,
 }
 
-impl<T,A,F> Axis for MappedAxis<T,A,F>
+impl<T,A> Axis for MappedAxis<T,A>
 where
     A: Axis<Coordinate = T>,
-    F: Fn(&T) -> A::Coordinate,
 {
     type Coordinate = A::Coordinate;
 
