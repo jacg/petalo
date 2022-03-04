@@ -3,7 +3,7 @@ use structopt::StructOpt;
 use petalo::utils::parse_range;
 use petalo::weights::LOR;
 use petalo::io::hdf5::{Hdf5Lor, read_table};
-use petalo::lorogram::{axis_z, axis_delta_z, axis_phi, axis_r, Prompt, Scattergram, LorogramBis};
+use petalo::lorogram::{axis_z, axis_delta_z, axis_phi, axis_r, Prompt, Scattergram, Lorogram};
 use ndhistogram::ndhistogram;
 use std::f32::consts::PI;
 
@@ -133,7 +133,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn LorogramBis>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
+fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
     let mut sgram = Scattergram::new(make_empty_lorogram);
     for Hdf5Lor { x1, y1, z1, x2, y2, z2, E1, E2, .. } in lors {
         if x1.is_nan() || x2.is_nan() { continue }

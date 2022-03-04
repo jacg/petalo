@@ -12,13 +12,13 @@ type Angle  = f32;
 pub enum Prompt { True, Scatter, Random }
 
 pub struct Scattergram {
-    trues  : Box<dyn LorogramBis>,
-    scatters:Box<dyn LorogramBis>,
+    trues  : Box<dyn Lorogram>,
+    scatters:Box<dyn Lorogram>,
 }
 
 impl Scattergram {
 
-    pub fn new(make_empty_lorogram: &(dyn Fn() -> Box<dyn LorogramBis>)) -> Self {
+    pub fn new(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>)) -> Self {
         let trues    = make_empty_lorogram();
         let scatters = make_empty_lorogram();
         Self { trues, scatters }
@@ -185,12 +185,12 @@ mod test_mapped_axes {
 
 }
 // --------------------------------------------------------------------------------
-pub trait LorogramBis {
+pub trait Lorogram {
     fn put(&mut self, lor: &LOR);
     fn get(&    self, lor: &LOR) -> usize;
 }
 
-impl<X> LorogramBis for ndhistogram::Hist1D<X, usize>
+impl<X> Lorogram for ndhistogram::Hist1D<X, usize>
 where
     X: Axis<Coordinate = LOR>,
 {
@@ -198,7 +198,7 @@ where
     fn get(&    self, lor: &LOR) -> usize { *self.value(lor).unwrap_or(&0) }
 }
 
-impl<X, Y> LorogramBis for ndhistogram::Hist2D<X, Y, usize>
+impl<X, Y> Lorogram for ndhistogram::Hist2D<X, Y, usize>
 where
     X: Axis<Coordinate = LOR>,
     Y: Axis<Coordinate = LOR>,
