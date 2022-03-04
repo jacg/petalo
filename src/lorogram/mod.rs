@@ -26,8 +26,8 @@ impl Scattergram {
 
     pub fn fill(&mut self, kind: Prompt, lor: &LOR) {
         match kind {
-            Prompt::True    => self.trues.   put(lor),
-            Prompt::Scatter => self.scatters.put(lor),
+            Prompt::True    => self.trues.   fill(lor),
+            Prompt::Scatter => self.scatters.fill(lor),
             Prompt::Random  => panic!("Not expecting any random events yet."),
         }
     } 
@@ -36,21 +36,21 @@ impl Scattergram {
     ///
     /// `(scatters + trues) / trues`
     pub fn value(&self, lor: &LOR) -> Ratio {
-        let trues = self.trues.get(lor);
+        let trues = self.trues.value(lor);
         if trues > 0 {
-            let scatters: f32 = self.scatters.get(lor) as f32;
+            let scatters: f32 = self.scatters.value(lor) as f32;
             let trues = trues as f32;
             (scatters + trues) / trues
         } else { 1.0 }
     }
 
     pub fn triplet(&self, lor: &LOR) -> (Ratio, f32, f32) {
-        let trues = self.trues.get(lor);
+        let trues = self.trues.value(lor);
         if trues > 0 {
-            let scatters: f32 = self.scatters.get(lor) as f32;
+            let scatters: f32 = self.scatters.value(lor) as f32;
             let trues = trues as f32;
             ((scatters + trues) / trues, trues, scatters)
-        } else { (1.0, 0.0, self.scatters.get(lor) as f32) }
+        } else { (1.0, 0.0, self.scatters.value(lor) as f32) }
     }
 }
 // --------------------------------------------------------------------------------
@@ -149,9 +149,9 @@ mod test_mapped_axes {
         let y = 234.5;
         let (dummy1, dummy2, dummy3, dummy4) = (111.1, 222.2, 333.3, 444.4);
         let (a, b) = (30.0, 40.0); // scaling factors
-        h.fill         (&LOR::from(((a*x, a*y, dummy1), (-a*x, -a*y, dummy2))));
-        let n = h.value(&LOR::from(((b*x, b*y, dummy3), (-b*x, -b*y, dummy4)))).unwrap_or(&0);
-        assert_eq!(n, &1);
+        Lorogram::fill         (&mut h, &LOR::from(((a*x, a*y, dummy1), (-a*x, -a*y, dummy2))));
+        let n = Lorogram::value(&    h, &LOR::from(((b*x, b*y, dummy3), (-b*x, -b*y, dummy4))));
+        assert_eq!(n, 1);
     }
 
     #[test]
@@ -171,8 +171,8 @@ mod test_mapped_axes {
 
         let l1 = LOR::from(((i1, i2, z-delta), (i3, i4, z+delta)));
         let l2 = LOR::from(((i5, i6, z+delta), (i7, i8, z-delta)));
-        h.put        (&l1);
-        let n = h.get(&l2);
+        Lorogram::fill         (&mut h, &l1);
+        let n = Lorogram::value(&    h, &l2);
 
         assert_eq!(n, 1);
     }
@@ -180,16 +180,16 @@ mod test_mapped_axes {
 }
 // --------------------------------------------------------------------------------
 pub trait Lorogram {
-    fn put(&mut self, lor: &LOR);
-    fn get(&    self, lor: &LOR) -> usize;
+    fn fill (&mut self, lor: &LOR);
+    fn value(&    self, lor: &LOR) -> usize;
 }
 
 impl<X> Lorogram for ndhistogram::Hist1D<X, usize>
 where
     X: Axis<Coordinate = LOR>,
 {
-    fn put(&mut self, lor: &LOR)          {  self.fill (lor) }
-    fn get(&    self, lor: &LOR) -> usize { *self.value(lor).unwrap_or(&0) }
+    fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, lor) }
+    fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, lor).unwrap_or(&0) }
 }
 
 impl<X, Y> Lorogram for ndhistogram::Hist2D<X, Y, usize>
@@ -197,8 +197,8 @@ where
     X: Axis<Coordinate = LOR>,
     Y: Axis<Coordinate = LOR>,
 {
-    fn put(&mut self, lor: &LOR)          {  self.fill (&(*lor, *lor)) }
-    fn get(&    self, lor: &LOR) -> usize { *self.value(&(*lor, *lor)).unwrap_or(&0) }
+    fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor)) }
+    fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor)).unwrap_or(&0) }
 }
 
 impl<X, Y, Z> Lorogram for ndhistogram::Hist3D<X, Y, Z, usize>
@@ -207,8 +207,8 @@ where
     Y: Axis<Coordinate = LOR>,
     Z: Axis<Coordinate = LOR>,
 {
-    fn put(&mut self, lor: &LOR)          {  self.fill (&(*lor, *lor, *lor)) }
-    fn get(&    self, lor: &LOR) -> usize { *self.value(&(*lor, *lor, *lor)).unwrap_or(&0) }
+    fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor)) }
+    fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor)).unwrap_or(&0) }
 }
 
 impl<X, Y, Z, T> Lorogram for ndhistogram::HistND<(X, Y, Z, T), usize>
@@ -218,8 +218,8 @@ where
     Z: Axis<Coordinate = LOR>,
     T: Axis<Coordinate = LOR>,
 {
-    fn put(&mut self, lor: &LOR)          {  self.fill (&(*lor, *lor, *lor, *lor)) }
-    fn get(&    self, lor: &LOR) -> usize { *self.value(&(*lor, *lor, *lor, *lor)).unwrap_or(&0) }
+    fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor, *lor)) }
+    fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor, *lor)).unwrap_or(&0) }
 }
 // --------------------------------------------------------------------------------
 impl From<((f32, f32, f32), (f32, f32, f32))> for LOR {
