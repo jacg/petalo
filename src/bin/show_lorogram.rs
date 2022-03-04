@@ -3,7 +3,7 @@ use structopt::StructOpt;
 use petalo::utils::parse_range;
 use petalo::weights::LOR;
 use petalo::io::hdf5::{Hdf5Lor, read_table};
-use petalo::lorogram::{axis_z, axis_delta_z, axis_phi, axis_r, Prompt, Scattergram, Lorogram};
+use petalo::lorogram::{axis_z, axis_dz, axis_phi, axis_r, Prompt, Scattergram, Lorogram};
 use ndhistogram::ndhistogram;
 use std::f32::consts::PI;
 
@@ -89,7 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let nbins = 20;
         let dz_max = 1000.0;
-        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_delta_z(nbins, dz_max); usize)), lors);
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_dz(nbins, dz_max); usize)), lors);
         let step = dz_max / nbins as f32;
         println!("     dz      (s/t) + 1     trues   scatters");
         for i in 0..nbins {
@@ -107,8 +107,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let (l, dz_max) = (200.0, 1000.0);
         let sgram = fill_scattergram(
             &|| Box::new(
-                ndhistogram!(axis_z      (nbins_z , -l/2.0, l/2.0),
-                             axis_delta_z(nbins_dz, dz_max);
+                ndhistogram!(axis_z (nbins_z , -l/2.0, l/2.0),
+                             axis_dz(nbins_dz, dz_max);
                              usize)
             ),
             lors

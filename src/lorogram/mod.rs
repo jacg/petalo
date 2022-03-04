@@ -120,7 +120,7 @@ pub fn axis_z(nbins: usize, min: Length, max: Length) -> LorAxU {
     }
 }
 
-pub fn axis_delta_z(nbins: usize, max: Length) -> LorAxU {
+pub fn axis_dz(nbins: usize, max: Length) -> LorAxU {
     LorAxU {
         axis: Uniform::new(nbins, 0.0, max),
         map: Box::new(delta_z),
@@ -167,8 +167,8 @@ mod test_mapped_axes {
         let l = 1000.0;
         let max_dz = l;
         let mut h = ndhistogram!(
-            axis_z      (nbins_z , -l/2.0, l/2.0),
-            axis_delta_z(nbins_dz, max_dz);
+            axis_z (nbins_z , -l/2.0, l/2.0),
+            axis_dz(nbins_dz, max_dz);
             usize
         );
         let (z, delta) = (123.4, 543.2);
