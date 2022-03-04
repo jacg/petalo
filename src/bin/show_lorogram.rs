@@ -32,19 +32,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (nbins_z, nbins_dz, nbins_r, nbins_phi) = (10, 10, 10, 10);
     let (l, dz_max, r_max) = (200.0, 1000.0, 120.0);
-
+    let l0 = -l / 2.0;
+    let step_z  =      l / nbins_z  as f32;
+    let step_r  =  r_max / nbins_r  as f32;
+    let step_dz = dz_max / nbins_dz as f32;
     let infile  = args.input_file.into_os_string().into_string().unwrap();
 
     {
         println!("===== z dependence ======================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_z(nbins_z, -l/2.0, l/2.0); usize)), lors);
-        let l0 = - l / 2.0;
-        let dl = l / (nbins_z as f32);
 
         println!("     z       (s/t) + 1     trues   scatters");
         for i in 0..nbins_z {
-            let z = l0 + (i as f32 + 0.5) * dl;
+            let z = l0 + (i as f32 + 0.5) * step_z;
             let p = (0.0, 0.0, z as f32);
             let (v, t, s) = sgram.triplet(&LOR::from((p, p)));
             println!("{z:7.1}   {v:10.2}    {t:8}  {s:8}");
@@ -71,10 +72,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("===== r dependence ====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_r(nbins_r, r_max); usize)), lors);
-        let step = r_max / nbins_r as f32;
         println!("     r       (s/t) + 1     trues   scatters");
         for i in 0..nbins_r {
-            let r = (i as f32 + 0.5) * step;
+            let r = (i as f32 + 0.5) * step_r;
             let p1 = (r,  100.0, 0.0);
             let p2 = (r, -100.0, 0.0);
             let (v, t, s) = sgram.triplet(&LOR::from((p1, p2)));
@@ -85,10 +85,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("===== obliqueness ====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_dz(nbins_dz, dz_max); usize)), lors);
-        let step = dz_max / nbins_dz as f32;
         println!("     dz      (s/t) + 1     trues   scatters");
         for i in 0..nbins_dz {
-            let dz = (i as f32 + 0.5) * step;
+            let dz = (i as f32 + 0.5) * step_dz;
             let p1 = (0.0, 0.0,  dz/2.0);
             let p2 = (0.0, 0.0, -dz/2.0);
             let (v, t, s) = sgram.triplet(&LOR::from((p1, p2)));
@@ -106,20 +105,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ),
             lors
         );
-        let l0 = - l / 2.0;
-        let dl = l / (nbins_z as f32);
-        let step = dz_max / nbins_dz as f32;
-        print!("  dz =      ");
+        print!("      dz =");
         for j in 0..nbins_dz {
-            let dz = (j as f32 + 0.5) * step;
+            let dz = (j as f32 + 0.5) * step_z;
             print!("{dz:7.0}")
         }
-        println!("\n");
+        println!("\n    z");
         for i in 0..nbins_z {
-            let z = (l0 + (i as f32 + 0.5) * dl) as f32;
-            print!("z={z:6.1}    ");
+            let z = (l0 + (i as f32 + 0.5) * step_z) as f32;
+            print!("{z:6.1}    ");
             for j in 0..nbins_dz {
-                let dz = (j as f32 + 0.5) * step;
+                let dz = (j as f32 + 0.5) * step_dz;
                 let p1 = (0.0, 0.0, z + dz/2.0);
                 let p2 = (0.0, 0.0, z - dz/2.0);
                 let v = sgram.value(&LOR::from((p1, p2)));
@@ -139,20 +135,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ),
             lors
         );
-        let l0 = - l / 2.0;
-        let dl = l / (nbins_z as f32);
-        let step = r_max / nbins_r as f32;
-        print!("   r =      ");
+        print!("       r =");
         for j in 0..nbins_r {
-            let r = (j as f32 + 0.5) * step;
+            let r = (j as f32 + 0.5) * step_r;
             print!("{r:7.0}")
         }
-        println!("\n");
+        println!("\n    z");
         for i in 0..nbins_z {
-            let z = (l0 + (i as f32 + 0.5) * dl) as f32;
-            print!("z={z:6.1}    ");
+            let z = (l0 + (i as f32 + 0.5) * step_z) as f32;
+            print!("{z:6.1}    ");
             for j in 0..nbins_r {
-                let r  = (j as f32 + 0.5) * step;
+                let r  = (j as f32 + 0.5) * step_r;
                 let p1 = (r, -100.0, z);
                 let p2 = (r,  100.0, z);
                 let v = sgram.value(&LOR::from((p1, p2)));
