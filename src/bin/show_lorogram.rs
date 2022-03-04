@@ -3,7 +3,8 @@ use structopt::StructOpt;
 use petalo::utils::parse_range;
 use petalo::weights::LOR;
 use petalo::io::hdf5::{Hdf5Lor, read_table};
-use petalo::lorogram::{JustDeltaZ, JustPhi, JustR, JustZ, ZAndDeltaZ, Prompt, Scattergram, Lorogram};
+use petalo::lorogram::{axis_z, axis_delta_z, axis_phi, axis_r, Prompt, Scattergram, LorogramBis};
+use ndhistogram::ndhistogram;
 use std::f32::consts::PI;
 
 
@@ -37,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let nbins = 20;
         let l = 200.0;
-        let sgram = fill_scattergram(&|| Box::new(JustZ::new(l, nbins)), lors);
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_z(nbins, -l/2.0, l/2.0); usize)), lors);
         let l0 = - l / 2.0;
         let dl = l / (nbins as f32);
 
@@ -53,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("===== phi dependence ====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let nbins = 15;
-        let sgram = fill_scattergram(&|| Box::new(JustPhi::new(nbins)), lors);
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_phi(nbins); usize)), lors);
 
         println!("   phi       (s/t) + 1     trues   scatters");
         for i in 0..nbins {
@@ -72,7 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let nbins = 15;
         let r_max = 120.0;
-        let sgram = fill_scattergram(&|| Box::new(JustR::new(r_max, nbins)), lors);
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_r(nbins, r_max); usize)), lors);
         let step = r_max / nbins as f32;
         println!("     r       (s/t) + 1     trues   scatters");
         for i in 0..nbins {
@@ -88,7 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let nbins = 20;
         let dz_max = 1000.0;
-        let sgram = fill_scattergram(&|| Box::new(JustDeltaZ::new(dz_max, nbins)), lors);
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_delta_z(nbins, dz_max); usize)), lors);
         let step = dz_max / nbins as f32;
         println!("     dz      (s/t) + 1     trues   scatters");
         for i in 0..nbins {
@@ -104,7 +105,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let (nbins_z, nbins_dz) = (20, 20);
         let (l, dz_max) = (200.0, 1000.0);
-        let sgram = fill_scattergram(&|| Box::new(ZAndDeltaZ::new(l, nbins_z, dz_max, nbins_dz)), lors);
+        let sgram = fill_scattergram(
+            &|| Box::new(
+                ndhistogram!(axis_z      (nbins_z , -l/2.0, l/2.0),
+                             axis_delta_z(nbins_dz, dz_max);
+                             usize)
+            ),
+            lors
+        );
         let l0 = - l / 2.0;
         let dl = l / (nbins_z as f32);
         let step = dz_max / nbins_dz as f32;
@@ -125,7 +133,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
+fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn LorogramBis>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
     let mut sgram = Scattergram::new(make_empty_lorogram);
     for Hdf5Lor { x1, y1, z1, x2, y2, z2, E1, E2, .. } in lors {
         if x1.is_nan() || x2.is_nan() { continue }
