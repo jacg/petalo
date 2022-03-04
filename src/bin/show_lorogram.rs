@@ -30,20 +30,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let args = Cli::from_args();
 
+    let (nbins_z, nbins_dz, nbins_r, nbins_phi) = (10, 10, 10, 10);
+    let (l, dz_max, r_max) = (200.0, 1000.0, 120.0);
 
     let infile  = args.input_file.into_os_string().into_string().unwrap();
 
     {
         println!("===== z dependence ======================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-        let nbins = 20;
-        let l = 200.0;
-        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_z(nbins, -l/2.0, l/2.0); usize)), lors);
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_z(nbins_z, -l/2.0, l/2.0); usize)), lors);
         let l0 = - l / 2.0;
-        let dl = l / (nbins as f32);
+        let dl = l / (nbins_z as f32);
 
         println!("     z       (s/t) + 1     trues   scatters");
-        for i in 0..nbins {
+        for i in 0..nbins_z {
             let z = l0 + (i as f32 + 0.5) * dl;
             let p = (0.0, 0.0, z as f32);
             let (v, t, s) = sgram.triplet(&LOR::from((p, p)));
@@ -53,12 +53,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         println!("===== phi dependence ====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-        let nbins = 15;
-        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_phi(nbins); usize)), lors);
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_phi(nbins_phi); usize)), lors);
 
         println!("   phi       (s/t) + 1     trues   scatters");
-        for i in 0..nbins {
-            let phi = PI * ((i as f32 + 0.5) / nbins as f32);
+        for i in 0..nbins_phi {
+            let phi = PI * ((i as f32 + 0.5) / nbins_phi as f32);
             let x = phi.cos();
             let y = phi.sin();
             let p1 = (x, 0.0, 0.0);
@@ -71,12 +70,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         println!("===== r dependence ====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-        let nbins = 15;
-        let r_max = 120.0;
-        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_r(nbins, r_max); usize)), lors);
-        let step = r_max / nbins as f32;
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_r(nbins_r, r_max); usize)), lors);
+        let step = r_max / nbins_r as f32;
         println!("     r       (s/t) + 1     trues   scatters");
-        for i in 0..nbins {
+        for i in 0..nbins_r {
             let r = (i as f32 + 0.5) * step;
             let p1 = (r,  100.0, 0.0);
             let p2 = (r, -100.0, 0.0);
@@ -87,12 +84,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         println!("===== obliqueness ====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-        let nbins = 20;
-        let dz_max = 1000.0;
-        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_dz(nbins, dz_max); usize)), lors);
-        let step = dz_max / nbins as f32;
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_dz(nbins_dz, dz_max); usize)), lors);
+        let step = dz_max / nbins_dz as f32;
         println!("     dz      (s/t) + 1     trues   scatters");
-        for i in 0..nbins {
+        for i in 0..nbins_dz {
             let dz = (i as f32 + 0.5) * step;
             let p1 = (0.0, 0.0,  dz/2.0);
             let p2 = (0.0, 0.0, -dz/2.0);
@@ -103,8 +98,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         println!("===== z and dz ====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-        let (nbins_z, nbins_dz) = (20, 20);
-        let (l, dz_max) = (200.0, 1000.0);
         let sgram = fill_scattergram(
             &|| Box::new(
                 ndhistogram!(axis_z (nbins_z , -l/2.0, l/2.0),
@@ -138,8 +131,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         println!("===== z and r =====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-        let (nbins_z, nbins_r) = (20, 20);
-        let (l, r_max) = (200.0, 120.0);
         let sgram = fill_scattergram(
             &|| Box::new(
                 ndhistogram!(axis_z(nbins_z , -l/2.0, l/2.0),
