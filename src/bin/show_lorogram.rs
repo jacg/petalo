@@ -154,6 +154,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!();
         }
     }
+    {
+        println!("======================================================================");
+        println!("===== Using z-dz-r scattergram =======================================");
+        println!("======================================================================");
+        let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
+        let sgram = fill_scattergram(
+            &|| Box::new(
+                ndhistogram!(axis_z  (nbins_z  , -l/2.0, l/2.0),
+                             axis_dz (nbins_dz , dz_max),
+                             axis_r  (nbins_r  , r_max);
+                             usize)
+            ),
+            lors
+        );
+        println!("----- r and z ---------------------------------------------------");
+        for k in 0..nbins_dz {
+            let dz = (k as f32 + 0.5) * step_dz;
+            print!("\ndz = {dz:3.0}\n       r =");
+            for j in 0..nbins_r {
+                let r = (j as f32 + 0.5) * step_r;
+                print!("{r:7.0}")
+            }
+            println!("\n    z");
+            for i in 0..nbins_z {
+                let z = (l0 + (i as f32 + 0.5) * step_z) as f32;
+                print!("{z:6.1}    ");
+                for j in 0..nbins_r {
+                    let r  = (j as f32 + 0.5) * step_r;
+                    let p1 = (r, -100.0, z+dz/2.0);
+                    let p2 = (r,  100.0, z-dz/2.0);
+                    let v = sgram.value(&LOR::from((p1, p2)));
+                    print!(" {v:6.1}");
+                }
+                println!();
+            }
+        }
+    }
 
     Ok(())
 }
