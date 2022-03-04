@@ -1,4 +1,4 @@
-use ndhistogram::{ndhistogram, axis::{Uniform, Cyclic}, Histogram, HistND};
+use ndhistogram::{ndhistogram, axis::{Axis, Uniform, Cyclic}, Histogram, HistND};
 use crate::weights::LOR;
 use crate::types::Point;
 
@@ -58,6 +58,39 @@ impl Scattergram {
         } else { (1.0, 0.0, self.scatters.value(lor) as f32) }
     }
 }
+// --------------------------------------------------------------------------------
+struct MappedAxis<T,A,F>
+where
+    A: Axis,
+    F: Fn(&T) -> A::Coordinate
+{
+    axis: A,
+    map: F,
+}
+
+impl<T,A,F> Axis for MappedAxis<T,A,F>
+where
+    A: Axis<Coordinate = T>,
+    F: Fn(&T) -> A::Coordinate,
+{
+    type Coordinate = A::Coordinate;
+
+    type BinInterval = A::BinInterval;
+
+    fn index(&self, coordinate: &Self::Coordinate) -> Option<usize> {
+        self.axis.index(&(self.map)(coordinate))
+    }
+
+    fn num_bins(&self) -> usize {
+        self.axis.num_bins()
+    }
+
+    fn bin(&self, index: usize) -> Option<Self::BinInterval> {
+        self.axis.bin(index)
+    }
+}
+// --------------------------------------------------------------------------------
+
 // --------------------------------------------------------------------------------
 type Uniform1DHist = HistND<(Uniform<Length>,), usize>;
 
