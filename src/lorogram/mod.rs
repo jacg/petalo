@@ -206,6 +206,16 @@ where
     fn put(&mut self, lor: &LOR)          {  self.fill (&(*lor, *lor)) }
     fn get(&    self, lor: &LOR) -> usize { *self.value(&(*lor, *lor)).unwrap_or(&0) }
 }
+
+impl<X, Y, Z> Lorogram for ndhistogram::Hist3D<X, Y, Z, usize>
+where
+    X: Axis<Coordinate = LOR>,
+    Y: Axis<Coordinate = LOR>,
+    Z: Axis<Coordinate = LOR>,
+{
+    fn put(&mut self, lor: &LOR)          {  self.fill (&(*lor, *lor, *lor)) }
+    fn get(&    self, lor: &LOR) -> usize { *self.value(&(*lor, *lor, *lor)).unwrap_or(&0) }
+}
 // --------------------------------------------------------------------------------
 impl From<((f32, f32, f32), (f32, f32, f32))> for LOR {
     fn from(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> Self {
