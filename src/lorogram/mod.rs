@@ -98,6 +98,27 @@ pub type LorogramUC  = HistND<(LorAxU, LorAxC        ), usize>;
 pub type LorogramUUU = HistND<(LorAxU, LorAxU, LorAxU), usize>;
 pub type LorogramUUC = HistND<(LorAxU, LorAxU, LorAxC), usize>;
 
+
+fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Length { (p1.z + p2.z) / 2.0 }
+
+fn delta_z(LOR{p1, p2, ..}: &LOR) -> Length { (p1.z - p2.z).abs() }
+
+fn distance_from_z_axis(LOR{ p1, p2, .. }: &LOR) -> Length {
+    let dx = p2.x - p1.x;
+    let dy = p2.y - p1.y;
+    let x1 = p1.x;
+    let y1 = p1.y;
+    (dx * y1 - dy * x1).abs() / (dx*dx + dy*dy).sqrt()
+}
+
+fn phi(LOR{ p1, p2, .. }: &LOR) -> Angle {
+    let dx = p2.x - p1.x;
+    let dy = p2.y - p1.y;
+    phi_of_x_y(dx, dy)
+}
+
+fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
+
 pub fn axis_z(nbins: usize, min: Length, max: Length) -> LorAxU {
     LorAxU {
         axis: Uniform::new(nbins, min, max),
@@ -188,8 +209,6 @@ impl Lorogram for JustZ {
     fn interpolated_value(&self, _lor: &LOR) -> f32   { todo!() }
 }
 
-fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Length { (p1.z + p2.z) / 2.0 }
-
 impl From<((f32, f32, f32), (f32, f32, f32))> for LOR {
     fn from(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> Self {
         Self { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: 0.0  }
@@ -227,14 +246,6 @@ impl Lorogram for JustR {
         todo!()
     }
 }
-
-fn distance_from_z_axis(LOR{ p1, p2, .. }: &LOR) -> Length {
-    let dx = p2.x - p1.x;
-    let dy = p2.y - p1.y;
-    let x1 = p1.x;
-    let y1 = p1.y;
-    (dx * y1 - dy * x1).abs() / (dx*dx + dy*dy).sqrt()
-}
 // --------------------------------------------------------------------------------
 type Cyclic1DHist = HistND<(Cyclic<f32>,), usize>;
 
@@ -256,14 +267,6 @@ impl Lorogram for JustPhi {
         todo!()
     }
 }
-
-fn phi(LOR{ p1, p2, .. }: &LOR) -> Angle {
-    let dx = p2.x - p1.x;
-    let dy = p2.y - p1.y;
-    phi_of_x_y(dx, dy)
-}
-
-fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
 // --------------------------------------------------------------------------------
 pub struct JustDeltaZ {
     histogram: Uniform1DHist,
@@ -283,8 +286,6 @@ impl Lorogram for JustDeltaZ {
         todo!()
     }
 }
-
-fn delta_z(LOR{p1, p2, ..}: &LOR) -> Length { (p1.z - p2.z).abs() }
 // --------------------------------------------------------------------------------
 type Uniform2DHist = HistND<(Uniform<Length>, Uniform<Length>), usize>;
 
