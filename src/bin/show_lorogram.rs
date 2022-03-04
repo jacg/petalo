@@ -116,6 +116,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let l0 = - l / 2.0;
         let dl = l / (nbins_z as f32);
         let step = dz_max / nbins_dz as f32;
+        print!("  dz =      ");
+        for j in 0..nbins_dz {
+            let dz = (j as f32 + 0.5) * step;
+            print!("{dz:7.0}")
+        }
+        println!("\n");
         for i in 0..nbins_z {
             let z = (l0 + (i as f32 + 0.5) * dl) as f32;
             print!("z={z:6.1}    ");
