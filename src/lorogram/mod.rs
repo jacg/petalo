@@ -1,6 +1,7 @@
 use ndhistogram::{ndhistogram, axis::{Axis, Uniform, Cyclic}, Histogram, HistND};
 use crate::weights::LOR;
 use crate::types::Point;
+use std::f32::consts::PI;
 
 // TODO: replace with uom
 type Length = f32;
@@ -104,6 +105,14 @@ pub fn axis_z(nbins: usize, min: Length, max: Length) -> LorAxU {
     }
 }
 
+
+pub fn axis_phi(nbins: usize) -> LorAxC {
+    LorAxC {
+        axis: Cyclic::new(nbins, 0.0, PI),
+        map: Box::new(phi),
+    }
+}
+
 #[cfg(test)]
 mod test_mapped_axes {
     use super::*;
@@ -111,12 +120,15 @@ mod test_mapped_axes {
     #[test]
     fn uniform() {
         let nbins = 10;
-        let l = 1000.0;
-        let axis = axis_z(10, -l/2.0, l/2.0);
-        assert_eq!(axis.num_bins(), nbins+2);
+        let axis = axis_phi(nbins);
+        assert_eq!(axis.num_bins(), nbins);
         let mut h = ndhistogram!(axis; usize);
-        h.fill         (&LOR::from(((0.0, 0.0, 111.0), (0.0, 0.0, 555.0))));
-        let n = h.value(&LOR::from(((1.0, 2.0, 222.0), (9.0, 8.0, 444.0)))).unwrap_or(&0);
+        let x = 150.0;
+        let y = 234.5;
+        let (dummy1, dummy2, dummy3, dummy4) = (111.1, 222.2, 333.3, 444.4);
+        let (a, b) = (30.0, 40.0); // scaling factors
+        h.fill         (&LOR::from(((a*x, a*y, dummy1), (-a*x, -a*y, dummy2))));
+        let n = h.value(&LOR::from(((b*x, b*y, dummy3), (-b*x, -b*y, dummy4)))).unwrap_or(&0);
         assert_eq!(n, &1);
     }
 }
