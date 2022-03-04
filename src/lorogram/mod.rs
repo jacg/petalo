@@ -105,6 +105,19 @@ pub fn axis_z(nbins: usize, min: Length, max: Length) -> LorAxU {
     }
 }
 
+pub fn axis_delta_z(nbins: usize, max: Length) -> LorAxU {
+    LorAxU {
+        axis: Uniform::new(nbins, 0.0, max),
+        map: Box::new(delta_z),
+    }
+}
+
+pub fn axis_r(nbins: usize, max: Length) -> LorAxU {
+    LorAxU {
+        axis: Uniform::new(nbins, 0.0, max),
+        map: Box::new(distance_from_z_axis),
+    }
+}
 
 pub fn axis_phi(nbins: usize) -> LorAxC {
     LorAxC {
