@@ -1,4 +1,5 @@
 use ndhistogram::{axis::{Axis, Uniform, Cyclic}, Histogram};
+use crate::io::hdf5::Hdf5Lor;
 use crate::weights::LOR;
 use crate::types::Point;
 use std::f32::consts::PI;
@@ -226,4 +227,16 @@ impl From<((f32, f32, f32), (f32, f32, f32))> for LOR {
     fn from(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> Self {
         Self { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: 0.0  }
     }
+}
+
+pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
+    let mut sgram = Scattergram::new(make_empty_lorogram);
+    for Hdf5Lor { x1, y1, z1, x2, y2, z2, E1, E2, .. } in lors {
+        if x1.is_nan() || x2.is_nan() { continue }
+        let p1 = (x1, y1, z1);
+        let p2 = (x2, y2, z2);
+        let prompt = if E1.min(E2) < 511.0 { Prompt::Scatter } else { Prompt::True };
+        sgram.fill(prompt, &LOR::from((p1, p2)));
+    }
+    sgram
 }
