@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for i in 0..nbins_z {
             let z = l0 + (i as f32 + 0.5) * step_z;
             let p = (0.0, 0.0, z as f32);
-            let (v, t, s) = sgram.triplet(&LOR::from((p, p)));
+            let (v, t, s) = sgram.triplet(&mk_lor((p, p)));
             println!("{z:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
     }
@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let y = phi.sin();
             let p1 = (x, 0.0, 0.0);
             let p2 = (0.0, y, 0.0);
-            let (v, t, s) = sgram.triplet(&LOR::from((p1, p2)));
+            let (v, t, s) = sgram.triplet(&mk_lor((p1, p2)));
             let phi_in_degrees = phi * 180.0 / PI;
             println!("{phi_in_degrees:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
@@ -77,7 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let r = (i as f32 + 0.5) * step_r;
             let p1 = (r,  100.0, 0.0);
             let p2 = (r, -100.0, 0.0);
-            let (v, t, s) = sgram.triplet(&LOR::from((p1, p2)));
+            let (v, t, s) = sgram.triplet(&mk_lor((p1, p2)));
             println!("{r:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
     }
@@ -90,7 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let dz = (i as f32 + 0.5) * step_dz;
             let p1 = (0.0, 0.0,  dz/2.0);
             let p2 = (0.0, 0.0, -dz/2.0);
-            let (v, t, s) = sgram.triplet(&LOR::from((p1, p2)));
+            let (v, t, s) = sgram.triplet(&mk_lor((p1, p2)));
             println!("{dz:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
     }
@@ -118,7 +118,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let dz = (j as f32 + 0.5) * step_dz;
                 let p1 = (0.0, 0.0, z + dz/2.0);
                 let p2 = (0.0, 0.0, z - dz/2.0);
-                let v = sgram.value(&LOR::from((p1, p2)));
+                let v = sgram.value(&mk_lor((p1, p2)));
                 print!(" {v:6.1}");
             }
             println!();
@@ -148,7 +148,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let r  = (j as f32 + 0.5) * step_r;
                 let p1 = (r, -100.0, z);
                 let p2 = (r,  100.0, z);
-                let v = sgram.value(&LOR::from((p1, p2)));
+                let v = sgram.value(&mk_lor((p1, p2)));
                 print!(" {v:6.1}");
             }
             println!();
@@ -184,7 +184,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let r  = (j as f32 + 0.5) * step_r;
                     let p1 = (r, -100.0, z+dz/2.0);
                     let p2 = (r,  100.0, z-dz/2.0);
-                    let v = sgram.value(&LOR::from((p1, p2)));
+                    let v = sgram.value(&mk_lor((p1, p2)));
                     print!(" {v:6.1}");
                 }
                 println!();
@@ -193,4 +193,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+use petalo::types::Point;
+fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
+    LOR { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: 0.0, additive_correction: 1.0 }
 }

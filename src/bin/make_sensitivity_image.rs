@@ -87,7 +87,7 @@ fn find_potential_lors(n_lors: usize, fov: VoxelBox, detector_length: Length, de
         let p1 = random_point_on_cylinder(l,r);
         let p2 = random_point_on_cylinder(l,r);
         if fov.entry(&p1, &p2).is_some() {
-            lors.push(petalo::weights::LOR::new(0.0, 0.0, p1, p2))
+            lors.push(petalo::weights::LOR::new(0.0, 0.0, p1, p2, 1.0))
         }
     }
     lors
