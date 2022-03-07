@@ -106,6 +106,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, legacy_input_format,
                                   ecut, qcut };
     println!("Reading LOR data from disk ...");
+    let sgram = io::hdf5::read_scattergram(io_args.clone());
     let measured_lors = io::hdf5::read_lors(io_args)?;
     report_time("Loaded LOR data from disk");
 
