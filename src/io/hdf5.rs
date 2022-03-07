@@ -75,6 +75,7 @@ impl Event {
         LOR::new(t1 as F, t2 as F,
                  Point::new(x1 as F, y1 as F, z1 as F),
                  Point::new(x2 as F, y2 as F, z2 as F),
+                 1.0,
         )
     }
 
@@ -105,6 +106,27 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
     use crate::utils::group_digits as g;
     println!("Using {} LORs (rejected {}, kept {}%)", g(used), g(rejected), used_pct);
     Ok(it)
+}
+
+use ndhistogram::ndhistogram;
+use crate::lorogram::{axis_r, Lorogram, Prompt, Scattergram};
+pub fn read_scattergram(args: Args) -> Result<Scattergram, Box<dyn Error>> {
+    fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
+        let mut sgram = Scattergram::new(make_empty_lorogram);
+        for h5lor @Hdf5Lor { x1, x2, E1, E2, .. } in lors {
+            if x1.is_nan() || x2.is_nan() { continue }
+            let prompt = if E1.min(E2) < 511.0 { Prompt::Scatter } else { Prompt::True };
+            sgram.fill(prompt, &LOR::from(h5lor));
+        }
+        sgram
+    }
+    let h5lors = read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?;
+    let nbins_r = 10;
+    let r_max = 120.0;
+    let now = std::time::Instant::now();
+    let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_r(nbins_r, r_max); usize)), h5lors);
+    println!("Calculated Scattergram in {} ms", crate::utils::group_digits(now.elapsed().as_millis()));
+    Ok(sgram)
 }
 
 
@@ -224,7 +246,7 @@ pub struct Hdf5Lor {
 impl From<Hdf5Lor> for LOR {
     fn from(lor: Hdf5Lor) -> Self {
         let Hdf5Lor{dt, x1, y1, z1, x2, y2, z2, ..} = lor;
-        Self { dt, p1: Point::new(x1, y1, z1), p2: Point::new(x2, y2, z2)}
+        Self { dt, p1: Point::new(x1, y1, z1), p2: Point::new(x2, y2, z2), additive_correction: f32::NAN}
     }
 }
 

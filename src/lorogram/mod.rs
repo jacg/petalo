@@ -1,4 +1,5 @@
 use ndhistogram::{axis::{Axis, Uniform, Cyclic}, Histogram};
+use crate::io::hdf5::Hdf5Lor;
 use crate::weights::LOR;
 use crate::types::Point;
 use std::f32::consts::PI;
@@ -149,8 +150,8 @@ mod test_mapped_axes {
         let y = 234.5;
         let (dummy1, dummy2, dummy3, dummy4) = (111.1, 222.2, 333.3, 444.4);
         let (a, b) = (30.0, 40.0); // scaling factors
-        Lorogram::fill         (&mut h, &LOR::from(((a*x, a*y, dummy1), (-a*x, -a*y, dummy2))));
-        let n = Lorogram::value(&    h, &LOR::from(((b*x, b*y, dummy3), (-b*x, -b*y, dummy4))));
+        Lorogram::fill         (&mut h, &mk_lor(((a*x, a*y, dummy1), (-a*x, -a*y, dummy2))));
+        let n = Lorogram::value(&    h, &mk_lor(((b*x, b*y, dummy3), (-b*x, -b*y, dummy4))));
         assert_eq!(n, 1);
     }
 
@@ -169,8 +170,8 @@ mod test_mapped_axes {
         // Irrelevant values
         let (i1, i2, i3, i4, i5, i6, i7, i8) = (10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0);
 
-        let l1 = LOR::from(((i1, i2, z-delta), (i3, i4, z+delta)));
-        let l2 = LOR::from(((i5, i6, z+delta), (i7, i8, z-delta)));
+        let l1 = mk_lor(((i1, i2, z-delta), (i3, i4, z+delta)));
+        let l2 = mk_lor(((i5, i6, z+delta), (i7, i8, z-delta)));
         Lorogram::fill         (&mut h, &l1);
         let n = Lorogram::value(&    h, &l2);
 
@@ -221,9 +222,17 @@ where
     fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor, *lor)) }
     fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor, *lor)).unwrap_or(&0) }
 }
-// --------------------------------------------------------------------------------
-impl From<((f32, f32, f32), (f32, f32, f32))> for LOR {
-    fn from(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> Self {
-        Self { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: 0.0  }
+
+pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
+    let mut sgram = Scattergram::new(make_empty_lorogram);
+    for h5lor @Hdf5Lor { x1, x2, E1, E2, .. } in lors {
+        if x1.is_nan() || x2.is_nan() { continue }
+        let prompt = if E1.min(E2) < 511.0 { Prompt::Scatter } else { Prompt::True };
+        sgram.fill(prompt, &LOR::from(h5lor));
     }
+    sgram
+}
+
+pub fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
+    LOR { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: 0.0, additive_correction: 1.0 }
 }

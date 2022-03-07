@@ -67,7 +67,7 @@ pub fn parse_lor(s: &str) -> Result<LOR, Box<dyn Error>> {
 
     let p1 = Point::new(x1, y1, z1);
     let p2 = Point::new(x2, y2, z2);
-    let lor = LOR::new(t1, t2, p1, p2);
+    let lor = LOR::new(t1, t2, p1, p2, 1.0);
     Ok(lor)
 }
 

@@ -23,7 +23,7 @@ type VecOf<T> = ncollide3d::math::Vector<T>;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Time, Vector, ns_to_mm};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -71,12 +71,12 @@ mod test {
         let vbox = VoxelBox::new((size.0, size.1, 1.0), (n.0, n.1, 1));
 
         // Values to plug in to visualizer:
-        let lor = LOR::new(0.0, 0.0, p1, p2);
+        let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
         let command = crate::visualize::vislor_command(&vbox, &lor);
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weight> = LOR::new(0.0, 0.0, p1, p2).active_voxels(&vbox, None, None);
+        let hits: Vec<Index3Weight> = LOR::new(0.0, 0.0, p1, p2, 1.0).active_voxels(&vbox, None, None);
 
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -123,11 +123,11 @@ mod test {
             let vbox = VoxelBox::new((dx, dy, dz), (nx, ny, nz));
 
             // Values to plug in to visualizer:
-            let lor = LOR::new(0.0, 0.0, p1, p2);
+            let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
             let command = crate::visualize::vislor_command(&vbox, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Length = LOR::new(0.0, 0.0, p1, p2)
+            let summed: Length = LOR::new(0.0, 0.0, p1, p2, 1.0)
                 .active_voxels(&vbox, None, None)
                 .iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
@@ -447,18 +447,21 @@ pub struct LOR {
     pub p1: Point,
     pub p2: Point,
     pub dt: Time,
+    pub additive_correction: Ratio,
 }
 
 impl LOR {
-    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point) -> Self {
-        Self { p1, p2, dt: t2 - t1 }
+    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point, additive_correction: Ratio) -> Self {
+        Self { p1, p2, dt: t2 - t1, additive_correction }
     }
 
     pub fn from_components((t1, t2): (Time, Time),
                            (x1, y1, z1): (Length, Length, Length),
-                           (x2, y2, z2): (Length, Length, Length)) -> Self
+                           (x2, y2, z2): (Length, Length, Length),
+                           additive_correction: Ratio
+                          ) -> Self
     {
-        Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2))
+        Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
     pub fn active_voxels(&self, vbox: &VoxelBox, cutoff: Option<Length>, sigma: Option<Length>) -> Vec<Index3Weight> {
