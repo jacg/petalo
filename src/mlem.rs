@@ -1,3 +1,4 @@
+use std::path::Path;
 use ndarray::azip;
 
 #[cfg(not(feature = "serial"))]
@@ -49,7 +50,7 @@ impl Image {
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
                     sensitivity  :     Option<Self>,
-    ) -> impl Iterator<Item = Image> + 'a {
+    ) -> impl Iterator<Item = Image> + '_ {
 
         // Start off with a uniform image
         let mut image = Self::ones(vbox);
@@ -64,11 +65,11 @@ impl Image {
         })
     }
 
-    pub fn from_raw_file(path: &PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_raw_file(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         Ok((&crate::io::raw::Image3D::read_from_file(path)?).into())
     }
 
-    pub fn write_to_raw_file(&self, path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn write_to_raw_file(&self, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         io::raw::Image3D::from(self).write_to_file(path)?;
         Ok(())
     }
@@ -129,7 +130,11 @@ impl Image {
                 }
             }
         }
-
+        // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
+        let size = lors.len() as f32;
+        for e in image.iter_mut() {
+            *e /= size
+        }
         Self::new(vbox, image)
     }
 
@@ -256,7 +261,7 @@ where
                 &mut indices, &mut weights,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
-                tof_peak, &tof
+                tof_peak, tof
             );
 
             // Forward projection of current image into this LOR
@@ -299,7 +304,7 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Length], sen
 // --------------------------------------------------------------------------------
 //                  Conversion between 1d and 3d indices
 
-use std::{ops::{Add, Div, Mul, Rem}, path::PathBuf};
+use std::ops::{Add, Div, Mul, Rem};
 
 pub fn index3_to_1<T>([ix, iy, iz]: [T; 3], [nx, ny, _nz]: [T; 3]) -> T
 where

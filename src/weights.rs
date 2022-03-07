@@ -437,8 +437,10 @@ mod test_voxel_box {
 }
 
 //--------------------------------------------------------------------------------
-/// Line Of Response: 2 spacetime vectors indicating the positions and times of
-/// coincident detector element activations
+/// Line Of Response.
+///
+/// 2 spacetime vectors indicating the positions and times of coincident
+/// detector element activations
 #[derive(Clone, Copy, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct LOR {
@@ -452,9 +454,9 @@ impl LOR {
         Self { p1, p2, dt: t2 - t1 }
     }
 
-    pub fn from_components(t1: Time, t2: Time,
-                           x1: Length, y1: Length, z1: Length,
-                           x2: Length, y2: Length, z2: Length) -> Self
+    pub fn from_components((t1, t2): (Time, Time),
+                           (x1, y1, z1): (Length, Length, Length),
+                           (x2, y2, z2): (Length, Length, Length)) -> Self
     {
         Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2))
     }

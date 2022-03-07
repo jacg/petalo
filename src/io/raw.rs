@@ -8,10 +8,18 @@ pub fn write(data: impl Iterator<Item = f32>, path: &std::path::Path) -> std::io
     let mut buf = BufWriter::new(file);
     for datum in data {
         let bytes = datum.to_le_bytes();
-        // TODO: Clippy suggests write -> write_all, but that slows down the
-        // writer by a factor of 100. However, like this, we're not checking
-        // whether the whole buffer was written.
-        buf.write(&bytes)?;
+        // Clippy suggests write -> write_all, but that slows down the writer by
+        // a factor of 100.
+
+        // Tried to write it like this, but clippy still doesn't like it:
+        // buf.write(&bytes)
+        //    .unwrap_or_else(|e| panic!("\n\nFailed to write buffer:\n\n {e}\n\n"));
+
+        // so we go with the long-winded:
+        match buf.write(&bytes) {
+            Ok(_) => (),
+            Err(e) => panic!("\n\nFailed to write buffer:\n\n {e}\n\n"),
+        }
     }
     Ok(())
 }

@@ -100,8 +100,8 @@ impl Scene {
 
     fn clear(&mut self) {
         println!("Clearing ... supposedly");
-        for mut v in &mut self.voxels {
-            self.window.remove_node(&mut v);
+        for v in &mut self.voxels {
+            self.window.remove_node(v);
             v.unlink();
         }
     }

@@ -26,28 +26,28 @@ pub type InRoiFn = Box<dyn Fn(Point) -> bool>;
 impl ROI {
 
     pub fn contains_fn(&self) -> InRoiFn {
-        match self {
-            &ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
+        match *self {
+            ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
                 let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
                 x*x + y*y + z*z < radius * radius
             }),
 
-            &ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Point| {
+            ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Point| {
                 let (y, z) = (p.y - cy, p.z - cz);
                 y*y + z*z < radius*radius
             }),
 
-            &ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Point| {
+            ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Point| {
                 let (x, z) = (p.x - cx, p.z - cz);
                 x*x + z*z < radius*radius
             }),
 
-            &ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
+            ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 x*x + y*y < radius*radius
             }),
 
-            &ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Point| {
+            ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Point| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 z == p.z && x*x + y*y < radius*radius
             }),
@@ -55,12 +55,12 @@ impl ROI {
     }
 
     pub fn r(&self) -> Length {
-        match self {
-            &ROI::Sphere   (_,r) => r,
-            &ROI::CylinderX(_,r) => r,
-            &ROI::CylinderY(_,r) => r,
-            &ROI::CylinderZ(_,r) => r,
-            &ROI::DiscZ    (_,r) => r,
+        match *self {
+            ROI::Sphere   (_,r) => r,
+            ROI::CylinderX(_,r) => r,
+            ROI::CylinderY(_,r) => r,
+            ROI::CylinderZ(_,r) => r,
+            ROI::DiscZ    (_,r) => r,
         }
     }
 
@@ -119,8 +119,7 @@ pub fn index_to_position(index: usize, half_width: Length, voxel_size: Length) -
 pub fn centre_of_slice_closest_to(half_width: Length, voxel_size: Length) -> impl Fn(Length) -> Length {
     move |x| {
         let i = position_to_index(x, half_width, voxel_size);
-        let x = index_to_position(i, half_width, voxel_size);
-        x
+                index_to_position(i, half_width, voxel_size)
     }
 }
 
