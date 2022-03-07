@@ -79,7 +79,8 @@ use std::path::PathBuf;
 use std::fs::create_dir_all;
 
 use petalo::types::{Length, Time, Ratio, Energy, Charge, BoundPair};
-use petalo::weights::VoxelBox;
+use petalo::lorogram::Scattergram;
+use petalo::weights::{LOR, VoxelBox};
 use petalo::mlem::Image;
 use petalo::io;
 
@@ -106,9 +107,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, legacy_input_format,
                                   ecut, qcut };
     println!("Reading LOR data from disk ...");
-    let sgram = io::hdf5::read_scattergram(io_args.clone());
-    let measured_lors = io::hdf5::read_lors(io_args)?;
+    let sgram = io::hdf5::read_scattergram(io_args.clone())?;
+    let mut measured_lors = io::hdf5::read_lors(io_args)?;
     report_time("Loaded LOR data from disk");
+    calculate_additive_correction(&mut measured_lors, sgram);
+    report_time("Added additive correction values to LORs");
 
     // Define field of view extent and voxelization
     let vbox = VoxelBox::new(args.size, args.nvoxels);
@@ -170,5 +173,11 @@ fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) 
         println!("Sensitivity image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", inx,iny,inz, idx,idy,idz);
         println!("     Output image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", enx,eny,enz, edx,edy,edz);
         panic!("For now, the sensitivity image must match the dimensions of the output image exactly.");
+    }
+}
+
+fn calculate_additive_correction(measured_lors: &mut [LOR], sgram: Scattergram) {
+    for lor in measured_lors {
+        lor.additive_correction = sgram.value(lor);
     }
 }
