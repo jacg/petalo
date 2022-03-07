@@ -232,3 +232,7 @@ pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), l
     }
     sgram
 }
+
+pub fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
+    LOR { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: 0.0, additive_correction: 1.0 }
+}

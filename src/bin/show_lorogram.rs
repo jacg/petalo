@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
 use petalo::utils::parse_range;
-use petalo::weights::LOR;
 use petalo::io::hdf5::{Hdf5Lor, read_table};
-use petalo::lorogram::{axis_z, axis_dz, axis_phi, axis_r, fill_scattergram};
+use petalo::lorogram::{axis_z, axis_dz, axis_phi, axis_r, fill_scattergram, mk_lor};
 use ndhistogram::ndhistogram;
 use std::f32::consts::PI;
 
@@ -193,9 +192,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
-}
-
-use petalo::types::Point;
-fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
-    LOR { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: 0.0, additive_correction: 1.0 }
 }
