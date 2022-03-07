@@ -71,12 +71,12 @@ mod test {
         let vbox = VoxelBox::new((size.0, size.1, 1.0), (n.0, n.1, 1));
 
         // Values to plug in to visualizer:
-        let lor = LOR::new(0.0, 0.0, p1, p2);
+        let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
         let command = crate::visualize::vislor_command(&vbox, &lor);
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weight> = LOR::new(0.0, 0.0, p1, p2).active_voxels(&vbox, None, None);
+        let hits: Vec<Index3Weight> = LOR::new(0.0, 0.0, p1, p2, 1.0).active_voxels(&vbox, None, None);
 
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -123,11 +123,11 @@ mod test {
             let vbox = VoxelBox::new((dx, dy, dz), (nx, ny, nz));
 
             // Values to plug in to visualizer:
-            let lor = LOR::new(0.0, 0.0, p1, p2);
+            let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
             let command = crate::visualize::vislor_command(&vbox, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Length = LOR::new(0.0, 0.0, p1, p2)
+            let summed: Length = LOR::new(0.0, 0.0, p1, p2, 1.0)
                 .active_voxels(&vbox, None, None)
                 .iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))

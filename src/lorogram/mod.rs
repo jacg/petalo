@@ -150,8 +150,8 @@ mod test_mapped_axes {
         let y = 234.5;
         let (dummy1, dummy2, dummy3, dummy4) = (111.1, 222.2, 333.3, 444.4);
         let (a, b) = (30.0, 40.0); // scaling factors
-        Lorogram::fill         (&mut h, &LOR::from(((a*x, a*y, dummy1), (-a*x, -a*y, dummy2))));
-        let n = Lorogram::value(&    h, &LOR::from(((b*x, b*y, dummy3), (-b*x, -b*y, dummy4))));
+        Lorogram::fill         (&mut h, &mk_lor(((a*x, a*y, dummy1), (-a*x, -a*y, dummy2))));
+        let n = Lorogram::value(&    h, &mk_lor(((b*x, b*y, dummy3), (-b*x, -b*y, dummy4))));
         assert_eq!(n, 1);
     }
 
@@ -170,8 +170,8 @@ mod test_mapped_axes {
         // Irrelevant values
         let (i1, i2, i3, i4, i5, i6, i7, i8) = (10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0);
 
-        let l1 = LOR::from(((i1, i2, z-delta), (i3, i4, z+delta)));
-        let l2 = LOR::from(((i5, i6, z+delta), (i7, i8, z-delta)));
+        let l1 = mk_lor(((i1, i2, z-delta), (i3, i4, z+delta)));
+        let l2 = mk_lor(((i5, i6, z+delta), (i7, i8, z-delta)));
         Lorogram::fill         (&mut h, &l1);
         let n = Lorogram::value(&    h, &l2);
 
