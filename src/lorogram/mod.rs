@@ -1,4 +1,7 @@
-use ndhistogram::{axis::{Axis, Uniform, Cyclic}, Histogram};
+pub mod axis;
+
+use ndhistogram::{axis::{Axis, Uniform}, Histogram};
+use axis::Cyclic;
 use crate::io::hdf5::Hdf5Lor;
 use crate::weights::LOR;
 use crate::types::Point;
