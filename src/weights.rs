@@ -447,6 +447,10 @@ pub struct LOR {
     pub p1: Point,
     pub p2: Point,
     pub dt: Time,
+    /// Scatter and random corrections, which appear as an additive contribution
+    /// to the sinogram bin in the MLEM forward projection. In order to make it
+    /// compatible with a single LOR (rather than many LORs in a sinogram bin)
+    /// it is expressed here as a *multiplicative* factor.
     pub additive_correction: Ratio,
 }
 
