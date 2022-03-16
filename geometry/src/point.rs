@@ -52,7 +52,6 @@ impl<Idx> Index<Idx> for Point {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::{Point, Vector};
     use float_eq::assert_float_eq;
     const EPS: f32 = f32::EPSILON;
@@ -77,7 +76,7 @@ mod tests {
     }
 
     #[test]
-    fn point_minus_point_same_unit() {
+    fn sub_for_point() {
         // Difference between Points is a Vector
         let lhs      = Point ::new(cm(3.0), mm( 20.0), cm( 8.0));
         let rhs      = Point ::new(cm(2.0), cm(  4.0), mm(20.0));
