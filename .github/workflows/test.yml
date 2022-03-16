@@ -84,23 +84,19 @@ jobs:
           nix shell -c vislor -h
 
       - name: Test Pure Rust in development environment
-        continue-on-error: true
         run: nix develop -c just test-rust-pure --color=always
         #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-rust-pure   --color=always"
 
       - name: Test Pure Python in development environment
-        continue-on-error: true
         run: nix develop -c just test-python-pure --color=yes
         #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-pure  --color=yes"
 
       - name: Compile PyO3 in development environment
-        continue-on-error: true
         run: nix develop -c just python-build-bindings
         #run: nix-shell --argstr py ${{ matrix.py }} --run "just python-build-bindings"
         if: runner.os == 'Linux'
 
       - name: Test PyO3 in development environment
-        continue-on-error: true
         run: nix develop -c just test-python-bindings --color=yes
         #run: nix-shell --argstr py ${{ matrix.py }} --run "just test-python-bindings --color=yes"
         if: runner.os == 'Linux'
