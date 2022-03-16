@@ -23,10 +23,15 @@ impl Mul<f32> for Vector {
     }
 }
 
-impl<Idx> Index<Idx> for Vector {
+impl Index<usize> for Vector {
     type Output = Length;
-    fn index(&self, _index: Idx) -> &Self::Output {
-        todo!()
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("index {index} is out of bounds [0,2]")
+        }
     }
 }
 
@@ -106,5 +111,12 @@ mod tests {
         assert_eq!(v.magnitude().get::<meter>(), magnitude);
     }
 
+    #[test]
+    fn index_for_vector() {
+        let v = Vector::from::<meter>(1.0, 2.0, 3.0);
+        assert_eq!(v[0], cm(100.0));
+        assert_eq!(v[1], cm(200.0));
+        assert_eq!(v[2], cm(300.0));
+    }
 
 }
