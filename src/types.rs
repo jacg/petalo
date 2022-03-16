@@ -56,14 +56,18 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 #[cfg    (feature = "units") ] pub const C: Velocity = Velocity::new::<uom::si::velocity::meter_per_second>(299_792_458.0);
 
 
-#[inline] pub fn ps_to_mm(dt: Time) -> Length { dt * C }
-#[inline] pub fn mm_to_ps(dx: Length) -> Time { dx / C }
+#[cfg(not(feature = "units"))]
+mod unit_conversions {
+    use super::*;
+    #[inline] pub fn ps_to_mm(dt: Time) -> Length { dt * C }
+    #[inline] pub fn mm_to_ps(dx: Length) -> Time { dx / C }
 
-#[inline] pub fn ns_to_mm(dt: Time) -> Length { ps_to_mm(dt) * 1000.0 }
-#[inline] pub fn mm_to_ns(dx: Length) -> Time { mm_to_ps(dx) / 1000.0  }
+    #[inline] pub fn ns_to_mm(dt: Time) -> Length { ps_to_mm(dt) * 1000.0 }
+    #[inline] pub fn mm_to_ns(dx: Length) -> Time { mm_to_ps(dx) / 1000.0  }
 
-#[inline] pub fn ns_to_ps(dt: Time) -> Time { dt * 1000.0 }
-
+    #[inline] pub fn ns_to_ps(dt: Time) -> Time { dt * 1000.0 }
+}
+#[cfg(not(feature = "units"))] pub use unit_conversions::*;
 
 #[cfg(test)]
 #[cfg(not(feature = "units"))]
