@@ -44,10 +44,15 @@ impl AddAssign<Vector> for Point {
     }
 }
 
-impl<Idx> Index<Idx> for Point {
+impl Index<usize> for Point {
     type Output = Length;
-    fn index(&self, _index: Idx) -> &Self::Output {
-        todo!()
+    fn index(&self, index: usize) -> &Length {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("index {index} is out of bounds [0,2]")
+        }
     }
 }
 
@@ -112,6 +117,21 @@ mod tests {
         assert_uom_eq!(meter, p.x, xpct.x, ulps <= 1);
         assert_uom_eq!(meter, p.y, xpct.y, ulps <= 1);
         assert_uom_eq!(meter, p.z, xpct.z, ulps <= 1);
+    }
+
+    #[test]
+    fn index_for_point_in_bounds() {
+        let p = Point ::new(cm( 1.0), cm( 2.0), cm(3.0));
+        assert_eq!(p[0], p.x);
+        assert_eq!(p[1], p.y);
+        assert_eq!(p[2], p.z);
+    }
+
+    #[test]
+    #[should_panic]
+    fn index_for_point_out_of_bounds() {
+        let p = Point ::new(cm( 1.0), cm( 2.0), cm(3.0));
+        p[3];
     }
 
 }
