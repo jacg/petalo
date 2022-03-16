@@ -11,3 +11,4 @@ uom = "0.32.0"
 [dev-dependencies]
 pretty_assertions = "1.0"
 float_eq = "0.7.0"
+rstest = "0.12"

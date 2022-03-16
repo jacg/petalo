@@ -38,17 +38,24 @@ impl Iterator for Vector {
     }
 }
 
-impl Vector
-where
-    Length: Mul,
-{
+impl Vector {
 
     pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
 
+    pub fn from<T>(x: f32, y: f32, z: f32) -> Self
+    where
+        T: uom::Conversion<f32, T = f32> + uom::si::length::Unit,
+    {
+        Self {
+            x: Length::new::<T>(x),
+            y: Length::new::<T>(y),
+            z: Length::new::<T>(z),
+        }
+    }
+
     pub fn magnitude(&self) -> Length {
-        // let Self { x, y, z } = self;
-        // (x*x + y*y + z*z).sqrt()
-        todo!()
+        let &Self { x, y, z } = self;
+        (x*x + y*y + z*z).sqrt()
     }
 
     pub fn argmin(self) -> (usize, Length) { todo!() }
@@ -64,6 +71,7 @@ mod tests {
     const EPS: f32 = f32::EPSILON;
     use uom::si::length::meter;
     use crate::uom::{nm, mm, cm, assert_uom_eq};
+    use rstest::rstest;
 
     #[test]
     fn vector_components() {
@@ -82,4 +90,21 @@ mod tests {
         assert_uom_eq!(meter, r.y, e.y, ulps <= 1);
         assert_uom_eq!(meter, r.z, e.z, ulps <= 1);
     }
+
+    #[rstest(/**/ x,  y,  z,  magnitude,
+             case(0.0,  0.0,  0.0,  0.0),
+             case(1.0,  0.0,  0.0,  1.0),
+             case(0.0,  1.0,  0.0,  1.0),
+             case(0.0,  0.0,  1.0,  1.0),
+             case(3.0,  4.0,  0.0,  5.0),
+             case(0.0, -3.0,  4.0,  5.0),
+             case(5.0,  0.0, 12.0, 13.0),
+             case(3.0,  4.0,  5.0,  7.0710678),
+    )]
+    fn vector_magnitude(x: f32, y: f32, z: f32, magnitude: f32) {
+        let v = Vector::from::<meter>(x, y, z);
+        assert_eq!(v.magnitude().get::<meter>(), magnitude);
+    }
+
+
 }
