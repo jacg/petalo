@@ -62,11 +62,8 @@ mod tests {
     use crate::{Point, Vector};
     use float_eq::assert_float_eq;
     const EPS: f32 = f32::EPSILON;
-    use uom::si::{length::{millimeter, meter}};
+    use uom::si::length::{millimeter, meter};
     use crate::uom::{nm, mm, cm};
-    //use pretty_assertions::assert_eq;
-
-    use uom::si::length::meter as m;
 
     macro_rules! assert_uom_eq {
         ($unit:ident, $lhs:expr, $rhs:expr, $algo:ident <= $tol:expr) => {
@@ -77,9 +74,9 @@ mod tests {
     #[test]
     fn point_components() {
         let p = Point::new(mm(10.0), nm(1000.0), mm(2.0));
-        assert_eq!(       p.x, mm(10.0  ));
-        assert_uom_eq!(m, p.y, mm( 0.001), r2nd <= EPS);
-        assert_uom_eq!(m, p.z, cm( 0.2  ), r2nd <= EPS);
+        assert_eq!(           p.x, mm(10.0  ));
+        assert_uom_eq!(meter, p.y, mm( 0.001), r2nd <= EPS);
+        assert_uom_eq!(meter, p.z, cm( 0.2  ), r2nd <= EPS);
     }
 
     #[test]
