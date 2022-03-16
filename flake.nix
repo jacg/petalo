@@ -105,7 +105,7 @@
           nativeBuildInputs = [ pkgs.rustc pkgs.cargo ];
         in
         rec {
-          packages."${name}-rust" = project.rootCrate.build;
+          packages."${name}-rust" = project.workspaceMembers.petalo.build;
 
           packages."${name}-python" = pkgs.${python-version}.pkgs.buildPythonApplication {
             pname = "${name}-python";
