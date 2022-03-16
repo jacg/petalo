@@ -86,6 +86,20 @@ mod tests {
         assert_uom_eq!(millimeter, result.x, expected.x, ulps <= 1);
         assert_uom_eq!(millimeter, result.y, expected.y, ulps <= 2);
         assert_uom_eq!(millimeter, result.z, expected.z, ulps <= 2);
+    }
+
+    #[test]
+    fn sub_for_ref_point() {
+        // Difference between Points is a Vector
+        let lhs      = Point ::new(cm(3.0), mm( 20.0), cm( 8.0));
+        let rhs      = Point ::new(cm(2.0), cm(  4.0), mm(20.0));
+        let expected = Vector::new(cm(1.0), mm(-20.0), mm(60.0));
+        let result: Vector = &lhs - &rhs;
+
+        assert_uom_eq!(millimeter, result.x, expected.x, ulps <= 1);
+        assert_uom_eq!(millimeter, result.y, expected.y, ulps <= 2);
+        assert_uom_eq!(millimeter, result.z, expected.z, ulps <= 2);
+    }
 
     }
 
