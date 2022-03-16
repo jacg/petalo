@@ -1,23 +1,21 @@
 use std::ops::{AddAssign, Index, Sub};
+use uom::si::f32::Length;
 use crate::Vector;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Point<T> {
-    pub x: T,
-    pub y: T,
-    pub z: T,
+pub struct Point {
+    pub x: Length,
+    pub y: Length,
+    pub z: Length,
 }
 
-impl<T> Point<T> {
-    pub fn new(x: T, y: T, z: T) -> Self { Self { x, y, z } }
+impl Point {
+    pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
     pub fn component_div(&mut self, _other: &Self) -> Self { todo!() }
 }
 
-impl<T> Sub for Point<T>
-where
-    T: Sub<Output = T>,
-{
-    type Output = Vector<T>;
+impl Sub for Point {
+    type Output = Vector;
     fn sub(self, rhs: Self) -> Self::Output {
         Vector {
             x: self.x - rhs.x,
@@ -27,11 +25,8 @@ where
     }
 }
 
-impl<T> Sub for &Point<T>
-where
-    T: Sub<Output = T> + Copy,
-{
-    type Output = Vector<T>;
+impl Sub for &Point {
+    type Output = Vector;
     fn sub(self, rhs: Self) -> Self::Output {
         Vector {
             x: self.x - rhs.x,
@@ -41,27 +36,15 @@ where
     }
 }
 
-impl<T> AddAssign<Vector<T>> for Point<T> {
-    fn add_assign(&mut self, _rhs: Vector<T>) {
+impl AddAssign<Vector> for Point {
+    fn add_assign(&mut self, _rhs: Vector) {
         todo!()
     }
 }
 
-impl<T, Idx> Index<Idx> for Point<T> {
-    type Output = T;
+impl<Idx> Index<Idx> for Point {
+    type Output = Length;
     fn index(&self, _index: Idx) -> &Self::Output {
         todo!()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn point_minus_point() {
-        let pl = Point::<i32>::new(10, 20, 30);
-        let pr = Point::<i32>::new( 1,  2,  3);
-        assert_eq!(pl - pr, Vector::<i32>::new(9, 18, 27));
     }
 }
