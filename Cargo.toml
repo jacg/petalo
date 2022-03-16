@@ -1,6 +1,6 @@
 [workspace]
 # members = ["mlem", "bindings"]
-members = ["geometry"]
+members = ["geometry", "bindings"]
 
 [package]
 name = "petalo"
