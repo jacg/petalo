@@ -2,7 +2,7 @@
 
 
 //use uom::fmt::DisplayStyle::Abbreviation;
-use uom::si::f32::{Length, Time, Velocity};
+pub use uom::si::f32::{Length, Time, Velocity};
 use uom::si::{length  ::{nanometer, millimeter, centimeter},
               time    ::{nanosecond, picosecond},
               velocity:: meter_per_second};
