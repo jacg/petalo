@@ -56,20 +56,13 @@ impl Index<usize> for Point {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::{Point, Vector};
     use float_eq::assert_float_eq;
     const EPS: f32 = f32::EPSILON;
     use uom::si::length::{millimeter, meter};
-    use crate::uom::{nm, mm, cm};
-
-    macro_rules! assert_uom_eq {
-        ($unit:ident, $lhs:expr, $rhs:expr, $algo:ident <= $tol:expr) => {
-            assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
-        };
-    }
+    use crate::uom::{nm, mm, cm, assert_uom_eq};
 
     #[test]
     fn point_components() {

@@ -16,3 +16,14 @@ pub fn nm (x: f32) -> Length   {  Length::new::      < nanometer>(x) }
 pub fn ns (x: f32) -> Time     {    Time::new::      <nanosecond>(x) }
 pub fn ps (x: f32) -> Time     {    Time::new::      <picosecond>(x) }
 pub fn m_s(x: f32) -> Velocity {Velocity::new::<meter_per_second>(x) }
+
+
+#[allow(unused_macros)]
+macro_rules! assert_uom_eq {
+  ($unit:ident, $lhs:expr, $rhs:expr, $algo:ident <= $tol:expr) => {
+    assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
+  };
+}
+
+#[allow(unused_imports)]
+pub (crate) use assert_uom_eq;
