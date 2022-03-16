@@ -56,3 +56,20 @@ where
     pub fn normalize(self) -> Self { todo!() }
 
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::Vector;
+    use float_eq::assert_float_eq;
+    const EPS: f32 = f32::EPSILON;
+    use uom::si::length::meter;
+    use crate::uom::{nm, mm, cm, assert_uom_eq};
+
+    #[test]
+    fn vector_components() {
+        let v = Vector::new(mm(10.0), nm(1000.0), mm(2.0));
+        assert_eq!(           v.x, mm(10.0  ));
+        assert_uom_eq!(meter, v.y, mm( 0.001), r2nd <= EPS);
+        assert_uom_eq!(meter, v.z, cm( 0.2  ), r2nd <= EPS);
+    }
+}
