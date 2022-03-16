@@ -37,8 +37,10 @@ impl Sub for &Point {
 }
 
 impl AddAssign<Vector> for Point {
-    fn add_assign(&mut self, _rhs: Vector) {
-        todo!()
+    fn add_assign(&mut self, delta: Vector) {
+        self.x += delta.x;
+        self.y += delta.y;
+        self.z += delta.z;
     }
 }
 
@@ -55,7 +57,7 @@ mod tests {
     use crate::{Point, Vector};
     use float_eq::assert_float_eq;
     const EPS: f32 = f32::EPSILON;
-    use uom::si::{length::{millimeter}};
+    use uom::si::{length::{millimeter, meter}};
     use crate::uom::{nm, mm, cm};
     //use pretty_assertions::assert_eq;
 
@@ -101,6 +103,15 @@ mod tests {
         assert_uom_eq!(millimeter, result.z, expected.z, ulps <= 2);
     }
 
+    #[test]
+    fn addassign_for_point() {
+        let mut p = Point ::new(cm( 1.0), cm( 2.0), cm(3.0));
+        let     v = Vector::new(mm(10.0), mm(15.0), cm(2.5));
+        let xpct  = Point ::new(cm( 2.0), mm(35.0), cm(5.5));
+        p += v;
+        assert_uom_eq!(meter, p.x, xpct.x, ulps <= 1);
+        assert_uom_eq!(meter, p.y, xpct.y, ulps <= 1);
+        assert_uom_eq!(meter, p.z, xpct.z, ulps <= 1);
     }
 
 }
