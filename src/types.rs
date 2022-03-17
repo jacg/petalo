@@ -17,7 +17,9 @@ struct TodoIntensity;
 #[cfg    (feature = "units") ] pub type Length = geometry::Length;
 
 #[cfg(not(feature = "units"))] pub type Time = Length;
-#[cfg    (feature = "units") ] pub type Time  = geometry::Time;
+#[cfg    (feature = "units") ] pub type Time = geometry::Time;
+
+#[cfg    (feature = "units") ] pub type Velocity = geometry::Velocity;
 
 #[cfg(not(feature = "units"))] pub type Weight = Length;
 #[cfg    (feature = "units") ] pub type Weight = f32;  // TODO is this what we really want?
@@ -26,13 +28,13 @@ struct TodoIntensity;
 #[cfg    (feature = "units") ] pub type Ratio = f32;
 
 #[cfg(not(feature = "units"))] pub type Energy = Length;
-#[cfg    (feature = "units") ] pub type Energy = TodoEnergy;
+#[cfg    (feature = "units") ] pub type Energy = f32; //TodoEnergy;
 
 #[cfg(not(feature = "units"))] pub type Charge = Length;
-#[cfg    (feature = "units") ] pub type Charge = TodoCharge;
+#[cfg    (feature = "units") ] pub type Charge = f32; //TodoCharge;
 
 #[cfg(not(feature = "units"))] pub type Intensity = Length;
-#[cfg    (feature = "units") ] pub type Intensity = TodoIntensity;
+#[cfg    (feature = "units") ] pub type Intensity = f32; //TodoIntensity;
 
 #[cfg(not(feature = "units"))] pub type Vector = nc::math ::Vector<Length>;
 #[cfg    (feature = "units") ] pub type Vector = geometry::Vector;
@@ -53,7 +55,7 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 // TODO: doesn't really belong in `types` ...
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
 #[cfg(not(feature = "units"))] pub const C: Length = 0.299_792_458; // mm / ps
-#[cfg    (feature = "units") ] pub const C: Velocity = Velocity::new::<uom::si::velocity::meter_per_second>(299_792_458.0);
+#[cfg    (feature = "units") ] pub const C: Velocity = Velocity::new::<geometry::uom::uomcrate::si::velocity::meter_per_second>(299_792_458.0);
 
 
 #[cfg(not(feature = "units"))]
@@ -91,4 +93,4 @@ mod test_conversions {
 }
 
 #[cfg(not(feature = "units"))] pub const TWOPI: Length = std::f32::consts::TAU as Length;
-#[cfg    (feature = "units") ] pub const TWOPI: Ratio  = std::f32::consts::TAU as Length;
+#[cfg    (feature = "units") ] pub const TWOPI: Ratio  = std::f32::consts::TAU;

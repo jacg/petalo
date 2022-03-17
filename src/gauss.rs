@@ -1,5 +1,7 @@
-use crate::types::{Length, TWOPI, ps_to_mm};
+use crate::types::{Length, TWOPI};
+#[cfg(not(feature = "units"))] use crate::types::ps_to_mm;
 
+#[cfg(not(feature = "units"))]
 fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> Length {
     let root_two_pi = TWOPI.sqrt() as Length;
     let peak_height = 1.0 / (sigma * root_two_pi);
@@ -15,6 +17,7 @@ fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> Lengt
     }
 }
 
+#[cfg(not(feature = "units"))]
 pub fn make_gauss_option(sigma: Option<Length>, cutoff: Option<Length>) -> Option<impl Fn(Length) -> Length> {
     sigma.map(|sigma| make_gauss(ps_to_mm(sigma), cutoff))
 }

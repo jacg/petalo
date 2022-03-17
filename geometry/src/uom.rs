@@ -1,5 +1,6 @@
-///! Test for geometry being used in conjunction with uom.
-
+// Make uom crate reachable from our root crate, without clashing with our
+// geometry::uom. TODO: this is a hack.
+pub use uom as uomcrate;
 
 //use uom::fmt::DisplayStyle::Abbreviation;
 pub use uom::si::f32::{Length, Time, Velocity};
