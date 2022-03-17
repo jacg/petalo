@@ -19,12 +19,28 @@ pub fn ps (x: f32) -> Time     {    Time::new::      <picosecond>(x) }
 pub fn m_s(x: f32) -> Velocity {Velocity::new::<meter_per_second>(x) }
 
 
-#[allow(unused_macros)]
+#[cfg(test)]
+use float_eq::assert_float_eq;
+
+#[cfg(test)]
 macro_rules! assert_uom_eq {
   ($unit:ident, $lhs:expr, $rhs:expr, $algo:ident <= $tol:expr) => {
     assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
   };
 }
 
-#[allow(unused_imports)]
+#[cfg(test)]
 pub (crate) use assert_uom_eq;
+
+
+#[cfg(test)]
+  mod tests {
+    use super::*;
+
+    #[test]
+    fn test_name() {
+      let v = vec![mm(1.0), cm(1.0)];
+      let total: Length = v.into_iter().sum();
+      assert_uom_eq!(nanometer, total, mm(11.0), ulps <= 1);
+    }
+  }
