@@ -7,10 +7,9 @@ use crate::weights::LOR;
 use crate::types::Point;
 use std::f32::consts::PI;
 
-// TODO: replace with uom
-type Length = f32;
-type Ratio  = f32;
-type Angle  = f32;
+type Length = crate::types::Length;
+type Ratio  = crate::types::Ratio;
+type Angle  = crate::types::Angle;
 
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }

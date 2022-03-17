@@ -21,19 +21,22 @@ struct TodoIntensity;
 
 #[cfg    (feature = "units") ] pub type Velocity = geometry::Velocity;
 
-#[cfg(not(feature = "units"))] pub type Weight = Length;
+#[cfg(not(feature = "units"))] pub type Weight = f32;
 #[cfg    (feature = "units") ] pub type Weight = f32;  // TODO is this what we really want?
 
-#[cfg(not(feature = "units"))] pub type Ratio = Length;
+#[cfg(not(feature = "units"))] pub type Ratio = f32;
 #[cfg    (feature = "units") ] pub type Ratio = f32;
 
-#[cfg(not(feature = "units"))] pub type Energy = Length;
+#[cfg(not(feature = "units"))] pub type Angle = f32;
+#[cfg    (feature = "units") ] pub type Angle = f32; // TODO
+
+#[cfg(not(feature = "units"))] pub type Energy = f32;
 #[cfg    (feature = "units") ] pub type Energy = f32; //TodoEnergy;
 
-#[cfg(not(feature = "units"))] pub type Charge = Length;
+#[cfg(not(feature = "units"))] pub type Charge = f32;
 #[cfg    (feature = "units") ] pub type Charge = f32; //TodoCharge;
 
-#[cfg(not(feature = "units"))] pub type Intensity = Length;
+#[cfg(not(feature = "units"))] pub type Intensity = f32;
 #[cfg    (feature = "units") ] pub type Intensity = f32; //TodoIntensity;
 
 #[cfg(not(feature = "units"))] pub type Vector = nc::math ::Vector<Length>;
