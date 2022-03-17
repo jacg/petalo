@@ -20,11 +20,7 @@ type Ray      = ncollide3d::query::Ray    <Length>;
 type Isometry = ncollide3d::math::Isometry<Length>;
 type VecOf<T> = ncollide3d::math::Vector<T>;
 
-
-// TODO: have another go at getting nalgebra to work with uom.
-
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector};
-#[cfg(not(feature = "units"))] use crate::types::ns_to_mm;
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 

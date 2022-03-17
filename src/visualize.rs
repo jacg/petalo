@@ -5,8 +5,7 @@ use kiss3d::scene::SceneNode;
 use kiss3d::camera::ArcBall;
 use kiss3d::nalgebra::{Point3, Translation3};
 
-use crate::types::{Length, Ratio};
-#[cfg(not(feature = "units"))] use crate::types::ns_to_ps;
+use crate::types::{Length, Ratio, ns_to_ps};
 use crate::weights::{VoxelBox, LOR};
 
 use structopt::clap::arg_enum;
