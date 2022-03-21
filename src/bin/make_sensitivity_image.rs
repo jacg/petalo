@@ -60,14 +60,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let density = mlem::Image::from_raw_file(&input)?;
     report_time(&format!("Read density image {:?}", input));
 
-    pre_report(&format!("Generating {} LORs for sensitivity image projections ... ", group_digits(n_lors)))?;
-    let lors = find_potential_lors(n_lors, density.vbox, detector_length, detector_diameter);
-    report_time("done");
 
-    pre_report("Creating sensitivity image ... ")?;
+    pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
     // TODO parallelize
-    // TODO try to do it without holding all LORs in memory at once (good image uses > 25G RAM!)
-    let sensitivity = mlem::Image::sensitivity_image(density.vbox, density, &lors, rho);
+    let lors = find_potential_lors(n_lors, density.vbox, detector_length, detector_diameter);
+    let sensitivity = mlem::Image::sensitivity_image(density.vbox, density, lors, n_lors, rho);
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
@@ -80,17 +77,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: VoxelBox, detector_length: Length, detector_diameter: Length) -> Vec<petalo::weights::LOR> {
-    let mut lors = Vec::with_capacity(n_lors);
+fn find_potential_lors(n_lors: usize, fov: VoxelBox, detector_length: Length, detector_diameter: Length) -> impl Iterator<Item = petalo::weights::LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
-    while lors.len() < n_lors {
-        let p1 = random_point_on_cylinder(l,r);
-        let p2 = random_point_on_cylinder(l,r);
-        if fov.entry(&p1, &p2).is_some() {
-            lors.push(petalo::weights::LOR::new(0.0, 0.0, p1, p2, 1.0))
+    let one_useful_random_lor = move || {
+        loop {
+            let p1 = random_point_on_cylinder(l,r);
+            let p2 = random_point_on_cylinder(l,r);
+            if fov.entry(&p1, &p2).is_some() {
+                return Some(petalo::weights::LOR::new(0.0, 0.0, p1, p2, 1.0))
+            }
         }
-    }
-    lors
+    };
+    std::iter::from_fn(one_useful_random_lor).take(n_lors)
 }
 
 

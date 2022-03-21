@@ -81,7 +81,7 @@ impl Image {
     // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(vbox: VoxelBox, density: Self, lors: &[LOR], stradivarius: f32) -> Self {
+    pub fn sensitivity_image(vbox: VoxelBox, density: Self, lors: impl Iterator<Item = crate::weights::LOR>, n_lors: usize, stradivarius: f32) -> Self {
         let a = &vbox;
         let b = &density.vbox;
         if a.n != b.n || a.half_width != b.half_width {
@@ -97,7 +97,7 @@ impl Image {
         'lor: for lor in lors {
             // Find active voxels (slice of system matrix) WITHOUT TOF
             // Analyse point where LOR hits voxel box
-            match lor_vbox_hit(lor, vbox) {
+            match lor_vbox_hit(&lor, vbox) {
 
                 // LOR missed voxel box: nothing to be done
                 None => continue,
@@ -131,7 +131,7 @@ impl Image {
             }
         }
         // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
-        let size = lors.len() as f32;
+        let size = n_lors as f32;
         for e in image.iter_mut() {
             *e /= size
         }
