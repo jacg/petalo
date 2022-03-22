@@ -81,7 +81,12 @@ impl Image {
     // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(vbox: VoxelBox, density: Self, lors: impl Iterator<Item = crate::weights::LOR>, n_lors: usize, stradivarius: f32) -> Self {
+    pub fn sensitivity_image(vbox        : VoxelBox                                 ,
+                             density     : Self                                     ,
+                             mut lors    : impl Iterator<Item = crate::weights::LOR>,
+                             n_lors      : usize                                    ,
+                             stradivarius: f32
+    ) -> Self {
         let a = &vbox;
         let b = &density.vbox;
         if a.n != b.n || a.half_width != b.half_width {
@@ -89,53 +94,33 @@ impl Image {
         }
         // TODO convert from density to attenuation coefficient
         let attenuation = density;
-        let (mut image, mut weights, mut indices) = projection_buffers(vbox);
+        let mut image = Image::empty(vbox);
 
-        // TOF should not be used as LOR attenuation is independent of decay point
-        let notof = make_gauss_option(None, None);
-
-        'lor: for lor in lors {
-            // Find active voxels (slice of system matrix) WITHOUT TOF
-            // Analyse point where LOR hits voxel box
-            match lor_vbox_hit(&lor, vbox) {
-
-                // LOR missed voxel box: nothing to be done
-                None => continue,
-
-                // Data needed by `find_active_voxels`
-                Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
-
-                    // Throw away previous LOR's values
-                    weights.clear();
-                    indices.clear();
-
-                    // Find active voxels and their weights
-                    find_active_voxels(
-                        &mut indices, &mut weights,
-                        next_boundary, voxel_size,
-                        index, delta_index, remaining,
-                        tof_peak, &notof
-                    );
-
+        let mut lor_count = 0;
+        'lor_gen: while lor_count < n_lors {
+            match lors.next() {
+                None => panic!("LOR generator incorrectly defined, no LORs available before statistics met."),
+                Some(lor) => {
+                    let indx_weights = lor.active_voxels(&vbox, None, None);
+                    if indx_weights.is_empty() { continue 'lor_gen };
+                    // Next line due to the current return of LOR::active_voxels, can it be changed?
+                    let (indices, weights): (Vec<_>, Vec<_>) = indx_weights.into_iter()
+                                                                   .map(|(i3d, w)| (index3_to_1(i3d, vbox.n), w)).unzip();
                     // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
                     for i in &indices {
-                        if *i >= image.len() { continue 'lor; }
+                        if *i >= image.data.len() { continue 'lor_gen; }
                     }
 
                     let integral = forward_project(&weights, &indices, &attenuation) / stradivarius;
-                    let attenuation_factor = (-integral).exp();
+                    let attenuation_factor = (-integral).exp() * n_lors as f32;
                     //println!("{:<8.2e}  ---  {:<8.2e}", integral, attenuation_factor);
                     // Backprojection of LOR onto image
-                    back_project(&mut image, &weights, &indices, attenuation_factor);
-                }
+                    back_project(&mut image.data, &weights, &indices, attenuation_factor);
+                    lor_count += 1;
+                },
             }
         }
-        // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
-        let size = n_lors as f32;
-        for e in image.iter_mut() {
-            *e /= size
-        }
-        Self::new(vbox, image)
+        image
     }
 
     fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
