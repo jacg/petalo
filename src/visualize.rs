@@ -5,7 +5,8 @@ use kiss3d::scene::SceneNode;
 use kiss3d::camera::ArcBall;
 use kiss3d::nalgebra::{Point3, Translation3};
 
-use crate::types::{Length, Ratio, ns_to_ps};
+use crate::mlem::index1_to_3;
+use crate::types::{Index3Weight, Length, Ratio, ns_to_ps};
 use crate::weights::{VoxelBox, LOR};
 
 use structopt::clap::arg_enum;
@@ -108,7 +109,11 @@ impl Scene {
 
     pub fn place_voxels(&mut self, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Length>) {
 
-        let active_voxels = self.lor.active_voxels(&self.vbox, cutoff, sigma);
+        let (indices, weights) = self.lor.active_voxels(&self.vbox, cutoff, sigma);
+        let active_voxels: Vec<Index3Weight> = indices.into_iter()
+                                .map(|i| index1_to_3(i, self.vbox.n))
+                                .zip(weights.into_iter())
+                                .collect();
 
         let &max_weight = active_voxels
             .iter()

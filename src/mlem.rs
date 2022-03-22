@@ -101,11 +101,8 @@ impl Image {
             match lors.next() {
                 None => panic!("LOR generator incorrectly defined, no LORs available before statistics met."),
                 Some(lor) => {
-                    let indx_weights = lor.active_voxels(&vbox, None, None);
-                    if indx_weights.is_empty() { continue 'lor_gen };
-                    // Next line due to the current return of LOR::active_voxels, can it be changed?
-                    let (indices, weights): (Vec<_>, Vec<_>) = indx_weights.into_iter()
-                                                                   .map(|(i3d, w)| (index3_to_1(i3d, vbox.n), w)).unzip();
+                    let (indices, weights) = lor.active_voxels(&vbox, None, None);
+                    if indices.is_empty() { continue 'lor_gen };
                     // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
                     for i in &indices {
                         if *i >= image.data.len() { continue 'lor_gen; }

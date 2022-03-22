@@ -23,7 +23,7 @@ type VecOf<T> = ncollide3d::math::Vector<T>;
 
 // TODO: have another go at getting nalgebra to work with uom.
 
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
+use crate::types::{BoxDim, Index1, Index3, Length, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -76,20 +76,19 @@ mod test {
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weight> = LOR::new(0.0, 0.0, p1, p2, 1.0).active_voxels(&vbox, None, None);
+        let (indices, weights) = LOR::new(0.0, 0.0, p1, p2, 1.0).active_voxels(&vbox, None, None);
+        let index3d: Vec<Index3> = indices.into_iter().map(|i| index1_to_3(i, vbox.n)).collect();
 
         // Diagnostic output
-        for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
+        for (is, l) in index3d.iter().zip(weights.iter()) { println!("  ({} {})   {}", is[0], is[1], l) }
 
         // Check total length through voxel box
-        let total_length: Length = hits.iter()
-            .map(|(_index, weight)| weight)
-            .sum();
+        let total_length: Length = weights.iter().sum();
         assert_approx_eq!(total_length, length);
 
         // Check voxels hit
-        let voxels: Vec<(usize, usize)> = hits.into_iter()
-            .map(|(index, _weight)| (index[0], index[1]))
+        let voxels: Vec<(usize, usize)> = index3d.into_iter()
+            .map(|index| (index[0], index[1]))
             .collect();
         assert_eq!(voxels, expected_voxels)
     }
@@ -127,9 +126,9 @@ mod test {
             let command = crate::visualize::vislor_command(&vbox, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Length = LOR::new(0.0, 0.0, p1, p2, 1.0)
-                .active_voxels(&vbox, None, None)
-                .iter()
+            let (indices, weights) = LOR::new(0.0, 0.0, p1, p2, 1.0).active_voxels(&vbox, None, None);
+            let index3d: Vec<Index3> = indices.into_iter().map(|i| index1_to_3(i, vbox.n)).collect();
+            let summed: Length = index3d.iter().zip(weights.iter())
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
                 .map(|(_index, weight)| weight)
                 .sum();
@@ -468,7 +467,7 @@ impl LOR {
         Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
-    pub fn active_voxels(&self, vbox: &VoxelBox, cutoff: Option<Length>, sigma: Option<Length>) -> Vec<Index3Weight> {
+    pub fn active_voxels(&self, vbox: &VoxelBox, cutoff: Option<Length>, sigma: Option<Length>) -> (Vec<usize>, Vec<f32>) {
 
         let tof = make_gauss_option(sigma, cutoff);
         let mut weights = vec![];
@@ -485,10 +484,7 @@ impl LOR {
 
             }
         }
-        indices.into_iter()
-            .map(|i| index1_to_3(i, vbox.n))
-            .zip(weights.into_iter())
-            .collect()
+        (indices, weights)
     }
 }
 
