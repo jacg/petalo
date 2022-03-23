@@ -18,7 +18,7 @@ use ncollide3d::shape::Cuboid;
 
 type Ray      = ncollide3d::query::Ray    <Length>;
 type Isometry = ncollide3d::math::Isometry<Length>;
-type VecOf<T> = ncollide3d::math::Vector<T>;
+type VecOf<T> = [T; 3];
 
 use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
@@ -349,7 +349,7 @@ fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDi
 fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, VecOf<bool>) {
     let dimensions = 3;
     let original_lor_direction: Vector = p2 - p1;
-    let mut flipped = VecOf::<bool>::repeat(false);
+    let mut flipped = [false; 3];
     let mut flip_if_necessary = |n| {
         if original_lor_direction[n] < 0.0 {
             p1[n] = - p1[n];
