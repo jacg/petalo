@@ -25,7 +25,7 @@ struct TodoIntensity;
 #[cfg    (feature = "units") ] pub type Weight = f32;  // TODO is this what we really want?
 
 #[cfg(not(feature = "units"))] pub type Ratio = f32;
-#[cfg    (feature = "units") ] pub type Ratio = f32;
+#[cfg    (feature = "units") ] pub type Ratio = geometry::Ratio;
 
 #[cfg(not(feature = "units"))] pub type Angle = f32;
 #[cfg    (feature = "units") ] pub type Angle = f32; // TODO
@@ -60,8 +60,6 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 #[cfg(not(feature = "units"))] pub const C: Length = 0.299_792_458; // mm / ps
 #[cfg    (feature = "units") ] pub const C: Velocity = Velocity::new::<geometry::uom::uomcrate::si::velocity::meter_per_second>(299_792_458.0);
 
-
-
 #[inline] pub fn ps_to_mm(dt: Time) -> Length { dt * C }
 #[inline] pub fn mm_to_ps(dx: Length) -> Time { dx / C }
 
@@ -93,4 +91,4 @@ mod test_conversions {
 }
 
 #[cfg(not(feature = "units"))] pub const TWOPI: Length = std::f32::consts::TAU as Length;
-#[cfg    (feature = "units") ] pub const TWOPI: Ratio  = std::f32::consts::TAU;
+#[cfg    (feature = "units") ] pub const TWOPI: Ratio  = Ratio::new::<geometry::uom::uomcrate::si::ratio::ratio>(std::f32::consts::TAU);
