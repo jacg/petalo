@@ -34,13 +34,13 @@ pub (crate) use assert_uom_eq;
 
 
 #[cfg(test)]
-  mod tests {
-    use super::*;
+mod tests {
+  use super::*;
 
-    #[test]
-    fn test_name() {
-      let v = vec![mm(1.0), cm(1.0)];
-      let total: Length = v.into_iter().sum();
-      assert_uom_eq!(nanometer, total, mm(11.0), ulps <= 1);
-    }
+  #[test]
+  fn test_name() {
+    let v = vec![mm(1.0), cm(1.0)];
+    let total: Length = v.into_iter().sum();
+    assert_uom_eq!(nanometer, total, mm(11.0), ulps <= 1);
   }
+}
