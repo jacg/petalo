@@ -150,8 +150,14 @@ mod test {
 // ---------------------- Implementation -----------------------------------------
 
 // Returned by lor_vbox_hit
-//        next_boundary voxel_size index d_index   remaining  tof_peak
-type VboxHit = (Vector, Vector,    i32,  [i32; 3], [i32; 3],  Length);
+pub struct VboxHit {
+    pub next_boundary: Vector,
+    pub voxel_size   : Vector,
+    pub index        :  i32,
+    pub delta_index  : [i32; 3],
+    pub remaining    : [i32; 3],
+    pub tof_peak     : Length,
+}
 
 /// Figure out if the LOR hits the voxel box at all. If it does, calculate
 /// values needed by find_active_voxels.
@@ -192,7 +198,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     let next_boundary = first_boundaries(entry_point, voxel_size);
 
     // Return the values needed by `find_active_voxels`
-    Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak))
+    Some(VboxHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
 }
 
 /// For a single LOR, place the weights and indices of the active voxels in the
@@ -481,7 +487,7 @@ impl LOR {
         let mut indices = vec![];
         match lor_vbox_hit(self, *vbox) {
             None => (),
-            Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+            Some(VboxHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
                 find_active_voxels(
                     &mut indices, &mut weights,
                     next_boundary, voxel_size,

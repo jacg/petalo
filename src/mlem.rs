@@ -5,7 +5,7 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
-use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR};
+use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR, VboxHit};
 use crate::gauss::make_gauss_option;
 
 pub type ImageData = Vec<Intensity>;
@@ -103,7 +103,7 @@ impl Image {
                 None => continue,
 
                 // Data needed by `find_active_voxels`
-                Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+                Some(VboxHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
                     // Throw away previous LOR's values
                     weights.clear();
@@ -250,7 +250,7 @@ where
         None => return (backprojection, weights, indices, image, tof),
 
         // Data needed by `find_active_voxels`
-        Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+        Some(VboxHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
             // Throw away previous LOR's values
             weights.clear();
