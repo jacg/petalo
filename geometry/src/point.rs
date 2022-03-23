@@ -123,7 +123,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn index_for_point_out_of_bounds() {
-        let p = Point ::new(cm( 1.0), cm( 2.0), cm(3.0));
+        let p = Point ::new(cm(1.0), cm(2.0), cm(3.0));
         p[3];
     }
 
