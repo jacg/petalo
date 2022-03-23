@@ -111,10 +111,13 @@ mod tests {
 
     #[test]
     fn index_for_point_in_bounds() {
-        let p = Point ::new(cm( 1.0), cm( 2.0), cm(3.0));
+        let p = Point ::new(cm(1.0), cm(2.0), cm(3.0));
         assert_eq!(p[0], p.x);
         assert_eq!(p[1], p.y);
         assert_eq!(p[2], p.z);
+        assert_eq!(p[0], cm(1.0));
+        assert_eq!(p[1], cm(2.0));
+        assert_eq!(p[2], cm(3.0));
     }
 
     #[test]
