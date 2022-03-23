@@ -24,6 +24,9 @@ use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, T
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
+#[cfg(feature = "units")]
+use crate::types::C;
+
 const EPS: Length = 1e-5;
 
 // ------------------------------ TESTS ------------------------------
@@ -266,15 +269,18 @@ fn find_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
     entry_point
 }
 
+
 /// Distance from entry point to the LOR's TOF peak
 #[inline]
 fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
     let half_lor_length = (p1 - p2).norm() / 2.0;
-    let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
+    #[cfg(not(feature = "units"))] let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
+    #[cfg    (feature = "units") ] let tof_shift = C *      dt  / 2.0; // NOTE ignoring refractive index
     let p1_to_peak = half_lor_length - tof_shift;
     let p1_to_entry = (entry_point - p1).norm();
     p1_to_peak - p1_to_entry
 }
+
 
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
