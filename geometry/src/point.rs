@@ -1,4 +1,4 @@
-use std::ops::{AddAssign, Index, Sub};
+use std::ops::{AddAssign, Index, Sub, IndexMut};
 use uom::si::f32::Length;
 use crate::Vector;
 
@@ -51,6 +51,17 @@ impl Index<usize> for Point {
             0 => &self.x,
             1 => &self.y,
             2 => &self.z,
+            _ => panic!("index {index} is out of bounds [0,2]")
+        }
+    }
+}
+
+impl IndexMut<usize> for Point {
+    fn index_mut(&mut self, index: usize) -> &mut Length {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
             _ => panic!("index {index} is out of bounds [0,2]")
         }
     }
@@ -125,6 +136,24 @@ mod tests {
     fn index_for_point_out_of_bounds() {
         let p = Point ::new(cm(1.0), cm(2.0), cm(3.0));
         p[3];
+    }
+
+    #[test]
+    fn index_mut_for_point_in_bounds() {
+        let mut p = Point ::new(cm(1.0), cm(2.0), cm(3.0));
+        p[0] = cm(4.0);
+        p[1] = cm(5.0);
+        p[2] = cm(6.0);
+        assert_eq!(p.x, cm(4.0));
+        assert_eq!(p.y, cm(5.0));
+        assert_eq!(p.z, cm(6.0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn index_mut_for_point_out_of_bounds() {
+        let mut p = Point ::new(cm(1.0), cm(2.0), cm(3.0));
+        p[3] = cm(4.0);
     }
 
 }
