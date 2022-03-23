@@ -18,7 +18,6 @@ use ncollide3d::shape::Cuboid;
 
 type Ray      = ncollide3d::query::Ray    <Length>;
 type Isometry = ncollide3d::math::Isometry<Length>;
-type VecOf<T> = [T; 3];
 
 use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
@@ -305,7 +304,7 @@ fn voxel_size(vbox: VoxelBox, p1: Point, p2: Point) -> Vector {
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]
-fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDim) -> (i32, [i32; 3], [i32; 3]) {
+fn index_trackers(entry_point: Vector, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> (i32, [i32; 3], [i32; 3]) {
 
     // Find N-dimensional index of voxel at entry point.
     let [ix, iy, iz] = [entry_point.x.floor() as usize,
@@ -346,7 +345,7 @@ fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDi
 /// knowledge of which axes were flipped, so that the indices of subsequently
 /// found active voxels can be flipped back into the original coordinate system.
 #[inline]
-fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, VecOf<bool>) {
+fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
     let dimensions = 3;
     let original_lor_direction: Vector = p2 - p1;
     let mut flipped = [false; 3];
