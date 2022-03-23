@@ -58,7 +58,12 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 // TODO: doesn't really belong in `types` ...
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
 #[cfg(not(feature = "units"))] pub const C: Length = 0.299_792_458; // mm / ps
-#[cfg    (feature = "units") ] pub const C: Velocity = Velocity::new::<geometry::uom::uomcrate::si::velocity::meter_per_second>(299_792_458.0);
+#[cfg    (feature = "units") ]
+pub const C: Velocity = geometry::Quantity {
+  dimension: std::marker::PhantomData,
+  units: std::marker::PhantomData,
+  value: 299_792_458.0, // How can I be sure that this is in m/s ?
+};
 
 #[inline] pub fn ps_to_mm(dt: Time) -> Length { dt * C }
 #[inline] pub fn mm_to_ps(dx: Length) -> Time { dx / C }
@@ -91,4 +96,9 @@ mod test_conversions {
 }
 
 #[cfg(not(feature = "units"))] pub const TWOPI: Length = std::f32::consts::TAU as Length;
-#[cfg    (feature = "units") ] pub const TWOPI: Ratio  = Ratio::new::<geometry::uom::uomcrate::si::ratio::ratio>(std::f32::consts::TAU);
+#[cfg    (feature = "units") ]
+pub const TWOPI: Ratio = geometry::Quantity {
+  dimension: std::marker::PhantomData,
+  units: std::marker::PhantomData,
+  value: std::f32::consts::TAU,
+};
