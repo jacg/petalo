@@ -346,11 +346,15 @@ fn index_trackers(entry_point: Vector, flipped: [bool; 3], [nx, ny, nz]: BoxDim)
 /// found active voxels can be flipped back into the original coordinate system.
 #[inline]
 fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
+    #[cfg    (features = "units") ] use geometry::uom::uomcrate::ConstZero;
+    #[cfg    (features = "units") ] let zero = ZERO;
+    #[cfg(not(features = "units"))] let zero = 0.0;
+
     let dimensions = 3;
     let original_lor_direction: Vector = p2 - p1;
     let mut flipped = [false; 3];
     let mut flip_if_necessary = |n| {
-        if original_lor_direction[n] < 0.0 {
+        if original_lor_direction[n] < zero {
             p1[n] = - p1[n];
             p2[n] = - p2[n];
             flipped[n] = true;
