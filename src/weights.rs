@@ -18,14 +18,13 @@ use ncollide3d::shape::Cuboid;
 
 type Ray      = ncollide3d::query::Ray    <Length>;
 type Isometry = ncollide3d::math::Isometry<Length>;
-type VecOf<T> = ncollide3d::math::Vector<T>;
-
-
-// TODO: have another go at getting nalgebra to work with uom.
 
 use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
+
+#[cfg(feature = "units")]
+use crate::types::C;
 
 const EPS: Length = 1e-5;
 
@@ -68,15 +67,15 @@ mod test {
 
         let p1 = Point::new(p1.0, p1.1, 0.0);
         let p2 = Point::new(p2.0, p2.1, 0.0);
-        let vbox = VoxelBox::new((size.0, size.1, 1.0), (n.0, n.1, 1));
+        let fov = FOV::new((size.0, size.1, 1.0), (n.0, n.1, 1));
 
         // Values to plug in to visualizer:
         let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
-        let command = crate::visualize::vislor_command(&vbox, &lor);
+        let command = crate::visualize::vislor_command(&fov, &lor);
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weight> = LOR::new(0.0, 0.0, p1, p2, 1.0).active_voxels(&vbox, None, None);
+        let hits: Vec<Index3Weight> = LOR::new(0.0, 0.0, p1, p2, 1.0).active_voxels(&fov, None, None);
 
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -120,22 +119,22 @@ mod test {
             let p2_theta: Length = p1_theta + (p2_delta * TWOPI);
             let p1 = Point::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
             let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
-            let vbox = VoxelBox::new((dx, dy, dz), (nx, ny, nz));
+            let fov = FOV::new((dx, dy, dz), (nx, ny, nz));
 
             // Values to plug in to visualizer:
             let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
-            let command = crate::visualize::vislor_command(&vbox, &lor);
+            let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
             let summed: Length = LOR::new(0.0, 0.0, p1, p2, 1.0)
-                .active_voxels(&vbox, None, None)
-                .iter()
+                .active_voxels(&fov, None, None)
+                .into_iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
                 .map(|(_index, weight)| weight)
                 .sum();
 
-            let a = vbox.entry(&p1, &p2);
-            let b = vbox.entry(&p2, &p1);
+            let a = fov.entry(&p1, &p2);
+            let b = fov.entry(&p2, &p1);
 
             let in_one_go = match (a,b) {
                 (Some(a), Some(b)) => (a - b).magnitude(),
@@ -150,14 +149,36 @@ mod test {
 
 // ---------------------- Implementation -----------------------------------------
 
-// Returned by lor_vbox_hit
-//        next_boundary voxel_size index d_index   remaining  tof_peak
-type VboxHit = (Vector, Vector,    i32,  [i32; 3], [i32; 3],  Length);
+/// Information about where the LOR enters the FOV and how to track the LOR's
+/// traversal of the FOV.
+pub struct FovHit {
+
+    /// How far is the next voxel boundary in each direction.
+    pub next_boundary: Vector,
+
+    /// Voxel size expressed in LOR distance units: how far we must move along
+    /// LOR to cross one voxel in any given dimension. Will be infinite for any
+    /// axis which is parallel to the LOR.
+    pub voxel_size   : Vector,
+
+    /// 1D index of first voxel entered by the LOR.
+    pub index        :  i32,
+
+    /// Difference in 1D index between adjacent voxels, in each direction.
+    pub delta_index  : [i32; 3],
+
+    /// Number of voxels to be traversed along LOR, in each direction, before
+    /// exiting FOV.
+    pub remaining    : [i32; 3],
+
+    /// Distance to the peak of the TOF gaussian.
+    pub tof_peak     : Length,
+}
 
 /// Figure out if the LOR hits the voxel box at all. If it does, calculate
-/// values needed by find_active_voxels.
+/// values needed by `system_matrix_elements`.
 #[inline]
-pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
+pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
 
     // Simplify expression of the algorithm by flipping axes so that the
     // direction from p1 to p2 is non-negative along all axes. Remember
@@ -165,7 +186,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
 
     // If and where LOR enters voxel box.
-    let entry_point: Point = match vbox.entry(&p1, &p2) {
+    let entry_point: Point = match fov.entry(&p1, &p2) {
         // If LOR misses the box, immediately return
         None => return None,
         // Otherwise, unwrap the point and continue
@@ -176,24 +197,25 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     let tof_peak = find_tof_peak(entry_point, p1, p2, lor.dt);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
-    let entry_point = find_entry_point(entry_point, vbox);
+    let entry_point = find_entry_point(entry_point, fov);
 
     // Bookkeeping information needed during traversal of voxel box
-    let (
+    let IndexTrackers {
         index,       // current 1d index into 3d array of voxels
         delta_index, // how the index changes along each dimension
-        remaining,   // voxels until edge of vbox in each dimension
-    ) = index_trackers(entry_point, flipped, vbox.n);
+        remaining,   // voxels until edge of FOV in each dimension
+    } = index_trackers(entry_point, flipped, fov.n);
 
-    // Voxel size in LOR length units: how far must we move along LOR to
-    // traverse one voxel, in any dimension.
-    let voxel_size = voxel_size(vbox, p1, p2);
+    // Voxel size expressed in LOR distance units: how far we must move along
+    // LOR to cross one voxel in any given dimension. Will be infinite for any
+    // axis which is parallel to the LOR.
+    let voxel_size = voxel_size(fov, p1, p2);
 
     // At what position along LOR is the next voxel boundary, in any dimension.
     let next_boundary = first_boundaries(entry_point, voxel_size);
 
-    // Return the values needed by `find_active_voxels`
-    Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak))
+    // Return the values needed by `system_matrix_elements`
+    Some(FovHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
 }
 
 /// For a single LOR, place the weights and indices of the active voxels in the
@@ -203,7 +225,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
 /// performance.
 #[inline]
 #[allow(clippy::too_many_arguments)]
-pub fn find_active_voxels(
+pub fn system_matrix_elements(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Length>,
     mut next_boundary: Vector,
@@ -250,16 +272,16 @@ pub fn find_active_voxels(
     }
 }
 
-/// The point at which the LOR enters the voxel box, expressed in a coordinate
-/// system with one corner of the box at the origin
+/// The point at which the LOR enters the FOV, expressed in a coordinate
+/// system with one corner of the FOV at the origin.
 #[inline]
-fn find_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
+fn find_entry_point(mut entry_point: Point, fov: FOV) -> Vector {
     // Transform coordinates to align box with axes: making the lower boundaries
     // of the box lie on the zero-planes.
-    entry_point += vbox.half_width;
+    entry_point += fov.half_width;
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
-    let mut entry_point: Vector = entry_point.coords.component_div(&vbox.voxel_size);
+    let mut entry_point: Vector = entry_point.coords.component_div(&fov.voxel_size);
 
     // Floating-point subtractions which should give zero, usually miss very
     // slightly: if this error is negative, the next step (which uses floor)
@@ -269,15 +291,18 @@ fn find_entry_point(mut entry_point: Point, vbox: VoxelBox) -> Vector {
     entry_point
 }
 
+
 /// Distance from entry point to the LOR's TOF peak
 #[inline]
 fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
     let half_lor_length = (p1 - p2).norm() / 2.0;
-    let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
+    #[cfg(not(feature = "units"))] let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
+    #[cfg    (feature = "units") ] let tof_shift = C *      dt  / 2.0; // NOTE ignoring refractive index
     let p1_to_peak = half_lor_length - tof_shift;
     let p1_to_entry = (entry_point - p1).norm();
     p1_to_peak - p1_to_entry
 }
+
 
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
@@ -293,16 +318,16 @@ fn first_boundaries(entry_point: Vector, voxel_size: Vector) -> Vector {
 /// to cross one voxel in any given dimension. Will be infinite for any axis
 /// which is parallel to the LOR.
 #[inline]
-fn voxel_size(vbox: VoxelBox, p1: Point, p2: Point) -> Vector {
+fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     let lor_direction = (p2-p1).normalize();
-    vbox.voxel_size.component_div(&lor_direction)
+    fov.voxel_size.component_div(&lor_direction)
 }
 
 /// Calculate information needed to keep track of progress across voxel box:
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]
-fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDim) -> (i32, [i32; 3], [i32; 3]) {
+fn index_trackers(entry_point: Vector, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
 
     // Find N-dimensional index of voxel at entry point.
     let [ix, iy, iz] = [entry_point.x.floor() as usize,
@@ -320,7 +345,7 @@ fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDi
         nx * ny * if flipped[2] { -1 } else { 1 },
     ];
 
-    // How many voxels remain before leaving vbox in each dimension
+    // How many voxels remain before leaving FOV in each dimension
     let remaining = [
         nx - ix ,
         ny - iy ,
@@ -335,7 +360,18 @@ fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDi
     ];
     let index = index3_to_1([ix, iy, iz], [nx, ny, nz]);
 
-    (index, delta_index, remaining)
+    IndexTrackers { index, delta_index, remaining }
+}
+
+struct IndexTrackers {
+    /// Current 1D index into 3D array of voxels
+    index: i32,
+
+    /// How the index changes along each dimension
+    delta_index: [i32; 3],
+
+    /// Voxels until edge of FOV in each dimension
+    remaining: [i32; 3],
 }
 
 /// Flip axes to ensure that direction from p1 to p2 is non-negative in all
@@ -343,12 +379,16 @@ fn index_trackers(entry_point: Vector, flipped: VecOf<bool>, [nx, ny, nz]: BoxDi
 /// knowledge of which axes were flipped, so that the indices of subsequently
 /// found active voxels can be flipped back into the original coordinate system.
 #[inline]
-fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, VecOf<bool>) {
+fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
+    #[cfg    (features = "units") ] use geometry::uom::uomcrate::ConstZero;
+    #[cfg    (features = "units") ] let zero = ZERO;
+    #[cfg(not(features = "units"))] let zero = 0.0;
+
     let dimensions = 3;
     let original_lor_direction: Vector = p2 - p1;
-    let mut flipped = VecOf::<bool>::repeat(false);
+    let mut flipped = [false; 3];
     let mut flip_if_necessary = |n| {
-        if original_lor_direction[n] < 0.0 {
+        if original_lor_direction[n] < zero {
             p1[n] = - p1[n];
             p2[n] = - p2[n];
             flipped[n] = true;
@@ -365,13 +405,13 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, VecOf<bool>) {
 /// The size and granularity of the region in which images should be
 /// reconstructed
 #[derive(Clone, Copy, Debug)]
-pub struct VoxelBox {
+pub struct FOV {
     pub half_width: Vector,
     pub n: BoxDim,
     pub voxel_size: Vector,
 }
 
-impl VoxelBox {
+impl FOV {
 
     pub fn new(
         full_size: (Length, Length, Length),
@@ -430,8 +470,8 @@ mod test_voxel_box {
              case([1,1,1], [ 1.0,  1.0,  1.0]),
     )]
     fn test_voxel_centre(index: Index3, expected_position: [Length; 3]) {
-        let vbox = VoxelBox::new((4.0, 4.0, 4.0), (2,2,2));
-        let c = vbox.voxel_centre(index);
+        let fov = FOV::new((4.0, 4.0, 4.0), (2,2,2));
+        let c = fov.voxel_centre(index);
         assert!([c.x, c.y, c.z] == expected_position);
     }
 }
@@ -468,15 +508,15 @@ impl LOR {
         Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
-    pub fn active_voxels(&self, vbox: &VoxelBox, cutoff: Option<Length>, sigma: Option<Length>) -> Vec<Index3Weight> {
+    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<Length>, sigma: Option<Length>) -> Vec<Index3Weight> {
 
         let tof = make_gauss_option(sigma, cutoff);
         let mut weights = vec![];
         let mut indices = vec![];
-        match lor_vbox_hit(self, *vbox) {
+        match lor_fov_hit(self, *fov) {
             None => (),
-            Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
-                find_active_voxels(
+            Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+                system_matrix_elements(
                     &mut indices, &mut weights,
                     next_boundary, voxel_size,
                     index, delta_index, remaining,
@@ -486,7 +526,7 @@ impl LOR {
             }
         }
         indices.into_iter()
-            .map(|i| index1_to_3(i, vbox.n))
+            .map(|i| index1_to_3(i, fov.n))
             .zip(weights.into_iter())
             .collect()
     }

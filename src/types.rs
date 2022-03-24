@@ -1,10 +1,49 @@
-pub type Length = f32;
-pub type Time   = Length;
-pub type Weight = Length;
-pub type Ratio  = Length;
-pub type Energy = Length;
-pub type Charge = Length;
-pub type Intensity = Length;
+#[cfg    (feature = "units") ]
+#[derive(Copy, Clone, PartialEq)]
+/// Replace me with something from uom
+struct TodoEnergy;
+
+#[cfg    (feature = "units") ]
+#[derive(Copy, Clone, PartialEq)]
+/// Replace me with something from uom
+struct TodoCharge;
+
+#[cfg    (feature = "units") ]
+#[derive(Copy, Clone, PartialEq)]
+/// Replace me with something from uom
+struct TodoIntensity;
+
+#[cfg(not(feature = "units"))] pub type Length = f32;
+#[cfg    (feature = "units") ] pub type Length = geometry::Length;
+
+#[cfg(not(feature = "units"))] pub type Time = Length;
+#[cfg    (feature = "units") ] pub type Time = geometry::Time;
+
+#[cfg    (feature = "units") ] pub type Velocity = geometry::Velocity;
+
+#[cfg(not(feature = "units"))] pub type Weight = f32;
+#[cfg    (feature = "units") ] pub type Weight = f32;  // TODO is this what we really want?
+
+#[cfg(not(feature = "units"))] pub type Ratio = f32;
+#[cfg    (feature = "units") ] pub type Ratio = geometry::Ratio;
+
+#[cfg(not(feature = "units"))] pub type Angle = f32;
+#[cfg    (feature = "units") ] pub type Angle = f32; // TODO
+
+#[cfg(not(feature = "units"))] pub type Energy = f32;
+#[cfg    (feature = "units") ] pub type Energy = f32; //TodoEnergy;
+
+#[cfg(not(feature = "units"))] pub type Charge = f32;
+#[cfg    (feature = "units") ] pub type Charge = f32; //TodoCharge;
+
+#[cfg(not(feature = "units"))] pub type Intensity = f32;
+#[cfg    (feature = "units") ] pub type Intensity = f32; //TodoIntensity;
+
+#[cfg(not(feature = "units"))] pub type Vector = nc::math ::Vector<Length>;
+#[cfg    (feature = "units") ] pub type Vector = geometry::Vector;
+
+#[cfg(not(feature = "units"))] pub type Point  = nc::math ::Point <Length>;
+#[cfg    (feature = "units") ] pub type Point  = geometry::Point;
 
 pub type Index1 = usize;
 pub type Index3 = [usize; 3];
@@ -12,15 +51,19 @@ pub type BoxDim = [usize; 3];
 
 pub type Index3Weight = (Index3, Weight);
 
-use ncollide3d as nc;
-pub type Vector = nc::math ::Vector<Length>;
-pub type Point  = nc::math ::Point <Length>;
+#[cfg(not(feature = "units"))] use ncollide3d as nc;
 
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
 // TODO: doesn't really belong in `types` ...
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
-pub const C: Length = 0.299_792_458; // mm / ps
+#[cfg(not(feature = "units"))] pub const C: Length = 0.299_792_458; // mm / ps
+#[cfg    (feature = "units") ]
+pub const C: Velocity = geometry::Quantity {
+  dimension: std::marker::PhantomData,
+  units: std::marker::PhantomData,
+  value: 299_792_458.0, // How can I be sure that this is in m/s ?
+};
 
 #[inline] pub fn ps_to_mm(dt: Time) -> Length { dt * C }
 #[inline] pub fn mm_to_ps(dx: Length) -> Time { dx / C }
@@ -32,6 +75,7 @@ pub const C: Length = 0.299_792_458; // mm / ps
 
 
 #[cfg(test)]
+#[cfg(not(feature = "units"))]
 mod test_conversions {
     use super::*;
     use assert_approx_eq::assert_approx_eq;
@@ -51,4 +95,10 @@ mod test_conversions {
 
 }
 
-pub const TWOPI: Length = std::f32::consts::TAU as Length;
+#[cfg(not(feature = "units"))] pub const TWOPI: Length = std::f32::consts::TAU as Length;
+#[cfg    (feature = "units") ]
+pub const TWOPI: Ratio = geometry::Quantity {
+  dimension: std::marker::PhantomData,
+  units: std::marker::PhantomData,
+  value: std::f32::consts::TAU,
+};

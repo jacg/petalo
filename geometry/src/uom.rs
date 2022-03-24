@@ -1,8 +1,9 @@
-///! Test for geometry being used in conjunction with uom.
-
+// Make uom crate reachable from our root crate, without clashing with our
+// geometry::uom. TODO: this is a hack.
+pub use uom as uomcrate;
 
 //use uom::fmt::DisplayStyle::Abbreviation;
-use uom::si::f32::{Length, Time, Velocity};
+pub use uom::si::f32::{Length, Time, Velocity, Ratio};
 use uom::si::{length  ::{nanometer, millimeter, centimeter},
               time    ::{nanosecond, picosecond},
               velocity:: meter_per_second};
@@ -18,45 +19,28 @@ pub fn ps (x: f32) -> Time     {    Time::new::      <picosecond>(x) }
 pub fn m_s(x: f32) -> Velocity {Velocity::new::<meter_per_second>(x) }
 
 
+#[cfg(test)]
+use float_eq::assert_float_eq;
+
+#[cfg(test)]
+macro_rules! assert_uom_eq {
+  ($unit:ident, $lhs:expr, $rhs:expr, $algo:ident <= $tol:expr) => {
+    assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
+  };
+}
+
+#[cfg(test)]
+pub (crate) use assert_uom_eq;
 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{Point, Vector};
-    use float_eq::assert_float_eq;
-    const EPS: f32 = f32::EPSILON;
-    //use pretty_assertions::assert_eq;
+  use super::*;
 
-    use uom::si::length::meter as m;
-
-    macro_rules! assert_uom_eq {
-        ($unit:ident, $lhs:expr, $rhs:expr, $algo:ident <= $tol:expr) => {
-            assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
-        };
-    }
-
-    #[test]
-    fn point_components() {
-        let p = Point::<Length>::new(mm(10.0), nm(1000.0), mm(2.0));
-        assert_eq!(       p.x, mm(10.0  ));
-        assert_uom_eq!(m, p.y, mm( 0.001), r2nd <= EPS);
-        assert_uom_eq!(m, p.z, cm( 0.2  ), r2nd <= EPS);
-    }
-
-    #[test]
-    fn point_minus_point_same_unit() {
-        // Difference between Points is a Vector
-        let lhs      = Point ::<Length>::new(cm(3.0), mm( 20.0), cm( 8.0));
-        let rhs      = Point ::<Length>::new(cm(2.0), cm(  4.0), mm(20.0));
-        let expected = Vector::<Length>::new(cm(1.0), mm(-20.0), mm(60.0));
-        let result: Vector<Length> = lhs - rhs;
-
-        assert_uom_eq!(millimeter, result.x, expected.x, ulps <= 1);
-        assert_uom_eq!(millimeter, result.y, expected.y, ulps <= 2);
-        assert_uom_eq!(millimeter, result.z, expected.z, ulps <= 2);
-
-    }
-
+  #[test]
+  fn test_name() {
+    let v = vec![mm(1.0), cm(1.0)];
+    let total: Length = v.into_iter().sum();
+    assert_uom_eq!(nanometer, total, mm(11.0), ulps <= 1);
+  }
 }
-

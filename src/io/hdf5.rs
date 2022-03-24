@@ -108,8 +108,13 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
     Ok(it)
 }
 
+#[cfg(not(feature = "units"))]
 use ndhistogram::ndhistogram;
+
+#[cfg(not(feature = "units"))]
 use crate::lorogram::{axis_r, Lorogram, Prompt, Scattergram};
+
+#[cfg(not(feature = "units"))]
 pub fn read_scattergram(args: Args) -> Result<Scattergram, Box<dyn Error>> {
     fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
         let mut sgram = Scattergram::new(make_empty_lorogram);

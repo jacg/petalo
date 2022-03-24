@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use petalo::{mlem::Image, weights::VoxelBox, fom, types::{Length as L, Intensity}};
+use petalo::{mlem::Image, weights::FOV, fom, types::{Length as L, Intensity}};
 
 #[pyfunction]
 #[text_signature = "(n, /)"]
@@ -42,7 +42,7 @@ fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
 #[pyclass]
 struct FomConfig {
     cfg: fom::FomConfig,
-    vbox: VoxelBox,
+    fov: FOV,
 }
 
 #[pymethods]
@@ -56,12 +56,12 @@ impl FomConfig {
         let background_rois = bg_rois.into_iter().map(pyroi_to_fomroi).collect();
 
         let cfg = fom::FomConfig{ rois, background_rois, background_activity: bg};
-        FomConfig{ cfg, vbox: VoxelBox::new(size, voxels)}
+        FomConfig{ cfg, fov: FOV::new(size, voxels)}
     }
 
     /// Calculate CRC for a 60x60x60 voxel image
     fn crcs(&self, data: Vec<Intensity>) -> Vec<Intensity> {
-        let image = Image::new(self.vbox, data);
+        let image = Image::new(self.fov, data);
         let crcs = image.foms(&self.cfg, true).crcs;
         crcs
     }

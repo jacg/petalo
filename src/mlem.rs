@@ -5,7 +5,7 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
-use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR};
+use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, FovHit};
 use crate::gauss::make_gauss_option;
 
 pub type ImageData = Vec<Intensity>;
@@ -13,7 +13,7 @@ pub type ImageData = Vec<Intensity>;
 
 #[derive(Clone)]
 pub struct Image {
-    pub vbox: VoxelBox,
+    pub fov: FOV,
     pub data: ImageData,
 }
 
@@ -30,7 +30,7 @@ impl core::ops::Index<Index1> for Image {
 
 impl core::ops::IndexMut<Index3> for Image {
     fn index_mut(&mut self, i3: Index3) -> &mut Self::Output {
-        let i1 = index3_to_1(i3, self.vbox.n);
+        let i1 = index3_to_1(i3, self.fov.n);
         &mut self.data[i1]
     }
 }
@@ -38,14 +38,14 @@ impl core::ops::IndexMut<Index3> for Image {
 impl core::ops::Index<Index3> for Image {
     type Output = Intensity;
     fn index(&self, i3: Index3) -> &Self::Output {
-        let i1 = index3_to_1(i3, self.vbox.n);
+        let i1 = index3_to_1(i3, self.fov.n);
         &self.data[i1]
     }
 }
 
 impl Image {
 
-    pub fn mlem<'a>(vbox: VoxelBox,
+    pub fn mlem<'a>(fov: FOV,
                     measured_lors: &'a [LOR],
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
@@ -53,9 +53,9 @@ impl Image {
     ) -> impl Iterator<Item = Image> + '_ {
 
         // Start off with a uniform image
-        let mut image = Self::ones(vbox);
+        let mut image = Self::ones(fov);
 
-        let sensitivity = sensitivity.or_else(|| Some(Self::ones(vbox))).unwrap();
+        let sensitivity = sensitivity.or_else(|| Some(Self::ones(fov))).unwrap();
 
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
@@ -81,15 +81,15 @@ impl Image {
     // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(vbox: VoxelBox, density: Self, lors: impl Iterator<Item = crate::weights::LOR>, n_lors: usize, stradivarius: f32) -> Self {
-        let a = &vbox;
-        let b = &density.vbox;
+    pub fn sensitivity_image(fov: FOV, density: Self, lors: impl Iterator<Item = crate::weights::LOR>, n_lors: usize, stradivarius: f32) -> Self {
+        let a = &fov;
+        let b = &density.fov;
         if a.n != b.n || a.half_width != b.half_width {
             panic!("For now, attenuation and output image dimensions must match exactly.")
         }
         // TODO convert from density to attenuation coefficient
         let attenuation = density;
-        let (mut image, mut weights, mut indices) = projection_buffers(vbox);
+        let (mut image, mut weights, mut indices) = projection_buffers(fov);
 
         // TOF should not be used as LOR attenuation is independent of decay point
         let notof = make_gauss_option(None, None);
@@ -97,20 +97,20 @@ impl Image {
         'lor: for lor in lors {
             // Find active voxels (slice of system matrix) WITHOUT TOF
             // Analyse point where LOR hits voxel box
-            match lor_vbox_hit(&lor, vbox) {
+            match lor_fov_hit(&lor, fov) {
 
                 // LOR missed voxel box: nothing to be done
                 None => continue,
 
-                // Data needed by `find_active_voxels`
-                Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+                // Data needed by `system_matrix_elements`
+                Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
                     // Throw away previous LOR's values
                     weights.clear();
                     indices.clear();
 
                     // Find active voxels and their weights
-                    find_active_voxels(
+                    system_matrix_elements(
                         &mut indices, &mut weights,
                         next_boundary, voxel_size,
                         index, delta_index, remaining,
@@ -135,7 +135,7 @@ impl Image {
         for e in image.iter_mut() {
             *e /= size
         }
-        Self::new(vbox, image)
+        Self::new(fov, image)
     }
 
     fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
@@ -148,7 +148,7 @@ impl Image {
         // Closure preparing the state needed by `fold`: will be called by
         // `fold` at the start of every thread that is launched.
         let initial_thread_state = || {
-            let (backprojection, weights, indices) = projection_buffers(self.vbox);
+            let (backprojection, weights, indices) = projection_buffers(self.fov);
             (backprojection, weights, indices, &self, &tof)
         };
 
@@ -180,7 +180,7 @@ impl Image {
             // Keep only the backprojection (ignore weights and indices)
             .map(|tuple| tuple.0)
             // Sum the backprojections calculated on each thread
-            .reduce(|   | zeros_buffer(self.vbox),
+            .reduce(|   | zeros_buffer(self.fov),
                     |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
         };
 
@@ -190,24 +190,24 @@ impl Image {
 
     }
 
-    pub fn ones(vbox: VoxelBox) -> Self {
-        let [x,y,z] = vbox.n;
+    pub fn ones(fov: FOV) -> Self {
+        let [x,y,z] = fov.n;
         let size = x * y * z;
-        Self { data: vec![1.0; size], vbox}
+        Self { data: vec![1.0; size], fov}
     }
 
-    pub fn new(vbox: VoxelBox, data: ImageData) -> Self {
-        let [x, y, z] = vbox.n;
+    pub fn new(fov: FOV, data: ImageData) -> Self {
+        let [x, y, z] = fov.n;
         if data.len() != x * y * z {
             // TODO change panic to Option or Result
-            panic!("Image data does not match dimensions {:?}", vbox.n);
+            panic!("Image data does not match dimensions {:?}", fov.n);
         };
-        Image { vbox, data }
+        Image { fov, data }
     }
 
-    pub fn empty(vbox: VoxelBox) -> Self {
-        let [x,y,z] = vbox.n;
-        Self::new(vbox, vec![0.0; x*y*z])
+    pub fn empty(fov: FOV) -> Self {
+        let [x,y,z] = fov.n;
+        Self::new(fov, vec![0.0; x*y*z])
     }
 
     pub fn inverted(&self) -> Self {
@@ -217,14 +217,14 @@ impl Image {
     }
 }
 
-fn projection_buffers(vbox: VoxelBox) -> (ImageData, Vec<Length>, Vec<usize>) {
+fn projection_buffers(fov: FOV) -> (ImageData, Vec<Length>, Vec<usize>) {
     // The backprojection (or sensitivity image) being constructed in a
     // given MLEM iteration (or sensitivity image calculation).
-    let image = zeros_buffer(vbox);
+    let image = zeros_buffer(fov);
     // Weights and indices are sparse storage of the slice through the
     // system matrix which corresponds to the current LOR. (Allocating these
     // anew for each LOR had a noticeable runtime cost.)
-    let [nx, ny, nz] = vbox.n;
+    let [nx, ny, nz] = fov.n;
     let max_number_of_active_voxels_possible = nx + ny + nz - 2;
     let weights = Vec::with_capacity(max_number_of_active_voxels_possible);
     let indices = Vec::with_capacity(max_number_of_active_voxels_possible);
@@ -232,7 +232,7 @@ fn projection_buffers(vbox: VoxelBox) -> (ImageData, Vec<Length>, Vec<usize>) {
 }
 
 // A new empty data store with matching size
-fn zeros_buffer(vbox: VoxelBox) -> ImageData { let [x,y,z] = vbox.n; vec![0.0; x*y*z] }
+fn zeros_buffer(fov: FOV) -> ImageData { let [x,y,z] = fov.n; vec![0.0; x*y*z] }
 
 
 type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>);
@@ -244,20 +244,20 @@ where
     let (mut backprojection, mut weights, mut indices, image, tof) = state;
 
     // Analyse point where LOR hits voxel box
-    match lor_vbox_hit(lor, image.vbox) {
+    match lor_fov_hit(lor, image.fov) {
 
         // LOR missed voxel box: nothing to be done
         None => return (backprojection, weights, indices, image, tof),
 
-        // Data needed by `find_active_voxels`
-        Some((next_boundary, voxel_size, index, delta_index, remaining, tof_peak)) => {
+        // Data needed by `system_matrix_elements`
+        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
             // Throw away previous LOR's values
             weights.clear();
             indices.clear();
 
             // Find active voxels and their weights
-            find_active_voxels(
+            system_matrix_elements(
                 &mut indices, &mut weights,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,

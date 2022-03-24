@@ -6,8 +6,18 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-uom = "0.32.0"
+uom = { version = "0.32.0", default-features = false, features = [
+        # "autoconvert", # automatic base unit conversion.
+        # "usize", "u8", "u16", "u32", "u64", "u128", # Unsigned integer storage types.
+        # "isize", "i8", "i16", "i32", "i64", "i128", # Signed integer storage types.
+        # "bigint", "biguint", # Arbitrary width integer storage types.
+        # "rational", "rational32", "rational64", "bigrational", # Integer ratio storage types.
+        "f32", # "f64", # Floating point storage types.
+        "si", "std", # Built-in SI system and std library support.
+        "use_serde", # Serde support.
+    ] }
 
 [dev-dependencies]
 pretty_assertions = "1.0"
 float_eq = "0.7.0"
+rstest = "0.12"
