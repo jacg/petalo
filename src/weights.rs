@@ -200,11 +200,11 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let entry_point = find_entry_point(entry_point, fov);
 
     // Bookkeeping information needed during traversal of voxel box
-    let (
+    let IndexTrackers {
         index,       // current 1d index into 3d array of voxels
         delta_index, // how the index changes along each dimension
         remaining,   // voxels until edge of FOV in each dimension
-    ) = index_trackers(entry_point, flipped, fov.n);
+    } = index_trackers(entry_point, flipped, fov.n);
 
     // Voxel size expressed in LOR distance units: how far we must move along
     // LOR to cross one voxel in any given dimension. Will be infinite for any
@@ -327,7 +327,7 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]
-fn index_trackers(entry_point: Vector, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> (i32, [i32; 3], [i32; 3]) {
+fn index_trackers(entry_point: Vector, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
 
     // Find N-dimensional index of voxel at entry point.
     let [ix, iy, iz] = [entry_point.x.floor() as usize,
@@ -360,7 +360,18 @@ fn index_trackers(entry_point: Vector, flipped: [bool; 3], [nx, ny, nz]: BoxDim)
     ];
     let index = index3_to_1([ix, iy, iz], [nx, ny, nz]);
 
-    (index, delta_index, remaining)
+    IndexTrackers { index, delta_index, remaining }
+}
+
+struct IndexTrackers {
+    /// Current 1D index into 3D array of voxels
+    index: i32,
+
+    /// How the index changes along each dimension
+    delta_index: [i32; 3],
+
+    /// Voxels until edge of FOV in each dimension
+    remaining: [i32; 3],
 }
 
 /// Flip axes to ensure that direction from p1 to p2 is non-negative in all
