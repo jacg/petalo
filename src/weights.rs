@@ -176,7 +176,7 @@ pub struct VboxHit {
 }
 
 /// Figure out if the LOR hits the voxel box at all. If it does, calculate
-/// values needed by find_active_voxels.
+/// values needed by `system_matrix_elements`.
 #[inline]
 pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
 
@@ -214,7 +214,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
     // At what position along LOR is the next voxel boundary, in any dimension.
     let next_boundary = first_boundaries(entry_point, voxel_size);
 
-    // Return the values needed by `find_active_voxels`
+    // Return the values needed by `system_matrix_elements`
     Some(VboxHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
 }
 
@@ -225,7 +225,7 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
 /// performance.
 #[inline]
 #[allow(clippy::too_many_arguments)]
-pub fn find_active_voxels(
+pub fn system_matrix_elements(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Length>,
     mut next_boundary: Vector,
@@ -505,7 +505,7 @@ impl LOR {
         match lor_vbox_hit(self, *vbox) {
             None => (),
             Some(VboxHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-                find_active_voxels(
+                system_matrix_elements(
                     &mut indices, &mut weights,
                     next_boundary, voxel_size,
                     index, delta_index, remaining,

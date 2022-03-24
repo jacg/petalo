@@ -5,7 +5,7 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
-use crate::weights::{lor_vbox_hit, find_active_voxels, VoxelBox, LOR, VboxHit};
+use crate::weights::{lor_vbox_hit, system_matrix_elements, VoxelBox, LOR, VboxHit};
 use crate::gauss::make_gauss_option;
 
 pub type ImageData = Vec<Intensity>;
@@ -102,7 +102,7 @@ impl Image {
                 // LOR missed voxel box: nothing to be done
                 None => continue,
 
-                // Data needed by `find_active_voxels`
+                // Data needed by `system_matrix_elements`
                 Some(VboxHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
                     // Throw away previous LOR's values
@@ -110,7 +110,7 @@ impl Image {
                     indices.clear();
 
                     // Find active voxels and their weights
-                    find_active_voxels(
+                    system_matrix_elements(
                         &mut indices, &mut weights,
                         next_boundary, voxel_size,
                         index, delta_index, remaining,
@@ -249,7 +249,7 @@ where
         // LOR missed voxel box: nothing to be done
         None => return (backprojection, weights, indices, image, tof),
 
-        // Data needed by `find_active_voxels`
+        // Data needed by `system_matrix_elements`
         Some(VboxHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
             // Throw away previous LOR's values
@@ -257,7 +257,7 @@ where
             indices.clear();
 
             // Find active voxels and their weights
-            find_active_voxels(
+            system_matrix_elements(
                 &mut indices, &mut weights,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
