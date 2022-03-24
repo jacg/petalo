@@ -74,11 +74,12 @@ impl Image {
         Ok(())
     }
 
-    // Too much copy-paste code reuse from project_one_lor. This is because the
-    // latter (and the functions it uses) was heavily optimized, at the cost of
-    // ease of reuse.
-
     // TODO turn this into a method?
+
+    // TODO: this new version results in a 10% slowdown of
+    // `make_sensitivity_image`. The prime suspect is the re-allocation of the
+    // `indices` and `weights` vectors in the inner loop.
+
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
     pub fn sensitivity_image(vbox        : VoxelBox                                 ,
