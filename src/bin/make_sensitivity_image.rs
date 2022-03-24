@@ -35,7 +35,7 @@ use structopt::StructOpt;
 use std::{error::Error, io::Write};
 use std::path::PathBuf;
 
-use petalo::{mlem, utils::group_digits, weights::VoxelBox, types::Length};
+use petalo::{mlem, utils::group_digits, weights::FOV, types::Length};
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -63,8 +63,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
     // TODO parallelize
-    let lors = find_potential_lors(n_lors, density.vbox, detector_length, detector_diameter);
-    let sensitivity = mlem::Image::sensitivity_image(density.vbox, density, lors, n_lors, rho);
+    let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
+    let sensitivity = mlem::Image::sensitivity_image(density.fov, density, lors, n_lors, rho);
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
@@ -77,7 +77,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: VoxelBox, detector_length: Length, detector_diameter: Length) -> impl Iterator<Item = petalo::weights::LOR> {
+fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl Iterator<Item = petalo::weights::LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
     let one_useful_random_lor = move || {
         loop {

@@ -2,7 +2,7 @@ use std::error::Error;
 use structopt::StructOpt;
 
 use petalo::types::{Length, Ratio};
-use petalo::weights::{VoxelBox, LOR};
+use petalo::weights::{FOV, LOR};
 use petalo::visualize::{lor_weights, Shape};
 
 use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, parse_bounds, CutoffOption};
@@ -15,8 +15,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let size = args.size;
     let nvox = args.nvoxels;
 
-    let vbox = VoxelBox::new(size, nvox);
-    println!("vbox: {:?}", vbox);
+    let fov = FOV::new(size, nvox);
+    println!("fov: {fov:?}");
 
     // TODO: reading LOR from file overrides CLI lor: make them mutually
     // exclusive.
@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     println!("{}", lor);
-    lor_weights(lor, vbox, args.shape, args.cutoff, args.sigma);
+    lor_weights(lor, fov, args.shape, args.cutoff, args.sigma);
     Ok(())
 }
 

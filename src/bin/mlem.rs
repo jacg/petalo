@@ -80,7 +80,7 @@ use std::fs::create_dir_all;
 
 use petalo::types::{Length, Time, Ratio, Energy, Charge, BoundPair};
 use petalo::lorogram::Scattergram;
-use petalo::weights::{LOR, VoxelBox};
+use petalo::weights::{LOR, FOV};
 use petalo::mlem::Image;
 use petalo::io;
 
@@ -114,7 +114,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time("Added additive correction values to LORs");
 
     // Define field of view extent and voxelization
-    let vbox = VoxelBox::new(args.size, args.nvoxels);
+    let fov = FOV::new(args.size, args.nvoxels);
 
     let file_pattern = guess_filename(&args);
 
@@ -132,7 +132,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
 
-    for (n, image) in (Image::mlem(vbox, &measured_lors, args.tof, args.cutoff, sensitivity_image))
+    for (n, image) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image))
         .take(args.iterations)
         .enumerate() {
             report_time(&format!("Iteration {:2}", n));
@@ -161,9 +161,9 @@ type NVoxels = (usize , usize , usize );
 
 /// Panic if the image size does not match the specified values
 fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) {
-    let size = image.vbox.half_width;
+    let size = image.fov.half_width;
     let (idx, idy, idz) = (size[0]*2.0, size[1]*2.0, size[2]*2.0);
-    let [inx, iny, inz] = image.vbox.n;
+    let [inx, iny, inz] = image.fov.n;
     let (enx, eny, enz) = nvoxels;
     let (edx, edy, edz) = fov_size;
     if ! ((enx, eny, enz) == (inx, iny, inz) && (edx, edy, edz) == (idx, idy, idz)) {

@@ -6,7 +6,7 @@ use kiss3d::camera::ArcBall;
 use kiss3d::nalgebra::{Point3, Translation3};
 
 use crate::types::{Length, Ratio, ns_to_ps};
-use crate::weights::{VoxelBox, LOR};
+use crate::weights::{FOV, LOR};
 
 use structopt::clap::arg_enum;
 
@@ -27,17 +27,17 @@ pub struct Scene {
     //draw_lines: Box<dyn FnMut(&Window) -> ()>,
     // Parameters which define the scene
     lor: LOR,
-    vbox: VoxelBox,
+    fov: FOV,
     lines: Vec<(Point3<f32>, Point3<f32>, Point3<f32>)>,
 }
 
 impl Scene {
-    pub fn new(lor: LOR, vbox: VoxelBox) -> Self {
+    pub fn new(lor: LOR, fov: FOV) -> Self {
         let mut window = Window::new("LOR weights");
         window.set_light(Light::StickToCamera);
 
         // Axis lines
-        let bsize = vbox.half_width;
+        let bsize = fov.half_width;
         let (bdx, bdy, bdz) = (bsize.x as f32, bsize.y as f32, bsize.z as f32);
         let x_axis_lo = Point3::new(-bdx,   0.0, 0.0) * 1.5;
         let x_axis_hi = Point3::new( bdx,   0.0, 0.0) * 1.5;
@@ -54,8 +54,8 @@ impl Scene {
         let p2_f32 = Point3::new(lor.p2.x as f32, lor.p2.y as f32, lor.p2.z as f32);
         let lor_colour = Point3::new(1.0, 1.0, 0.0);
 
-        // VoxelBox frame
-        let w = vbox.half_width;
+        // FOV frame
+        let w = fov.half_width;
         let (bwx, bwy, bwz) = (w.x as f32, w.y as f32, w.z as f32);
         let box_000 = Point3::new(-bwx, -bwy, -bwz);
         let box_001 = Point3::new(-bwx, -bwy,  bwz);
@@ -90,10 +90,10 @@ impl Scene {
         Scene {
             window,
             voxels: vec![],
-            camera: Self::init_camera(&vbox),
+            camera: Self::init_camera(&fov),
             //draw_lines,
             lor,
-            vbox,
+            fov,
             lines,
         }
     }
@@ -108,7 +108,7 @@ impl Scene {
 
     pub fn place_voxels(&mut self, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Length>) {
 
-        let active_voxels = self.lor.active_voxels(&self.vbox, cutoff, sigma);
+        let active_voxels = self.lor.active_voxels(&self.fov, cutoff, sigma);
 
         let &max_weight = active_voxels
             .iter()
@@ -116,12 +116,12 @@ impl Scene {
             .max_by(|a,b| a.partial_cmp(b).expect("Weights contained NaN"))
             .unwrap_or(&1.0);
 
-        let vsize = self.vbox.voxel_size;
-        let bsize = self.vbox.half_width;
+        let vsize = self.fov.voxel_size;
+        let bsize = self.fov.half_width;
         let (bdx, bdy, bdz) = (bsize.x as f32, bsize.y as f32, bsize.z as f32);
         let (vdx, vdy, vdz) = (vsize.x as f32, vsize.y as f32, vsize.z as f32);
-        let mut voxels = Vec::with_capacity(self.vbox.n[0] * self.vbox.n[1]);
-        let half_vbox = Translation3::new(-bdx, -bdy, -bdz);
+        let mut voxels = Vec::with_capacity(self.fov.n[0] * self.fov.n[1]);
+        let half_fov = Translation3::new(-bdx, -bdy, -bdz);
         let half_voxel = Translation3::new(vdx / 2.0,
                                            vdy / 2.0,
                                            vdz / 2.0);
@@ -134,7 +134,7 @@ impl Scene {
                 Shape::Box  => self.window.add_cube(vdx * s, vdy * s, vdz * s),
                 Shape::Ball => self.window.add_sphere(vdx.min(vdy).min(vdz) * relative_weight * 0.5),
             };
-            v.append_translation(&half_vbox);
+            v.append_translation(&half_fov);
             v.append_translation(&half_voxel);
             v.append_translation(&Translation3::new(i[0] as f32 * vdx, i[1] as f32 * vdy, i[2] as f32 * vdz));
             v.set_color(relative_weight, 0.1, 0.0);
@@ -149,9 +149,9 @@ impl Scene {
         }
     }
 
-    fn init_camera(vbox: &VoxelBox) -> ArcBall {
+    fn init_camera(fov: &FOV) -> ArcBall {
         // Fit image into FOV
-        let biggest = vbox.half_width.x.max(vbox.half_width.y) as f32;
+        let biggest = fov.half_width.x.max(fov.half_width.y) as f32;
         let distance = 4.0 * biggest;
         let zfar  = distance * 2.0;
         let znear = 0.1; //distance / 2.0;
@@ -190,21 +190,21 @@ impl Scene {
     }
 }
 
-pub fn lor_weights(lor: LOR, vbox: VoxelBox, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Length>) {
-    let mut scene = Scene::new(lor, vbox);
+pub fn lor_weights(lor: LOR, fov: FOV, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Length>) {
+    let mut scene = Scene::new(lor, fov);
     scene.place_voxels(shape, cutoff, sigma);
     scene.main_loop();
 }
 
-pub fn vislor_command(vbox: &VoxelBox, lor: &LOR) -> String {
+pub fn vislor_command(fov: &FOV, lor: &LOR) -> String {
     format!(
-        "cargo run --bin vislor -- box --vbox-size {vx},{vy},{vz} --nvoxels {nx},{ny},{nz} --lor '{t1} {t2}   {x1} {y1} {z1}    {x2} {y2} {z2}'",
-        vx = vbox.half_width.x * 2.0,
-        vy = vbox.half_width.y * 2.0,
-        vz = vbox.half_width.z * 2.0,
-        nx = vbox.n[0],
-        ny = vbox.n[1],
-        nz = vbox.n[2],
+        "cargo run --bin vislor -- box --fov-size {vx},{vy},{vz} --nvoxels {nx},{ny},{nz} --lor '{t1} {t2}   {x1} {y1} {z1}    {x2} {y2} {z2}'",
+        vx = fov.half_width.x * 2.0,
+        vy = fov.half_width.y * 2.0,
+        vz = fov.half_width.z * 2.0,
+        nx = fov.n[0],
+        ny = fov.n[1],
+        nz = fov.n[2],
         t1 = 0.0,
         t2 = ns_to_ps(lor.dt),
         x1 = lor.p1.x,

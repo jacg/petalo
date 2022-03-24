@@ -1,13 +1,13 @@
 use crate::io::raw;
 use crate::types::{Length, Point, Intensity, Ratio};
 use crate::mlem::{Image, ImageData};
-use crate::weights::VoxelBox;
+use crate::weights::FOV;
 
 type BoxErr<T> = Result<T, Box<dyn std::error::Error>>;
 
-pub fn load_image(filename: &std::path::Path, vbox: VoxelBox) -> BoxErr<Image> {
+pub fn load_image(filename: &std::path::Path, fov: FOV) -> BoxErr<Image> {
     let data = raw::read(filename)?.collect::<Result<_,_>>()?;
-    Ok(Image::new(vbox, data)) // TODO: Upgrade Image::new from panic to Result
+    Ok(Image::new(fov, data)) // TODO: Upgrade Image::new from panic to Result
 }
 
 
@@ -76,7 +76,7 @@ impl Image {
         let mut out = vec![];
         let roi_contains = roi.contains_fn();
         for (index, value) in self.data.iter().copied().enumerate() {
-            let p = self.vbox.voxel_centre1(index);
+            let p = self.fov.voxel_centre1(index);
             if roi_contains(p) { out.push(value) }
         }
         out
@@ -85,7 +85,7 @@ impl Image {
     pub fn values_with_positions(&self) -> Vec<PointValue> {
         self.data.iter().copied()
             .enumerate()
-            .map(|(index, value)| (self.vbox.voxel_centre1(index), value))
+            .map(|(index, value)| (self.fov.voxel_centre1(index), value))
             .collect()
     }
 
@@ -153,8 +153,8 @@ mod test_in_roi {
         expected_len: usize
     ) {
         let data = vec![1.0; n*n*n];
-        let vbox = VoxelBox::new((l,l,l), (n,n,n));
-        let image = Image::new(vbox, data);
+        let fov = FOV::new((l,l,l), (n,n,n));
+        let image = Image::new(fov, data);
         let inside = image.values_inside_roi(ROI::Sphere(centre, r));
         println!("{} {}", inside.len(), expected_len);
         assert!(inside.len() == expected_len);
@@ -175,8 +175,8 @@ mod test_in_roi {
         expected_len: usize
     ) {
         let data = vec![1.0; n*n*n];
-        let vbox = VoxelBox::new((l,l,l), (n,n,n));
-        let image = Image::new(vbox, data);
+        let fov = FOV::new((l,l,l), (n,n,n));
+        let image = Image::new(fov, data);
         let inside = image.values_inside_roi(ROI::CylinderZ(centre, r));
         println!("{} {}", inside.len(), expected_len);
         assert!(inside.len() == expected_len);
@@ -216,8 +216,8 @@ mod test_in_roi {
     fn which_voxels(roi: ROI, expected: usize) {
         let data = vec![1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0];
         let (l, n) = (4.0, 2);
-        let vbox = VoxelBox::new((l,l,l), (n,n,n));
-        let image = Image::new(vbox, data);
+        let fov = FOV::new((l,l,l), (n,n,n));
+        let image = Image::new(fov, data);
         let pattern = image.values_inside_roi(roi)
             .iter().sum::<Intensity>()
             as usize;

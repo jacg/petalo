@@ -32,7 +32,7 @@ pub struct Cli {
 
 use std::error::Error;
 use petalo::types::Length;
-use petalo::weights::VoxelBox;
+use petalo::weights::FOV;
 use petalo::mlem::Image;
 use petalo::io::hdf5::{read_table, Primary};
 type L = Length;
@@ -75,8 +75,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         ((2.0 * xmax).ceil(), (2.0 * ymax).ceil(), (2.0 * zmax).ceil())
     };
     // --- Create empty image of appropriate size ------------------------------------
-    let vbox = VoxelBox::new(size, nvoxels);
-    let mut image = Image::empty(vbox);
+    let fov = FOV::new(size, nvoxels);
+    let mut image = Image::empty(fov);
     // --- Calculate how to translate spatial position into image index --------------
     let (xn, yn, zn) = args.nvoxels;
     let (xe, ye, ze) = size;

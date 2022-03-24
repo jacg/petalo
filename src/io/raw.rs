@@ -103,9 +103,9 @@ impl Image3D {
 use super::super::mlem::Image as MLEMImage;
 impl From<&MLEMImage> for Image3D {
     fn from(image: &MLEMImage) -> Self {
-        let n = image.vbox.n;
+        let n = image.fov.n;
         let pixels = [n[0] as u16, n[1] as u16, n[2] as u16];
-        let l = image.vbox.half_width;
+        let l = image.fov.half_width;
         let mm = [l[0]*2.0, l[1]*2.0, l[2]*2.0];
         let data = image.data.clone();
         Self { pixels, mm, data }
@@ -118,9 +118,9 @@ impl From<&Image3D> for MLEMImage {
         let n = (px as usize, py as usize, pz as usize);
         let [wx, wy, wz] = image.mm;
         let half_width = (wx, wy, wz);
-        let vbox = crate::weights::VoxelBox::new(half_width, n);
+        let fov = crate::weights::FOV::new(half_width, n);
         let data = image.data.clone();
-        Self { vbox, data }
+        Self { fov, data }
     }
 }
 
