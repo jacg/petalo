@@ -178,7 +178,7 @@ pub struct VboxHit {
 /// Figure out if the LOR hits the voxel box at all. If it does, calculate
 /// values needed by `system_matrix_elements`.
 #[inline]
-pub fn lor_vbox_hit(lor: &LOR, fov: FOV) -> Option<VboxHit> {
+pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<VboxHit> {
 
     // Simplify expression of the algorithm by flipping axes so that the
     // direction from p1 to p2 is non-negative along all axes. Remember
@@ -502,7 +502,7 @@ impl LOR {
         let tof = make_gauss_option(sigma, cutoff);
         let mut weights = vec![];
         let mut indices = vec![];
-        match lor_vbox_hit(self, *fov) {
+        match lor_fov_hit(self, *fov) {
             None => (),
             Some(VboxHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
                 system_matrix_elements(

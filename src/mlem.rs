@@ -5,7 +5,7 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
-use crate::weights::{lor_vbox_hit, system_matrix_elements, FOV, LOR, VboxHit};
+use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, VboxHit};
 use crate::gauss::make_gauss_option;
 
 pub type ImageData = Vec<Intensity>;
@@ -97,7 +97,7 @@ impl Image {
         'lor: for lor in lors {
             // Find active voxels (slice of system matrix) WITHOUT TOF
             // Analyse point where LOR hits voxel box
-            match lor_vbox_hit(&lor, fov) {
+            match lor_fov_hit(&lor, fov) {
 
                 // LOR missed voxel box: nothing to be done
                 None => continue,
@@ -244,7 +244,7 @@ where
     let (mut backprojection, mut weights, mut indices, image, tof) = state;
 
     // Analyse point where LOR hits voxel box
-    match lor_vbox_hit(lor, image.fov) {
+    match lor_fov_hit(lor, image.fov) {
 
         // LOR missed voxel box: nothing to be done
         None => return (backprojection, weights, indices, image, tof),
