@@ -149,13 +149,29 @@ mod test {
 
 // ---------------------- Implementation -----------------------------------------
 
-// Returned by lor_vbox_hit
+/// Information about where the LOR enters the FOV and how to track the LOR's
+/// traversal of the FOV.
 pub struct VboxHit {
+
+    /// How far is the next voxel boundary in each direction.
     pub next_boundary: Vector,
+
+    /// Voxel size expressed in LOR distance units: how far we must move along
+    /// LOR to cross one voxel in any given dimension. Will be infinite for any
+    /// axis which is parallel to the LOR.
     pub voxel_size   : Vector,
+
+    /// 1D index of first voxel entered by the LOR.
     pub index        :  i32,
+
+    /// Difference in 1D index between adjacent voxels, in each direction.
     pub delta_index  : [i32; 3],
+
+    /// Number of voxels to be traversed along LOR, in each direction, before
+    /// exiting FOV.
     pub remaining    : [i32; 3],
+
+    /// Distance to the peak of the TOF gaussian.
     pub tof_peak     : Length,
 }
 
@@ -190,8 +206,9 @@ pub fn lor_vbox_hit(lor: &LOR, vbox: VoxelBox) -> Option<VboxHit> {
         remaining,   // voxels until edge of vbox in each dimension
     ) = index_trackers(entry_point, flipped, vbox.n);
 
-    // Voxel size in LOR length units: how far must we move along LOR to
-    // traverse one voxel, in any dimension.
+    // Voxel size expressed in LOR distance units: how far we must move along
+    // LOR to cross one voxel in any given dimension. Will be infinite for any
+    // axis which is parallel to the LOR.
     let voxel_size = voxel_size(vbox, p1, p2);
 
     // At what position along LOR is the next voxel boundary, in any dimension.
