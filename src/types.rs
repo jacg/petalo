@@ -46,10 +46,10 @@ struct TodoIntensity;
 #[cfg(not(feature = "units"))] pub type Intensity = f32;
 #[cfg    (feature = "units") ] pub type Intensity = f32; //TodoIntensity;
 
-#[cfg(not(feature = "units"))] pub type Vector = nc::math ::Vector<Length>;
+#[cfg(not(feature = "units"))] pub type Vector = nc::math::Vector<Length>;
 #[cfg    (feature = "units") ] pub type Vector = geometry::Vector;
 
-#[cfg(not(feature = "units"))] pub type Point  = nc::math ::Point <Length>;
+#[cfg(not(feature = "units"))] pub type Point  = nc::math::Point <Length>;
 #[cfg    (feature = "units") ] pub type Point  = geometry::Point;
 
 pub type Index1 = usize;

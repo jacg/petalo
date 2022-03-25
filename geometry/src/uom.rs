@@ -3,6 +3,7 @@
 pub use uom as uomcrate;
 
 //use uom::fmt::DisplayStyle::Abbreviation;
+pub use uom::si::Quantity;
 pub use uom::si::f32::{Length, Time, Velocity, Ratio};
 use uom::si::{length  ::{nanometer, millimeter, centimeter},
               time    ::{nanosecond, picosecond},
