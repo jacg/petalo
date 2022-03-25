@@ -1,18 +1,3 @@
-#[cfg    (feature = "units") ]
-#[derive(Copy, Clone, PartialEq)]
-/// Replace me with something from uom
-struct TodoEnergy;
-
-#[cfg    (feature = "units") ]
-#[derive(Copy, Clone, PartialEq)]
-/// Replace me with something from uom
-struct TodoCharge;
-
-#[cfg    (feature = "units") ]
-#[derive(Copy, Clone, PartialEq)]
-/// Replace me with something from uom
-struct TodoIntensity;
-
 #[cfg    (feature = "units") ] pub use geometry::uom::uomcrate as guomc;
 #[cfg    (feature = "units") ] pub use guomc::si::{ISQ, SI, Quantity};
 #[cfg    (feature = "units") ] pub use guomc::typenum::{Z0, N1};
@@ -29,22 +14,22 @@ struct TodoIntensity;
 #[cfg    (feature = "units") ] pub type Velocity = geometry::Velocity;
 
 #[cfg(not(feature = "units"))] pub type Weight = f32;
-#[cfg    (feature = "units") ] pub type Weight = f32;  // TODO is this what we really want?
+#[cfg    (feature = "units") ] pub type Weight = f32;  // TODO uom Weight
 
 #[cfg(not(feature = "units"))] pub type Ratio = f32;
 #[cfg    (feature = "units") ] pub type Ratio = geometry::Ratio;
 
 #[cfg(not(feature = "units"))] pub type Angle = f32;
-#[cfg    (feature = "units") ] pub type Angle = f32; // TODO
+#[cfg    (feature = "units") ] pub type Angle = f32; // TODO uom Angl
 
 #[cfg(not(feature = "units"))] pub type Energy = f32;
-#[cfg    (feature = "units") ] pub type Energy = f32; //TodoEnergy;
+#[cfg    (feature = "units") ] pub type Energy = f32; //TODO uom Energy
 
 #[cfg(not(feature = "units"))] pub type Charge = f32;
-#[cfg    (feature = "units") ] pub type Charge = f32; //TodoCharge;
+#[cfg    (feature = "units") ] pub type Charge = f32; // TODO uom Charge
 
 #[cfg(not(feature = "units"))] pub type Intensity = f32;
-#[cfg    (feature = "units") ] pub type Intensity = f32; //TodoIntensity;
+#[cfg    (feature = "units") ] pub type Intensity = f32; // TODO uom Intensity
 
 #[cfg(not(feature = "units"))] pub type Vector = nc::math::Vector<Length>;
 #[cfg    (feature = "units") ] pub type Vector = geometry::Vector;
