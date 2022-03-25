@@ -2,8 +2,11 @@
 #[cfg    (feature = "units") ] pub use guomc::si::{ISQ, SI, Quantity};
 #[cfg    (feature = "units") ] pub use guomc::typenum::{Z0, N1};
 
-#[cfg(not(feature = "units"))] pub type Length = f32;
-#[cfg    (feature = "units") ] pub type Length = geometry::Length;
+
+#[cfg(not(feature = "units"))] pub type  Length = f32;
+#[cfg    (feature = "units") ] pub type  Length = geometry::Length;
+#[cfg    (feature = "units") ] pub type ILength = geometry::uom::uomcrate::si::i32  ::Length;
+#[cfg    (feature = "units") ] pub type ULength = geometry::uom::uomcrate::si::usize::Length;
 
 #[cfg(not(feature = "units"))] pub type PerLength = f32;
 #[cfg    (feature = "units") ] pub type PerLength = Quantity<ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>, SI<f32>, f32>;

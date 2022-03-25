@@ -19,6 +19,7 @@ use ncollide3d::shape::Cuboid;
 type Ray      = ncollide3d::query::Ray    <Length>;
 type Isometry = ncollide3d::math::Isometry<Length>;
 
+#[cfg(feature = "units")] use crate::types::{ULength, ILength};
 use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, PerLength, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
@@ -333,8 +334,6 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     fov.voxel_size.component_div(&lor_direction)
 }
 
-#[cfg(feature = "units")] use geometry::uom::uomcrate::si::i32  ::Length as ILength;
-#[cfg(feature = "units")] use geometry::uom::uomcrate::si::usize::Length as ULength;
 #[cfg(feature = "units")] use geometry::Quantity;
 
 // --- Truncate float-based Length to usize-based Length --------------------------
