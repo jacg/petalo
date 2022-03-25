@@ -13,8 +13,15 @@ struct TodoCharge;
 /// Replace me with something from uom
 struct TodoIntensity;
 
+#[cfg    (feature = "units") ] pub use geometry::uom::uomcrate as guomc;
+#[cfg    (feature = "units") ] pub use guomc::si::{ISQ, SI, Quantity};
+#[cfg    (feature = "units") ] pub use guomc::typenum::{Z0, N1};
+
 #[cfg(not(feature = "units"))] pub type Length = f32;
 #[cfg    (feature = "units") ] pub type Length = geometry::Length;
+
+#[cfg(not(feature = "units"))] pub type PerLength = f32;
+#[cfg    (feature = "units") ] pub type PerLength = Quantity<ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>, SI<f32>, f32>;
 
 #[cfg(not(feature = "units"))] pub type Time = Length;
 #[cfg    (feature = "units") ] pub type Time = geometry::Time;

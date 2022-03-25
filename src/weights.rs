@@ -19,7 +19,7 @@ use ncollide3d::shape::Cuboid;
 type Ray      = ncollide3d::query::Ray    <Length>;
 type Isometry = ncollide3d::math::Isometry<Length>;
 
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, PerLength, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -234,7 +234,7 @@ pub fn system_matrix_elements(
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
     tof_peak: Length,
-    tof: &Option<impl Fn(Length) -> Length>) {
+    tof: &Option<impl Fn(Length) -> PerLength>) {
 
     // How far we have moved since entering the voxel box
     let mut here = 0.0;
@@ -331,7 +331,7 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
 
 #[cfg(feature = "units")] use geometry::uom::uomcrate::si::i32  ::Length as ILength;
 #[cfg(feature = "units")] use geometry::uom::uomcrate::si::usize::Length as ULength;
-#[cfg(feature = "units")] use geometry::uom::uomcrate::si::Quantity;
+#[cfg(feature = "units")] use geometry::Quantity;
 
 // --- Truncate float-based Length to usize-based Length --------------------------
 #[cfg(feature = "units")]
