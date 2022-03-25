@@ -329,6 +329,38 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     fov.voxel_size.component_div(&lor_direction)
 }
 
+#[cfg(feature = "units")] use geometry::uom::uomcrate::si::i32  ::Length as ILength;
+#[cfg(feature = "units")] use geometry::uom::uomcrate::si::usize::Length as ULength;
+#[cfg(feature = "units")] use geometry::uom::uomcrate::si::Quantity;
+
+// --- Truncate float-based Length to usize-based Length --------------------------
+#[cfg(feature = "units")]
+#[inline(always)]
+fn floor(value: Length) -> ULength {
+    Quantity {
+        dimension: std::marker::PhantomData,
+        units: std::marker::PhantomData,
+        value: value.value.floor() as usize,
+    }
+}
+#[cfg(not(feature = "units"))]
+#[inline(always)]
+fn floor(x: f32) -> usize { x.floor() as usize }
+
+// --- Convert usize-based Length to i32-based Length -----------------------------
+#[cfg(feature = "units")]
+#[inline(always)]
+fn signed(value: ULength) -> ILength {
+    Quantity {
+        dimension: std::marker::PhantomData,
+        units: std::marker::PhantomData,
+        value: value.value as i32,
+    }
+}
+#[cfg(not(feature = "units"))]
+#[inline(always)]
+fn signed(x: usize) -> i32 { x as i32 }
+
 /// Calculate information needed to keep track of progress across voxel box:
 /// voxel index and distance remaining until leaving the box
 #[inline]
@@ -336,13 +368,13 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
 fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
 
     // Find N-dimensional index of voxel at entry point.
-    let [ix, iy, iz] = [entry_point.x.floor() as usize,
-                        entry_point.y.floor() as usize,
-                        entry_point.z.floor() as usize];
+    let [ix, iy, iz] = [floor(entry_point.x),
+                        floor(entry_point.y),
+                        floor(entry_point.z)];
 
     // index is unsigned, but need signed values for delta_index
-    let [ix, iy, iz] = [ix as i32, iy as i32, iz as i32];
-    let [nx, ny, nz] = [nx as i32, ny as i32, nz as i32];
+    let [ix, iy, iz] = [signed(ix), signed(iy), signed(iz)];
+    let [nx, ny, nz] = [signed(nx), signed(ny), signed(nz)];
 
     // How much the 1d index changes along each dimension
     let delta_index = [
