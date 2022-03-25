@@ -237,7 +237,7 @@ pub fn system_matrix_elements(
     tof: &Option<impl Fn(Length) -> PerLength>) {
 
     // How far we have moved since entering the voxel box
-    let mut here = 0.0;
+    let mut here = LENGTH_ZERO;
 
     loop {
         // Which voxel boundary will be hit next, and its position
@@ -271,6 +271,10 @@ pub fn system_matrix_elements(
         if remaining[dimension] == 0 { break; }
     }
 }
+
+#[cfg    (feature = "units") ] use crate::types::guomc::ConstZero;
+#[cfg    (feature = "units") ] const LENGTH_ZERO: Length = Length::ZERO;
+#[cfg(not(feature = "units"))] const LENGTH_ZERO: Length = 0.0;
 
 /// The point at which the LOR enters the FOV, expressed in a coordinate
 /// system with one corner of the FOV at the origin.
