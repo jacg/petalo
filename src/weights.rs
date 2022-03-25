@@ -275,13 +275,19 @@ pub fn system_matrix_elements(
 /// The point at which the LOR enters the FOV, expressed in a coordinate
 /// system with one corner of the FOV at the origin.
 #[inline]
-fn find_entry_point(mut entry_point: Point, fov: FOV) -> Vector {
+fn find_entry_point(mut entry_point: Point, fov: FOV) -> Point {
     // Transform coordinates to align box with axes: making the lower boundaries
     // of the box lie on the zero-planes.
     entry_point += fov.half_width;
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
-    let mut entry_point: Vector = entry_point.coords.component_div(&fov.voxel_size);
+    // TODO: figure out if we should support Point * Vector -> Point  (affine * vector -> affine)
+    // NOTE: this should be Point<Ratio> rater than Point<Length>
+    let mut entry_point = Point::new(
+        entry_point[0] / fov.voxel_size[0],
+        entry_point[1] / fov.voxel_size[1],
+        entry_point[2] / fov.voxel_size[2],
+    );
 
     // Floating-point subtractions which should give zero, usually miss very
     // slightly: if this error is negative, the next step (which uses floor)
@@ -306,7 +312,7 @@ fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
 
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
-fn first_boundaries(entry_point: Vector, voxel_size: Vector) -> Vector {
+fn first_boundaries(entry_point: Point, voxel_size: Vector) -> Vector {
     // What fraction of the voxel has already been traversed at the entry
     // point, along any axis.
     let vox_done_fraction: Vector = entry_point - entry_point.map(|x| x.floor());
@@ -327,7 +333,7 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]
-fn index_trackers(entry_point: Vector, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
+fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
 
     // Find N-dimensional index of voxel at entry point.
     let [ix, iy, iz] = [entry_point.x.floor() as usize,
