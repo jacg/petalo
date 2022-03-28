@@ -19,7 +19,8 @@ use ncollide3d::shape::Cuboid;
 type Ray      = ncollide3d::query::Ray    <Length>;
 type Isometry = ncollide3d::math::Isometry<Length>;
 
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
+#[cfg(feature = "units")] use crate::types::{ULength, ILength};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, PerLength, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -234,10 +235,10 @@ pub fn system_matrix_elements(
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
     tof_peak: Length,
-    tof: &Option<impl Fn(Length) -> Length>) {
+    tof: &Option<impl Fn(Length) -> PerLength>) {
 
     // How far we have moved since entering the voxel box
-    let mut here = 0.0;
+    let mut here = LENGTH_ZERO;
 
     loop {
         // Which voxel boundary will be hit next, and its position
@@ -272,16 +273,26 @@ pub fn system_matrix_elements(
     }
 }
 
+#[cfg    (feature = "units") ] use crate::types::guomc::ConstZero;
+#[cfg    (feature = "units") ] const LENGTH_ZERO: Length = Length::ZERO;
+#[cfg(not(feature = "units"))] const LENGTH_ZERO: Length = 0.0;
+
 /// The point at which the LOR enters the FOV, expressed in a coordinate
 /// system with one corner of the FOV at the origin.
 #[inline]
-fn find_entry_point(mut entry_point: Point, fov: FOV) -> Vector {
+fn find_entry_point(mut entry_point: Point, fov: FOV) -> Point {
     // Transform coordinates to align box with axes: making the lower boundaries
     // of the box lie on the zero-planes.
     entry_point += fov.half_width;
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
-    let mut entry_point: Vector = entry_point.coords.component_div(&fov.voxel_size);
+    // TODO: figure out if we should support Point * Vector -> Point  (affine * vector -> affine)
+    // NOTE: this should be Point<Ratio> rater than Point<Length>
+    let mut entry_point = Point::new(
+        entry_point[0] / fov.voxel_size[0],
+        entry_point[1] / fov.voxel_size[1],
+        entry_point[2] / fov.voxel_size[2],
+    );
 
     // Floating-point subtractions which should give zero, usually miss very
     // slightly: if this error is negative, the next step (which uses floor)
@@ -306,7 +317,7 @@ fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
 
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
-fn first_boundaries(entry_point: Vector, voxel_size: Vector) -> Vector {
+fn first_boundaries(entry_point: Point, voxel_size: Vector) -> Vector {
     // What fraction of the voxel has already been traversed at the entry
     // point, along any axis.
     let vox_done_fraction: Vector = entry_point - entry_point.map(|x| x.floor());
@@ -323,20 +334,50 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     fov.voxel_size.component_div(&lor_direction)
 }
 
+#[cfg(feature = "units")] use geometry::Quantity;
+
+// --- Truncate float-based Length to usize-based Length --------------------------
+#[cfg(feature = "units")]
+#[inline(always)]
+fn floor(value: Length) -> ULength {
+    Quantity {
+        dimension: std::marker::PhantomData,
+        units: std::marker::PhantomData,
+        value: value.value.floor() as usize,
+    }
+}
+#[cfg(not(feature = "units"))]
+#[inline(always)]
+fn floor(x: f32) -> usize { x.floor() as usize }
+
+// --- Convert usize-based Length to i32-based Length -----------------------------
+#[cfg(feature = "units")]
+#[inline(always)]
+fn signed(value: ULength) -> ILength {
+    Quantity {
+        dimension: std::marker::PhantomData,
+        units: std::marker::PhantomData,
+        value: value.value as i32,
+    }
+}
+#[cfg(not(feature = "units"))]
+#[inline(always)]
+fn signed(x: usize) -> i32 { x as i32 }
+
 /// Calculate information needed to keep track of progress across voxel box:
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]
-fn index_trackers(entry_point: Vector, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
+fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
 
     // Find N-dimensional index of voxel at entry point.
-    let [ix, iy, iz] = [entry_point.x.floor() as usize,
-                        entry_point.y.floor() as usize,
-                        entry_point.z.floor() as usize];
+    let [ix, iy, iz] = [floor(entry_point.x),
+                        floor(entry_point.y),
+                        floor(entry_point.z)];
 
     // index is unsigned, but need signed values for delta_index
-    let [ix, iy, iz] = [ix as i32, iy as i32, iz as i32];
-    let [nx, ny, nz] = [nx as i32, ny as i32, nz as i32];
+    let [ix, iy, iz] = [signed(ix), signed(iy), signed(iz)];
+    let [nx, ny, nz] = [signed(nx), signed(ny), signed(nz)];
 
     // How much the 1d index changes along each dimension
     let delta_index = [

@@ -1,4 +1,4 @@
-use crate::types::{Length, TWOPI};
+use crate::types::{Length, PerLength, TWOPI};
 #[cfg(not(feature = "units"))] use crate::types::ps_to_mm;
 
 pub use implementation::make_gauss_option;
@@ -7,7 +7,7 @@ pub use implementation::make_gauss_option;
 mod implementation {
     use super::*;
 
-    fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> Length {
+    fn make_gauss(sigma: Length, cutoff: Option<Length>) -> impl Fn(Length) -> PerLength {
         let root_two_pi = TWOPI.sqrt() as Length;
         let peak_height = 1.0 / (sigma * root_two_pi);
         let cutoff = cutoff.map_or(std::f32::INFINITY as Length, |width| width * sigma);
@@ -22,7 +22,7 @@ mod implementation {
         }
     }
 
-    pub fn make_gauss_option(sigma: Option<Length>, cutoff: Option<Length>) -> Option<impl Fn(Length) -> Length> {
+    pub fn make_gauss_option(sigma: Option<Length>, cutoff: Option<Length>) -> Option<impl Fn(Length) -> PerLength> {
         sigma.map(|sigma| make_gauss(ps_to_mm(sigma), cutoff))
     }
 }
@@ -32,15 +32,10 @@ mod implementation {
     use super::*;
 
     use geometry::uom::uomcrate as guomc;
-    use guomc::si::{ISQ, SI, Quantity};
-    use guomc::typenum::{Z0, N1};
     use guomc::ConstZero; // num_traits::Zero;
     use geometry::uom::{Time, mm};
     use guomc::si::f32::Ratio;
     use crate::types::C;
-
-    type PerLength = Quantity<ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>, SI<f32>, f32>;
-
 
     // How would you make this generic over Length -> T ?
     fn make_gauss(sigma: Length, cutoff: Option<Ratio>) -> impl Fn(Length) -> PerLength {
