@@ -20,6 +20,7 @@ type Ray      = ncollide3d::query::Ray    <Length>;
 type Isometry = ncollide3d::math::Isometry<Length>;
 
 #[cfg(feature = "units")] use crate::types::{ULength, ILength};
+#[cfg(feature = "units")] use geometry::in_base_unit;
 use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, PerLength, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
@@ -27,7 +28,8 @@ use crate::mlem::{index3_to_1, index1_to_3};
 #[cfg(feature = "units")]
 use crate::types::C;
 
-const EPS: Length = 1e-5;
+#[cfg(not(feature = "units"))] const EPS: Length =               1e-5;
+#[cfg    (feature = "units") ] const EPS: Length = in_base_unit!(1e-5);
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -339,13 +341,8 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
 // --- Truncate float-based Length to usize-based Length --------------------------
 #[cfg(feature = "units")]
 #[inline(always)]
-fn floor(value: Length) -> ULength {
-    Quantity {
-        dimension: std::marker::PhantomData,
-        units: std::marker::PhantomData,
-        value: value.value.floor() as usize,
-    }
-}
+fn floor(value: Length) -> ULength { in_base_unit!(value.value.floor() as usize) }
+
 #[cfg(not(feature = "units"))]
 #[inline(always)]
 fn floor(x: f32) -> usize { x.floor() as usize }
@@ -353,13 +350,8 @@ fn floor(x: f32) -> usize { x.floor() as usize }
 // --- Convert usize-based Length to i32-based Length -----------------------------
 #[cfg(feature = "units")]
 #[inline(always)]
-fn signed(value: ULength) -> ILength {
-    Quantity {
-        dimension: std::marker::PhantomData,
-        units: std::marker::PhantomData,
-        value: value.value as i32,
-    }
-}
+fn signed(value: ULength) -> ILength { in_base_unit!(value.value as i32) }
+
 #[cfg(not(feature = "units"))]
 #[inline(always)]
 fn signed(x: usize) -> i32 { x as i32 }
