@@ -1,49 +1,42 @@
-#[cfg    (feature = "units") ] pub use geometry::uom::uomcrate as guomc;
-#[cfg    (feature = "units") ] pub use guomc::si::{ISQ, SI, Quantity};
-#[cfg    (feature = "units") ] pub use guomc::typenum::{Z0, N1};
+pub use geometry::uom::uomcrate as guomc;
+pub use guomc::si::{ISQ, SI, Quantity};
+pub use guomc::typenum::{Z0, N1};
 #[cfg    (feature = "units") ] use geometry::in_base_unit;
 
-#[cfg(not(feature = "units"))] pub type  Length = f32;
-#[cfg    (feature = "units") ] pub type  Length = geometry::Length;
-#[cfg    (feature = "units") ] pub type ILength = geometry::uom::uomcrate::si::i32  ::Length;
-#[cfg    (feature = "units") ] pub type ULength = geometry::uom::uomcrate::si::usize::Length;
+pub type    Length  = f32;
+pub type UomLength  = geometry::Length;
+pub type UomLengthI = geometry::uom::uomcrate::si::i32  ::Length;
+pub type UomLengthU = geometry::uom::uomcrate::si::usize::Length;
 
-#[cfg(not(feature = "units"))] pub type PerLength = f32;
-#[cfg    (feature = "units") ] pub type PerLength = Quantity<ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>, SI<f32>, f32>;
+pub type    PerLength = f32;
+pub type UomPerLength = Quantity<ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>, SI<f32>, f32>;
 
-#[cfg(not(feature = "units"))] pub type Time = Length;
-#[cfg    (feature = "units") ] pub type Time = geometry::Time;
+pub type    Time = Length;
+pub type UomTime = geometry::Time;
 
-#[cfg    (feature = "units") ] pub type Velocity = geometry::Velocity;
+pub type UomVelocity = geometry::Velocity;
 
-#[cfg(not(feature = "units"))] pub type Weight = f32;
-#[cfg    (feature = "units") ] pub type Weight = f32;  // TODO uom Weight
+pub type Weight = f32;  // TODO uom Weight
 
-#[cfg(not(feature = "units"))] pub type Ratio = f32;
-#[cfg    (feature = "units") ] pub type Ratio = geometry::Ratio;
+pub type    Ratio = f32;
+pub type UomRatio = geometry::Ratio;
 
-#[cfg(not(feature = "units"))] pub type Angle = f32;
-#[cfg    (feature = "units") ] pub type Angle = f32; // TODO uom Angl
+pub type Angle  = f32; // TODO uom Angle
+pub type Energy = f32; // TODO uom Energy
+pub type Charge = f32; // TODO uom Charge
 
-#[cfg(not(feature = "units"))] pub type Energy = f32;
-#[cfg    (feature = "units") ] pub type Energy = f32; //TODO uom Energy
+pub type Intensity = f32; // TODO uom Intensity
 
-#[cfg(not(feature = "units"))] pub type Charge = f32;
-#[cfg    (feature = "units") ] pub type Charge = f32; // TODO uom Charge
+pub type    Vector = nc::math::Vector<Length>;
+pub type UomVector = geometry::Vector;
 
-#[cfg(not(feature = "units"))] pub type Intensity = f32;
-#[cfg    (feature = "units") ] pub type Intensity = f32; // TODO uom Intensity
-
-#[cfg(not(feature = "units"))] pub type Vector = nc::math::Vector<Length>;
-#[cfg    (feature = "units") ] pub type Vector = geometry::Vector;
-
-#[cfg(not(feature = "units"))] pub type Point  = nc::math::Point <Length>;
-#[cfg    (feature = "units") ] pub type Point  = geometry::Point;
+pub type    Point = nc::math::Point <Length>;
+pub type UomPoint = geometry::Point;
 
 pub type Index1 = usize;
 pub type Index3 = [usize; 3];
-#[cfg(not(feature = "units"))] pub type BoxDim = [usize; 3];
-#[cfg    (feature = "units") ] pub type BoxDim = [ULength; 3];
+pub type    BoxDim = [usize; 3];
+pub type UomBoxDim = [UomLengthU; 3];
 
 pub type Index3Weight = (Index3, Weight);
 
