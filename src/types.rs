@@ -42,7 +42,8 @@
 
 pub type Index1 = usize;
 pub type Index3 = [usize; 3];
-pub type BoxDim = [usize; 3];
+#[cfg(not(feature = "units"))] pub type BoxDim = [usize; 3];
+#[cfg    (feature = "units") ] pub type BoxDim = [ULength; 3];
 
 pub type Index3Weight = (Index3, Weight);
 
