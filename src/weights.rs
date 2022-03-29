@@ -361,6 +361,9 @@ fn signed(x: usize) -> i32 { x as i32 }
 #[inline]
 #[allow(clippy::identity_op)]
 fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
+    #[cfg    (features = "units") ] use geometry::uom::uomcrate::ConstOne;
+    #[cfg    (features = "units") ] let one = ONE;
+    #[cfg(not(features = "units"))] let one = 1;
 
     // Find N-dimensional index of voxel at entry point.
     let [ix, iy, iz] = [floor(entry_point.x),
@@ -373,9 +376,9 @@ fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim) 
 
     // How much the 1d index changes along each dimension
     let delta_index = [
-        1       * if flipped[0] { -1 } else { 1 },
-        nx      * if flipped[1] { -1 } else { 1 },
-        nx * ny * if flipped[2] { -1 } else { 1 },
+        1       * if flipped[0] { -one } else { one },
+        nx      * if flipped[1] { -one } else { one },
+        nx * ny * if flipped[2] { -one } else { one },
     ];
 
     // How many voxels remain before leaving FOV in each dimension
@@ -387,9 +390,9 @@ fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim) 
 
     // 1d index into the 3d arrangement of voxels
     let [ix, iy, iz] = [
-        if flipped[0] { nx - 1 - ix } else { ix },
-        if flipped[1] { ny - 1 - iy } else { iy },
-        if flipped[2] { nz - 1 - iz } else { iz },
+        if flipped[0] { nx - one - ix } else { ix },
+        if flipped[1] { ny - one - iy } else { iy },
+        if flipped[2] { nz - one - iz } else { iz },
     ];
     let index = index3_to_1([ix, iy, iz], [nx, ny, nz]);
 
