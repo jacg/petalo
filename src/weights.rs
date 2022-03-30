@@ -47,7 +47,7 @@ mod test {
     // test performs two checks:
     //
     // 1. The sum of the LOR-lengths within individual voxels equals the
-    //    expected total length of LOR in the whole voxel box.
+    //    expected total length of LOR in the whole FOV.
     //
     // 2. The indices of the voxels traversed by the LOR are as expected.
     #[rstest(/**/      p1       ,      p2      ,    size     ,  n   ,  length  , expected_voxels,
@@ -85,7 +85,7 @@ mod test {
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
 
-        // Check total length through voxel box
+        // Check total length through FOV
         let total_length: Length = hits.iter()
             .map(|(_index, weight)| weight)
             .sum();
@@ -101,8 +101,8 @@ mod test {
     // --------------------------------------------------------------------------------
     use proptest::prelude::*;
     // This property-based test generates random test cases and verifies that
-    // the total length of the LOR in the voxel box equals the sum of its
-    // lengths in the individual voxels.
+    // the total length of the LOR in the FOV equals the sum of its lengths in
+    // the individual voxels.
     proptest! {
         #[test]
         fn sum_of_weights_equals_length_through_box(
@@ -112,7 +112,7 @@ mod test {
             p2_delta in 0.1..(0.9 as Length), // relative to p1_angle
             p1_z     in -200.0..(200.0 as Length),
             p2_z     in -200.0..(200.0 as Length),
-            // Voxel box
+            // Field of View
             dx in  100.0..(150.0 as Length),
             dy in  100.0..(150.0 as Length),
             dz in  100.0..(190.0 as Length),
@@ -180,8 +180,8 @@ pub struct FovHit {
     pub tof_peak     : Length,
 }
 
-/// Figure out if the LOR hits the voxel box at all. If it does, calculate
-/// values needed by `system_matrix_elements`.
+/// Figure out if the LOR hits the FOV at all. If it does, calculate values
+/// needed by `system_matrix_elements`.
 #[inline]
 pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
 
@@ -190,7 +190,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // which directions have been flipped, to recover correct voxel indices.
     let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
 
-    // If and where LOR enters voxel box.
+    // If and where LOR enters FOV.
     let entry_point: Point = match fov.entry(&p1, &p2) {
         // If LOR misses the box, immediately return
         None => return None,
@@ -204,7 +204,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     let entry_point = find_entry_point(entry_point, fov);
 
-    // Bookkeeping information needed during traversal of voxel box
+    // Bookkeeping information needed during traversal of FOV
     let IndexTrackers {
         index,       // current 1d index into 3d array of voxels
         delta_index, // how the index changes along each dimension
@@ -241,7 +241,7 @@ pub fn system_matrix_elements(
     tof_peak: Length,
     tof: &Option<impl Fn(UomLength) -> UomPerLength>) {
 
-    // How far we have moved since entering the voxel box
+    // How far we have moved since entering the FOV
     let mut here = LENGTH_ZERO;
 
     loop {
@@ -275,7 +275,7 @@ pub fn system_matrix_elements(
         index += delta_index[dimension];
         remaining[dimension] -= 1;
 
-        // If we have traversed the whole voxel box, we're finished
+        // If we have traversed the whole FOV, we're finished
         if remaining[dimension] == 0 { break; }
     }
 }
@@ -361,7 +361,7 @@ fn signed(value: ULength) -> ILength { in_base_unit!(value.value as i32) }
 #[inline(always)]
 fn signed(x: usize) -> i32 { x as i32 }
 
-/// Calculate information needed to keep track of progress across voxel box:
+/// Calculate information needed to keep track of progress across FOV:
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]

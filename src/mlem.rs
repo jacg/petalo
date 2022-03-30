@@ -97,10 +97,10 @@ impl Image {
 
         'lor: for lor in lors {
             // Find active voxels (slice of system matrix) WITHOUT TOF
-            // Analyse point where LOR hits voxel box
+            // Analyse point where LOR hits FOV
             match lor_fov_hit(&lor, fov) {
 
-                // LOR missed voxel box: nothing to be done
+                // LOR missed FOV: nothing to be done
                 None => continue,
 
                 // Data needed by `system_matrix_elements`
@@ -244,10 +244,10 @@ where
 {
     let (mut backprojection, mut weights, mut indices, image, tof) = state;
 
-    // Analyse point where LOR hits voxel box
+    // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
 
-        // LOR missed voxel box: nothing to be done
+        // LOR missed FOV: nothing to be done
         None => return (backprojection, weights, indices, image, tof),
 
         // Data needed by `system_matrix_elements`
