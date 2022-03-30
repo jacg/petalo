@@ -1,7 +1,7 @@
 use std::error::Error;
 use structopt::StructOpt;
 
-use petalo::types::{Length, Ratio};
+use petalo::types::Length;
 use petalo::types::{UomTime, UomRatio};
 use petalo::weights::{FOV, LOR};
 use petalo::visualize::{lor_weights, Shape};
@@ -33,8 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     println!("{}", lor);
-    let cutoff: Option<UomRatio> = args.cutoff.map(geometry::uom::ratio);
-    lor_weights(lor, fov, args.shape, cutoff, args.sigma);
+    lor_weights(lor, fov, args.shape, args.cutoff, args.sigma);
     Ok(())
 }
 
@@ -50,7 +49,7 @@ pub struct Cli {
 
     /// TOF cutoff (✕ sigma). to disable: `-k no`
     #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
-    cutoff: CutoffOption<Ratio>,
+    cutoff: CutoffOption<UomRatio>,
 
     /// How to represent voxels. BOX is better for viewing the geometric
     /// weights; BALL is better for viewing TOF weights.

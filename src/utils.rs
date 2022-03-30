@@ -1,7 +1,8 @@
 use std::error::Error;
 use std::ops::{Bound, Range};
 
-use crate::types::{Time, Length, Point, Ratio, BoundPair};
+use crate::types::{Time, Length, Point, BoundPair};
+use crate::types::UomRatio;
 use crate::weights::{LOR};
 
 pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {
@@ -74,7 +75,7 @@ pub fn parse_lor(s: &str) -> Result<LOR, Box<dyn Error>> {
 // Alias to disable structopt's type magic
 pub type CutoffOption<T> = Option<T>;
 
-pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<Ratio>, std::num::ParseFloatError> {
+pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<UomRatio>, geometry::uom::uomcrate::str::ParseQuantityError> {
     Ok(if s == "no" { None } else { Some(s.parse()?) })
 }
 

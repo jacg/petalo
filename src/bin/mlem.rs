@@ -27,7 +27,7 @@ pub struct Cli {
 
     /// TOF cutoff (✕ sigma). to disable: `-k no` [Rust version only]
     #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
-    pub cutoff: CutoffOption<Ratio>,
+    pub cutoff: CutoffOption<UomRatio>,
 
     /// Override automatic generation of image output file name
     #[structopt(short, long)]
@@ -78,14 +78,13 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::types::{Length, Ratio, Energy, Charge, BoundPair};
+use petalo::types::{Length, Energy, Charge, BoundPair};
 use petalo::types::{UomTime, UomRatio};
 use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};
 use petalo::mlem::Image;
 use petalo::io;
 
-type F = Length;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -133,9 +132,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
 
-    //let sigma: Option<UomTime> = args.tof.map(geometry::uom::ps);
-    let cutoff: Option<UomRatio> = args.cutoff.map(geometry::uom::ratio);
-    for (n, image) in (Image::mlem(fov, &measured_lors, args.tof, cutoff, sensitivity_image))
+    for (n, image) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image))
         .take(args.iterations)
         .enumerate() {
             report_time(&format!("Iteration {:2}", n));
