@@ -5,6 +5,7 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
+use crate::types::{UomLength, UomPerLength, UomRatio, UomTime};
 use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, FovHit};
 use crate::gauss::make_gauss_option;
 
@@ -143,6 +144,8 @@ impl Image {
         // -------- Prepare state required by serial/parallel fold --------------
 
         // TOF adjustment to apply to the weights
+        let sigma: Option<UomTime> = sigma.map(geometry::uom::ps);
+        let cutoff: Option<UomRatio> = cutoff.map(geometry::uom::ratio);
         let tof: Option<_> = make_gauss_option(sigma, cutoff);
 
         // Closure preparing the state needed by `fold`: will be called by
@@ -239,7 +242,7 @@ type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i 
 
 fn project_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
 where
-    G: Fn(Length) -> Length
+    G: Fn(UomLength) -> UomPerLength
 {
     let (mut backprojection, mut weights, mut indices, image, tof) = state;
 

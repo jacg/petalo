@@ -21,7 +21,9 @@ type Isometry = ncollide3d::math::Isometry<Length>;
 
 #[cfg(feature = "units")] use crate::types::{ULength, ILength};
 #[cfg(feature = "units")] use geometry::in_base_unit;
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, PerLength, Point, Ratio, Time, Vector, ns_to_mm};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
+use crate::types::{UomLength, UomTime, UomRatio, UomPerLength};
+use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -237,7 +239,7 @@ pub fn system_matrix_elements(
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
     tof_peak: Length,
-    tof: &Option<impl Fn(Length) -> PerLength>) {
+    tof: &Option<impl Fn(UomLength) -> UomPerLength>) {
 
     // How far we have moved since entering the voxel box
     let mut here = LENGTH_ZERO;
@@ -251,7 +253,10 @@ pub fn system_matrix_elements(
 
         // If TOF enabled, adjust weight
         if let Some(gauss) = &tof {
-            weight *= gauss(here - tof_peak);
+            let g: UomPerLength = gauss(mm(here - tof_peak));
+            // Turn into dimensionless number: TODO normalization
+            let g: f32 = (mm(1000.0) * g).get::<geometry::uom::uomcrate::si::ratio::ratio>();
+            weight *= g;
         }
 
         // Store the index and weight of the voxel we have just crossed
@@ -275,9 +280,9 @@ pub fn system_matrix_elements(
     }
 }
 
-#[cfg    (feature = "units") ] use crate::types::guomc::ConstZero;
-#[cfg    (feature = "units") ] const LENGTH_ZERO: Length = Length::ZERO;
-#[cfg(not(feature = "units"))] const LENGTH_ZERO: Length = 0.0;
+use crate::types::guomc::ConstZero;
+const UOM_LENGTH_ZERO: UomLength = UomLength::ZERO;
+const     LENGTH_ZERO:    Length = 0.0;
 
 /// The point at which the LOR enters the FOV, expressed in a coordinate
 /// system with one corner of the FOV at the origin.
@@ -544,8 +549,9 @@ impl LOR {
         Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
-    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<Length>, sigma: Option<Length>) -> Vec<Index3Weight> {
-
+    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<Ratio>, sigma: Option<Time>) -> Vec<Index3Weight> {
+        let sigma: Option<UomTime> = sigma.map(geometry::uom::ps);
+        let cutoff: Option<UomRatio> = cutoff.map(geometry::uom::ratio);
         let tof = make_gauss_option(sigma, cutoff);
         let mut weights = vec![];
         let mut indices = vec![];

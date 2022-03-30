@@ -19,6 +19,7 @@ pub fn ns (x: f32) -> Time     {    Time::new::      <nanosecond>(x) }
 pub fn ps (x: f32) -> Time     {    Time::new::      <picosecond>(x) }
 pub fn m_s(x: f32) -> Velocity {Velocity::new::<meter_per_second>(x) }
 
+pub fn ratio(x: f32) -> Ratio  {   Ratio::new::<uom::si::ratio::ratio>(x) }
 
 #[macro_export]
 macro_rules! in_base_unit {

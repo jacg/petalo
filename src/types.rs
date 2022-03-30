@@ -1,7 +1,7 @@
 pub use geometry::uom::uomcrate as guomc;
 pub use guomc::si::{ISQ, SI, Quantity};
 pub use guomc::typenum::{Z0, N1};
-#[cfg    (feature = "units") ] use geometry::in_base_unit;
+use geometry::in_base_unit;
 
 pub type    Length  = f32;
 pub type UomLength  = geometry::Length;
@@ -46,8 +46,8 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
 // TODO: doesn't really belong in `types` ...
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
-#[cfg(not(feature = "units"))] pub const C: Length =               0.299_792_458; // mm / ps
-#[cfg    (feature = "units") ] pub const C: Velocity = in_base_unit!(299_792_458.0);
+pub const     C:      Length =               0.299_792_458; // mm / ps
+pub const UOM_C: UomVelocity = in_base_unit!(299_792_458.0);
 
 #[inline] pub fn ps_to_mm(dt: Time) -> Length { dt * C }
 #[inline] pub fn mm_to_ps(dx: Length) -> Time { dx / C }
@@ -79,6 +79,5 @@ mod test_conversions {
 
 }
 
-#[cfg(not(feature = "units"))] pub const TWOPI: Length = std::f32::consts::TAU as Length;
-#[cfg    (feature = "units") ]
-pub const TWOPI: Ratio = in_base_unit!(std::f32::consts::TAU);
+pub const     TWOPI:   Length = std::f32::consts::TAU as Length;
+pub const UOM_TWOPI: UomRatio = in_base_unit!(std::f32::consts::TAU);
