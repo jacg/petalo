@@ -21,9 +21,9 @@ pub struct Cli {
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
     pub nvoxels: (usize, usize, usize),
 
-    /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored
+    /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
     #[structopt(short = "r", long)]
-    pub tof: Option<Time>,
+    pub tof: Option<UomTime>,
 
     /// TOF cutoff (✕ sigma). to disable: `-k no` [Rust version only]
     #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
@@ -78,7 +78,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::types::{Length, Time, Ratio, Energy, Charge, BoundPair};
+use petalo::types::{Length, Ratio, Energy, Charge, BoundPair};
 use petalo::types::{UomTime, UomRatio};
 use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};
@@ -133,9 +133,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
 
-    let sigma: Option<UomTime> = args.tof.map(geometry::uom::ps);
+    //let sigma: Option<UomTime> = args.tof.map(geometry::uom::ps);
     let cutoff: Option<UomRatio> = args.cutoff.map(geometry::uom::ratio);
-    for (n, image) in (Image::mlem(fov, &measured_lors, sigma, cutoff, sensitivity_image))
+    for (n, image) in (Image::mlem(fov, &measured_lors, args.tof, cutoff, sensitivity_image))
         .take(args.iterations)
         .enumerate() {
             report_time(&format!("Iteration {:2}", n));
@@ -152,7 +152,7 @@ fn guess_filename(args: &Cli) -> String {
         pattern.to_string()
     } else {
         let (nx, ny, nz) = args.nvoxels;
-        let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0}", x));
+        let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0?}", x));
         format!("data/out/mlem/{nx}_{ny}_{nz}_tof_{tof}",
                 nx=nx, ny=ny, nz=nz, tof=tof)
     }
