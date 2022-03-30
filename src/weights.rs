@@ -177,7 +177,7 @@ pub struct FovHit {
     pub remaining    : [i32; 3],
 
     /// Distance to the peak of the TOF gaussian.
-    pub tof_peak     : Length,
+    pub tof_peak     : UomLength,
 }
 
 /// Figure out if the LOR hits the FOV at all. If it does, calculate values
@@ -220,6 +220,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let next_boundary = first_boundaries(entry_point, voxel_size);
 
     // Return the values needed by `system_matrix_elements`
+    let tof_peak = mm(tof_peak);
     Some(FovHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
 }
 
@@ -238,7 +239,7 @@ pub fn system_matrix_elements(
     mut index: i32,
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
-    tof_peak: Length,
+    tof_peak: UomLength,
     tof: &Option<impl Fn(UomLength) -> UomPerLength>) {
 
     // How far we have moved since entering the FOV
@@ -253,7 +254,7 @@ pub fn system_matrix_elements(
 
         // If TOF enabled, adjust weight
         if let Some(gauss) = &tof {
-            let g: UomPerLength = gauss(mm(here - tof_peak));
+            let g: UomPerLength = gauss(mm(here) - tof_peak);
             // Turn into dimensionless number: TODO normalization
             let g: f32 = (mm(1000.0) * g).get::<geometry::uom::uomcrate::si::ratio::ratio>();
             weight *= g;
