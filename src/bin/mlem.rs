@@ -22,7 +22,7 @@ pub struct Cli {
     pub nvoxels: (usize, usize, usize),
 
     /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
-    #[structopt(short = "r", long)]
+    #[structopt(short, long)]
     pub tof: Option<UomTime>,
 
     /// TOF cutoff (✕ sigma). to disable: `-k no` [Rust version only]

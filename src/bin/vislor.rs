@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 pub struct Cli {
 
     /// TOF sensitivity (sigma in ps). If not sepcified, TOF is ignored.
-    #[structopt(short = "r", long)]
+    #[structopt(short, long)]
     sigma: Option<Length>,
 
     /// TOF cutoff (✕ sigma). to disable: `-k no`
