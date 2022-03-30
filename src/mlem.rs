@@ -4,7 +4,8 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
+use crate::{io, types::{Length, Index1, Index3, Intensity}};
+use crate::types::{UomLength, UomPerLength, UomRatio, UomTime};
 use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, FovHit};
 use crate::gauss::make_gauss_option;
 
@@ -47,8 +48,8 @@ impl Image {
 
     pub fn mlem<'a>(fov: FOV,
                     measured_lors: &'a [LOR],
-                    sigma        :     Option<Time>,
-                    cutoff       :     Option<Ratio>,
+                    sigma        :     Option<UomTime>,
+                    cutoff       :     Option<UomRatio>,
                     sensitivity  :     Option<Self>,
     ) -> impl Iterator<Item = Image> + '_ {
 
@@ -96,10 +97,10 @@ impl Image {
 
         'lor: for lor in lors {
             // Find active voxels (slice of system matrix) WITHOUT TOF
-            // Analyse point where LOR hits voxel box
+            // Analyse point where LOR hits FOV
             match lor_fov_hit(&lor, fov) {
 
-                // LOR missed voxel box: nothing to be done
+                // LOR missed FOV: nothing to be done
                 None => continue,
 
                 // Data needed by `system_matrix_elements`
@@ -138,7 +139,7 @@ impl Image {
         Self::new(fov, image)
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<UomTime>, cutoff: Option<UomRatio>) {
 
         // -------- Prepare state required by serial/parallel fold --------------
 
@@ -239,14 +240,14 @@ type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i 
 
 fn project_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
 where
-    G: Fn(Length) -> Length
+    G: Fn(UomLength) -> UomPerLength
 {
     let (mut backprojection, mut weights, mut indices, image, tof) = state;
 
-    // Analyse point where LOR hits voxel box
+    // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
 
-        // LOR missed voxel box: nothing to be done
+        // LOR missed FOV: nothing to be done
         None => return (backprojection, weights, indices, image, tof),
 
         // Data needed by `system_matrix_elements`

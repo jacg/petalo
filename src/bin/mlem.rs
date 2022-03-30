@@ -14,20 +14,20 @@ pub struct Cli {
     pub iterations: usize,
 
     /// Field Of View full-widths in mm
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<F>), default_value = "300,300,300")]
-    pub size: (F, F, F),
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "300,300,300")]
+    pub size: (Length, Length, Length),
 
     /// Field Of View size in number of voxels
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
     pub nvoxels: (usize, usize, usize),
 
-    /// TOF resolution (sigma) in ps. If not supplied, TOF is ignored
-    #[structopt(short = "r", long)]
-    pub tof: Option<Time>,
+    /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
+    #[structopt(short, long)]
+    pub tof: Option<UomTime>,
 
     /// TOF cutoff (✕ sigma). to disable: `-k no` [Rust version only]
     #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
-    pub cutoff: CutoffOption<Ratio>,
+    pub cutoff: CutoffOption<UomRatio>,
 
     /// Override automatic generation of image output file name
     #[structopt(short, long)]
@@ -78,13 +78,13 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::types::{Length, Time, Ratio, Energy, Charge, BoundPair};
+use petalo::types::{Length, Energy, Charge, BoundPair};
+use petalo::types::{UomTime, UomRatio};
 use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};
 use petalo::mlem::Image;
 use petalo::io;
 
-type F = Length;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -149,7 +149,7 @@ fn guess_filename(args: &Cli) -> String {
         pattern.to_string()
     } else {
         let (nx, ny, nz) = args.nvoxels;
-        let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0}", x));
+        let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0?}", x));
         format!("data/out/mlem/{nx}_{ny}_{nz}_tof_{tof}",
                 nx=nx, ny=ny, nz=nz, tof=tof)
     }

@@ -20,14 +20,18 @@ type Ray      = ncollide3d::query::Ray    <Length>;
 type Isometry = ncollide3d::math::Isometry<Length>;
 
 #[cfg(feature = "units")] use crate::types::{ULength, ILength};
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, PerLength, Point, Ratio, Time, Vector, ns_to_mm};
+#[cfg(feature = "units")] use geometry::in_base_unit;
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
+use crate::types::{UomLength, UomTime, UomRatio, UomPerLength};
+use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
 #[cfg(feature = "units")]
 use crate::types::C;
 
-const EPS: Length = 1e-5;
+#[cfg(not(feature = "units"))] const EPS: Length =               1e-5;
+#[cfg    (feature = "units") ] const EPS: Length = in_base_unit!(1e-5);
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -43,7 +47,7 @@ mod test {
     // test performs two checks:
     //
     // 1. The sum of the LOR-lengths within individual voxels equals the
-    //    expected total length of LOR in the whole voxel box.
+    //    expected total length of LOR in the whole FOV.
     //
     // 2. The indices of the voxels traversed by the LOR are as expected.
     #[rstest(/**/      p1       ,      p2      ,    size     ,  n   ,  length  , expected_voxels,
@@ -81,7 +85,7 @@ mod test {
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
 
-        // Check total length through voxel box
+        // Check total length through FOV
         let total_length: Length = hits.iter()
             .map(|(_index, weight)| weight)
             .sum();
@@ -97,8 +101,8 @@ mod test {
     // --------------------------------------------------------------------------------
     use proptest::prelude::*;
     // This property-based test generates random test cases and verifies that
-    // the total length of the LOR in the voxel box equals the sum of its
-    // lengths in the individual voxels.
+    // the total length of the LOR in the FOV equals the sum of its lengths in
+    // the individual voxels.
     proptest! {
         #[test]
         fn sum_of_weights_equals_length_through_box(
@@ -108,7 +112,7 @@ mod test {
             p2_delta in 0.1..(0.9 as Length), // relative to p1_angle
             p1_z     in -200.0..(200.0 as Length),
             p2_z     in -200.0..(200.0 as Length),
-            // Voxel box
+            // Field of View
             dx in  100.0..(150.0 as Length),
             dy in  100.0..(150.0 as Length),
             dz in  100.0..(190.0 as Length),
@@ -173,11 +177,11 @@ pub struct FovHit {
     pub remaining    : [i32; 3],
 
     /// Distance to the peak of the TOF gaussian.
-    pub tof_peak     : Length,
+    pub tof_peak     : UomLength,
 }
 
-/// Figure out if the LOR hits the voxel box at all. If it does, calculate
-/// values needed by `system_matrix_elements`.
+/// Figure out if the LOR hits the FOV at all. If it does, calculate values
+/// needed by `system_matrix_elements`.
 #[inline]
 pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
 
@@ -186,7 +190,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // which directions have been flipped, to recover correct voxel indices.
     let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
 
-    // If and where LOR enters voxel box.
+    // If and where LOR enters FOV.
     let entry_point: Point = match fov.entry(&p1, &p2) {
         // If LOR misses the box, immediately return
         None => return None,
@@ -200,7 +204,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     let entry_point = find_entry_point(entry_point, fov);
 
-    // Bookkeeping information needed during traversal of voxel box
+    // Bookkeeping information needed during traversal of FOV
     let IndexTrackers {
         index,       // current 1d index into 3d array of voxels
         delta_index, // how the index changes along each dimension
@@ -216,6 +220,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let next_boundary = first_boundaries(entry_point, voxel_size);
 
     // Return the values needed by `system_matrix_elements`
+    let tof_peak = mm(tof_peak);
     Some(FovHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
 }
 
@@ -234,10 +239,10 @@ pub fn system_matrix_elements(
     mut index: i32,
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
-    tof_peak: Length,
-    tof: &Option<impl Fn(Length) -> PerLength>) {
+    tof_peak: UomLength,
+    tof: &Option<impl Fn(UomLength) -> UomPerLength>) {
 
-    // How far we have moved since entering the voxel box
+    // How far we have moved since entering the FOV
     let mut here = LENGTH_ZERO;
 
     loop {
@@ -249,7 +254,10 @@ pub fn system_matrix_elements(
 
         // If TOF enabled, adjust weight
         if let Some(gauss) = &tof {
-            weight *= gauss(here - tof_peak);
+            let g: UomPerLength = gauss(mm(here) - tof_peak);
+            // Turn into dimensionless number: TODO normalization
+            let g: f32 = (mm(1000.0) * g).get::<geometry::uom::uomcrate::si::ratio::ratio>();
+            weight *= g;
         }
 
         // Store the index and weight of the voxel we have just crossed
@@ -268,14 +276,14 @@ pub fn system_matrix_elements(
         index += delta_index[dimension];
         remaining[dimension] -= 1;
 
-        // If we have traversed the whole voxel box, we're finished
+        // If we have traversed the whole FOV, we're finished
         if remaining[dimension] == 0 { break; }
     }
 }
 
-#[cfg    (feature = "units") ] use crate::types::guomc::ConstZero;
-#[cfg    (feature = "units") ] const LENGTH_ZERO: Length = Length::ZERO;
-#[cfg(not(feature = "units"))] const LENGTH_ZERO: Length = 0.0;
+use crate::types::guomc::ConstZero;
+const UOM_LENGTH_ZERO: UomLength = UomLength::ZERO;
+const     LENGTH_ZERO:    Length = 0.0;
 
 /// The point at which the LOR enters the FOV, expressed in a coordinate
 /// system with one corner of the FOV at the origin.
@@ -339,13 +347,8 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
 // --- Truncate float-based Length to usize-based Length --------------------------
 #[cfg(feature = "units")]
 #[inline(always)]
-fn floor(value: Length) -> ULength {
-    Quantity {
-        dimension: std::marker::PhantomData,
-        units: std::marker::PhantomData,
-        value: value.value.floor() as usize,
-    }
-}
+fn floor(value: Length) -> ULength { in_base_unit!(value.value.floor() as usize) }
+
 #[cfg(not(feature = "units"))]
 #[inline(always)]
 fn floor(x: f32) -> usize { x.floor() as usize }
@@ -353,22 +356,20 @@ fn floor(x: f32) -> usize { x.floor() as usize }
 // --- Convert usize-based Length to i32-based Length -----------------------------
 #[cfg(feature = "units")]
 #[inline(always)]
-fn signed(value: ULength) -> ILength {
-    Quantity {
-        dimension: std::marker::PhantomData,
-        units: std::marker::PhantomData,
-        value: value.value as i32,
-    }
-}
+fn signed(value: ULength) -> ILength { in_base_unit!(value.value as i32) }
+
 #[cfg(not(feature = "units"))]
 #[inline(always)]
 fn signed(x: usize) -> i32 { x as i32 }
 
-/// Calculate information needed to keep track of progress across voxel box:
+/// Calculate information needed to keep track of progress across FOV:
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]
 fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
+    #[cfg    (features = "units") ] use geometry::uom::uomcrate::ConstOne;
+    #[cfg    (features = "units") ] let one = ONE;
+    #[cfg(not(features = "units"))] let one = 1;
 
     // Find N-dimensional index of voxel at entry point.
     let [ix, iy, iz] = [floor(entry_point.x),
@@ -381,9 +382,9 @@ fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim) 
 
     // How much the 1d index changes along each dimension
     let delta_index = [
-        1       * if flipped[0] { -1 } else { 1 },
-        nx      * if flipped[1] { -1 } else { 1 },
-        nx * ny * if flipped[2] { -1 } else { 1 },
+        1       * if flipped[0] { -one } else { one },
+        nx      * if flipped[1] { -one } else { one },
+        nx * ny * if flipped[2] { -one } else { one },
     ];
 
     // How many voxels remain before leaving FOV in each dimension
@@ -395,9 +396,9 @@ fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim) 
 
     // 1d index into the 3d arrangement of voxels
     let [ix, iy, iz] = [
-        if flipped[0] { nx - 1 - ix } else { ix },
-        if flipped[1] { ny - 1 - iy } else { iy },
-        if flipped[2] { nz - 1 - iz } else { iz },
+        if flipped[0] { nx - one - ix } else { ix },
+        if flipped[1] { ny - one - iy } else { iy },
+        if flipped[2] { nz - one - iz } else { iz },
     ];
     let index = index3_to_1([ix, iy, iz], [nx, ny, nz]);
 
@@ -549,8 +550,7 @@ impl LOR {
         Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
-    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<Length>, sigma: Option<Length>) -> Vec<Index3Weight> {
-
+    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<UomRatio>, sigma: Option<UomTime>) -> Vec<Index3Weight> {
         let tof = make_gauss_option(sigma, cutoff);
         let mut weights = vec![];
         let mut indices = vec![];
