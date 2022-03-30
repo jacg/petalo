@@ -2,6 +2,7 @@ use std::error::Error;
 use structopt::StructOpt;
 
 use petalo::types::{Length, Ratio};
+use petalo::types::{UomTime, UomRatio};
 use petalo::weights::{FOV, LOR};
 use petalo::visualize::{lor_weights, Shape};
 
@@ -32,7 +33,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     println!("{}", lor);
-    lor_weights(lor, fov, args.shape, args.cutoff, args.sigma);
+    let cutoff: Option<UomRatio> = args.cutoff.map(geometry::uom::ratio);
+    lor_weights(lor, fov, args.shape, cutoff, args.sigma);
     Ok(())
 }
 
@@ -42,9 +44,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[structopt(name = "vislor", about = "Visualize LOR interaction with voxels")]
 pub struct Cli {
 
-    /// TOF sensitivity (sigma in ps). If not sepcified, TOF is ignored.
+    /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
     #[structopt(short, long)]
-    sigma: Option<Length>,
+    sigma: Option<UomTime>,
 
     /// TOF cutoff (✕ sigma). to disable: `-k no`
     #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]

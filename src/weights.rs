@@ -549,9 +549,7 @@ impl LOR {
         Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
-    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<Ratio>, sigma: Option<Time>) -> Vec<Index3Weight> {
-        let sigma: Option<UomTime> = sigma.map(geometry::uom::ps);
-        let cutoff: Option<UomRatio> = cutoff.map(geometry::uom::ratio);
+    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<UomRatio>, sigma: Option<UomTime>) -> Vec<Index3Weight> {
         let tof = make_gauss_option(sigma, cutoff);
         let mut weights = vec![];
         let mut indices = vec![];

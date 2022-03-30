@@ -5,7 +5,8 @@ use kiss3d::scene::SceneNode;
 use kiss3d::camera::ArcBall;
 use kiss3d::nalgebra::{Point3, Translation3};
 
-use crate::types::{Length, Ratio, ns_to_ps};
+use crate::types::ns_to_ps;
+use crate::types::{UomTime, UomRatio};
 use crate::weights::{FOV, LOR};
 
 use structopt::clap::arg_enum;
@@ -106,7 +107,7 @@ impl Scene {
         }
     }
 
-    pub fn place_voxels(&mut self, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Length>) {
+    pub fn place_voxels(&mut self, shape: Shape, cutoff: Option<UomRatio>, sigma: Option<UomTime>) {
 
         let active_voxels = self.lor.active_voxels(&self.fov, cutoff, sigma);
 
@@ -190,7 +191,7 @@ impl Scene {
     }
 }
 
-pub fn lor_weights(lor: LOR, fov: FOV, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Length>) {
+pub fn lor_weights(lor: LOR, fov: FOV, shape: Shape, cutoff: Option<UomRatio>, sigma: Option<UomTime>) {
     let mut scene = Scene::new(lor, fov);
     scene.place_voxels(shape, cutoff, sigma);
     scene.main_loop();
