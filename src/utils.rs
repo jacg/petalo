@@ -75,10 +75,10 @@ pub fn parse_lor(s: &str) -> Result<LOR, Box<dyn Error>> {
 // Alias to disable structopt's type magic
 pub type CutoffOption<T> = Option<T>;
 
-pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<UomRatio>, geometry::uom::uomcrate::str::ParseQuantityError> {
-    Ok(if s == "no" { None } else { Some(s.parse()?) })
-}
 
+pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<UomRatio>, std::num::ParseFloatError> {
+    Ok(if s == "no" { None } else { Some(geometry::uom::ratio(s.parse()?)) })
+}
 
 /// Group numeric digits to facilitate reading long numbers
 pub fn group_digits<F: num_format::ToFormattedString>(n: F) -> String {
