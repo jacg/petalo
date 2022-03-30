@@ -60,6 +60,8 @@ impl Image {
 
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
+        let sigma: Option<UomTime> = sigma.map(geometry::uom::ps);
+        let cutoff: Option<UomRatio> = cutoff.map(geometry::uom::ratio);
         std::iter::from_fn(move || {
             image.one_iteration(measured_lors, &sensitivity.data, sigma, cutoff);
             Some(image.clone()) // TODO see if we can sensibly avoid cloning
@@ -139,13 +141,11 @@ impl Image {
         Self::new(fov, image)
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<Time>, cutoff: Option<Ratio>) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<UomTime>, cutoff: Option<UomRatio>) {
 
         // -------- Prepare state required by serial/parallel fold --------------
 
         // TOF adjustment to apply to the weights
-        let sigma: Option<UomTime> = sigma.map(geometry::uom::ps);
-        let cutoff: Option<UomRatio> = cutoff.map(geometry::uom::ratio);
         let tof: Option<_> = make_gauss_option(sigma, cutoff);
 
         // Closure preparing the state needed by `fold`: will be called by
