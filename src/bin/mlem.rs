@@ -79,6 +79,7 @@ use std::path::PathBuf;
 use std::fs::create_dir_all;
 
 use petalo::types::{Length, Time, Ratio, Energy, Charge, BoundPair};
+use petalo::types::{UomTime, UomRatio};
 use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};
 use petalo::mlem::Image;
@@ -132,7 +133,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
 
-    for (n, image) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image))
+    let sigma: Option<UomTime> = args.tof.map(geometry::uom::ps);
+    let cutoff: Option<UomRatio> = args.cutoff.map(geometry::uom::ratio);
+    for (n, image) in (Image::mlem(fov, &measured_lors, sigma, cutoff, sensitivity_image))
         .take(args.iterations)
         .enumerate() {
             report_time(&format!("Iteration {:2}", n));

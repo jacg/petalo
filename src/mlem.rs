@@ -4,7 +4,7 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::{io, types::{Length, Time, Ratio, Index1, Index3, Intensity}};
+use crate::{io, types::{Length, Index1, Index3, Intensity}};
 use crate::types::{UomLength, UomPerLength, UomRatio, UomTime};
 use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, FovHit};
 use crate::gauss::make_gauss_option;
@@ -48,8 +48,8 @@ impl Image {
 
     pub fn mlem<'a>(fov: FOV,
                     measured_lors: &'a [LOR],
-                    sigma        :     Option<Time>,
-                    cutoff       :     Option<Ratio>,
+                    sigma        :     Option<UomTime>,
+                    cutoff       :     Option<UomRatio>,
                     sensitivity  :     Option<Self>,
     ) -> impl Iterator<Item = Image> + '_ {
 
@@ -60,8 +60,6 @@ impl Image {
 
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
-        let sigma: Option<UomTime> = sigma.map(geometry::uom::ps);
-        let cutoff: Option<UomRatio> = cutoff.map(geometry::uom::ratio);
         std::iter::from_fn(move || {
             image.one_iteration(measured_lors, &sensitivity.data, sigma, cutoff);
             Some(image.clone()) // TODO see if we can sensibly avoid cloning
