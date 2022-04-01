@@ -55,5 +55,3 @@ bindgen = "0.57"
 [features]
 compile-error = []
 serial = []
-units = [] # Use uom to type-check physical dimensions
-default = [] # Include "units", to switch on units feature by default

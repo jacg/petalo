@@ -42,8 +42,6 @@ pub type UomBoxDim = [UomLengthU; 3];
 
 pub type Index3Weight = (Index3, Weight);
 
-#[cfg(not(feature = "units"))] use ncollide3d as nc;
-
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
 // TODO: doesn't really belong in `types` ...
@@ -61,7 +59,6 @@ pub const UOM_C: UomVelocity = in_base_unit!(299_792_458.0);
 
 
 #[cfg(test)]
-#[cfg(not(feature = "units"))]
 mod test_conversions {
     use super::*;
     use assert_approx_eq::assert_approx_eq;
