@@ -1,5 +1,5 @@
 use std::ops::{Index, Mul};
-use uom::si::f32::Length;
+use crate::uom::mmps::f32::Length;
 
 //use crate::Point;
 
@@ -91,9 +91,9 @@ mod tests {
         let v = Vector::new(mm(1.0), mm(2.0), mm(3.0));
         let e = Vector::new(cm(1.0), cm(2.0), cm(3.0));
         let r = v * 10.0;
-        assert_uom_eq!(meter, r.x, e.x, ulps <= 1);
-        assert_uom_eq!(meter, r.y, e.y, ulps <= 1);
-        assert_uom_eq!(meter, r.z, e.z, ulps <= 1);
+        assert_uom_eq!(meter, r.x, e.x, ulps <= 2);
+        assert_uom_eq!(meter, r.y, e.y, ulps <= 2);
+        assert_uom_eq!(meter, r.z, e.z, ulps <= 2);
     }
 
     #[rstest(/**/ x,  y,  z,  magnitude,
@@ -114,9 +114,9 @@ mod tests {
     #[test]
     fn index_for_vector() {
         let v = Vector::from::<meter>(1.0, 2.0, 3.0);
-        assert_eq!(v[0], cm(100.0));
-        assert_eq!(v[1], cm(200.0));
-        assert_eq!(v[2], cm(300.0));
+        assert_uom_eq!(meter, v[0], cm(100.0), ulps <= 1);
+        assert_uom_eq!(meter, v[1], cm(200.0), ulps <= 1);
+        assert_uom_eq!(meter, v[2], cm(300.0), ulps <= 1);
     }
 
 }

@@ -11,7 +11,7 @@ pub type UomLengthI = geometry::uom::uomcrate::si::i32  ::Length;
 pub type UomLengthU = geometry::uom::uomcrate::si::usize::Length;
 
 pub type    PerLength = f32;
-pub type UomPerLength = Quantity<ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>, SI<f32>, f32>;
+pub type UomPerLength = geometry::PerLength;
 
 pub type    Time = Length;
 pub type UomTime = geometry::Time;

@@ -1,5 +1,5 @@
 use std::ops::{AddAssign, Index, Sub, IndexMut};
-use uom::si::f32::Length;
+use crate::uom::mmps::f32::Length;
 use crate::Vector;
 
 #[derive(Clone, Copy, Debug, PartialEq)]

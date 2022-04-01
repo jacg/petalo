@@ -27,8 +27,6 @@ use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
-use crate::types::C;
-
 const     EPS:    Length =               1e-5;
 const UOM_EPS: UomLength = in_base_unit!(1e-5);
 
