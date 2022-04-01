@@ -84,6 +84,7 @@ use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};
 use petalo::mlem::Image;
 use petalo::io;
+use geometry::uom::mm_;
 
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -163,6 +164,7 @@ type NVoxels = (usize , usize , usize );
 fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) {
     let size = image.fov.half_width;
     let (idx, idy, idz) = (size[0]*2.0, size[1]*2.0, size[2]*2.0);
+    let (idx, idy, idz) = (mm_(idx), mm_(idy), mm_(idz));
     let [inx, iny, inz] = image.fov.n;
     let (enx, eny, enz) = nvoxels;
     let (edx, edy, edz) = fov_size;

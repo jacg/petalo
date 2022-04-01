@@ -28,6 +28,7 @@ use petalo::types::{Length, Intensity};
 use petalo::mlem::Image;
 use petalo::fom;
 use petalo::fom::{Sphere, ROI, centres_of_slices_closest_to};
+use geometry::uom::mm_;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
@@ -49,8 +50,8 @@ fn sphere_foms(
     background_xys: &[(Length, Length)],
     background_a  : Intensity,
 ) -> Result<Vec<fom::FOM>, Box<dyn Error>> {
-    let z_voxel_size = image.fov.voxel_size[2];
-    let z_half_width = image.fov.half_width[2];
+    let z_voxel_size = mm_(image.fov.voxel_size[2]);
+    let z_half_width = mm_(image.fov.half_width[2]);
 
     // Ensure that the ROIs are z-aligned with some slice
     let background_zs = centres_of_slices_closest_to(
@@ -135,8 +136,8 @@ fn nema7_foms(image: &Image) -> Result<(), Box<dyn Error>> {
     }
 
     // --- 7.4.2 ---------------------------------------------------------------------
-    let z_voxel_size = image.fov.voxel_size[2];
-    let z_half_width = image.fov.half_width[2];
+    let z_voxel_size = mm_(image.fov.voxel_size[2]);
+    let z_half_width = mm_(image.fov.half_width[2]);
     // ignore slices which lie within 30mm of ends.
     let hi_limit = 70.0         - 30.0;
     let lo_limit = 70.0 - 180.0 + 30.0;

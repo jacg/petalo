@@ -6,6 +6,7 @@ use kiss3d::camera::ArcBall;
 use kiss3d::nalgebra::{Point3, Translation3};
 
 use crate::types::ns_to_ps;
+use crate::types::Vector;
 use crate::types::{UomTime, UomRatio};
 use crate::weights::{FOV, LOR};
 
@@ -38,7 +39,7 @@ impl Scene {
         window.set_light(Light::StickToCamera);
 
         // Axis lines
-        let bsize = fov.half_width;
+        let bsize = Vector::from(fov.half_width);
         let (bdx, bdy, bdz) = (bsize.x as f32, bsize.y as f32, bsize.z as f32);
         let x_axis_lo = Point3::new(-bdx,   0.0, 0.0) * 1.5;
         let x_axis_hi = Point3::new( bdx,   0.0, 0.0) * 1.5;
@@ -56,7 +57,7 @@ impl Scene {
         let lor_colour = Point3::new(1.0, 1.0, 0.0);
 
         // FOV frame
-        let w = fov.half_width;
+        let w = Vector::from(fov.half_width);
         let (bwx, bwy, bwz) = (w.x as f32, w.y as f32, w.z as f32);
         let box_000 = Point3::new(-bwx, -bwy, -bwz);
         let box_001 = Point3::new(-bwx, -bwy,  bwz);
@@ -117,8 +118,8 @@ impl Scene {
             .max_by(|a,b| a.partial_cmp(b).expect("Weights contained NaN"))
             .unwrap_or(&1.0);
 
-        let vsize = self.fov.voxel_size;
-        let bsize = self.fov.half_width;
+        let vsize = Vector::from(self.fov.voxel_size);
+        let bsize = Vector::from(self.fov.half_width);
         let (bdx, bdy, bdz) = (bsize.x as f32, bsize.y as f32, bsize.z as f32);
         let (vdx, vdy, vdz) = (vsize.x as f32, vsize.y as f32, vsize.z as f32);
         let mut voxels = Vec::with_capacity(self.fov.n[0] * self.fov.n[1]);
@@ -152,7 +153,8 @@ impl Scene {
 
     fn init_camera(fov: &FOV) -> ArcBall {
         // Fit image into FOV
-        let biggest = fov.half_width.x.max(fov.half_width.y) as f32;
+        let half_width = Vector::from(fov.half_width);
+        let biggest = half_width.x.max(half_width.y) as f32;
         let distance = 4.0 * biggest;
         let zfar  = distance * 2.0;
         let znear = 0.1; //distance / 2.0;
@@ -198,11 +200,12 @@ pub fn lor_weights(lor: LOR, fov: FOV, shape: Shape, cutoff: Option<UomRatio>, s
 }
 
 pub fn vislor_command(fov: &FOV, lor: &LOR) -> String {
+    let fov_half_width = Vector::from(fov.half_width);
     format!(
         "cargo run --bin vislor -- box --fov-size {vx},{vy},{vz} --nvoxels {nx},{ny},{nz} --lor '{t1} {t2}   {x1} {y1} {z1}    {x2} {y2} {z2}'",
-        vx = fov.half_width.x * 2.0,
-        vy = fov.half_width.y * 2.0,
-        vz = fov.half_width.z * 2.0,
+        vx = fov_half_width.x * 2.0,
+        vy = fov_half_width.y * 2.0,
+        vz = fov_half_width.z * 2.0,
         nx = fov.n[0],
         ny = fov.n[1],
         nz = fov.n[2],
