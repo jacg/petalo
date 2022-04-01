@@ -47,7 +47,7 @@ impl Vector {
 
     pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
 
-    pub fn from<T>(x: f32, y: f32, z: f32) -> Self
+    pub fn xyz<T>(x: f32, y: f32, z: f32) -> Self
     where
         T: uom::Conversion<f32, T = f32> + uom::si::length::Unit,
     {
@@ -107,13 +107,13 @@ mod tests {
              case(3.0,  4.0,  5.0,  7.0710678),
     )]
     fn vector_magnitude(x: f32, y: f32, z: f32, magnitude: f32) {
-        let v = Vector::from::<meter>(x, y, z);
+        let v = Vector::xyz::<meter>(x, y, z);
         assert_eq!(v.magnitude().get::<meter>(), magnitude);
     }
 
     #[test]
     fn index_for_vector() {
-        let v = Vector::from::<meter>(1.0, 2.0, 3.0);
+        let v = Vector::xyz::<meter>(1.0, 2.0, 3.0);
         assert_uom_eq!(meter, v[0], cm(100.0), ulps <= 1);
         assert_uom_eq!(meter, v[1], cm(200.0), ulps <= 1);
         assert_uom_eq!(meter, v[2], cm(300.0), ulps <= 1);
