@@ -21,6 +21,10 @@ pub fn m_s(x: f32) -> Velocity {Velocity::new::<meter_per_second>(x) }
 
 pub fn ratio(x: f32) -> Ratio  {   Ratio::new::<uom::si::ratio::ratio>(x) }
 
+// Reverse direction of the above. Rethink nomenclature once the dust has
+// settled after the transition to uom is complete.
+pub fn mm_(x: Length) -> f32 { x.get::<millimeter>() }
+
 #[macro_export]
 macro_rules! in_base_unit {
   ($value:expr) => {
