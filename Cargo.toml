@@ -40,6 +40,7 @@ ndhistogram = "0.6.2"
 [dev-dependencies]
 rstest = "0.12"
 pretty_assertions = "1.0"
+float_eq = "0.7.0"
 assert_approx_eq = "1.1"
 proptest = "1.0.0"
 tempfile = "3.2"

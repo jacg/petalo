@@ -2025,6 +2025,7 @@ dependencies = [
  "bindgen",
  "binrw",
  "binwrite",
+ "float_eq",
  "geometry",
  "hdf5",
  "indicatif",
