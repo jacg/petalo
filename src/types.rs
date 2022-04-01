@@ -1,3 +1,5 @@
+use ncollide3d as nc;
+
 pub use geometry::uom::uomcrate as guomc;
 pub use guomc::si::{ISQ, SI, Quantity};
 pub use guomc::typenum::{Z0, N1};
@@ -9,7 +11,7 @@ pub type UomLengthI = geometry::uom::uomcrate::si::i32  ::Length;
 pub type UomLengthU = geometry::uom::uomcrate::si::usize::Length;
 
 pub type    PerLength = f32;
-pub type UomPerLength = Quantity<ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>, SI<f32>, f32>;
+pub type UomPerLength = geometry::PerLength;
 
 pub type    Time = Length;
 pub type UomTime = geometry::Time;
@@ -40,8 +42,6 @@ pub type UomBoxDim = [UomLengthU; 3];
 
 pub type Index3Weight = (Index3, Weight);
 
-#[cfg(not(feature = "units"))] use ncollide3d as nc;
-
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
 // TODO: doesn't really belong in `types` ...
@@ -59,7 +59,6 @@ pub const UOM_C: UomVelocity = in_base_unit!(299_792_458.0);
 
 
 #[cfg(test)]
-#[cfg(not(feature = "units"))]
 mod test_conversions {
     use super::*;
     use assert_approx_eq::assert_approx_eq;

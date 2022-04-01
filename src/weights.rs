@@ -19,21 +19,21 @@ use ncollide3d::shape::Cuboid;
 type Ray      = ncollide3d::query::Ray    <Length>;
 type Isometry = ncollide3d::math::Isometry<Length>;
 
-#[cfg(feature = "units")] use crate::types::{ULength, ILength};
-#[cfg(feature = "units")] use geometry::in_base_unit;
+use crate::types::{UomLengthU, UomLengthI, UomPoint, UomVector};
+use geometry::in_base_unit;
 use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::types::{UomLength, UomTime, UomRatio, UomPerLength};
 use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
-#[cfg(feature = "units")]
-use crate::types::C;
-
-#[cfg(not(feature = "units"))] const EPS: Length =               1e-5;
-#[cfg    (feature = "units") ] const EPS: Length = in_base_unit!(1e-5);
+const     EPS:    Length =               1e-5;
+const UOM_EPS: UomLength = in_base_unit!(1e-5);
 
 // ------------------------------ TESTS ------------------------------
+#[cfg(test)]
+use float_eq::assert_float_eq;
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -291,15 +291,16 @@ const     LENGTH_ZERO:    Length = 0.0;
 fn find_entry_point(mut entry_point: Point, fov: FOV) -> Point {
     // Transform coordinates to align box with axes: making the lower boundaries
     // of the box lie on the zero-planes.
-    entry_point += fov.half_width;
+    entry_point += Vector::from(fov.half_width);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     // TODO: figure out if we should support Point * Vector -> Point  (affine * vector -> affine)
     // NOTE: this should be Point<Ratio> rater than Point<Length>
+    let voxel_size = Vector::from(fov.voxel_size);
     let mut entry_point = Point::new(
-        entry_point[0] / fov.voxel_size[0],
-        entry_point[1] / fov.voxel_size[1],
-        entry_point[2] / fov.voxel_size[2],
+        entry_point[0] / voxel_size[0],
+        entry_point[1] / voxel_size[1],
+        entry_point[2] / voxel_size[2],
     );
 
     // Floating-point subtractions which should give zero, usually miss very
@@ -315,8 +316,8 @@ fn find_entry_point(mut entry_point: Point, fov: FOV) -> Point {
 #[inline]
 fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
     let half_lor_length = (p1 - p2).norm() / 2.0;
-    #[cfg(not(feature = "units"))] let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
-    #[cfg    (feature = "units") ] let tof_shift = C *      dt  / 2.0; // NOTE ignoring refractive index
+    let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
+    //tof_shift = C *      dt  / 2.0; // NOTE ignoring refractive index
     let p1_to_peak = half_lor_length - tof_shift;
     let p1_to_entry = (entry_point - p1).norm();
     p1_to_peak - p1_to_entry
@@ -339,26 +340,22 @@ fn first_boundaries(entry_point: Point, voxel_size: Vector) -> Vector {
 #[inline]
 fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     let lor_direction = (p2-p1).normalize();
-    fov.voxel_size.component_div(&lor_direction)
+    Vector::from(fov.voxel_size).component_div(&lor_direction)
 }
 
-#[cfg(feature = "units")] use geometry::Quantity;
+use geometry::Quantity;
 
 // --- Truncate float-based Length to usize-based Length --------------------------
-#[cfg(feature = "units")]
 #[inline(always)]
-fn floor(value: Length) -> ULength { in_base_unit!(value.value.floor() as usize) }
+fn uom_floor(value: UomLength) -> UomLengthU { in_base_unit!(value.value.floor() as usize) }
 
-#[cfg(not(feature = "units"))]
 #[inline(always)]
 fn floor(x: f32) -> usize { x.floor() as usize }
 
 // --- Convert usize-based Length to i32-based Length -----------------------------
-#[cfg(feature = "units")]
 #[inline(always)]
-fn signed(value: ULength) -> ILength { in_base_unit!(value.value as i32) }
+fn uom_signed(value: UomLengthU) -> UomLengthI { in_base_unit!(value.value as i32) }
 
-#[cfg(not(feature = "units"))]
 #[inline(always)]
 fn signed(x: usize) -> i32 { x as i32 }
 
@@ -367,9 +364,9 @@ fn signed(x: usize) -> i32 { x as i32 }
 #[inline]
 #[allow(clippy::identity_op)]
 fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
-    #[cfg    (features = "units") ] use geometry::uom::uomcrate::ConstOne;
-    #[cfg    (features = "units") ] let one = ONE;
-    #[cfg(not(features = "units"))] let one = 1;
+    //use geometry::uom::uomcrate::ConstOne;
+    //let one = ONE;
+    let one = 1;
 
     // Find N-dimensional index of voxel at entry point.
     let [ix, iy, iz] = [floor(entry_point.x),
@@ -422,9 +419,9 @@ struct IndexTrackers {
 /// found active voxels can be flipped back into the original coordinate system.
 #[inline]
 fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
-    #[cfg    (features = "units") ] use geometry::uom::uomcrate::ConstZero;
-    #[cfg    (features = "units") ] let zero = ZERO;
-    #[cfg(not(features = "units"))] let zero = 0.0;
+    //use geometry::uom::uomcrate::ConstZero;
+    //let zero = ZERO;
+    let zero = 0.0;
 
     let dimensions = 3;
     let original_lor_direction: Vector = p2 - p1;
@@ -448,9 +445,9 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
 /// reconstructed
 #[derive(Clone, Copy, Debug)]
 pub struct FOV {
-    pub half_width: Vector,
+    pub half_width: UomVector,
     pub n: BoxDim,
-    pub voxel_size: Vector,
+    pub voxel_size: UomVector,
 }
 
 impl FOV {
@@ -463,7 +460,7 @@ impl FOV {
         let half_width = Vector::new(dx/2.0, dy/2.0, dz/2.0);
         let n = [nx, ny, nz];
         let voxel_size = Self::voxel_size(n, half_width);
-            Self { half_width, n, voxel_size, }
+            Self { half_width: half_width.into(), n, voxel_size: voxel_size.into(), }
     }
 
     fn voxel_size(n: BoxDim, half_width: Vector) -> Vector {
@@ -475,9 +472,10 @@ impl FOV {
     pub fn voxel_centre(&self, i: Index3) -> Point {
         //i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
         let s = self.voxel_size;
-        Point::new((i[0] as Length + 0.5) * s.x - self.half_width[0],
-                   (i[1] as Length + 0.5) * s.y - self.half_width[1],
-                   (i[2] as Length + 0.5) * s.z - self.half_width[2],)
+        UomPoint::new((i[0] as Length + 0.5) * s.x - self.half_width[0],
+                      (i[1] as Length + 0.5) * s.y - self.half_width[1],
+                      (i[2] as Length + 0.5) * s.z - self.half_width[2],)
+            .into()
     }
 
     pub fn voxel_centre1(&self, i: Index1) -> Point {
@@ -489,7 +487,7 @@ impl FOV {
         let lor_length   : Length = (p2 - p1).norm();
         let lor: Ray = Ray::new(*p1, lor_direction);
         let iso: Isometry = Isometry::identity();
-        Cuboid::new(self.half_width)
+        Cuboid::new(self.half_width.into())
             .toi_with_ray(&iso, &lor, lor_length, true)
             .map(|toi| lor.origin + lor.dir * toi)
     }
@@ -514,7 +512,7 @@ mod test_voxel_box {
     fn test_voxel_centre(index: Index3, expected_position: [Length; 3]) {
         let fov = FOV::new((4.0, 4.0, 4.0), (2,2,2));
         let c = fov.voxel_centre(index);
-        assert!([c.x, c.y, c.z] == expected_position);
+        assert_float_eq!([c.x, c.y, c.z], expected_position, ulps <= [0, 0, 0]);
     }
 }
 

@@ -40,6 +40,7 @@ ndhistogram = "0.6.2"
 [dev-dependencies]
 rstest = "0.12"
 pretty_assertions = "1.0"
+float_eq = "0.7.0"
 assert_approx_eq = "1.1"
 proptest = "1.0.0"
 tempfile = "3.2"
@@ -54,5 +55,3 @@ bindgen = "0.57"
 [features]
 compile-error = []
 serial = []
-units = [] # Use uom to type-check physical dimensions
-default = [] # Include "units", to switch on units feature by default
