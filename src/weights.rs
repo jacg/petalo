@@ -35,6 +35,9 @@ use crate::types::C;
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
+use float_eq::assert_float_eq;
+
+#[cfg(test)]
 mod test {
     use super::*;
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
@@ -514,7 +517,7 @@ mod test_voxel_box {
     fn test_voxel_centre(index: Index3, expected_position: [Length; 3]) {
         let fov = FOV::new((4.0, 4.0, 4.0), (2,2,2));
         let c = fov.voxel_centre(index);
-        assert!([c.x, c.y, c.z] == expected_position);
+        assert_float_eq!([c.x, c.y, c.z], expected_position, ulps <= [0, 0, 0]);
     }
 }
 
