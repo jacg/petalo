@@ -791,6 +791,7 @@ name = "geometry"
 version = "0.1.0"
 dependencies = [
  "float_eq",
+ "ncollide3d",
  "pretty_assertions",
  "rstest",
  "uom 0.32.0",

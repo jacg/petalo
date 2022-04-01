@@ -17,6 +17,7 @@ uom = { version = "0.32.0", default-features = false, features = [
         "si", "std", # Built-in SI system and std library support.
         "use_serde", # Serde support.
     ] }
+ncollide3d = "0.32"
 
 [dev-dependencies]
 pretty_assertions = "1.0"
