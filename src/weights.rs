@@ -236,7 +236,7 @@ pub fn system_matrix_elements(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Length>,
     mut next_boundary: Vector,
-    voxel_size: Vector,
+    voxel_size: UomVector,
     mut index: i32,
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
@@ -271,7 +271,7 @@ pub fn system_matrix_elements(
         here = boundary_position;
 
         // Find the next boundary in this dimension
-        next_boundary[dimension] += voxel_size[dimension];
+        next_boundary[dimension] += Vector::from(voxel_size)[dimension];
 
         // Move index across the boundary we are crossing
         index += delta_index[dimension];
