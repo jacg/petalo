@@ -11,7 +11,7 @@ pub struct Args {
     pub use_true: bool,
     pub legacy_input_format: bool,
     pub ecut: BoundPair<Energyf32>,
-    pub qcut: BoundPair<crate::types::Charge>,
+    pub qcut: BoundPair<crate::types::Chargef32>,
 }
 
 use ndarray::{s, Array1};
