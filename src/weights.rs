@@ -159,12 +159,12 @@ mod test {
 pub struct FovHit {
 
     /// How far is the next voxel boundary in each direction.
-    pub next_boundary: Vector,
+    pub next_boundary: UomVector,
 
     /// Voxel size expressed in LOR distance units: how far we must move along
     /// LOR to cross one voxel in any given dimension. Will be infinite for any
     /// axis which is parallel to the LOR.
-    pub voxel_size   : Vector,
+    pub voxel_size   : UomVector,
 
     /// 1D index of first voxel entered by the LOR.
     pub index        :  i32,
@@ -217,8 +217,9 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let voxel_size = voxel_size(fov, p1, p2);
 
     // At what position along LOR is the next voxel boundary, in any dimension.
-    let next_boundary = first_boundaries(entry_point, voxel_size);
+    let next_boundary = UomVector::from(first_boundaries(entry_point, voxel_size));
 
+    let voxel_size = UomVector::from(voxel_size);
     // Return the values needed by `system_matrix_elements`
     let tof_peak = mm(tof_peak);
     Some(FovHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
@@ -235,7 +236,7 @@ pub fn system_matrix_elements(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Length>,
     mut next_boundary: Vector,
-    voxel_size: Vector,
+    voxel_size: UomVector,
     mut index: i32,
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
@@ -270,7 +271,7 @@ pub fn system_matrix_elements(
         here = boundary_position;
 
         // Find the next boundary in this dimension
-        next_boundary[dimension] += voxel_size[dimension];
+        next_boundary[dimension] += Vector::from(voxel_size)[dimension];
 
         // Move index across the boundary we are crossing
         index += delta_index[dimension];
@@ -557,7 +558,7 @@ impl LOR {
             Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
                 system_matrix_elements(
                     &mut indices, &mut weights,
-                    next_boundary, voxel_size,
+                    next_boundary.into(), voxel_size.into(),
                     index, delta_index, remaining,
                     tof_peak, &tof
                 );
