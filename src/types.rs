@@ -6,9 +6,9 @@ pub use guomc::typenum::{Z0, N1};
 use geometry::in_base_unit;
 
 pub type Lengthf32  = f32;
-pub type UomLength  = geometry::Length;
-pub type UomLengthI = geometry::uom::uomcrate::si::i32  ::Length;
-pub type UomLengthU = geometry::uom::uomcrate::si::usize::Length;
+pub type Length  = geometry::Length;
+pub type LengthI = geometry::uom::uomcrate::si::i32  ::Length;
+pub type LengthU = geometry::uom::uomcrate::si::usize::Length;
 
 pub type UomPerLength = geometry::PerLength;
 
@@ -37,7 +37,7 @@ pub type UomPoint = geometry::Point;
 #[allow(non_camel_case_types)] pub type Index1_u = usize;
 #[allow(non_camel_case_types)] pub type Index3_u = [usize; 3];
 #[allow(non_camel_case_types)] pub type BoxDim_u = [usize; 3];
-pub type UomBoxDim = [UomLengthU; 3];
+pub type UomBoxDim = [LengthU; 3];
 
 pub type Index3Weightf32 = (Index3_u, Weightf32);
 

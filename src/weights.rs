@@ -19,16 +19,16 @@ use ncollide3d::shape::Cuboid;
 type Ray      = ncollide3d::query::Ray    <Lengthf32>;
 type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
-use crate::types::{UomLengthU, UomLengthI, UomPoint, UomVector};
+use crate::types::{LengthU, LengthI, UomPoint, UomVector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
-use crate::types::{UomLength, UomTime, UomRatio, UomPerLength};
+use crate::types::{Length, UomTime, UomRatio, UomPerLength};
 use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
 const     EPS: Lengthf32 =               1e-5;
-const UOM_EPS: UomLength = in_base_unit!(1e-5);
+const UOM_EPS: Length = in_base_unit!(1e-5);
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -177,7 +177,7 @@ pub struct FovHit {
     pub remaining    : [i32; 3],
 
     /// Distance to the peak of the TOF gaussian.
-    pub tof_peak     : UomLength,
+    pub tof_peak     : Length,
 }
 
 /// Figure out if the LOR hits the FOV at all. If it does, calculate values
@@ -240,8 +240,8 @@ pub fn system_matrix_elements(
     mut index: i32,
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
-    tof_peak: UomLength,
-    tof: &Option<impl Fn(UomLength) -> UomPerLength>) {
+    tof_peak: Length,
+    tof: &Option<impl Fn(Length) -> UomPerLength>) {
 
     // How far we have moved since entering the FOV
     let mut here = LENGTH_ZERO;
@@ -283,7 +283,7 @@ pub fn system_matrix_elements(
 }
 
 use crate::types::guomc::ConstZero;
-const UOM_LENGTH_ZERO: UomLength = UomLength::ZERO;
+const UOM_LENGTH_ZERO: Length = Length::ZERO;
 const     LENGTH_ZERO: Lengthf32 = 0.0;
 
 /// The point at which the LOR enters the FOV, expressed in a coordinate
@@ -348,14 +348,14 @@ use geometry::Quantity;
 
 // --- Truncate float-based Lengthf32 to usize-based Lengthf32 --------------------------
 #[inline(always)]
-fn uom_floor(value: UomLength) -> UomLengthU { in_base_unit!(value.value.floor() as usize) }
+fn uom_floor(value: Length) -> LengthU { in_base_unit!(value.value.floor() as usize) }
 
 #[inline(always)]
 fn floor(x: f32) -> usize { x.floor() as usize }
 
 // --- Convert usize-based Lengthf32 to i32-based Lengthf32 -----------------------------
 #[inline(always)]
-fn uom_signed(value: UomLengthU) -> UomLengthI { in_base_unit!(value.value as i32) }
+fn uom_signed(value: LengthU) -> LengthI { in_base_unit!(value.value as i32) }
 
 #[inline(always)]
 fn signed(x: usize) -> i32 { x as i32 }
