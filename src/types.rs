@@ -1,7 +1,7 @@
 use ncollide3d as nc;
 
 pub use geometry::uom::uomcrate as guomc;
-pub use guomc::si::{ISQ, SI, Quantity};
+pub use guomc::si::Quantity;
 pub use guomc::typenum::{Z0, N1};
 use geometry::in_base_unit;
 
