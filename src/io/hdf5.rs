@@ -16,9 +16,9 @@ pub struct Args {
 
 use ndarray::{s, Array1};
 
-use crate::types::{Length, Point, Energy, BoundPair};
+use crate::types::{Lengthf32, Point, Energy, BoundPair};
 use crate::weights::LOR;
-type F = Length;
+type F = Lengthf32;
 
 pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<std::ops::Range<usize>>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;

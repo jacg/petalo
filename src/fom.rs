@@ -1,5 +1,5 @@
 use crate::io::raw;
-use crate::types::{Length, Point, Intensity, Ratio};
+use crate::types::{Lengthf32, Point, Intensity, Ratio};
 use crate::mlem::{Image, ImageData};
 use crate::weights::FOV;
 
@@ -14,11 +14,11 @@ pub fn load_image(filename: &std::path::Path, fov: FOV) -> BoxErr<Image> {
 #[derive(Clone, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum ROI {
-    Sphere((Length, Length, Length), Length),
-    CylinderX((Length, Length), Length),
-    CylinderY((Length, Length), Length),
-    CylinderZ((Length, Length), Length),
-    DiscZ((Length, Length, Length), Length),
+    Sphere((Lengthf32, Lengthf32, Lengthf32), Lengthf32),
+    CylinderX((Lengthf32, Lengthf32), Lengthf32),
+    CylinderY((Lengthf32, Lengthf32), Lengthf32),
+    CylinderZ((Lengthf32, Lengthf32), Lengthf32),
+    DiscZ((Lengthf32, Lengthf32, Lengthf32), Lengthf32),
 }
 
 pub type InRoiFn = Box<dyn Fn(Point) -> bool>;
@@ -54,7 +54,7 @@ impl ROI {
         }
     }
 
-    pub fn r(&self) -> Length {
+    pub fn r(&self) -> Lengthf32 {
         match *self {
             ROI::Sphere   (_,r) => r,
             ROI::CylinderX(_,r) => r,
@@ -106,17 +106,17 @@ pub fn in_roi(in_roi: InRoiFn, voxels: &[PointValue]) -> impl Iterator<Item = Po
 }
 
 /// Convert 1D position to 1D index of containing voxel
-pub fn position_to_index(position: Length, half_width: Length, voxel_size: Length) -> usize {
+pub fn position_to_index(position: Lengthf32, half_width: Lengthf32, voxel_size: Lengthf32) -> usize {
     ((position + half_width) / voxel_size) as usize
 }
 
 /// Convert 1D voxel index to 1D position of voxel's centre
-pub fn index_to_position(index: usize, half_width: Length, voxel_size: Length) -> Length {
+pub fn index_to_position(index: usize, half_width: Lengthf32, voxel_size: Lengthf32) -> Lengthf32 {
     (index as f32 + 0.5) * voxel_size - half_width
 }
 
 /// Return function which finds centre of nearest slice
-pub fn centre_of_slice_closest_to(half_width: Length, voxel_size: Length) -> impl Fn(Length) -> Length {
+pub fn centre_of_slice_closest_to(half_width: Lengthf32, voxel_size: Lengthf32) -> impl Fn(Lengthf32) -> Lengthf32 {
     move |x| {
         let i = position_to_index(x, half_width, voxel_size);
                 index_to_position(i, half_width, voxel_size)
@@ -124,7 +124,7 @@ pub fn centre_of_slice_closest_to(half_width: Length, voxel_size: Length) -> imp
 }
 
 /// Adjust collection of 1D positions, to the centres of the nearest slices
-pub fn centres_of_slices_closest_to(targets: &[Length], half_width: Length, voxel_size: Length) -> Vec<Length> {
+pub fn centres_of_slices_closest_to(targets: &[Lengthf32], half_width: Lengthf32, voxel_size: Lengthf32) -> Vec<Lengthf32> {
     targets.iter().copied()
         .map(centre_of_slice_closest_to(half_width, voxel_size))
         .collect()
@@ -136,7 +136,7 @@ mod test_in_roi {
     use rstest::rstest;
 
     // Arrange for outer voxels to be centred at +/- 100.0, when n = 10
-    const MAGIC: Length = 10.0 / 9.0 * 200.0;
+    const MAGIC: Lengthf32 = 10.0 / 9.0 * 200.0;
 
     #[rstest(/**/    l ,  n,        centre        ,    r , expected_len,
              case(MAGIC, 10, (  0.0,   0.0,   0.0), 173.3, 1000), // r > sqrt(3) * 100; all voxel centres inside sphere
@@ -146,10 +146,10 @@ mod test_in_roi {
              case(MAGIC, 10, (200.0, 200.0, 200.0), 173.2,    0), // slightly smaller r excludes the corner
     )]
     fn number_of_included_voxels_in_sphere(
-        l: Length,
+        l: Lengthf32,
         n: usize,
-        centre: (Length, Length, Length),
-        r: Length,
+        centre: (Lengthf32, Lengthf32, Lengthf32),
+        r: Lengthf32,
         expected_len: usize
     ) {
         let data = vec![1.0; n*n*n];
@@ -168,10 +168,10 @@ mod test_in_roi {
              case(MAGIC, 10, (200.0, 200.0), 141.4,    0), // slightly smaller r excludes the corner
     )]
     fn number_of_included_voxels_in_z_cylinder(
-        l: Length,
+        l: Lengthf32,
         n: usize,
-        centre: (Length, Length),
-        r: Length,
+        centre: (Lengthf32, Lengthf32),
+        r: Lengthf32,
         expected_len: usize
     ) {
         let data = vec![1.0; n*n*n];
@@ -184,7 +184,7 @@ mod test_in_roi {
 
     const I: Intensity =  1.0;
     const O: Intensity = -1.0;
-    const R: Length = 1.0;
+    const R: Lengthf32 = 1.0;
     use ROI::*;
     #[rstest(/**/  roi              , expected,
              // Should pick exactly one voxel
@@ -286,9 +286,9 @@ mod test_mean {
 /// x,y,r of FOM sphere
 #[derive(Clone, Copy)]
 pub struct Sphere {
-    pub x: Length,
-    pub y: Length,
-    pub r: Length,
+    pub x: Lengthf32,
+    pub y: Lengthf32,
+    pub r: Lengthf32,
     pub a: Intensity,
 }
 
@@ -313,7 +313,7 @@ pub struct FOMS {
 
 #[allow(clippy::upper_case_acronyms)]
 pub struct FOM {
-    pub r: Length,
+    pub r: Lengthf32,
     pub crc: Ratio,
     pub bg_variability: Ratio,
     pub snr: Ratio,

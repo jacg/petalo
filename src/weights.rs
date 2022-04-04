@@ -16,18 +16,18 @@
 use ncollide3d::query::RayCast;
 use ncollide3d::shape::Cuboid;
 
-type Ray      = ncollide3d::query::Ray    <Length>;
-type Isometry = ncollide3d::math::Isometry<Length>;
+type Ray      = ncollide3d::query::Ray    <Lengthf32>;
+type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
 use crate::types::{UomLengthU, UomLengthI, UomPoint, UomVector};
 use geometry::in_base_unit;
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Length, Point, Ratio, Time, Vector, ns_to_mm};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Lengthf32, Point, Ratio, Time, Vector, ns_to_mm};
 use crate::types::{UomLength, UomTime, UomRatio, UomPerLength};
 use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
-const     EPS:    Length =               1e-5;
+const     EPS: Lengthf32 =               1e-5;
 const UOM_EPS: UomLength = in_base_unit!(1e-5);
 
 // ------------------------------ TESTS ------------------------------
@@ -63,11 +63,11 @@ mod test {
              case((  5.4, -20.0), (  5.4, 10.0), (11.0,  9.0), (9,4),  9.0     , vec![(8,0), (8,1), (8,2), (8,3)]),
              case((-15.0,  -4.0), ( 15.0, -4.0), ( 8.0, 10.0), (4,3),  8.0     , vec![(0,0), (1,0), (2,0), (3,0)]),
     )]
-    fn hand_picked(p1:   (Length, Length),
-                   p2:   (Length, Length),
-                   size: (Length, Length),
+    fn hand_picked(p1:   (Lengthf32, Lengthf32),
+                   p2:   (Lengthf32, Lengthf32),
+                   size: (Lengthf32, Lengthf32),
                    n: (usize, usize),
-                   length: Length,
+                   length: Lengthf32,
                    expected_voxels: Vec<(usize, usize)>) {
 
         let p1 = Point::new(p1.0, p1.1, 0.0);
@@ -86,7 +86,7 @@ mod test {
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
 
         // Check total length through FOV
-        let total_length: Length = hits.iter()
+        let total_length: Lengthf32 = hits.iter()
             .map(|(_index, weight)| weight)
             .sum();
         assert_approx_eq!(total_length, length);
@@ -107,21 +107,21 @@ mod test {
         #[test]
         fn sum_of_weights_equals_length_through_box(
             // Activated sensor positions
-            r        in  200.0..(300.0 as Length),
-            p1_angle in 0.0..(1.0 as Length), // around the circle
-            p2_delta in 0.1..(0.9 as Length), // relative to p1_angle
-            p1_z     in -200.0..(200.0 as Length),
-            p2_z     in -200.0..(200.0 as Length),
+            r        in  200.0..(300.0 as Lengthf32),
+            p1_angle in 0.0..(1.0 as Lengthf32), // around the circle
+            p2_delta in 0.1..(0.9 as Lengthf32), // relative to p1_angle
+            p1_z     in -200.0..(200.0 as Lengthf32),
+            p2_z     in -200.0..(200.0 as Lengthf32),
             // Field of View
-            dx in  100.0..(150.0 as Length),
-            dy in  100.0..(150.0 as Length),
-            dz in  100.0..(190.0 as Length),
+            dx in  100.0..(150.0 as Lengthf32),
+            dy in  100.0..(150.0 as Lengthf32),
+            dz in  100.0..(190.0 as Lengthf32),
             nx in  5..50_usize,
             ny in  5..50_usize,
             nz in  5..90_usize,
         ) {
-            let p1_theta: Length = p1_angle * TWOPI;
-            let p2_theta: Length = p1_theta + (p2_delta * TWOPI);
+            let p1_theta: Lengthf32 = p1_angle * TWOPI;
+            let p2_theta: Lengthf32 = p1_theta + (p2_delta * TWOPI);
             let p1 = Point::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
             let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
             let fov = FOV::new((dx, dy, dz), (nx, ny, nz));
@@ -131,7 +131,7 @@ mod test {
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Length = LOR::new(0.0, 0.0, p1, p2, 1.0)
+            let summed: Lengthf32 = LOR::new(0.0, 0.0, p1, p2, 1.0)
                 .active_voxels(&fov, None, None)
                 .into_iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
@@ -234,7 +234,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
 #[allow(clippy::too_many_arguments)]
 pub fn system_matrix_elements(
     indices: &mut Vec<usize>,
-    weights: &mut Vec<Length>,
+    weights: &mut Vec<Lengthf32>,
     mut next_boundary: Vector,
     voxel_size: UomVector,
     mut index: i32,
@@ -284,7 +284,7 @@ pub fn system_matrix_elements(
 
 use crate::types::guomc::ConstZero;
 const UOM_LENGTH_ZERO: UomLength = UomLength::ZERO;
-const     LENGTH_ZERO:    Length = 0.0;
+const     LENGTH_ZERO: Lengthf32 = 0.0;
 
 /// The point at which the LOR enters the FOV, expressed in a coordinate
 /// system with one corner of the FOV at the origin.
@@ -296,7 +296,7 @@ fn find_entry_point(mut entry_point: Point, fov: FOV) -> Point {
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     // TODO: figure out if we should support Point * Vector -> Point  (affine * vector -> affine)
-    // NOTE: this should be Point<Ratio> rater than Point<Length>
+    // NOTE: this should be Point<Ratio> rater than Point<Lengthf32>
     let voxel_size = Vector::from(fov.voxel_size);
     let mut entry_point = Point::new(
         entry_point[0] / voxel_size[0],
@@ -315,7 +315,7 @@ fn find_entry_point(mut entry_point: Point, fov: FOV) -> Point {
 
 /// Distance from entry point to the LOR's TOF peak
 #[inline]
-fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
+fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Lengthf32 {
     let half_lor_length = (p1 - p2).norm() / 2.0;
     let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
     //tof_shift = C *      dt  / 2.0; // NOTE ignoring refractive index
@@ -346,14 +346,14 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
 
 use geometry::Quantity;
 
-// --- Truncate float-based Length to usize-based Length --------------------------
+// --- Truncate float-based Lengthf32 to usize-based Lengthf32 --------------------------
 #[inline(always)]
 fn uom_floor(value: UomLength) -> UomLengthU { in_base_unit!(value.value.floor() as usize) }
 
 #[inline(always)]
 fn floor(x: f32) -> usize { x.floor() as usize }
 
-// --- Convert usize-based Length to i32-based Length -----------------------------
+// --- Convert usize-based Lengthf32 to i32-based Lengthf32 -----------------------------
 #[inline(always)]
 fn uom_signed(value: UomLengthU) -> UomLengthI { in_base_unit!(value.value as i32) }
 
@@ -454,7 +454,7 @@ pub struct FOV {
 impl FOV {
 
     pub fn new(
-        full_size: (Length, Length, Length),
+        full_size: (Lengthf32, Lengthf32, Lengthf32),
         (nx, ny, nz): (usize, usize, usize)
     ) -> Self {
         let (dx, dy, dz) = full_size;
@@ -466,16 +466,16 @@ impl FOV {
 
     fn voxel_size(n: BoxDim, half_width: Vector) -> Vector {
         // TODO: generalize conversion of VecOf<int> -> VecOf<float>
-        let nl: Vector = Vector::new(n[0] as Length, n[1] as Length, n[2] as Length);
+        let nl: Vector = Vector::new(n[0] as Lengthf32, n[1] as Lengthf32, n[2] as Lengthf32);
         (half_width * 2.0).component_div(&nl)
     }
 
     pub fn voxel_centre(&self, i: Index3) -> Point {
         //i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
         let s = self.voxel_size;
-        UomPoint::new((i[0] as Length + 0.5) * s.x - self.half_width[0],
-                      (i[1] as Length + 0.5) * s.y - self.half_width[1],
-                      (i[2] as Length + 0.5) * s.z - self.half_width[2],)
+        UomPoint::new((i[0] as Lengthf32 + 0.5) * s.x - self.half_width[0],
+                      (i[1] as Lengthf32 + 0.5) * s.y - self.half_width[1],
+                      (i[2] as Lengthf32 + 0.5) * s.z - self.half_width[2],)
             .into()
     }
 
@@ -485,7 +485,7 @@ impl FOV {
 
     pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
         let lor_direction: Vector = (p2 - p1).normalize();
-        let lor_length   : Length = (p2 - p1).norm();
+        let lor_length: Lengthf32 = (p2 - p1).norm();
         let lor: Ray = Ray::new(*p1, lor_direction);
         let iso: Isometry = Isometry::identity();
         Cuboid::new(self.half_width.into())
@@ -510,7 +510,7 @@ mod test_voxel_box {
              case([1,1,0], [ 1.0,  1.0, -1.0]),
              case([1,1,1], [ 1.0,  1.0,  1.0]),
     )]
-    fn test_voxel_centre(index: Index3, expected_position: [Length; 3]) {
+    fn test_voxel_centre(index: Index3, expected_position: [Lengthf32; 3]) {
         let fov = FOV::new((4.0, 4.0, 4.0), (2,2,2));
         let c = fov.voxel_centre(index);
         assert_float_eq!([c.x, c.y, c.z], expected_position, ulps <= [0, 0, 0]);
@@ -541,8 +541,8 @@ impl LOR {
     }
 
     pub fn from_components((t1, t2): (Time, Time),
-                           (x1, y1, z1): (Length, Length, Length),
-                           (x2, y2, z2): (Length, Length, Length),
+                           (x1, y1, z1): (Lengthf32, Lengthf32, Lengthf32),
+                           (x2, y2, z2): (Lengthf32, Lengthf32, Lengthf32),
                            additive_correction: Ratio
                           ) -> Self
     {

@@ -5,7 +5,7 @@ pub use guomc::si::{ISQ, SI, Quantity};
 pub use guomc::typenum::{Z0, N1};
 use geometry::in_base_unit;
 
-pub type    Length  = f32;
+pub type Lengthf32  = f32;
 pub type UomLength  = geometry::Length;
 pub type UomLengthI = geometry::uom::uomcrate::si::i32  ::Length;
 pub type UomLengthU = geometry::uom::uomcrate::si::usize::Length;
@@ -13,7 +13,7 @@ pub type UomLengthU = geometry::uom::uomcrate::si::usize::Length;
 pub type    PerLength = f32;
 pub type UomPerLength = geometry::PerLength;
 
-pub type    Time = Length;
+pub type    Time = Lengthf32;
 pub type UomTime = geometry::Time;
 
 pub type UomVelocity = geometry::Velocity;
@@ -29,10 +29,10 @@ pub type Charge = f32; // TODO uom Charge
 
 pub type Intensity = f32; // TODO uom Intensity
 
-pub type    Vector = nc::math::Vector<Length>;
+pub type    Vector = nc::math::Vector<Lengthf32>;
 pub type UomVector = geometry::Vector;
 
-pub type    Point = nc::math::Point <Length>;
+pub type    Point = nc::math::Point <Lengthf32>;
 pub type UomPoint = geometry::Point;
 
 pub type Index1 = usize;
@@ -46,14 +46,14 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
 // TODO: doesn't really belong in `types` ...
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
-pub const     C:      Length =               0.299_792_458; // mm / ps
+pub const     C: Lengthf32 =               0.299_792_458; // mm / ps
 pub const UOM_C: UomVelocity = in_base_unit!(299_792_458.0);
 
-#[inline] pub fn ps_to_mm(dt: Time) -> Length { dt * C }
-#[inline] pub fn mm_to_ps(dx: Length) -> Time { dx / C }
+#[inline] pub fn ps_to_mm(dt: Time) -> Lengthf32 { dt * C }
+#[inline] pub fn mm_to_ps(dx: Lengthf32) -> Time { dx / C }
 
-#[inline] pub fn ns_to_mm(dt: Time) -> Length { ps_to_mm(dt) * 1000.0 }
-#[inline] pub fn mm_to_ns(dx: Length) -> Time { mm_to_ps(dx) / 1000.0  }
+#[inline] pub fn ns_to_mm(dt: Time) -> Lengthf32 { ps_to_mm(dt) * 1000.0 }
+#[inline] pub fn mm_to_ns(dx: Lengthf32) -> Time { mm_to_ps(dx) / 1000.0  }
 
 #[inline] pub fn ns_to_ps(dt: Time) -> Time { dt * 1000.0 }
 
@@ -65,7 +65,7 @@ mod test_conversions {
 
     // Random test values
     const T: Time = 3.5;
-    const X: Length = 1.2;
+    const X: Lengthf32 = 1.2;
 
     #[test] fn human_a() { assert_approx_eq!(ns_to_mm(1.0), 300.0, 0.3  ); }
     #[test] fn human_b() { assert_approx_eq!(ps_to_mm(1.0),   0.3, 0.001); }
@@ -78,5 +78,5 @@ mod test_conversions {
 
 }
 
-pub const     TWOPI:   Length = std::f32::consts::TAU as Length;
+pub const     TWOPI: Lengthf32 = std::f32::consts::TAU as Lengthf32;
 pub const UOM_TWOPI: UomRatio = in_base_unit!(std::f32::consts::TAU);

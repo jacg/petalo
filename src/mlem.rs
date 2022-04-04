@@ -4,7 +4,7 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::{io, types::{Length, Index1, Index3, Intensity}};
+use crate::{io, types::{Lengthf32, Index1, Index3, Intensity}};
 use crate::types::{UomLength, UomPerLength, UomRatio, UomTime};
 use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, FovHit};
 use crate::gauss::make_gauss_option;
@@ -218,7 +218,7 @@ impl Image {
     }
 }
 
-fn projection_buffers(fov: FOV) -> (ImageData, Vec<Length>, Vec<usize>) {
+fn projection_buffers(fov: FOV) -> (ImageData, Vec<Lengthf32>, Vec<usize>) {
     // The backprojection (or sensitivity image) being constructed in a
     // given MLEM iteration (or sensitivity image calculation).
     let image = zeros_buffer(fov);
@@ -236,7 +236,7 @@ fn projection_buffers(fov: FOV) -> (ImageData, Vec<Length>, Vec<usize>) {
 fn zeros_buffer(fov: FOV) -> ImageData { let [x,y,z] = fov.n; vec![0.0; x*y*z] }
 
 
-type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>);
+type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>);
 
 fn project_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
 where
@@ -277,7 +277,7 @@ where
 }
 
 #[inline]
-fn forward_project(weights: &[Length], indices: &[usize], image: &Image) -> Length {
+fn forward_project(weights: &[Lengthf32], indices: &[usize], image: &Image) -> Lengthf32 {
     let mut projection = 0.0;
     for (w, j) in weights.iter().zip(indices.iter()) {
         projection += w * image[*j]
@@ -286,14 +286,14 @@ fn forward_project(weights: &[Length], indices: &[usize], image: &Image) -> Leng
 }
 
 #[inline]
-fn back_project(backprojection: &mut Vec<Length>, weights: &[Length], indices: &[usize], projection: Length) {
+fn back_project(backprojection: &mut Vec<Lengthf32>, weights: &[Lengthf32], indices: &[usize], projection: Lengthf32) {
     let projection_reciprocal = 1.0 / projection;
     for (w, j) in weights.iter().zip(indices.iter()) {
         backprojection[*j] += w * projection_reciprocal;
     }
 }
 
-fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Length], sensitivity: &[Intensity]) {
+fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], sensitivity: &[Intensity]) {
     //  TODO express with Option<matrix> and mul reciprocal
     // Apply Sensitivity matrix
     azip!((voxel in image, &b in backprojection, &s in sensitivity) {

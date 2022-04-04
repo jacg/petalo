@@ -24,7 +24,7 @@ pub struct Cli {
 // --------------------------------------------------------------------------------
 use std::error::Error;
 use petalo::{fom::{InRoiFn, PointValue}, io::raw::Image3D};
-use petalo::types::{Length, Intensity};
+use petalo::types::{Lengthf32, Intensity};
 use petalo::mlem::Image;
 use petalo::fom;
 use petalo::fom::{Sphere, ROI, centres_of_slices_closest_to};
@@ -43,11 +43,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 fn sphere_foms(
     image         : &Image,
-    sphere_ring_r : Length,
-    sphere_z      : Length,
-    sphere_spec   : &[(u16, Length, Intensity)],
-    background_zs : &[Length],
-    background_xys: &[(Length, Length)],
+    sphere_ring_r : Lengthf32,
+    sphere_z      : Lengthf32,
+    sphere_spec   : &[(u16, Lengthf32, Intensity)],
+    background_zs : &[Lengthf32],
+    background_xys: &[(Lengthf32, Lengthf32)],
     background_a  : Intensity,
 ) -> Result<Vec<fom::FOM>, Box<dyn Error>> {
     let z_voxel_size = mm_(image.fov.voxel_size[2]);
@@ -213,18 +213,18 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
 }
 
 /// Place FOM sphere in Nth/6 angular position, with given diameter and activity
-fn sphere(from_centre: Length, sphere_position: u16, diameter: Length, activity: Intensity) -> Sphere {
+fn sphere(from_centre: Lengthf32, sphere_position: u16, diameter: Lengthf32, activity: Intensity) -> Sphere {
     let r = from_centre; // 114.4 / 2.0; // Radial displacement from centre
     let radians = std::f32::consts::TAU * sphere_position as f32 / 6.0;
-    Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Length / 2.0, a: activity}
+    Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Lengthf32 / 2.0, a: activity}
 }
 
 // TODO this duplicates a lot of the functionality of Image::foms. It's here
 // largely because of the idiosyncrasy of the NEMA7 requirements.
 fn contrast_and_variability(sphere: Sphere,
-                            foreground_z: Length,
-                            background_xys: &[(Length, Length)],
-                            background_zs : &[Length],
+                            foreground_z: Lengthf32,
+                            background_xys: &[(Lengthf32, Lengthf32)],
+                            background_zs : &[Lengthf32],
                             bg_activity: f32,
                             voxels: &[PointValue],
 ) -> Option<fom::FOM> {
@@ -258,12 +258,12 @@ fn not_nan(f: f32) -> NotNan<f32> { NotNan::new(f).unwrap() }
 /// Discard voxels which do not lie inside any of the ROIs
 fn discard_irrelevant_voxels(
     sphere_rois           : &[ROI],
-    background_roi_centres: &[(Length, Length, Length)],
+    background_roi_centres: &[(Lengthf32, Lengthf32, Lengthf32)],
     voxels                : &[PointValue],
 
 ) -> Vec<PointValue> {
 
-    let max_roi_radius: Length = sphere_rois.iter()
+    let max_roi_radius: Lengthf32 = sphere_rois.iter()
         .map(ROI::r)
         .max_by_key(|&f| not_nan(f))
         .unwrap();
