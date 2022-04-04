@@ -92,13 +92,10 @@ macro_rules! in_base_unit {
 }
 
 
-#[cfg(test)]
-use float_eq::assert_float_eq;
-
-#[cfg(test)]
+#[macro_export]
 macro_rules! assert_uom_eq {
   ($unit:ident, $lhs:expr, $rhs:expr, $algo:ident <= $tol:expr) => {
-    assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
+    float_eq::assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
   };
 }
 

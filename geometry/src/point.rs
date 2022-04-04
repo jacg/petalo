@@ -70,7 +70,6 @@ impl IndexMut<usize> for Point {
 #[cfg(test)]
 mod tests {
     use crate::{Point, Vector};
-    use float_eq::assert_float_eq;
     const EPS: f32 = f32::EPSILON;
     use uom::si::length::{millimeter, meter};
     use crate::uom::{nm, mm, cm, assert_uom_eq};
