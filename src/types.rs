@@ -20,7 +20,7 @@ pub type Velocity = geometry::Velocity;
 pub type Weightf32 = f32;  // TODO uom Weight
 
 pub type Ratiof32 = f32;
-pub type UomRatio = geometry::Ratio;
+pub type Ratio = geometry::Ratio;
 
 pub type Anglef32  = f32; // TODO uom Angle
 pub type Energyf32 = f32; // TODO uom Energy
@@ -78,4 +78,4 @@ mod test_conversions {
 }
 
 pub const     TWOPI: Lengthf32 = std::f32::consts::TAU as Lengthf32;
-pub const UOM_TWOPI: UomRatio = in_base_unit!(std::f32::consts::TAU);
+pub const UOM_TWOPI: Ratio = in_base_unit!(std::f32::consts::TAU);

@@ -5,7 +5,7 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use crate::{io, types::{Lengthf32, Index1_u, Index3_u, Intensityf32}};
-use crate::types::{Length, PerLength, UomRatio, Time};
+use crate::types::{Length, PerLength, Ratio, Time};
 use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, FovHit};
 use crate::gauss::make_gauss_option;
 
@@ -49,7 +49,7 @@ impl Image {
     pub fn mlem<'a>(fov: FOV,
                     measured_lors: &'a [LOR],
                     sigma        :     Option<Time>,
-                    cutoff       :     Option<UomRatio>,
+                    cutoff       :     Option<Ratio>,
                     sensitivity  :     Option<Self>,
     ) -> impl Iterator<Item = Image> + '_ {
 
@@ -139,7 +139,7 @@ impl Image {
         Self::new(fov, image)
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensityf32], sigma: Option<Time>, cutoff: Option<UomRatio>) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensityf32], sigma: Option<Time>, cutoff: Option<Ratio>) {
 
         // -------- Prepare state required by serial/parallel fold --------------
 

@@ -2,7 +2,7 @@ use std::error::Error;
 use std::ops::{Bound, Range};
 
 use crate::types::{Timef32, Lengthf32, Pointf32, BoundPair};
-use crate::types::UomRatio;
+use crate::types::Ratio;
 use crate::weights::{LOR};
 
 pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {
@@ -76,7 +76,7 @@ pub fn parse_lor(s: &str) -> Result<LOR, Box<dyn Error>> {
 pub type CutoffOption<T> = Option<T>;
 
 
-pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<UomRatio>, std::num::ParseFloatError> {
+pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<Ratio>, std::num::ParseFloatError> {
     Ok(if s == "no" { None } else { Some(geometry::uom::ratio(s.parse()?)) })
 }
 
