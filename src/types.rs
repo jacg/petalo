@@ -10,7 +10,7 @@ pub type Length  = geometry::Length;
 pub type LengthI = geometry::uom::uomcrate::si::i32  ::Length;
 pub type LengthU = geometry::uom::uomcrate::si::usize::Length;
 
-pub type UomPerLength = geometry::PerLength;
+pub type PerLength = geometry::PerLength;
 
 pub type Timef32 = f32;
 pub type UomTime = geometry::Time;

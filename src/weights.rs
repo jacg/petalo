@@ -22,7 +22,7 @@ type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 use crate::types::{LengthU, LengthI, UomPoint, UomVector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
-use crate::types::{Length, UomTime, UomRatio, UomPerLength};
+use crate::types::{Length, UomTime, UomRatio, PerLength};
 use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
@@ -241,7 +241,7 @@ pub fn system_matrix_elements(
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
     tof_peak: Length,
-    tof: &Option<impl Fn(Length) -> UomPerLength>) {
+    tof: &Option<impl Fn(Length) -> PerLength>) {
 
     // How far we have moved since entering the FOV
     let mut here = LENGTH_ZERO;
@@ -255,7 +255,7 @@ pub fn system_matrix_elements(
 
         // If TOF enabled, adjust weight
         if let Some(gauss) = &tof {
-            let g: UomPerLength = gauss(mm(here) - tof_peak);
+            let g: PerLength = gauss(mm(here) - tof_peak);
             // Turn into dimensionless number: TODO normalization
             let g: f32 = (mm(1000.0) * g).get::<geometry::uom::uomcrate::si::ratio::ratio>();
             weight *= g;
