@@ -24,7 +24,7 @@ pub struct Cli {
 // --------------------------------------------------------------------------------
 use std::error::Error;
 use petalo::{fom::{InRoiFn, PointValue}, io::raw::Image3D};
-use petalo::types::{Lengthf32, Intensity};
+use petalo::types::{Lengthf32, Intensityf32};
 use petalo::mlem::Image;
 use petalo::fom;
 use petalo::fom::{Sphere, ROI, centres_of_slices_closest_to};
@@ -45,10 +45,10 @@ fn sphere_foms(
     image         : &Image,
     sphere_ring_r : Lengthf32,
     sphere_z      : Lengthf32,
-    sphere_spec   : &[(u16, Lengthf32, Intensity)],
+    sphere_spec   : &[(u16, Lengthf32, Intensityf32)],
     background_zs : &[Lengthf32],
     background_xys: &[(Lengthf32, Lengthf32)],
-    background_a  : Intensity,
+    background_a  : Intensityf32,
 ) -> Result<Vec<fom::FOM>, Box<dyn Error>> {
     let z_voxel_size = mm_(image.fov.voxel_size[2]);
     let z_half_width = mm_(image.fov.half_width[2]);
@@ -213,7 +213,7 @@ fn jaszczak_foms(image: &Image) -> Result<(), Box<dyn Error>> {
 }
 
 /// Place FOM sphere in Nth/6 angular position, with given diameter and activity
-fn sphere(from_centre: Lengthf32, sphere_position: u16, diameter: Lengthf32, activity: Intensity) -> Sphere {
+fn sphere(from_centre: Lengthf32, sphere_position: u16, diameter: Lengthf32, activity: Intensityf32) -> Sphere {
     let r = from_centre; // 114.4 / 2.0; // Radial displacement from centre
     let radians = std::f32::consts::TAU * sphere_position as f32 / 6.0;
     Sphere{x:r * radians.cos(), y:r * radians.sin(), r: diameter as Lengthf32 / 2.0, a: activity}

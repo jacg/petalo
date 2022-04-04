@@ -1,5 +1,5 @@
 use crate::io::raw;
-use crate::types::{Lengthf32, Point, Intensity, Ratiof32};
+use crate::types::{Lengthf32, Point, Intensityf32, Ratiof32};
 use crate::mlem::{Image, ImageData};
 use crate::weights::FOV;
 
@@ -67,7 +67,7 @@ impl ROI {
 }
 
 /// A 3D point with an associated value. Used to represent voxels
-pub type PointValue = (Point, Intensity);
+pub type PointValue = (Point, Intensityf32);
 
 // TODO replace vec with iterator in output
 impl Image {
@@ -182,8 +182,8 @@ mod test_in_roi {
         assert!(inside.len() == expected_len);
     }
 
-    const I: Intensity =  1.0;
-    const O: Intensity = -1.0;
+    const I: Intensityf32 =  1.0;
+    const O: Intensityf32 = -1.0;
     const R: Lengthf32 = 1.0;
     use ROI::*;
     #[rstest(/**/  roi              , expected,
@@ -219,7 +219,7 @@ mod test_in_roi {
         let fov = FOV::new((l,l,l), (n,n,n));
         let image = Image::new(fov, data);
         let pattern = image.values_inside_roi(roi)
-            .iter().sum::<Intensity>()
+            .iter().sum::<Intensityf32>()
             as usize;
         println!("pattern {} {} expected", pattern, expected);
         assert!(pattern == expected);
@@ -228,25 +228,25 @@ mod test_in_roi {
 }
 
 // TODO stop reinventing this wheel
-pub fn mean(data: &[Intensity]) -> Option<Intensity> {
-    data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensity)
+pub fn mean(data: &[Intensityf32]) -> Option<Intensityf32> {
+    data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensityf32)
 }
 
-pub fn sd(data: &[Intensity]) -> Option<Intensity> {
+pub fn sd(data: &[Intensityf32]) -> Option<Intensityf32> {
     if data.len() < 2 { return None; }
     let mu = mean(data)?;
-    let sum_of_deltas: Intensity = data.iter()
+    let sum_of_deltas: Intensityf32 = data.iter()
         .map(|x| {let d = x-mu; d*d})
         .sum();
-    Some(sum_of_deltas / data.len() as Intensity)
+    Some(sum_of_deltas / data.len() as Intensityf32)
 }
 
-pub fn mu_and_sigma(data: &[Intensity]) -> Option<(Intensity, Intensity)> {
+pub fn mu_and_sigma(data: &[Intensityf32]) -> Option<(Intensityf32, Intensityf32)> {
     let mu = mean(data)?;
     let sigma = data.iter().cloned()
         .map(|x| x-mu)
         .map(|x| x*x)
-        .sum::<Intensity>() / data.len() as Intensity;
+        .sum::<Intensityf32>() / data.len() as Intensityf32;
     Some((mu, sigma))
 
 }
@@ -289,18 +289,18 @@ pub struct Sphere {
     pub x: Lengthf32,
     pub y: Lengthf32,
     pub r: Lengthf32,
-    pub a: Intensity,
+    pub a: Intensityf32,
 }
 
 #[derive(Debug)]
 pub struct FomConfig {
-    pub rois: Vec<(ROI, Intensity)>,
+    pub rois: Vec<(ROI, Intensityf32)>,
     pub background_rois: Vec<ROI>,
-    pub background_activity: Intensity
+    pub background_activity: Intensityf32
 }
 
 impl FomConfig {
-    pub fn new(rois: Vec<(ROI, Intensity)>, background_rois: Vec<ROI>, background_activity: Intensity) -> Self {
+    pub fn new(rois: Vec<(ROI, Intensityf32)>, background_rois: Vec<ROI>, background_activity: Intensityf32) -> Self {
         Self{ rois, background_rois, background_activity }
     }
 }
@@ -325,7 +325,7 @@ impl Image {
         let FomConfig{ rois, background_rois, background_activity} = config;
         let background_measured = background_rois.iter().cloned()
             .map(|roi| mean(&self.values_inside_roi(roi)).unwrap())
-            .sum::<Intensity>() / background_rois.len() as Intensity;
+            .sum::<Intensityf32>() / background_rois.len() as Intensityf32;
         if !quiet {println!("    background measured (set): {:4.1} ({})", background_measured, background_activity);}
 
         let mut crcs = vec![];
@@ -347,8 +347,8 @@ impl Image {
 ///
 /// The exact calculation performed depends on whether the ROI is formally
 /// hotter or colder than the background.
-pub fn crc(roi_measured: Intensity, roi_activity: Intensity,
-           bgd_measured: Intensity, bgd_activity: Intensity) -> Ratiof32 {
+pub fn crc(roi_measured: Intensityf32, roi_activity: Intensityf32,
+           bgd_measured: Intensityf32, bgd_activity: Intensityf32) -> Ratiof32 {
     100.0 * if roi_activity > bgd_activity { // hot CRC
         ((roi_measured / bgd_measured) - 1.0) /
         ((roi_activity / bgd_activity) - 1.0)

@@ -26,7 +26,7 @@ pub type Anglef32  = f32; // TODO uom Angle
 pub type Energyf32 = f32; // TODO uom Energy
 pub type Chargef32 = f32; // TODO uom Charge
 
-pub type Intensity = f32; // TODO uom Intensity
+pub type Intensityf32 = f32; // TODO uom Intensity
 
 pub type    Vector = nc::math::Vector<Lengthf32>;
 pub type UomVector = geometry::Vector;

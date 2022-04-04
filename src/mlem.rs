@@ -4,12 +4,12 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::{io, types::{Lengthf32, Index1, Index3, Intensity}};
+use crate::{io, types::{Lengthf32, Index1, Index3, Intensityf32}};
 use crate::types::{UomLength, UomPerLength, UomRatio, UomTime};
 use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, FovHit};
 use crate::gauss::make_gauss_option;
 
-pub type ImageData = Vec<Intensity>;
+pub type ImageData = Vec<Intensityf32>;
 
 
 #[derive(Clone)]
@@ -24,7 +24,7 @@ impl core::ops::IndexMut<Index1> for Image {
 }
 
 impl core::ops::Index<Index1> for Image {
-    type Output = Intensity;
+    type Output = Intensityf32;
     #[inline]
     fn index(&self, i: Index1) -> &Self::Output { &self.data[i] }
 }
@@ -37,7 +37,7 @@ impl core::ops::IndexMut<Index3> for Image {
 }
 
 impl core::ops::Index<Index3> for Image {
-    type Output = Intensity;
+    type Output = Intensityf32;
     fn index(&self, i3: Index3) -> &Self::Output {
         let i1 = index3_to_1(i3, self.fov.n);
         &self.data[i1]
@@ -139,7 +139,7 @@ impl Image {
         Self::new(fov, image)
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<UomTime>, cutoff: Option<UomRatio>) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensityf32], sigma: Option<UomTime>, cutoff: Option<UomRatio>) {
 
         // -------- Prepare state required by serial/parallel fold --------------
 
@@ -293,7 +293,7 @@ fn back_project(backprojection: &mut Vec<Lengthf32>, weights: &[Lengthf32], indi
     }
 }
 
-fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], sensitivity: &[Intensity]) {
+fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], sensitivity: &[Intensityf32]) {
     //  TODO express with Option<matrix> and mul reciprocal
     // Apply Sensitivity matrix
     azip!((voxel in image, &b in backprojection, &s in sensitivity) {
