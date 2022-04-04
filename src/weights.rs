@@ -21,7 +21,7 @@ type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
 use crate::types::{UomLengthU, UomLengthI, UomPoint, UomVector};
 use geometry::in_base_unit;
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
+use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weight, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
 use crate::types::{UomLength, UomTime, UomRatio, UomPerLength};
 use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
@@ -364,7 +364,7 @@ fn signed(x: usize) -> i32 { x as i32 }
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]
-fn index_trackers(entry_point: Pointf32, flipped: [bool; 3], [nx, ny, nz]: BoxDim) -> IndexTrackers {
+fn index_trackers(entry_point: Pointf32, flipped: [bool; 3], [nx, ny, nz]: BoxDim_u) -> IndexTrackers {
     //use geometry::uom::uomcrate::ConstOne;
     //let one = ONE;
     let one = 1;
@@ -447,7 +447,7 @@ fn flip_axes(mut p1: Pointf32, mut p2: Pointf32) -> (Pointf32, Pointf32, [bool; 
 #[derive(Clone, Copy, Debug)]
 pub struct FOV {
     pub half_width: UomVector,
-    pub n: BoxDim,
+    pub n: BoxDim_u,
     pub voxel_size: UomVector,
 }
 
@@ -464,13 +464,13 @@ impl FOV {
             Self { half_width: half_width.into(), n, voxel_size: voxel_size.into(), }
     }
 
-    fn voxel_size(n: BoxDim, half_width: Vectorf32) -> Vectorf32 {
+    fn voxel_size(n: BoxDim_u, half_width: Vectorf32) -> Vectorf32 {
         // TODO: generalize conversion of VecOf<int> -> VecOf<float>
         let nl: Vectorf32 = Vectorf32::new(n[0] as Lengthf32, n[1] as Lengthf32, n[2] as Lengthf32);
         (half_width * 2.0).component_div(&nl)
     }
 
-    pub fn voxel_centre(&self, i: Index3) -> Pointf32 {
+    pub fn voxel_centre(&self, i: Index3_u) -> Pointf32 {
         //i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
         let s = self.voxel_size;
         UomPoint::new((i[0] as Lengthf32 + 0.5) * s.x - self.half_width[0],
@@ -479,7 +479,7 @@ impl FOV {
             .into()
     }
 
-    pub fn voxel_centre1(&self, i: Index1) -> Pointf32 {
+    pub fn voxel_centre1(&self, i: Index1_u) -> Pointf32 {
         self.voxel_centre(index1_to_3(i, self.n))
     }
 
@@ -510,7 +510,7 @@ mod test_voxel_box {
              case([1,1,0], [ 1.0,  1.0, -1.0]),
              case([1,1,1], [ 1.0,  1.0,  1.0]),
     )]
-    fn test_voxel_centre(index: Index3, expected_position: [Lengthf32; 3]) {
+    fn test_voxel_centre(index: Index3_u, expected_position: [Lengthf32; 3]) {
         let fov = FOV::new((4.0, 4.0, 4.0), (2,2,2));
         let c = fov.voxel_centre(index);
         assert_float_eq!([c.x, c.y, c.z], expected_position, ulps <= [0, 0, 0]);

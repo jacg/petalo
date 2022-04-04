@@ -34,12 +34,12 @@ pub type UomVector = geometry::Vector;
 pub type Pointf32 = nc::math::Point <Lengthf32>;
 pub type UomPoint = geometry::Point;
 
-pub type Index1 = usize;
-pub type Index3 = [usize; 3];
-pub type    BoxDim = [usize; 3];
+#[allow(non_camel_case_types)] pub type Index1_u = usize;
+#[allow(non_camel_case_types)] pub type Index3_u = [usize; 3];
+#[allow(non_camel_case_types)] pub type BoxDim_u = [usize; 3];
 pub type UomBoxDim = [UomLengthU; 3];
 
-pub type Index3Weight = (Index3, Weightf32);
+pub type Index3Weight = (Index3_u, Weightf32);
 
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
