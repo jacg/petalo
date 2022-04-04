@@ -73,7 +73,7 @@ mod test {
 
         let p1 = Pointf32::new(p1.0, p1.1, 0.0);
         let p2 = Pointf32::new(p2.0, p2.1, 0.0);
-        let fov = FOV::new((size.0, size.1, 1.0), (n.0, n.1, 1));
+        let fov = FOV::new((mm(size.0), mm(size.1), mm(1.0)), (n.0, n.1, 1));
 
         // Values to plug in to visualizer:
         let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
@@ -125,7 +125,7 @@ mod test {
             let p2_theta: Lengthf32 = p1_theta + (p2_delta * TWOPIf32);
             let p1 = Pointf32::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
             let p2 = Pointf32::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
-            let fov = FOV::new((dx, dy, dz), (nx, ny, nz));
+            let fov = FOV::new((mm(dx), mm(dy), mm(dz)), (nx, ny, nz));
 
             // Values to plug in to visualizer:
             let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
@@ -455,20 +455,20 @@ pub struct FOV {
 impl FOV {
 
     pub fn new(
-        full_size: (Lengthf32, Lengthf32, Lengthf32),
+        full_size: (Length, Length, Length),
         (nx, ny, nz): (usize, usize, usize)
     ) -> Self {
         let (dx, dy, dz) = full_size;
-        let half_width = Vectorf32::new(dx/2.0, dy/2.0, dz/2.0);
+        let half_width = Vector::new(dx/2.0, dy/2.0, dz/2.0);
         let n = [nx, ny, nz];
-        let voxel_size = Self::voxel_size(n, half_width);
+        let voxel_size = Self::voxel_size(n, half_width.into());
             Self { half_width: half_width.into(), n, voxel_size: voxel_size.into(), }
     }
 
-    fn voxel_size(n: BoxDim_u, half_width: Vectorf32) -> Vectorf32 {
+    fn voxel_size(n: BoxDim_u, half_width: Vector) -> Vector {
         // TODO: generalize conversion of VecOf<int> -> VecOf<float>
         let nl: Vectorf32 = Vectorf32::new(n[0] as Lengthf32, n[1] as Lengthf32, n[2] as Lengthf32);
-        (half_width * 2.0).component_div(&nl)
+        Vectorf32::from(half_width * 2.0).component_div(&nl).into()
     }
 
     pub fn voxel_centre(&self, i: Index3_u) -> Pointf32 {
@@ -512,7 +512,7 @@ mod test_voxel_box {
              case([1,1,1], [ 1.0,  1.0,  1.0]),
     )]
     fn test_voxel_centre(index: Index3_u, expected_position: [Lengthf32; 3]) {
-        let fov = FOV::new((4.0, 4.0, 4.0), (2,2,2));
+        let fov = FOV::new((mm(4.0), mm(4.0), mm(4.0)), (2,2,2));
         let c = fov.voxel_centre(index);
         assert_float_eq!([c.x, c.y, c.z], expected_position, ulps <= [0, 0, 0]);
     }

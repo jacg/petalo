@@ -3,7 +3,7 @@
 use std::fs::File;
 use std::io::{Write, Read, BufWriter, BufReader};
 
-use geometry::uom::mm_;
+use geometry::uom::{mm, mm_};
 
 pub fn write(data: impl Iterator<Item = f32>, path: &std::path::Path) -> std::io::Result<()> {
     let file = File::create(path)?;
@@ -119,7 +119,7 @@ impl From<&Image3D> for MLEMImage {
         let [px, py, pz] = image.pixels;
         let n = (px as usize, py as usize, pz as usize);
         let [wx, wy, wz] = image.mm;
-        let half_width = (wx, wy, wz);
+        let half_width = (mm(wx), mm(wy), mm(wz));
         let fov = crate::weights::FOV::new(half_width, n);
         let data = image.data.clone();
         Self { fov, data }
