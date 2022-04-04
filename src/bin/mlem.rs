@@ -23,7 +23,7 @@ pub struct Cli {
 
     /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
     #[structopt(short, long)]
-    pub tof: Option<UomTime>,
+    pub tof: Option<Time>,
 
     /// TOF cutoff (✕ sigma). to disable: `-k no` [Rust version only]
     #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
@@ -79,7 +79,7 @@ use std::path::PathBuf;
 use std::fs::create_dir_all;
 
 use petalo::types::{Lengthf32, Energyf32, Chargef32, BoundPair};
-use petalo::types::{UomTime, UomRatio};
+use petalo::types::{Time, UomRatio};
 use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};
 use petalo::mlem::Image;

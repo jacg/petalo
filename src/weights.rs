@@ -22,7 +22,7 @@ type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 use crate::types::{LengthU, LengthI, UomPoint, UomVector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
-use crate::types::{Length, UomTime, UomRatio, PerLength};
+use crate::types::{Length, Time, UomRatio, PerLength};
 use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
@@ -549,7 +549,7 @@ impl LOR {
         Self::new(t1, t2, Pointf32::new(x1,y1,z1), Pointf32::new(x2,y2,z2), additive_correction)
     }
 
-    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<UomRatio>, sigma: Option<UomTime>) -> Vec<Index3Weightf32> {
+    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<UomRatio>, sigma: Option<Time>) -> Vec<Index3Weightf32> {
         let tof = make_gauss_option(sigma, cutoff);
         let mut weights = vec![];
         let mut indices = vec![];

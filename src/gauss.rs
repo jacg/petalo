@@ -1,4 +1,4 @@
-use crate::types::{Length, PerLength, UomRatio, UomTime, UOM_TWOPI, UOM_C};
+use crate::types::{Length, PerLength, UomRatio, Time, UOM_TWOPI, UOM_C};
 
 use geometry::uom::uomcrate as guomc;
 use guomc::ConstZero; // num_traits::Zero;
@@ -21,6 +21,6 @@ fn make_gauss(sigma: Length, cutoff: Option<UomRatio>) -> impl Fn(Length) -> Per
     }
 }
 
-pub fn make_gauss_option(sigma: Option<UomTime>, cutoff: Option<UomRatio>) -> Option<impl Fn(Length) -> PerLength> {
+pub fn make_gauss_option(sigma: Option<Time>, cutoff: Option<UomRatio>) -> Option<impl Fn(Length) -> PerLength> {
     sigma.map(|sigma| make_gauss(sigma * UOM_C, cutoff))
 }
