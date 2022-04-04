@@ -19,7 +19,7 @@ use ncollide3d::shape::Cuboid;
 type Ray      = ncollide3d::query::Ray    <Lengthf32>;
 type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
-use crate::types::{LengthU, LengthI, UomPoint, UomVector};
+use crate::types::{LengthU, LengthI, UomPoint, Vector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
 use crate::types::{Length, Time, Ratio, PerLength};
@@ -159,12 +159,12 @@ mod test {
 pub struct FovHit {
 
     /// How far is the next voxel boundary in each direction.
-    pub next_boundary: UomVector,
+    pub next_boundary: Vector,
 
     /// Voxel size expressed in LOR distance units: how far we must move along
     /// LOR to cross one voxel in any given dimension. Will be infinite for any
     /// axis which is parallel to the LOR.
-    pub voxel_size   : UomVector,
+    pub voxel_size   : Vector,
 
     /// 1D index of first voxel entered by the LOR.
     pub index        :  i32,
@@ -217,9 +217,9 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let voxel_size = voxel_size(fov, p1, p2);
 
     // At what position along LOR is the next voxel boundary, in any dimension.
-    let next_boundary = UomVector::from(first_boundaries(entry_point, voxel_size));
+    let next_boundary = Vector::from(first_boundaries(entry_point, voxel_size));
 
-    let voxel_size = UomVector::from(voxel_size);
+    let voxel_size = Vector::from(voxel_size);
     // Return the values needed by `system_matrix_elements`
     let tof_peak = mm(tof_peak);
     Some(FovHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
@@ -236,7 +236,7 @@ pub fn system_matrix_elements(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Lengthf32>,
     mut next_boundary: Vectorf32,
-    voxel_size: UomVector,
+    voxel_size: Vector,
     mut index: i32,
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
@@ -446,9 +446,9 @@ fn flip_axes(mut p1: Pointf32, mut p2: Pointf32) -> (Pointf32, Pointf32, [bool; 
 /// reconstructed
 #[derive(Clone, Copy, Debug)]
 pub struct FOV {
-    pub half_width: UomVector,
+    pub half_width: Vector,
     pub n: BoxDim_u,
-    pub voxel_size: UomVector,
+    pub voxel_size: Vector,
 }
 
 impl FOV {
