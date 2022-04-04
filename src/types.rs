@@ -15,7 +15,7 @@ pub type PerLength = geometry::PerLength;
 pub type Timef32 = f32;
 pub type Time = geometry::Time;
 
-pub type UomVelocity = geometry::Velocity;
+pub type Velocity = geometry::Velocity;
 
 pub type Weightf32 = f32;  // TODO uom Weight
 
@@ -45,8 +45,8 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
 // TODO: doesn't really belong in `types` ...
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
-pub const     C: Lengthf32 =               0.299_792_458; // mm / ps
-pub const UOM_C: UomVelocity = in_base_unit!(299_792_458.0);
+pub const     C: Lengthf32 =            0.299_792_458; // mm / ps
+pub const UOM_C: Velocity = in_base_unit!(299_792_458.0);
 
 #[inline] pub fn ps_to_mm(dt: Timef32) -> Lengthf32 { dt * C }
 #[inline] pub fn mm_to_ps(dx: Lengthf32) -> Timef32 { dx / C }
