@@ -27,7 +27,8 @@ use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
-const     EPS: Lengthf32 =               1e-5;
+#[allow(non_upper_case_globals)]
+const EPSf32: Lengthf32 =             1e-5;
 const UOM_EPS: Length = in_base_unit!(1e-5);
 
 // ------------------------------ TESTS ------------------------------
@@ -308,7 +309,7 @@ fn find_entry_point(mut entry_point: Pointf32, fov: FOV) -> Pointf32 {
     // slightly: if this error is negative, the next step (which uses floor)
     // will pick the wrong voxel. Work around this problem by assuming that
     // anything very close to zero is exactly zero.
-    entry_point.iter_mut().for_each(|x| if x.abs() < EPS { *x = 0.0 });
+    entry_point.iter_mut().for_each(|x| if x.abs() < EPSf32 { *x = 0.0 });
     entry_point
 }
 
