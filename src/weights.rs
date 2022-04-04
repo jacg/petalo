@@ -352,14 +352,14 @@ use geometry::Quantity;
 fn uom_floor(value: Length) -> LengthU { in_base_unit!(value.value.floor() as usize) }
 
 #[inline(always)]
-fn floor(x: f32) -> usize { x.floor() as usize }
+fn floor_f32(x: f32) -> usize { x.floor() as usize }
 
 // --- Convert usize-based Lengthf32 to i32-based Lengthf32 -----------------------------
 #[inline(always)]
 fn uom_signed(value: LengthU) -> LengthI { in_base_unit!(value.value as i32) }
 
 #[inline(always)]
-fn signed(x: usize) -> i32 { x as i32 }
+fn signed_f32(x: usize) -> i32 { x as i32 }
 
 /// Calculate information needed to keep track of progress across FOV:
 /// voxel index and distance remaining until leaving the box
@@ -371,13 +371,13 @@ fn index_trackers(entry_point: Pointf32, flipped: [bool; 3], [nx, ny, nz]: BoxDi
     let one = 1;
 
     // Find N-dimensional index of voxel at entry point.
-    let [ix, iy, iz] = [floor(entry_point.x),
-                        floor(entry_point.y),
-                        floor(entry_point.z)];
+    let [ix, iy, iz] = [floor_f32(entry_point.x),
+                        floor_f32(entry_point.y),
+                        floor_f32(entry_point.z)];
 
     // index is unsigned, but need signed values for delta_index
-    let [ix, iy, iz] = [signed(ix), signed(iy), signed(iz)];
-    let [nx, ny, nz] = [signed(nx), signed(ny), signed(nz)];
+    let [ix, iy, iz] = [signed_f32(ix), signed_f32(iy), signed_f32(iz)];
+    let [nx, ny, nz] = [signed_f32(nx), signed_f32(ny), signed_f32(nz)];
 
     // How much the 1d index changes along each dimension
     let delta_index = [
