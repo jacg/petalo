@@ -2,7 +2,7 @@ use ndhistogram::{axis::{Axis, Uniform}, Histogram};
 use super::axis::Cyclic;
 use crate::io::hdf5::Hdf5Lor;
 use crate::weights::LOR;
-use crate::types::Point;
+use crate::types::Pointf32;
 use std::f32::consts::PI;
 
 type Lengthf32 = crate::types::Lengthf32;
@@ -234,5 +234,5 @@ pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), l
 }
 
 pub fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
-    LOR { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: 0.0, additive_correction: 1.0 }
+    LOR { p1: Pointf32::new(x1,y1,z1), p2: Pointf32::new(x2,y2,z2), dt: 0.0, additive_correction: 1.0 }
 }

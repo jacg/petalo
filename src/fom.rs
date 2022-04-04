@@ -1,5 +1,5 @@
 use crate::io::raw;
-use crate::types::{Lengthf32, Point, Intensityf32, Ratiof32};
+use crate::types::{Lengthf32, Pointf32, Intensityf32, Ratiof32};
 use crate::mlem::{Image, ImageData};
 use crate::weights::FOV;
 
@@ -21,33 +21,33 @@ pub enum ROI {
     DiscZ((Lengthf32, Lengthf32, Lengthf32), Lengthf32),
 }
 
-pub type InRoiFn = Box<dyn Fn(Point) -> bool>;
+pub type InRoiFn = Box<dyn Fn(Pointf32) -> bool>;
 
 impl ROI {
 
     pub fn contains_fn(&self) -> InRoiFn {
         match *self {
-            ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
+            ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Pointf32| {
                 let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
                 x*x + y*y + z*z < radius * radius
             }),
 
-            ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Point| {
+            ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Pointf32| {
                 let (y, z) = (p.y - cy, p.z - cz);
                 y*y + z*z < radius*radius
             }),
 
-            ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Point| {
+            ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Pointf32| {
                 let (x, z) = (p.x - cx, p.z - cz);
                 x*x + z*z < radius*radius
             }),
 
-            ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
+            ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Pointf32| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 x*x + y*y < radius*radius
             }),
 
-            ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Point| {
+            ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Pointf32| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 z == p.z && x*x + y*y < radius*radius
             }),
@@ -67,7 +67,7 @@ impl ROI {
 }
 
 /// A 3D point with an associated value. Used to represent voxels
-pub type PointValue = (Point, Intensityf32);
+pub type PointValue = (Pointf32, Intensityf32);
 
 // TODO replace vec with iterator in output
 impl Image {

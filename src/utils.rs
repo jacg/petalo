@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::ops::{Bound, Range};
 
-use crate::types::{Timef32, Lengthf32, Point, BoundPair};
+use crate::types::{Timef32, Lengthf32, Pointf32, BoundPair};
 use crate::types::UomRatio;
 use crate::weights::{LOR};
 
@@ -66,8 +66,8 @@ pub fn parse_lor(s: &str) -> Result<LOR, Box<dyn Error>> {
     let y2 = n[6].parse::<Lengthf32>()?;
     let z2 = n[7].parse::<Lengthf32>()?;
 
-    let p1 = Point::new(x1, y1, z1);
-    let p2 = Point::new(x2, y2, z2);
+    let p1 = Pointf32::new(x1, y1, z1);
+    let p2 = Pointf32::new(x2, y2, z2);
     let lor = LOR::new(t1, t2, p1, p2, 1.0);
     Ok(lor)
 }

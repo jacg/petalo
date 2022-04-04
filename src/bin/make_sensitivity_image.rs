@@ -92,12 +92,12 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Lengthf32, dete
 }
 
 
-fn random_point_on_cylinder(l: Lengthf32, r: Lengthf32) -> petalo::types::Point {
+fn random_point_on_cylinder(l: Lengthf32, r: Lengthf32) -> petalo::types::Pointf32 {
     use std::f32::consts::TAU;
     use rand::random;
     let z     = l   * (random::<Lengthf32>() - 0.5);
     let theta = TAU *  random::<Lengthf32>();
     let x = r * theta.cos();
     let y = r * theta.sin();
-    petalo::types::Point::new(x, y, z)
+    petalo::types::Pointf32::new(x, y, z)
 }
