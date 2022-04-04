@@ -23,7 +23,7 @@ use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
 use crate::types::{Length, Time, Ratio, PerLength};
-use geometry::uom::mm;
+use geometry::uom::{mm, mm_};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -473,16 +473,17 @@ impl FOV {
         )
     }
 
-    pub fn voxel_centre(&self, i: Index3_u) -> Pointf32 {
+    /// Find centre of voxel with given 3D index
+    pub fn voxel_centre(&self, i: Index3_u) -> Point {
         //i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
         let s = self.voxel_size;
         Point::new((i[0] as Lengthf32 + 0.5) * s.x - self.half_width[0],
-                      (i[1] as Lengthf32 + 0.5) * s.y - self.half_width[1],
-                      (i[2] as Lengthf32 + 0.5) * s.z - self.half_width[2],)
-            .into()
+                   (i[1] as Lengthf32 + 0.5) * s.y - self.half_width[1],
+                   (i[2] as Lengthf32 + 0.5) * s.z - self.half_width[2],)
     }
 
-    pub fn voxel_centre1(&self, i: Index1_u) -> Pointf32 {
+    /// Find centre of voxel with given 1D index
+    pub fn voxel_centre1(&self, i: Index1_u) -> Point {
         self.voxel_centre(index1_to_3(i, self.n))
     }
 
@@ -516,7 +517,8 @@ mod test_voxel_box {
     fn test_voxel_centre(index: Index3_u, expected_position: [Lengthf32; 3]) {
         let fov = FOV::new((mm(4.0), mm(4.0), mm(4.0)), (2,2,2));
         let c = fov.voxel_centre(index);
-        assert_float_eq!([c.x, c.y, c.z], expected_position, ulps <= [0, 0, 0]);
+        let c = [mm_(c.x), mm_(c.y), mm_(c.z)];
+        assert_float_eq!(c, expected_position, ulps <= [1, 1, 1]);
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::io::raw;
 use crate::types::{Lengthf32, Pointf32, Intensityf32, Ratiof32};
+use crate::types::Point;
 use crate::mlem::{Image, ImageData};
 use crate::weights::FOV;
 
@@ -67,7 +68,7 @@ impl ROI {
 }
 
 /// A 3D point with an associated value. Used to represent voxels
-pub type PointValue = (Pointf32, Intensityf32);
+pub type PointValue = (Point, Intensityf32);
 
 // TODO replace vec with iterator in output
 impl Image {
@@ -77,7 +78,7 @@ impl Image {
         let roi_contains = roi.contains_fn();
         for (index, value) in self.data.iter().copied().enumerate() {
             let p = self.fov.voxel_centre1(index);
-            if roi_contains(p) { out.push(value) }
+            if roi_contains(p.into()) { out.push(value) }
         }
         out
     }
@@ -101,7 +102,7 @@ pub fn mean_in_region(roi: ROI, voxels: &[PointValue]) -> f32 {
 /// Iterator which filters out voxels that lie outside given ROI
 pub fn in_roi(in_roi: InRoiFn, voxels: &[PointValue]) -> impl Iterator<Item = PointValue> + '_ {
     voxels.iter()
-        .filter(move |(p,_)| in_roi(*p))
+        .filter(move |(p,_)| in_roi(p.into()))
         .copied()
 }
 
