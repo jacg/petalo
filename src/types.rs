@@ -39,7 +39,7 @@ pub type UomPoint = geometry::Point;
 #[allow(non_camel_case_types)] pub type BoxDim_u = [usize; 3];
 pub type UomBoxDim = [UomLengthU; 3];
 
-pub type Index3Weight = (Index3_u, Weightf32);
+pub type Index3Weightf32 = (Index3_u, Weightf32);
 
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
