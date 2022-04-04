@@ -45,11 +45,11 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
 // TODO: doesn't really belong in `types` ...
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
-pub const     C: Lengthf32 =            0.299_792_458; // mm / ps
+pub const C_f32: Lengthf32 =            0.299_792_458; // mm / ps
 pub const UOM_C: Velocity = in_base_unit!(299_792_458.0);
 
-#[inline] pub fn ps_to_mm(dt: Timef32) -> Lengthf32 { dt * C }
-#[inline] pub fn mm_to_ps(dx: Lengthf32) -> Timef32 { dx / C }
+#[inline] pub fn ps_to_mm(dt: Timef32) -> Lengthf32 { dt * C_f32 }
+#[inline] pub fn mm_to_ps(dx: Lengthf32) -> Timef32 { dx / C_f32 }
 
 #[inline] pub fn ns_to_mm(dt: Timef32) -> Lengthf32 { ps_to_mm(dt) * 1000.0 }
 #[inline] pub fn mm_to_ns(dx: Lengthf32) -> Timef32 { mm_to_ps(dx) / 1000.0  }
