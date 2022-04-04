@@ -19,7 +19,7 @@ use ncollide3d::shape::Cuboid;
 type Ray      = ncollide3d::query::Ray    <Lengthf32>;
 type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
-use crate::types::{LengthU, LengthI, UomPoint, Vector};
+use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
 use crate::types::{Length, Time, Ratio, PerLength};
@@ -473,7 +473,7 @@ impl FOV {
     pub fn voxel_centre(&self, i: Index3_u) -> Pointf32 {
         //i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
         let s = self.voxel_size;
-        UomPoint::new((i[0] as Lengthf32 + 0.5) * s.x - self.half_width[0],
+        Point::new((i[0] as Lengthf32 + 0.5) * s.x - self.half_width[0],
                       (i[1] as Lengthf32 + 0.5) * s.y - self.half_width[1],
                       (i[2] as Lengthf32 + 0.5) * s.z - self.half_width[2],)
             .into()

@@ -32,7 +32,7 @@ pub type Vectorf32 = nc::math::Vector<Lengthf32>;
 pub type Vector    = geometry::Vector;
 
 pub type Pointf32 = nc::math::Point <Lengthf32>;
-pub type UomPoint = geometry::Point;
+pub type Point    = geometry::Point;
 
 #[allow(non_camel_case_types)] pub type Index1_u = usize;
 #[allow(non_camel_case_types)] pub type Index3_u = [usize; 3];
