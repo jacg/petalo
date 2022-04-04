@@ -17,7 +17,7 @@ pub type UomTime = geometry::Time;
 
 pub type UomVelocity = geometry::Velocity;
 
-pub type Weight = f32;  // TODO uom Weight
+pub type Weightf32 = f32;  // TODO uom Weight
 
 pub type    Ratio = f32;
 pub type UomRatio = geometry::Ratio;
@@ -39,7 +39,7 @@ pub type Index3 = [usize; 3];
 pub type    BoxDim = [usize; 3];
 pub type UomBoxDim = [UomLengthU; 3];
 
-pub type Index3Weight = (Index3, Weight);
+pub type Index3Weight = (Index3, Weightf32);
 
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
