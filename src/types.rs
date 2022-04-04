@@ -77,5 +77,6 @@ mod test_conversions {
 
 }
 
-pub const     TWOPI: Lengthf32 = std::f32::consts::TAU as Lengthf32;
+#[allow(non_upper_case_globals)]
+pub const TWOPIf32: Lengthf32 = std::f32::consts::TAU as Lengthf32;
 pub const UOM_TWOPI: Ratio = in_base_unit!(std::f32::consts::TAU);

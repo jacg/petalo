@@ -40,7 +40,7 @@ mod test {
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
-    use crate::types::TWOPI;
+    use crate::types::TWOPIf32;
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
@@ -120,8 +120,8 @@ mod test {
             ny in  5..50_usize,
             nz in  5..90_usize,
         ) {
-            let p1_theta: Lengthf32 = p1_angle * TWOPI;
-            let p2_theta: Lengthf32 = p1_theta + (p2_delta * TWOPI);
+            let p1_theta: Lengthf32 = p1_angle * TWOPIf32;
+            let p2_theta: Lengthf32 = p1_theta + (p2_delta * TWOPIf32);
             let p1 = Pointf32::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
             let p2 = Pointf32::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
             let fov = FOV::new((dx, dy, dz), (nx, ny, nz));
