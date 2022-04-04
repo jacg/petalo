@@ -6,7 +6,7 @@ use crate::types::Point;
 use std::f32::consts::PI;
 
 type Lengthf32 = crate::types::Lengthf32;
-type Ratio  = crate::types::Ratio;
+type Ratio  = crate::types::Ratiof32;
 type Angle  = crate::types::Angle;
 
 /// Distinguish between true, scatter and random prompt signals

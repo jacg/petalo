@@ -21,7 +21,7 @@ type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
 use crate::types::{UomLengthU, UomLengthI, UomPoint, UomVector};
 use geometry::in_base_unit;
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Lengthf32, Point, Ratio, Timef32, Vector, ns_to_mm};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Lengthf32, Point, Ratiof32, Timef32, Vector, ns_to_mm};
 use crate::types::{UomLength, UomTime, UomRatio, UomPerLength};
 use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
@@ -532,18 +532,18 @@ pub struct LOR {
     /// to the sinogram bin in the MLEM forward projection. In order to make it
     /// compatible with a single LOR (rather than many LORs in a sinogram bin)
     /// it is expressed here as a *multiplicative* factor.
-    pub additive_correction: Ratio,
+    pub additive_correction: Ratiof32,
 }
 
 impl LOR {
-    pub fn new(t1: Timef32, t2: Timef32, p1: Point, p2: Point, additive_correction: Ratio) -> Self {
+    pub fn new(t1: Timef32, t2: Timef32, p1: Point, p2: Point, additive_correction: Ratiof32) -> Self {
         Self { p1, p2, dt: t2 - t1, additive_correction }
     }
 
     pub fn from_components((t1, t2): (Timef32, Timef32),
                            (x1, y1, z1): (Lengthf32, Lengthf32, Lengthf32),
                            (x2, y2, z2): (Lengthf32, Lengthf32, Lengthf32),
-                           additive_correction: Ratio
+                           additive_correction: Ratiof32
                           ) -> Self
     {
         Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)

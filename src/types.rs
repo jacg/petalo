@@ -19,7 +19,7 @@ pub type UomVelocity = geometry::Velocity;
 
 pub type Weightf32 = f32;  // TODO uom Weight
 
-pub type    Ratio = f32;
+pub type Ratiof32 = f32;
 pub type UomRatio = geometry::Ratio;
 
 pub type Angle  = f32; // TODO uom Angle

@@ -1,5 +1,5 @@
 use crate::io::raw;
-use crate::types::{Lengthf32, Point, Intensity, Ratio};
+use crate::types::{Lengthf32, Point, Intensity, Ratiof32};
 use crate::mlem::{Image, ImageData};
 use crate::weights::FOV;
 
@@ -307,16 +307,16 @@ impl FomConfig {
 
 #[allow(clippy::upper_case_acronyms)]
 pub struct FOMS {
-    pub crcs: Vec<Ratio>,
-    pub snrs: Vec<Ratio>,
+    pub crcs: Vec<Ratiof32>,
+    pub snrs: Vec<Ratiof32>,
 }
 
 #[allow(clippy::upper_case_acronyms)]
 pub struct FOM {
     pub r: Lengthf32,
-    pub crc: Ratio,
-    pub bg_variability: Ratio,
-    pub snr: Ratio,
+    pub crc: Ratiof32,
+    pub bg_variability: Ratiof32,
+    pub snr: Ratiof32,
 }
 
 impl Image {
@@ -348,7 +348,7 @@ impl Image {
 /// The exact calculation performed depends on whether the ROI is formally
 /// hotter or colder than the background.
 pub fn crc(roi_measured: Intensity, roi_activity: Intensity,
-           bgd_measured: Intensity, bgd_activity: Intensity) -> Ratio {
+           bgd_measured: Intensity, bgd_activity: Intensity) -> Ratiof32 {
     100.0 * if roi_activity > bgd_activity { // hot CRC
         ((roi_measured / bgd_measured) - 1.0) /
         ((roi_activity / bgd_activity) - 1.0)
