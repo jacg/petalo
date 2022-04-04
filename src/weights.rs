@@ -466,9 +466,11 @@ impl FOV {
     }
 
     fn voxel_size(n: BoxDim_u, half_width: Vector) -> Vector {
-        // TODO: generalize conversion of VecOf<int> -> VecOf<float>
-        let nl: Vectorf32 = Vectorf32::new(n[0] as Lengthf32, n[1] as Lengthf32, n[2] as Lengthf32);
-        Vectorf32::from(half_width * 2.0).component_div(&nl).into()
+        let full_width = half_width * 2.0;
+        Vector::new(full_width[0] / n[0] as f32,
+                    full_width[1] / n[1] as f32,
+                    full_width[2] / n[2] as f32,
+        )
     }
 
     pub fn voxel_centre(&self, i: Index3_u) -> Pointf32 {
