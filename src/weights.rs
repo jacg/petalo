@@ -29,7 +29,7 @@ use crate::mlem::{index3_to_1, index1_to_3};
 
 #[allow(non_upper_case_globals)]
 const EPSf32: Lengthf32 =             1e-5;
-const UOM_EPS: Length = in_base_unit!(1e-5);
+const EPS: Length = in_base_unit!(1e-5);
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
