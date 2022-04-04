@@ -19,16 +19,17 @@ use ncollide3d::shape::Cuboid;
 type Ray      = ncollide3d::query::Ray    <Lengthf32>;
 type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
-use crate::types::{UomLengthU, UomLengthI, UomPoint, UomVector};
+use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
-use crate::types::{UomLength, UomTime, UomRatio, UomPerLength};
+use crate::types::{Length, Time, Ratio, PerLength};
 use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
-const     EPS: Lengthf32 =               1e-5;
-const UOM_EPS: UomLength = in_base_unit!(1e-5);
+#[allow(non_upper_case_globals)]
+const EPSf32: Lengthf32 =             1e-5;
+const EPS: Length = in_base_unit!(1e-5);
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -40,7 +41,7 @@ mod test {
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
-    use crate::types::TWOPI;
+    use crate::types::TWOPIf32;
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
@@ -120,8 +121,8 @@ mod test {
             ny in  5..50_usize,
             nz in  5..90_usize,
         ) {
-            let p1_theta: Lengthf32 = p1_angle * TWOPI;
-            let p2_theta: Lengthf32 = p1_theta + (p2_delta * TWOPI);
+            let p1_theta: Lengthf32 = p1_angle * TWOPIf32;
+            let p2_theta: Lengthf32 = p1_theta + (p2_delta * TWOPIf32);
             let p1 = Pointf32::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
             let p2 = Pointf32::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
             let fov = FOV::new((dx, dy, dz), (nx, ny, nz));
@@ -159,12 +160,12 @@ mod test {
 pub struct FovHit {
 
     /// How far is the next voxel boundary in each direction.
-    pub next_boundary: UomVector,
+    pub next_boundary: Vector,
 
     /// Voxel size expressed in LOR distance units: how far we must move along
     /// LOR to cross one voxel in any given dimension. Will be infinite for any
     /// axis which is parallel to the LOR.
-    pub voxel_size   : UomVector,
+    pub voxel_size   : Vector,
 
     /// 1D index of first voxel entered by the LOR.
     pub index        :  i32,
@@ -177,7 +178,7 @@ pub struct FovHit {
     pub remaining    : [i32; 3],
 
     /// Distance to the peak of the TOF gaussian.
-    pub tof_peak     : UomLength,
+    pub tof_peak     : Length,
 }
 
 /// Figure out if the LOR hits the FOV at all. If it does, calculate values
@@ -217,9 +218,9 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let voxel_size = voxel_size(fov, p1, p2);
 
     // At what position along LOR is the next voxel boundary, in any dimension.
-    let next_boundary = UomVector::from(first_boundaries(entry_point, voxel_size));
+    let next_boundary = Vector::from(first_boundaries(entry_point, voxel_size));
 
-    let voxel_size = UomVector::from(voxel_size);
+    let voxel_size = Vector::from(voxel_size);
     // Return the values needed by `system_matrix_elements`
     let tof_peak = mm(tof_peak);
     Some(FovHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
@@ -236,15 +237,15 @@ pub fn system_matrix_elements(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Lengthf32>,
     mut next_boundary: Vectorf32,
-    voxel_size: UomVector,
+    voxel_size: Vector,
     mut index: i32,
     delta_index: [i32; 3],
     mut remaining: [i32; 3],
-    tof_peak: UomLength,
-    tof: &Option<impl Fn(UomLength) -> UomPerLength>) {
+    tof_peak: Length,
+    tof: &Option<impl Fn(Length) -> PerLength>) {
 
     // How far we have moved since entering the FOV
-    let mut here = LENGTH_ZERO;
+    let mut here = F32_LENGTH_ZERO;
 
     loop {
         // Which voxel boundary will be hit next, and its position
@@ -255,7 +256,7 @@ pub fn system_matrix_elements(
 
         // If TOF enabled, adjust weight
         if let Some(gauss) = &tof {
-            let g: UomPerLength = gauss(mm(here) - tof_peak);
+            let g: PerLength = gauss(mm(here) - tof_peak);
             // Turn into dimensionless number: TODO normalization
             let g: f32 = (mm(1000.0) * g).get::<geometry::uom::uomcrate::si::ratio::ratio>();
             weight *= g;
@@ -283,8 +284,8 @@ pub fn system_matrix_elements(
 }
 
 use crate::types::guomc::ConstZero;
-const UOM_LENGTH_ZERO: UomLength = UomLength::ZERO;
-const     LENGTH_ZERO: Lengthf32 = 0.0;
+const LENGTH_ZERO: Length = Length::ZERO;
+const F32_LENGTH_ZERO: Lengthf32 = 0.0;
 
 /// The point at which the LOR enters the FOV, expressed in a coordinate
 /// system with one corner of the FOV at the origin.
@@ -308,7 +309,7 @@ fn find_entry_point(mut entry_point: Pointf32, fov: FOV) -> Pointf32 {
     // slightly: if this error is negative, the next step (which uses floor)
     // will pick the wrong voxel. Work around this problem by assuming that
     // anything very close to zero is exactly zero.
-    entry_point.iter_mut().for_each(|x| if x.abs() < EPS { *x = 0.0 });
+    entry_point.iter_mut().for_each(|x| if x.abs() < EPSf32 { *x = 0.0 });
     entry_point
 }
 
@@ -348,17 +349,17 @@ use geometry::Quantity;
 
 // --- Truncate float-based Lengthf32 to usize-based Lengthf32 --------------------------
 #[inline(always)]
-fn uom_floor(value: UomLength) -> UomLengthU { in_base_unit!(value.value.floor() as usize) }
+fn uom_floor(value: Length) -> LengthU { in_base_unit!(value.value.floor() as usize) }
 
 #[inline(always)]
-fn floor(x: f32) -> usize { x.floor() as usize }
+fn floor_f32(x: f32) -> usize { x.floor() as usize }
 
 // --- Convert usize-based Lengthf32 to i32-based Lengthf32 -----------------------------
 #[inline(always)]
-fn uom_signed(value: UomLengthU) -> UomLengthI { in_base_unit!(value.value as i32) }
+fn uom_signed(value: LengthU) -> LengthI { in_base_unit!(value.value as i32) }
 
 #[inline(always)]
-fn signed(x: usize) -> i32 { x as i32 }
+fn signed_f32(x: usize) -> i32 { x as i32 }
 
 /// Calculate information needed to keep track of progress across FOV:
 /// voxel index and distance remaining until leaving the box
@@ -370,13 +371,13 @@ fn index_trackers(entry_point: Pointf32, flipped: [bool; 3], [nx, ny, nz]: BoxDi
     let one = 1;
 
     // Find N-dimensional index of voxel at entry point.
-    let [ix, iy, iz] = [floor(entry_point.x),
-                        floor(entry_point.y),
-                        floor(entry_point.z)];
+    let [ix, iy, iz] = [floor_f32(entry_point.x),
+                        floor_f32(entry_point.y),
+                        floor_f32(entry_point.z)];
 
     // index is unsigned, but need signed values for delta_index
-    let [ix, iy, iz] = [signed(ix), signed(iy), signed(iz)];
-    let [nx, ny, nz] = [signed(nx), signed(ny), signed(nz)];
+    let [ix, iy, iz] = [signed_f32(ix), signed_f32(iy), signed_f32(iz)];
+    let [nx, ny, nz] = [signed_f32(nx), signed_f32(ny), signed_f32(nz)];
 
     // How much the 1d index changes along each dimension
     let delta_index = [
@@ -446,9 +447,9 @@ fn flip_axes(mut p1: Pointf32, mut p2: Pointf32) -> (Pointf32, Pointf32, [bool; 
 /// reconstructed
 #[derive(Clone, Copy, Debug)]
 pub struct FOV {
-    pub half_width: UomVector,
+    pub half_width: Vector,
     pub n: BoxDim_u,
-    pub voxel_size: UomVector,
+    pub voxel_size: Vector,
 }
 
 impl FOV {
@@ -473,7 +474,7 @@ impl FOV {
     pub fn voxel_centre(&self, i: Index3_u) -> Pointf32 {
         //i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
         let s = self.voxel_size;
-        UomPoint::new((i[0] as Lengthf32 + 0.5) * s.x - self.half_width[0],
+        Point::new((i[0] as Lengthf32 + 0.5) * s.x - self.half_width[0],
                       (i[1] as Lengthf32 + 0.5) * s.y - self.half_width[1],
                       (i[2] as Lengthf32 + 0.5) * s.z - self.half_width[2],)
             .into()
@@ -549,7 +550,7 @@ impl LOR {
         Self::new(t1, t2, Pointf32::new(x1,y1,z1), Pointf32::new(x2,y2,z2), additive_correction)
     }
 
-    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<UomRatio>, sigma: Option<UomTime>) -> Vec<Index3Weightf32> {
+    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<Ratio>, sigma: Option<Time>) -> Vec<Index3Weightf32> {
         let tof = make_gauss_option(sigma, cutoff);
         let mut weights = vec![];
         let mut indices = vec![];
