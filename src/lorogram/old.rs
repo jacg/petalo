@@ -7,7 +7,7 @@ use std::f32::consts::PI;
 
 type Lengthf32 = crate::types::Lengthf32;
 type Ratio  = crate::types::Ratiof32;
-type Angle  = crate::types::Angle;
+type Angle  = crate::types::Anglef32;
 
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }

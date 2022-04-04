@@ -22,7 +22,7 @@ pub type Weightf32 = f32;  // TODO uom Weight
 pub type Ratiof32 = f32;
 pub type UomRatio = geometry::Ratio;
 
-pub type Angle  = f32; // TODO uom Angle
+pub type Anglef32  = f32; // TODO uom Angle
 pub type Energy = f32; // TODO uom Energy
 pub type Charge = f32; // TODO uom Charge
 
