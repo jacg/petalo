@@ -10,13 +10,13 @@ pub struct Args {
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
     pub legacy_input_format: bool,
-    pub ecut: BoundPair<Energy>,
+    pub ecut: BoundPair<Energyf32>,
     pub qcut: BoundPair<crate::types::Charge>,
 }
 
 use ndarray::{s, Array1};
 
-use crate::types::{Lengthf32, Point, Energy, BoundPair};
+use crate::types::{Lengthf32, Point, Energyf32, BoundPair};
 use crate::weights::LOR;
 type F = Lengthf32;
 

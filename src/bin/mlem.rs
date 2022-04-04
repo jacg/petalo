@@ -63,8 +63,8 @@ pub struct Cli {
     pub legacy_input_format: bool,
 
     /// Ignore events with gamma energy/keV outside this range
-    #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energy>), default_value = "..")]
-    pub ecut: BoundPair<Energy>,
+    #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energyf32>), default_value = "..")]
+    pub ecut: BoundPair<Energyf32>,
 
     /// Ignore events with detected charge/pes outside this range
     #[structopt(short, long, parse(try_from_str = parse_bounds::<Charge>), default_value = "..")]
@@ -78,7 +78,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::types::{Lengthf32, Energy, Charge, BoundPair};
+use petalo::types::{Lengthf32, Energyf32, Charge, BoundPair};
 use petalo::types::{UomTime, UomRatio};
 use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};

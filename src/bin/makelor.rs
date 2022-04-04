@@ -3,7 +3,7 @@ use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
 use petalo::io;
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
-use petalo::types::{Point, Timef32, Lengthf32, Energy};
+use petalo::types::{Point, Timef32, Lengthf32, Energyf32};
 use petalo::utils::group_digits;
 
 #[derive(StructOpt, Debug, Clone)]
@@ -326,7 +326,7 @@ fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f3
 }
 
 #[allow(nonstandard_style)]
-fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Lengthf32, Lengthf32, Lengthf32, Timef32, Energy)> {
+fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Lengthf32, Lengthf32, Lengthf32, Timef32, Energyf32)> {
     if vertices.is_empty() { return None }
     let mut delta_E  = 0_f32;
     let mut xx = 0.0;
