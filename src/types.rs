@@ -28,7 +28,7 @@ pub type Chargef32 = f32; // TODO uom Charge
 
 pub type Intensityf32 = f32; // TODO uom Intensity
 
-pub type    Vector = nc::math::Vector<Lengthf32>;
+pub type Vectorf32 = nc::math::Vector<Lengthf32>;
 pub type UomVector = geometry::Vector;
 
 pub type    Point = nc::math::Point <Lengthf32>;

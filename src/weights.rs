@@ -21,7 +21,7 @@ type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
 use crate::types::{UomLengthU, UomLengthI, UomPoint, UomVector};
 use geometry::in_base_unit;
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Lengthf32, Point, Ratiof32, Timef32, Vector, ns_to_mm};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Lengthf32, Point, Ratiof32, Timef32, Vectorf32, ns_to_mm};
 use crate::types::{UomLength, UomTime, UomRatio, UomPerLength};
 use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
@@ -235,7 +235,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
 pub fn system_matrix_elements(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Lengthf32>,
-    mut next_boundary: Vector,
+    mut next_boundary: Vectorf32,
     voxel_size: UomVector,
     mut index: i32,
     delta_index: [i32; 3],
@@ -271,7 +271,7 @@ pub fn system_matrix_elements(
         here = boundary_position;
 
         // Find the next boundary in this dimension
-        next_boundary[dimension] += Vector::from(voxel_size)[dimension];
+        next_boundary[dimension] += Vectorf32::from(voxel_size)[dimension];
 
         // Move index across the boundary we are crossing
         index += delta_index[dimension];
@@ -292,12 +292,12 @@ const     LENGTH_ZERO: Lengthf32 = 0.0;
 fn find_entry_point(mut entry_point: Point, fov: FOV) -> Point {
     // Transform coordinates to align box with axes: making the lower boundaries
     // of the box lie on the zero-planes.
-    entry_point += Vector::from(fov.half_width);
+    entry_point += Vectorf32::from(fov.half_width);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     // TODO: figure out if we should support Point * Vector -> Point  (affine * vector -> affine)
     // NOTE: this should be Point<Ratio> rater than Point<Lengthf32>
-    let voxel_size = Vector::from(fov.voxel_size);
+    let voxel_size = Vectorf32::from(fov.voxel_size);
     let mut entry_point = Point::new(
         entry_point[0] / voxel_size[0],
         entry_point[1] / voxel_size[1],
@@ -327,21 +327,21 @@ fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Timef32) -> Lengt
 
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
-fn first_boundaries(entry_point: Point, voxel_size: Vector) -> Vector {
+fn first_boundaries(entry_point: Point, voxel_size: Vectorf32) -> Vectorf32 {
     // What fraction of the voxel has already been traversed at the entry
     // point, along any axis.
-    let vox_done_fraction: Vector = entry_point - entry_point.map(|x| x.floor());
+    let vox_done_fraction: Vectorf32 = entry_point - entry_point.map(|x| x.floor());
     // Distances remaining to the nearest boundaries
-    (Vector::repeat(1.0) - vox_done_fraction).component_mul(&voxel_size)
+    (Vectorf32::repeat(1.0) - vox_done_fraction).component_mul(&voxel_size)
 }
 
 /// Voxel size expressed in LOR distance units: how far we must move along LOR
 /// to cross one voxel in any given dimension. Will be infinite for any axis
 /// which is parallel to the LOR.
 #[inline]
-fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
+fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vectorf32 {
     let lor_direction = (p2-p1).normalize();
-    Vector::from(fov.voxel_size).component_div(&lor_direction)
+    Vectorf32::from(fov.voxel_size).component_div(&lor_direction)
 }
 
 use geometry::Quantity;
@@ -425,7 +425,7 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
     let zero = 0.0;
 
     let dimensions = 3;
-    let original_lor_direction: Vector = p2 - p1;
+    let original_lor_direction: Vectorf32 = p2 - p1;
     let mut flipped = [false; 3];
     let mut flip_if_necessary = |n| {
         if original_lor_direction[n] < zero {
@@ -458,15 +458,15 @@ impl FOV {
         (nx, ny, nz): (usize, usize, usize)
     ) -> Self {
         let (dx, dy, dz) = full_size;
-        let half_width = Vector::new(dx/2.0, dy/2.0, dz/2.0);
+        let half_width = Vectorf32::new(dx/2.0, dy/2.0, dz/2.0);
         let n = [nx, ny, nz];
         let voxel_size = Self::voxel_size(n, half_width);
             Self { half_width: half_width.into(), n, voxel_size: voxel_size.into(), }
     }
 
-    fn voxel_size(n: BoxDim, half_width: Vector) -> Vector {
+    fn voxel_size(n: BoxDim, half_width: Vectorf32) -> Vectorf32 {
         // TODO: generalize conversion of VecOf<int> -> VecOf<float>
-        let nl: Vector = Vector::new(n[0] as Lengthf32, n[1] as Lengthf32, n[2] as Lengthf32);
+        let nl: Vectorf32 = Vectorf32::new(n[0] as Lengthf32, n[1] as Lengthf32, n[2] as Lengthf32);
         (half_width * 2.0).component_div(&nl)
     }
 
@@ -484,7 +484,7 @@ impl FOV {
     }
 
     pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
-        let lor_direction: Vector = (p2 - p1).normalize();
+        let lor_direction: Vectorf32 = (p2 - p1).normalize();
         let lor_length: Lengthf32 = (p2 - p1).norm();
         let lor: Ray = Ray::new(*p1, lor_direction);
         let iso: Isometry = Isometry::identity();
