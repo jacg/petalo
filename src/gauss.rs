@@ -1,4 +1,4 @@
-use crate::types::{Length, PerLength, Ratio, Time, UOM_TWOPI, C};
+use crate::types::{Length, PerLength, Ratio, Time, TWOPI, C};
 
 use geometry::uom::uomcrate as guomc;
 use guomc::ConstZero; // num_traits::Zero;
@@ -6,7 +6,7 @@ use geometry::uom::mm;
 
 // How would you make this generic over Length -> T ?
 fn make_gauss(sigma: Length, cutoff: Option<Ratio>) -> impl Fn(Length) -> PerLength {
-    let two_pi: Ratio = UOM_TWOPI;
+    let two_pi: Ratio = TWOPI;
     let root_two_pi: Ratio = two_pi.sqrt();
     let peak_height: PerLength = 1.0 / (sigma * root_two_pi);
     let cutoff: Length = cutoff.map_or(mm(std::f32::INFINITY), |width| width * sigma);
