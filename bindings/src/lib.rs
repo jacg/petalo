@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use petalo::{mlem::Image, weights::FOV, fom, types::{Length as L, Intensity}};
+use petalo::{mlem::Image, weights::FOV, fom, types::{Lengthf32 as L, Intensityf32}};
 
 #[pyfunction]
 #[text_signature = "(n, /)"]
@@ -49,8 +49,8 @@ struct FomConfig {
 impl FomConfig {
 
     #[new]
-    fn new(rois: Vec<(ROI, Intensity)>, bg_rois: Vec<ROI>, bg: Intensity, voxels: (usize, usize, usize), size: (L,L,L)) -> Self {
-        let rois: Vec<(petalo::fom::ROI, Intensity)> = rois.into_iter()
+    fn new(rois: Vec<(ROI, Intensityf32)>, bg_rois: Vec<ROI>, bg: Intensityf32, voxels: (usize, usize, usize), size: (L,L,L)) -> Self {
+        let rois: Vec<(petalo::fom::ROI, Intensityf32)> = rois.into_iter()
             .map(|(r,i)| (pyroi_to_fomroi(r), i))
             .collect();
         let background_rois = bg_rois.into_iter().map(pyroi_to_fomroi).collect();
@@ -60,7 +60,7 @@ impl FomConfig {
     }
 
     /// Calculate CRC for a 60x60x60 voxel image
-    fn crcs(&self, data: Vec<Intensity>) -> Vec<Intensity> {
+    fn crcs(&self, data: Vec<Intensityf32>) -> Vec<Intensityf32> {
         let image = Image::new(self.fov, data);
         let crcs = image.foms(&self.cfg, true).crcs;
         crcs
@@ -112,8 +112,8 @@ fn pyroi_to_fomroi(pyroi: ROI) -> petalo::fom::ROI {
 }
 
 #[pyfunction]
-fn fom_config(rois: Vec<(ROI, Intensity)>, bg_rois: Vec<ROI>, bg: Intensity) -> String /*FomConfig*/ {
-    let rois: Vec<(petalo::fom::ROI, Intensity)> = rois.into_iter()
+fn fom_config(rois: Vec<(ROI, Intensityf32)>, bg_rois: Vec<ROI>, bg: Intensityf32) -> String /*FomConfig*/ {
+    let rois: Vec<(petalo::fom::ROI, Intensityf32)> = rois.into_iter()
         .map(|(r,i)| (pyroi_to_fomroi(r), i))
         .collect();
     let background_rois = bg_rois.into_iter().map(pyroi_to_fomroi).collect();

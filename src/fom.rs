@@ -1,5 +1,5 @@
 use crate::io::raw;
-use crate::types::{Length, Point, Intensity, Ratio};
+use crate::types::{Lengthf32, Pointf32, Intensityf32, Ratiof32};
 use crate::mlem::{Image, ImageData};
 use crate::weights::FOV;
 
@@ -14,47 +14,47 @@ pub fn load_image(filename: &std::path::Path, fov: FOV) -> BoxErr<Image> {
 #[derive(Clone, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum ROI {
-    Sphere((Length, Length, Length), Length),
-    CylinderX((Length, Length), Length),
-    CylinderY((Length, Length), Length),
-    CylinderZ((Length, Length), Length),
-    DiscZ((Length, Length, Length), Length),
+    Sphere((Lengthf32, Lengthf32, Lengthf32), Lengthf32),
+    CylinderX((Lengthf32, Lengthf32), Lengthf32),
+    CylinderY((Lengthf32, Lengthf32), Lengthf32),
+    CylinderZ((Lengthf32, Lengthf32), Lengthf32),
+    DiscZ((Lengthf32, Lengthf32, Lengthf32), Lengthf32),
 }
 
-pub type InRoiFn = Box<dyn Fn(Point) -> bool>;
+pub type InRoiFn = Box<dyn Fn(Pointf32) -> bool>;
 
 impl ROI {
 
     pub fn contains_fn(&self) -> InRoiFn {
         match *self {
-            ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Point| {
+            ROI::Sphere((cx, cy, cz), radius) => Box::new(move |p: Pointf32| {
                 let (x,y,z) = (p.x - cx, p.y - cy, p.z - cz);
                 x*x + y*y + z*z < radius * radius
             }),
 
-            ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Point| {
+            ROI::CylinderX((cy, cz), radius) => Box::new(move |p: Pointf32| {
                 let (y, z) = (p.y - cy, p.z - cz);
                 y*y + z*z < radius*radius
             }),
 
-            ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Point| {
+            ROI::CylinderY((cx, cz), radius) => Box::new(move |p: Pointf32| {
                 let (x, z) = (p.x - cx, p.z - cz);
                 x*x + z*z < radius*radius
             }),
 
-            ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Point| {
+            ROI::CylinderZ((cx, cy), radius) => Box::new(move |p: Pointf32| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 x*x + y*y < radius*radius
             }),
 
-            ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Point| {
+            ROI::DiscZ((cx, cy, z), radius) => Box::new(move |p: Pointf32| {
                 let (x, y) = (p.x - cx, p.y - cy);
                 z == p.z && x*x + y*y < radius*radius
             }),
         }
     }
 
-    pub fn r(&self) -> Length {
+    pub fn r(&self) -> Lengthf32 {
         match *self {
             ROI::Sphere   (_,r) => r,
             ROI::CylinderX(_,r) => r,
@@ -67,7 +67,7 @@ impl ROI {
 }
 
 /// A 3D point with an associated value. Used to represent voxels
-pub type PointValue = (Point, Intensity);
+pub type PointValue = (Pointf32, Intensityf32);
 
 // TODO replace vec with iterator in output
 impl Image {
@@ -106,17 +106,17 @@ pub fn in_roi(in_roi: InRoiFn, voxels: &[PointValue]) -> impl Iterator<Item = Po
 }
 
 /// Convert 1D position to 1D index of containing voxel
-pub fn position_to_index(position: Length, half_width: Length, voxel_size: Length) -> usize {
+pub fn position_to_index(position: Lengthf32, half_width: Lengthf32, voxel_size: Lengthf32) -> usize {
     ((position + half_width) / voxel_size) as usize
 }
 
 /// Convert 1D voxel index to 1D position of voxel's centre
-pub fn index_to_position(index: usize, half_width: Length, voxel_size: Length) -> Length {
+pub fn index_to_position(index: usize, half_width: Lengthf32, voxel_size: Lengthf32) -> Lengthf32 {
     (index as f32 + 0.5) * voxel_size - half_width
 }
 
 /// Return function which finds centre of nearest slice
-pub fn centre_of_slice_closest_to(half_width: Length, voxel_size: Length) -> impl Fn(Length) -> Length {
+pub fn centre_of_slice_closest_to(half_width: Lengthf32, voxel_size: Lengthf32) -> impl Fn(Lengthf32) -> Lengthf32 {
     move |x| {
         let i = position_to_index(x, half_width, voxel_size);
                 index_to_position(i, half_width, voxel_size)
@@ -124,7 +124,7 @@ pub fn centre_of_slice_closest_to(half_width: Length, voxel_size: Length) -> imp
 }
 
 /// Adjust collection of 1D positions, to the centres of the nearest slices
-pub fn centres_of_slices_closest_to(targets: &[Length], half_width: Length, voxel_size: Length) -> Vec<Length> {
+pub fn centres_of_slices_closest_to(targets: &[Lengthf32], half_width: Lengthf32, voxel_size: Lengthf32) -> Vec<Lengthf32> {
     targets.iter().copied()
         .map(centre_of_slice_closest_to(half_width, voxel_size))
         .collect()
@@ -136,7 +136,7 @@ mod test_in_roi {
     use rstest::rstest;
 
     // Arrange for outer voxels to be centred at +/- 100.0, when n = 10
-    const MAGIC: Length = 10.0 / 9.0 * 200.0;
+    const MAGIC: Lengthf32 = 10.0 / 9.0 * 200.0;
 
     #[rstest(/**/    l ,  n,        centre        ,    r , expected_len,
              case(MAGIC, 10, (  0.0,   0.0,   0.0), 173.3, 1000), // r > sqrt(3) * 100; all voxel centres inside sphere
@@ -146,10 +146,10 @@ mod test_in_roi {
              case(MAGIC, 10, (200.0, 200.0, 200.0), 173.2,    0), // slightly smaller r excludes the corner
     )]
     fn number_of_included_voxels_in_sphere(
-        l: Length,
+        l: Lengthf32,
         n: usize,
-        centre: (Length, Length, Length),
-        r: Length,
+        centre: (Lengthf32, Lengthf32, Lengthf32),
+        r: Lengthf32,
         expected_len: usize
     ) {
         let data = vec![1.0; n*n*n];
@@ -168,10 +168,10 @@ mod test_in_roi {
              case(MAGIC, 10, (200.0, 200.0), 141.4,    0), // slightly smaller r excludes the corner
     )]
     fn number_of_included_voxels_in_z_cylinder(
-        l: Length,
+        l: Lengthf32,
         n: usize,
-        centre: (Length, Length),
-        r: Length,
+        centre: (Lengthf32, Lengthf32),
+        r: Lengthf32,
         expected_len: usize
     ) {
         let data = vec![1.0; n*n*n];
@@ -182,9 +182,9 @@ mod test_in_roi {
         assert!(inside.len() == expected_len);
     }
 
-    const I: Intensity =  1.0;
-    const O: Intensity = -1.0;
-    const R: Length = 1.0;
+    const I: Intensityf32 =  1.0;
+    const O: Intensityf32 = -1.0;
+    const R: Lengthf32 = 1.0;
     use ROI::*;
     #[rstest(/**/  roi              , expected,
              // Should pick exactly one voxel
@@ -219,7 +219,7 @@ mod test_in_roi {
         let fov = FOV::new((l,l,l), (n,n,n));
         let image = Image::new(fov, data);
         let pattern = image.values_inside_roi(roi)
-            .iter().sum::<Intensity>()
+            .iter().sum::<Intensityf32>()
             as usize;
         println!("pattern {} {} expected", pattern, expected);
         assert!(pattern == expected);
@@ -228,25 +228,25 @@ mod test_in_roi {
 }
 
 // TODO stop reinventing this wheel
-pub fn mean(data: &[Intensity]) -> Option<Intensity> {
-    data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensity)
+pub fn mean(data: &[Intensityf32]) -> Option<Intensityf32> {
+    data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensityf32)
 }
 
-pub fn sd(data: &[Intensity]) -> Option<Intensity> {
+pub fn sd(data: &[Intensityf32]) -> Option<Intensityf32> {
     if data.len() < 2 { return None; }
     let mu = mean(data)?;
-    let sum_of_deltas: Intensity = data.iter()
+    let sum_of_deltas: Intensityf32 = data.iter()
         .map(|x| {let d = x-mu; d*d})
         .sum();
-    Some(sum_of_deltas / data.len() as Intensity)
+    Some(sum_of_deltas / data.len() as Intensityf32)
 }
 
-pub fn mu_and_sigma(data: &[Intensity]) -> Option<(Intensity, Intensity)> {
+pub fn mu_and_sigma(data: &[Intensityf32]) -> Option<(Intensityf32, Intensityf32)> {
     let mu = mean(data)?;
     let sigma = data.iter().cloned()
         .map(|x| x-mu)
         .map(|x| x*x)
-        .sum::<Intensity>() / data.len() as Intensity;
+        .sum::<Intensityf32>() / data.len() as Intensityf32;
     Some((mu, sigma))
 
 }
@@ -286,37 +286,37 @@ mod test_mean {
 /// x,y,r of FOM sphere
 #[derive(Clone, Copy)]
 pub struct Sphere {
-    pub x: Length,
-    pub y: Length,
-    pub r: Length,
-    pub a: Intensity,
+    pub x: Lengthf32,
+    pub y: Lengthf32,
+    pub r: Lengthf32,
+    pub a: Intensityf32,
 }
 
 #[derive(Debug)]
 pub struct FomConfig {
-    pub rois: Vec<(ROI, Intensity)>,
+    pub rois: Vec<(ROI, Intensityf32)>,
     pub background_rois: Vec<ROI>,
-    pub background_activity: Intensity
+    pub background_activity: Intensityf32
 }
 
 impl FomConfig {
-    pub fn new(rois: Vec<(ROI, Intensity)>, background_rois: Vec<ROI>, background_activity: Intensity) -> Self {
+    pub fn new(rois: Vec<(ROI, Intensityf32)>, background_rois: Vec<ROI>, background_activity: Intensityf32) -> Self {
         Self{ rois, background_rois, background_activity }
     }
 }
 
 #[allow(clippy::upper_case_acronyms)]
 pub struct FOMS {
-    pub crcs: Vec<Ratio>,
-    pub snrs: Vec<Ratio>,
+    pub crcs: Vec<Ratiof32>,
+    pub snrs: Vec<Ratiof32>,
 }
 
 #[allow(clippy::upper_case_acronyms)]
 pub struct FOM {
-    pub r: Length,
-    pub crc: Ratio,
-    pub bg_variability: Ratio,
-    pub snr: Ratio,
+    pub r: Lengthf32,
+    pub crc: Ratiof32,
+    pub bg_variability: Ratiof32,
+    pub snr: Ratiof32,
 }
 
 impl Image {
@@ -325,7 +325,7 @@ impl Image {
         let FomConfig{ rois, background_rois, background_activity} = config;
         let background_measured = background_rois.iter().cloned()
             .map(|roi| mean(&self.values_inside_roi(roi)).unwrap())
-            .sum::<Intensity>() / background_rois.len() as Intensity;
+            .sum::<Intensityf32>() / background_rois.len() as Intensityf32;
         if !quiet {println!("    background measured (set): {:4.1} ({})", background_measured, background_activity);}
 
         let mut crcs = vec![];
@@ -347,8 +347,8 @@ impl Image {
 ///
 /// The exact calculation performed depends on whether the ROI is formally
 /// hotter or colder than the background.
-pub fn crc(roi_measured: Intensity, roi_activity: Intensity,
-           bgd_measured: Intensity, bgd_activity: Intensity) -> Ratio {
+pub fn crc(roi_measured: Intensityf32, roi_activity: Intensityf32,
+           bgd_measured: Intensityf32, bgd_activity: Intensityf32) -> Ratiof32 {
     100.0 * if roi_activity > bgd_activity { // hot CRC
         ((roi_measured / bgd_measured) - 1.0) /
         ((roi_activity / bgd_activity) - 1.0)

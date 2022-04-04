@@ -10,15 +10,15 @@ pub struct Args {
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
     pub legacy_input_format: bool,
-    pub ecut: BoundPair<Energy>,
-    pub qcut: BoundPair<crate::types::Charge>,
+    pub ecut: BoundPair<Energyf32>,
+    pub qcut: BoundPair<crate::types::Chargef32>,
 }
 
 use ndarray::{s, Array1};
 
-use crate::types::{Length, Point, Energy, BoundPair};
+use crate::types::{Lengthf32, Pointf32, Energyf32, BoundPair};
 use crate::weights::LOR;
-type F = Length;
+type F = Lengthf32;
 
 pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<std::ops::Range<usize>>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;
@@ -73,8 +73,8 @@ impl Event {
         let y2 = r2 * phi2.sin();
 
         LOR::new(t1 as F, t2 as F,
-                 Point::new(x1 as F, y1 as F, z1 as F),
-                 Point::new(x2 as F, y2 as F, z2 as F),
+                 Pointf32::new(x1 as F, y1 as F, z1 as F),
+                 Pointf32::new(x2 as F, y2 as F, z2 as F),
                  1.0,
         )
     }
@@ -248,7 +248,7 @@ pub struct Hdf5Lor {
 impl From<Hdf5Lor> for LOR {
     fn from(lor: Hdf5Lor) -> Self {
         let Hdf5Lor{dt, x1, y1, z1, x2, y2, z2, ..} = lor;
-        Self { dt, p1: Point::new(x1, y1, z1), p2: Point::new(x2, y2, z2), additive_correction: f32::NAN}
+        Self { dt, p1: Pointf32::new(x1, y1, z1), p2: Pointf32::new(x2, y2, z2), additive_correction: f32::NAN}
     }
 }
 

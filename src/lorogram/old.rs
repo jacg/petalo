@@ -2,12 +2,12 @@ use ndhistogram::{axis::{Axis, Uniform}, Histogram};
 use super::axis::Cyclic;
 use crate::io::hdf5::Hdf5Lor;
 use crate::weights::LOR;
-use crate::types::Point;
+use crate::types::Pointf32;
 use std::f32::consts::PI;
 
-type Length = crate::types::Length;
-type Ratio  = crate::types::Ratio;
-type Angle  = crate::types::Angle;
+type Lengthf32 = crate::types::Lengthf32;
+type Ratio  = crate::types::Ratiof32;
+type Angle  = crate::types::Anglef32;
 
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }
@@ -84,14 +84,14 @@ where
     }
 }
 // --------------------------------------------------------------------------------
-pub type LorAxU = MappedAxis<LOR, Uniform<Length>>;
-pub type LorAxC = MappedAxis<LOR, Cyclic <Length>>;
+pub type LorAxU = MappedAxis<LOR, Uniform<Lengthf32>>;
+pub type LorAxC = MappedAxis<LOR, Cyclic <Lengthf32>>;
 
-fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Length { (p1.z + p2.z) / 2.0 }
+fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Lengthf32 { (p1.z + p2.z) / 2.0 }
 
-fn delta_z(LOR{p1, p2, ..}: &LOR) -> Length { (p1.z - p2.z).abs() }
+fn delta_z(LOR{p1, p2, ..}: &LOR) -> Lengthf32 { (p1.z - p2.z).abs() }
 
-fn distance_from_z_axis(LOR{ p1, p2, .. }: &LOR) -> Length {
+fn distance_from_z_axis(LOR{ p1, p2, .. }: &LOR) -> Lengthf32 {
     let dx = p2.x - p1.x;
     let dy = p2.y - p1.y;
     let x1 = p1.x;
@@ -105,23 +105,23 @@ fn phi(LOR{ p1, p2, .. }: &LOR) -> Angle {
     phi_of_x_y(dx, dy)
 }
 
-fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
+fn phi_of_x_y(x: Lengthf32, y: Lengthf32) -> Angle { y.atan2(x) }
 
-pub fn axis_z(nbins: usize, min: Length, max: Length) -> LorAxU {
+pub fn axis_z(nbins: usize, min: Lengthf32, max: Lengthf32) -> LorAxU {
     LorAxU {
         axis: Uniform::new(nbins, min, max),
         map: Box::new(z_of_midpoint),
     }
 }
 
-pub fn axis_dz(nbins: usize, max: Length) -> LorAxU {
+pub fn axis_dz(nbins: usize, max: Lengthf32) -> LorAxU {
     LorAxU {
         axis: Uniform::new(nbins, 0.0, max),
         map: Box::new(delta_z),
     }
 }
 
-pub fn axis_r(nbins: usize, max: Length) -> LorAxU {
+pub fn axis_r(nbins: usize, max: Lengthf32) -> LorAxU {
     LorAxU {
         axis: Uniform::new(nbins, 0.0, max),
         map: Box::new(distance_from_z_axis),
@@ -234,5 +234,5 @@ pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), l
 }
 
 pub fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
-    LOR { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: 0.0, additive_correction: 1.0 }
+    LOR { p1: Pointf32::new(x1,y1,z1), p2: Pointf32::new(x2,y2,z2), dt: 0.0, additive_correction: 1.0 }
 }

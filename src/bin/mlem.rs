@@ -14,8 +14,8 @@ pub struct Cli {
     pub iterations: usize,
 
     /// Field Of View full-widths in mm
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "300,300,300")]
-    pub size: (Length, Length, Length),
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<Lengthf32>), default_value = "300,300,300")]
+    pub size: (Lengthf32, Lengthf32, Lengthf32),
 
     /// Field Of View size in number of voxels
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
@@ -63,12 +63,12 @@ pub struct Cli {
     pub legacy_input_format: bool,
 
     /// Ignore events with gamma energy/keV outside this range
-    #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energy>), default_value = "..")]
-    pub ecut: BoundPair<Energy>,
+    #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energyf32>), default_value = "..")]
+    pub ecut: BoundPair<Energyf32>,
 
     /// Ignore events with detected charge/pes outside this range
-    #[structopt(short, long, parse(try_from_str = parse_bounds::<Charge>), default_value = "..")]
-    pub qcut: BoundPair<Charge>,
+    #[structopt(short, long, parse(try_from_str = parse_bounds::<Chargef32>), default_value = "..")]
+    pub qcut: BoundPair<Chargef32>,
 
 }
 
@@ -78,7 +78,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::types::{Length, Energy, Charge, BoundPair};
+use petalo::types::{Lengthf32, Energyf32, Chargef32, BoundPair};
 use petalo::types::{UomTime, UomRatio};
 use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};
@@ -157,7 +157,7 @@ fn guess_filename(args: &Cli) -> String {
 }
 
 
-type FovSize = (Length, Length, Length);
+type FovSize = (Lengthf32, Lengthf32, Lengthf32);
 type NVoxels = (usize , usize , usize );
 
 /// Panic if the image size does not match the specified values

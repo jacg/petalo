@@ -14,11 +14,11 @@ pub struct Cli {
 
     /// Detector length for sensitivity image generation
     #[structopt(long, short="l", default_value = "1000")]
-    pub detector_length: Length,
+    pub detector_length: Lengthf32,
 
     /// Detector diameter for sensitivity image generation
     #[structopt(long, short="d", default_value = "710")]
-    pub detector_diameter: Length,
+    pub detector_diameter: Lengthf32,
 
     /// Number of random LORs to use in sensitivity image generation
     #[structopt(long, short="n", default_value = "5000000")]
@@ -26,7 +26,7 @@ pub struct Cli {
 
     /// Attenuation fiddle factor
     #[structopt(long)]
-    pub rho: Length,
+    pub rho: Lengthf32,
 
 }
 
@@ -35,7 +35,7 @@ use structopt::StructOpt;
 use std::{error::Error, io::Write};
 use std::path::PathBuf;
 
-use petalo::{mlem, utils::group_digits, weights::FOV, types::Length};
+use petalo::{mlem, utils::group_digits, weights::FOV, types::Lengthf32};
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -77,7 +77,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl Iterator<Item = petalo::weights::LOR> {
+fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Lengthf32, detector_diameter: Lengthf32) -> impl Iterator<Item = petalo::weights::LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
     let one_useful_random_lor = move || {
         loop {
@@ -92,12 +92,12 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detecto
 }
 
 
-fn random_point_on_cylinder(l: Length, r: Length) -> petalo::types::Point {
+fn random_point_on_cylinder(l: Lengthf32, r: Lengthf32) -> petalo::types::Pointf32 {
     use std::f32::consts::TAU;
     use rand::random;
-    let z     = l   * (random::<Length>() - 0.5);
-    let theta = TAU *  random::<Length>();
+    let z     = l   * (random::<Lengthf32>() - 0.5);
+    let theta = TAU *  random::<Lengthf32>();
     let x = r * theta.cos();
     let y = r * theta.sin();
-    petalo::types::Point::new(x, y, z)
+    petalo::types::Pointf32::new(x, y, z)
 }

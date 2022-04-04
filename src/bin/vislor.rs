@@ -1,7 +1,7 @@
 use std::error::Error;
 use structopt::StructOpt;
 
-use petalo::types::Length;
+use petalo::types::Lengthf32;
 use petalo::types::{UomTime, UomRatio};
 use petalo::weights::{FOV, LOR};
 use petalo::visualize::{lor_weights, Shape};
@@ -69,8 +69,8 @@ pub struct Cli {
     event: usize,
 
     /// Field Of View full-widths in mm
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "300,300,300")]
-    size: (Length, Length, Length),
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<Lengthf32>), default_value = "300,300,300")]
+    size: (Lengthf32, Lengthf32, Lengthf32),
 
     /// Field Of View size in number of voxels
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]

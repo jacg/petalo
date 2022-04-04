@@ -31,11 +31,11 @@ pub struct Cli {
 // --------------------------------------------------------------------------------
 
 use std::error::Error;
-use petalo::types::Length;
+use petalo::types::Lengthf32;
 use petalo::weights::FOV;
 use petalo::mlem::Image;
 use petalo::io::hdf5::{read_table, Primary};
-type L = Length;
+type L = Lengthf32;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();

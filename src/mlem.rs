@@ -4,12 +4,12 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::{io, types::{Length, Index1, Index3, Intensity}};
+use crate::{io, types::{Lengthf32, Index1_u, Index3_u, Intensityf32}};
 use crate::types::{UomLength, UomPerLength, UomRatio, UomTime};
 use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, FovHit};
 use crate::gauss::make_gauss_option;
 
-pub type ImageData = Vec<Intensity>;
+pub type ImageData = Vec<Intensityf32>;
 
 
 #[derive(Clone)]
@@ -18,27 +18,27 @@ pub struct Image {
     pub data: ImageData,
 }
 
-impl core::ops::IndexMut<Index1> for Image {
+impl core::ops::IndexMut<Index1_u> for Image {
     #[inline]
-    fn index_mut(&mut self, i: Index1) -> &mut Self::Output { &mut self.data[i] }
+    fn index_mut(&mut self, i: Index1_u) -> &mut Self::Output { &mut self.data[i] }
 }
 
-impl core::ops::Index<Index1> for Image {
-    type Output = Intensity;
+impl core::ops::Index<Index1_u> for Image {
+    type Output = Intensityf32;
     #[inline]
-    fn index(&self, i: Index1) -> &Self::Output { &self.data[i] }
+    fn index(&self, i: Index1_u) -> &Self::Output { &self.data[i] }
 }
 
-impl core::ops::IndexMut<Index3> for Image {
-    fn index_mut(&mut self, i3: Index3) -> &mut Self::Output {
+impl core::ops::IndexMut<Index3_u> for Image {
+    fn index_mut(&mut self, i3: Index3_u) -> &mut Self::Output {
         let i1 = index3_to_1(i3, self.fov.n);
         &mut self.data[i1]
     }
 }
 
-impl core::ops::Index<Index3> for Image {
-    type Output = Intensity;
-    fn index(&self, i3: Index3) -> &Self::Output {
+impl core::ops::Index<Index3_u> for Image {
+    type Output = Intensityf32;
+    fn index(&self, i3: Index3_u) -> &Self::Output {
         let i1 = index3_to_1(i3, self.fov.n);
         &self.data[i1]
     }
@@ -139,7 +139,7 @@ impl Image {
         Self::new(fov, image)
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensity], sigma: Option<UomTime>, cutoff: Option<UomRatio>) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensityf32], sigma: Option<UomTime>, cutoff: Option<UomRatio>) {
 
         // -------- Prepare state required by serial/parallel fold --------------
 
@@ -218,7 +218,7 @@ impl Image {
     }
 }
 
-fn projection_buffers(fov: FOV) -> (ImageData, Vec<Length>, Vec<usize>) {
+fn projection_buffers(fov: FOV) -> (ImageData, Vec<Lengthf32>, Vec<usize>) {
     // The backprojection (or sensitivity image) being constructed in a
     // given MLEM iteration (or sensitivity image calculation).
     let image = zeros_buffer(fov);
@@ -236,7 +236,7 @@ fn projection_buffers(fov: FOV) -> (ImageData, Vec<Length>, Vec<usize>) {
 fn zeros_buffer(fov: FOV) -> ImageData { let [x,y,z] = fov.n; vec![0.0; x*y*z] }
 
 
-type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Length>, Vec<Index1> , &'r &'i mut Image, &'g Option<G>);
+type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1_u> , &'r &'i mut Image, &'g Option<G>);
 
 fn project_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
 where
@@ -277,7 +277,7 @@ where
 }
 
 #[inline]
-fn forward_project(weights: &[Length], indices: &[usize], image: &Image) -> Length {
+fn forward_project(weights: &[Lengthf32], indices: &[usize], image: &Image) -> Lengthf32 {
     let mut projection = 0.0;
     for (w, j) in weights.iter().zip(indices.iter()) {
         projection += w * image[*j]
@@ -286,14 +286,14 @@ fn forward_project(weights: &[Length], indices: &[usize], image: &Image) -> Leng
 }
 
 #[inline]
-fn back_project(backprojection: &mut Vec<Length>, weights: &[Length], indices: &[usize], projection: Length) {
+fn back_project(backprojection: &mut Vec<Lengthf32>, weights: &[Lengthf32], indices: &[usize], projection: Lengthf32) {
     let projection_reciprocal = 1.0 / projection;
     for (w, j) in weights.iter().zip(indices.iter()) {
         backprojection[*j] += w * projection_reciprocal;
     }
 }
 
-fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Length], sensitivity: &[Intensity]) {
+fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], sensitivity: &[Intensityf32]) {
     //  TODO express with Option<matrix> and mul reciprocal
     // Apply Sensitivity matrix
     azip!((voxel in image, &b in backprojection, &s in sensitivity) {
@@ -334,7 +334,7 @@ where
 mod test_index_conversion {
     use super::*;
     use rstest::rstest;
-    use crate::types::Index3;
+    use crate::types::Index3_u;
 
     // -------------------- Some hand-picked examples ------------------------------
     #[rstest(/**/    size   , index3 , index1,
@@ -356,7 +356,7 @@ mod test_index_conversion {
              case([10,10,10], [1,2,3], 321),
              case([10,10,10], [7,9,6], 697),
     )]
-    fn hand_picked(size: Index3, index3: Index3, index1: usize) {
+    fn hand_picked(size: Index3_u, index3: Index3_u, index1: usize) {
         assert_eq!(index3_to_1(index3, size), index1);
         assert_eq!(index1_to_3(index1, size), index3);
     }
@@ -366,7 +366,7 @@ mod test_index_conversion {
 
     // A strategy that picks 3-d index limits, and a 1-d index guaranteed to lie
     // within those bounds.
-    fn size_and_in_range_index() -> impl Strategy<Value = (Index3, usize)> {
+    fn size_and_in_range_index() -> impl Strategy<Value = (Index3_u, usize)> {
         [1..200_usize, 1..200_usize, 1..200_usize]
             .prop_flat_map(|i| (Just(i), 1..(i[0] * i[1] * i[2])))
     }
