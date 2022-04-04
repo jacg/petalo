@@ -3,7 +3,7 @@ use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
 use petalo::io;
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
-use petalo::types::{Point, Time, Lengthf32, Energy};
+use petalo::types::{Point, Timef32, Lengthf32, Energy};
 use petalo::utils::group_digits;
 
 #[derive(StructOpt, Debug, Clone)]
@@ -254,7 +254,7 @@ fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolera
     })
 }
 
-fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Time)> {
+fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Timef32)> {
     let (x,y,z) = sipm_charge_barycentre(hits, xyzs)?;
     let ts = k_smallest(10, hits.iter().map(|h| h.t))?;
     let t = mean(&ts)?;
@@ -326,7 +326,7 @@ fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f3
 }
 
 #[allow(nonstandard_style)]
-fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Lengthf32, Lengthf32, Lengthf32, Time, Energy)> {
+fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Lengthf32, Lengthf32, Lengthf32, Timef32, Energy)> {
     if vertices.is_empty() { return None }
     let mut delta_E  = 0_f32;
     let mut xx = 0.0;

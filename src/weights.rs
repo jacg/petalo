@@ -21,7 +21,7 @@ type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
 use crate::types::{UomLengthU, UomLengthI, UomPoint, UomVector};
 use geometry::in_base_unit;
-use crate::types::{BoxDim, Index1, Index3, Index3Weight, Lengthf32, Point, Ratio, Time, Vector, ns_to_mm};
+use crate::types::{BoxDim, Index1, Index3, Index3Weight, Lengthf32, Point, Ratio, Timef32, Vector, ns_to_mm};
 use crate::types::{UomLength, UomTime, UomRatio, UomPerLength};
 use geometry::uom::mm;
 use crate::gauss::make_gauss_option;
@@ -315,7 +315,7 @@ fn find_entry_point(mut entry_point: Point, fov: FOV) -> Point {
 
 /// Distance from entry point to the LOR's TOF peak
 #[inline]
-fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Lengthf32 {
+fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Timef32) -> Lengthf32 {
     let half_lor_length = (p1 - p2).norm() / 2.0;
     let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
     //tof_shift = C *      dt  / 2.0; // NOTE ignoring refractive index
@@ -527,7 +527,7 @@ mod test_voxel_box {
 pub struct LOR {
     pub p1: Point,
     pub p2: Point,
-    pub dt: Time,
+    pub dt: Timef32,
     /// Scatter and random corrections, which appear as an additive contribution
     /// to the sinogram bin in the MLEM forward projection. In order to make it
     /// compatible with a single LOR (rather than many LORs in a sinogram bin)
@@ -536,11 +536,11 @@ pub struct LOR {
 }
 
 impl LOR {
-    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point, additive_correction: Ratio) -> Self {
+    pub fn new(t1: Timef32, t2: Timef32, p1: Point, p2: Point, additive_correction: Ratio) -> Self {
         Self { p1, p2, dt: t2 - t1, additive_correction }
     }
 
-    pub fn from_components((t1, t2): (Time, Time),
+    pub fn from_components((t1, t2): (Timef32, Timef32),
                            (x1, y1, z1): (Lengthf32, Lengthf32, Lengthf32),
                            (x2, y2, z2): (Lengthf32, Lengthf32, Lengthf32),
                            additive_correction: Ratio

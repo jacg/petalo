@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::ops::{Bound, Range};
 
-use crate::types::{Time, Lengthf32, Point, BoundPair};
+use crate::types::{Timef32, Lengthf32, Point, BoundPair};
 use crate::types::UomRatio;
 use crate::weights::{LOR};
 
@@ -55,8 +55,8 @@ pub fn parse_lor(s: &str) -> Result<LOR, Box<dyn Error>> {
     let n = s.split_whitespace().collect::<Vec<_>>();
     assert!(n.len() == 8);
 
-    let t1 = n[0].parse::<Time>()?;
-    let t2 = n[1].parse::<Time>()?;
+    let t1 = n[0].parse::<Timef32>()?;
+    let t2 = n[1].parse::<Timef32>()?;
 
     let x1 = n[2].parse::<Lengthf32>()?;
     let y1 = n[3].parse::<Lengthf32>()?;

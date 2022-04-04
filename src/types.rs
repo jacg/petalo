@@ -12,7 +12,7 @@ pub type UomLengthU = geometry::uom::uomcrate::si::usize::Length;
 
 pub type UomPerLength = geometry::PerLength;
 
-pub type    Time = Lengthf32;
+pub type Timef32 = f32;
 pub type UomTime = geometry::Time;
 
 pub type UomVelocity = geometry::Velocity;
@@ -48,13 +48,13 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 pub const     C: Lengthf32 =               0.299_792_458; // mm / ps
 pub const UOM_C: UomVelocity = in_base_unit!(299_792_458.0);
 
-#[inline] pub fn ps_to_mm(dt: Time) -> Lengthf32 { dt * C }
-#[inline] pub fn mm_to_ps(dx: Lengthf32) -> Time { dx / C }
+#[inline] pub fn ps_to_mm(dt: Timef32) -> Lengthf32 { dt * C }
+#[inline] pub fn mm_to_ps(dx: Lengthf32) -> Timef32 { dx / C }
 
-#[inline] pub fn ns_to_mm(dt: Time) -> Lengthf32 { ps_to_mm(dt) * 1000.0 }
-#[inline] pub fn mm_to_ns(dx: Lengthf32) -> Time { mm_to_ps(dx) / 1000.0  }
+#[inline] pub fn ns_to_mm(dt: Timef32) -> Lengthf32 { ps_to_mm(dt) * 1000.0 }
+#[inline] pub fn mm_to_ns(dx: Lengthf32) -> Timef32 { mm_to_ps(dx) / 1000.0  }
 
-#[inline] pub fn ns_to_ps(dt: Time) -> Time { dt * 1000.0 }
+#[inline] pub fn ns_to_ps(dt: Timef32) -> Timef32 { dt * 1000.0 }
 
 
 #[cfg(test)]
@@ -63,7 +63,7 @@ mod test_conversions {
     use assert_approx_eq::assert_approx_eq;
 
     // Random test values
-    const T: Time = 3.5;
+    const T: Timef32 = 3.5;
     const X: Lengthf32 = 1.2;
 
     #[test] fn human_a() { assert_approx_eq!(ns_to_mm(1.0), 300.0, 0.3  ); }
