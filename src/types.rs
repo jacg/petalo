@@ -45,6 +45,7 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
 // TODO: doesn't really belong in `types` ...
 #[allow(clippy::excessive_precision)] // Stick to official definition of c
+#[allow(non_upper_case_globals)]
 pub const C_f32: Lengthf32 =            0.299_792_458; // mm / ps
 pub const C: Velocity     = in_base_unit!(299_792_458.0);
 
