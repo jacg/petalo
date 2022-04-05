@@ -15,8 +15,8 @@
 
 use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
-use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Timef32, Vectorf32, ns_to_mm};
-use crate::types::{Length, Time, Ratio, PerLength};
+use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Vectorf32, ns_to_mm};
+use crate::types::{Length, Time, Ratio, PerLength, C};
 use geometry::uom::{mm, mm_, ns_};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
@@ -36,7 +36,7 @@ mod test {
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
     use crate::types::TWOPIf32;
-    use geometry::uom::{ns, ratio};
+    use geometry::uom::ratio;
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
@@ -74,12 +74,12 @@ mod test {
         let fov = FOV::new((mm(size.0), mm(size.1), mm(1.0)), (n.0, n.1, 1));
 
         // Values to plug in to visualizer:
-        let lor = LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0));
+        let lor = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0));
         let command = crate::visualize::vislor_command(&fov, &lor);
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weightf32> = LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0)).active_voxels(&fov, None, None);
+        let hits: Vec<Index3Weightf32> = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None, None);
 
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -126,11 +126,11 @@ mod test {
             let fov = FOV::new((mm(dx), mm(dy), mm(dz)), (nx, ny, nz));
 
             // Values to plug in to visualizer:
-            let lor = LOR::new(ns(0.0), ns(0.0), p1.into(), p2.into(), ratio(1.0));
+            let lor = LOR::new(Time::ZERO, Time::ZERO, p1.into(), p2.into(), ratio(1.0));
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = LOR::new(ns(0.0), ns(0.0), p1.into(), p2.into(), ratio(1.0))
+            let summed: Lengthf32 = LOR::new(Time::ZERO, Time::ZERO, p1.into(), p2.into(), ratio(1.0))
                 .active_voxels(&fov, None, None)
                 .into_iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
@@ -188,18 +188,17 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // direction from p1 to p2 is non-negative along all axes. Remember
     // which directions have been flipped, to recover correct voxel indices.
     let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
-    let (p1, p2) = (Pointf32::from(p1), Pointf32::from(p2));
 
     // If and where LOR enters FOV.
-    let entry_point: Pointf32 = match fov.entry(&p1.into(), &p2.into()) {
+    let entry_point: Point = match fov.entry(&p1, &p2) {
         // If LOR misses the box, immediately return
         None => return None,
         // Otherwise, unwrap the point and continue
-        Some(point) => point.into(),
+        Some(point) => point,
     };
 
     // How far the entry point is from the TOF peak
-    let tof_peak = find_tof_peak(entry_point, p1, p2, ns_(lor.dt));
+    let tof_peak = find_tof_peak(entry_point, p1, p2, lor.dt);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     let entry_point = find_entry_point(entry_point, fov);
@@ -219,9 +218,8 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // At what position along LOR is the next voxel boundary, in any dimension.
     let next_boundary = Vector::from(first_boundaries(entry_point, voxel_size));
 
-    let voxel_size = Vector::from(voxel_size);
     // Return the values needed by `system_matrix_elements`
-    let tof_peak = mm(tof_peak);
+    let tof_peak = tof_peak;
     Some(FovHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
 }
 
@@ -288,10 +286,10 @@ const F32_LENGTH_ZERO: Lengthf32 = 0.0;
 /// The point at which the LOR enters the FOV, expressed in a coordinate
 /// system with one corner of the FOV at the origin.
 #[inline]
-fn find_entry_point(mut entry_point: Pointf32, fov: FOV) -> Pointf32 {
+fn find_entry_point(entry_point: Point, fov: FOV) -> Point {
     // Transform coordinates to align box with axes: making the lower boundaries
     // of the box lie on the zero-planes.
-    entry_point += Vectorf32::from(fov.half_width);
+    let entry_point = Pointf32::from(entry_point + fov.half_width);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     // TODO: figure out if we should support Point * Vector -> Point  (affine * vector -> affine)
@@ -308,16 +306,15 @@ fn find_entry_point(mut entry_point: Pointf32, fov: FOV) -> Pointf32 {
     // will pick the wrong voxel. Work around this problem by assuming that
     // anything very close to zero is exactly zero.
     entry_point.iter_mut().for_each(|x| if x.abs() < EPSf32 { *x = 0.0 });
-    entry_point
+    entry_point.into()
 }
 
 
 /// Distance from entry point to the LOR's TOF peak
 #[inline]
-fn find_tof_peak(entry_point: Pointf32, p1: Pointf32, p2: Pointf32, dt: Timef32) -> Lengthf32 {
+fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
     let half_lor_length = (p1 - p2).norm() / 2.0;
-    let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
-    //tof_shift = C *      dt  / 2.0; // NOTE ignoring refractive index
+    let tof_shift = C * dt / 2.0; // NOTE ignoring refractive index
     let p1_to_peak = half_lor_length - tof_shift;
     let p1_to_entry = (entry_point - p1).norm();
     p1_to_peak - p1_to_entry
@@ -326,7 +323,9 @@ fn find_tof_peak(entry_point: Pointf32, p1: Pointf32, p2: Pointf32, dt: Timef32)
 
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
-fn first_boundaries(entry_point: Pointf32, voxel_size: Vectorf32) -> Vectorf32 {
+fn first_boundaries(entry_point: Point, voxel_size: Vector) -> Vectorf32 {
+    let entry_point: Pointf32 = entry_point.into();
+    let voxel_size: Vectorf32 = voxel_size.into();
     // What fraction of the voxel has already been traversed at the entry
     // point, along any axis.
     let vox_done_fraction: Vectorf32 = entry_point - entry_point.map(|x| x.floor());
@@ -338,9 +337,11 @@ fn first_boundaries(entry_point: Pointf32, voxel_size: Vectorf32) -> Vectorf32 {
 /// to cross one voxel in any given dimension. Will be infinite for any axis
 /// which is parallel to the LOR.
 #[inline]
-fn voxel_size(fov: FOV, p1: Pointf32, p2: Pointf32) -> Vectorf32 {
+fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
+    // TODO: The units are a bit dodgy here. See the TODOs for
+    // Vector::{normalize,component_div}
     let lor_direction = (p2-p1).normalize();
-    Vectorf32::from(fov.voxel_size).component_div(&lor_direction)
+    fov.voxel_size.component_div(&lor_direction)
 }
 
 use geometry::Quantity;
@@ -363,7 +364,8 @@ fn signed_i32(x: usize) -> i32 { x as i32 }
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]
-fn index_trackers(entry_point: Pointf32, flipped: [bool; 3], [nx, ny, nz]: BoxDim_u) -> IndexTrackers {
+fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim_u) -> IndexTrackers {
+    let entry_point: Pointf32 = entry_point.into();
     //use geometry::uom::uomcrate::ConstOne;
     //let one = ONE;
     let one = 1;
@@ -491,12 +493,12 @@ impl FOV {
         type Ray      = ncollide3d::query::Ray    <Lengthf32>;
         type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
-        let lor_direction: Vectorf32 = Vectorf32::from(p2 - p1).normalize();
-        let lor_length   : Lengthf32 = Vectorf32::from(p2 - p1).norm();
-        let lor: Ray = Ray::new(p1.into(), lor_direction);
+        let lor_direction = (p2 - p1).normalize();
+        let lor_length    = (p2 - p1).norm();
+        let lor: Ray = Ray::new(p1.into(), lor_direction.into());
         let iso: Isometry = Isometry::identity();
         Cuboid::new(self.half_width.into())
-            .toi_with_ray(&iso, &lor, lor_length, true)
+            .toi_with_ray(&iso, &lor, mm_(lor_length), true)
             .map(|toi| lor.origin + lor.dir * toi)
             .map(Into::into)
     }

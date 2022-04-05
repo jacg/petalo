@@ -5,8 +5,9 @@ use crate::weights::LOR;
 use std::f32::consts::PI;
 
 use crate::types::{Lengthf32, Ratiof32, Anglef32};
-use crate::types::Point;
-use geometry::uom::{mm, mm_, ns, ratio};
+use crate::types::{Point, Time};
+use geometry::uom::{mm, mm_, ratio};
+use crate::types::guomc::ConstZero;
 
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }
@@ -234,5 +235,5 @@ pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), l
 
 pub fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
     let (x1, y1, z1, x2, y2, z2) = (mm(x1), mm(y1), mm(z1), mm(x2), mm(y2), mm(z2));
-    LOR { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: ns(0.0), additive_correction: ratio(1.0) }
+    LOR { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: Time::ZERO, additive_correction: ratio(1.0) }
 }

@@ -13,12 +13,12 @@ pub struct Cli {
     pub output: Option<PathBuf>,
 
     /// Detector length for sensitivity image generation
-    #[structopt(long, short="l", default_value = "1000")]
-    pub detector_length: Lengthf32,
+    #[structopt(long, short="l", default_value = "1000 mm")]
+    pub detector_length: Length,
 
     /// Detector diameter for sensitivity image generation
-    #[structopt(long, short="d", default_value = "710")]
-    pub detector_diameter: Lengthf32,
+    #[structopt(long, short="d", default_value = "710 mm")]
+    pub detector_diameter: Length,
 
     /// Number of random LORs to use in sensitivity image generation
     #[structopt(long, short="n", default_value = "5000000")]
@@ -37,9 +37,9 @@ use std::path::PathBuf;
 
 use petalo::{mlem, utils::group_digits, weights::FOV, types::Lengthf32};
 
-use petalo::types::Length;
-use geometry::uom::{mm, ns, ratio};
-
+use petalo::types::{Length, Time};
+use geometry::uom::ratio;
+use petalo::types::guomc::ConstZero;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -81,14 +81,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Lengthf32, detector_diameter: Lengthf32) -> impl Iterator<Item = petalo::weights::LOR> {
+fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl Iterator<Item = petalo::weights::LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
     let one_useful_random_lor = move || {
         loop {
-            let p1 = random_point_on_cylinder(mm(l), mm(r));
-            let p2 = random_point_on_cylinder(mm(l), mm(r));
+            let p1 = random_point_on_cylinder(l, r);
+            let p2 = random_point_on_cylinder(l, r);
             if fov.entry(&p1, &p2).is_some() {
-                return Some(petalo::weights::LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0)))
+                return Some(petalo::weights::LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)))
             }
         }
     };
