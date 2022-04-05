@@ -1,4 +1,4 @@
-use std::ops::{AddAssign, Index, Sub, IndexMut};
+use std::ops::{Add, AddAssign, Index, Sub, IndexMut};
 use crate::uom::mmps::f32::Length;
 use crate::Vector;
 
@@ -32,6 +32,17 @@ impl Sub for &Point {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
             z: self.z - rhs.z,
+        }
+    }
+}
+
+impl Add<Vector> for Point {
+    type Output = Point;
+    fn add(self, delta: Vector) -> Self::Output {
+        Self {
+            x: self.x + delta.x,
+            y: self.y + delta.y,
+            z: self.z + delta.z,
         }
     }
 }
