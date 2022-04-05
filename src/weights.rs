@@ -493,12 +493,12 @@ impl FOV {
         type Ray      = ncollide3d::query::Ray    <Lengthf32>;
         type Isometry = ncollide3d::math::Isometry<Lengthf32>;
 
-        let lor_direction: Vectorf32 = Vectorf32::from(p2 - p1).normalize();
-        let lor_length   : Lengthf32 = Vectorf32::from(p2 - p1).norm();
-        let lor: Ray = Ray::new(p1.into(), lor_direction);
+        let lor_direction = (p2 - p1).normalize();
+        let lor_length    = (p2 - p1).norm();
+        let lor: Ray = Ray::new(p1.into(), lor_direction.into());
         let iso: Isometry = Isometry::identity();
         Cuboid::new(self.half_width.into())
-            .toi_with_ray(&iso, &lor, lor_length, true)
+            .toi_with_ray(&iso, &lor, mm_(lor_length), true)
             .map(|toi| lor.origin + lor.dir * toi)
             .map(Into::into)
     }
