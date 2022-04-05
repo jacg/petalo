@@ -15,7 +15,7 @@
 
 use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
-use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Timef32, Vectorf32, ns_to_mm};
+use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Vectorf32, ns_to_mm};
 use crate::types::{Length, Time, Ratio, PerLength, C};
 use geometry::uom::{mm, mm_, ns_};
 use crate::gauss::make_gauss_option;
@@ -190,11 +190,11 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
 
     // If and where LOR enters FOV.
-    let entry_point: Pointf32 = match fov.entry(&p1, &p2) {
+    let entry_point: Point = match fov.entry(&p1, &p2) {
         // If LOR misses the box, immediately return
         None => return None,
         // Otherwise, unwrap the point and continue
-        Some(point) => point.into(),
+        Some(point) => point,
     };
 
     // How far the entry point is from the TOF peak
@@ -208,7 +208,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
         index,       // current 1d index into 3d array of voxels
         delta_index, // how the index changes along each dimension
         remaining,   // voxels until edge of FOV in each dimension
-    } = index_trackers(entry_point, flipped, fov.n);
+    } = index_trackers(entry_point.into(), flipped, fov.n);
 
     // Voxel size expressed in LOR distance units: how far we must move along
     // LOR to cross one voxel in any given dimension. Will be infinite for any
@@ -216,7 +216,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let voxel_size = voxel_size(fov, p1.into(), p2.into());
 
     // At what position along LOR is the next voxel boundary, in any dimension.
-    let next_boundary = Vector::from(first_boundaries(entry_point, voxel_size.into()));
+    let next_boundary = Vector::from(first_boundaries(entry_point.into(), voxel_size.into()));
 
     let voxel_size = Vector::from(voxel_size);
     // Return the values needed by `system_matrix_elements`
@@ -287,10 +287,10 @@ const F32_LENGTH_ZERO: Lengthf32 = 0.0;
 /// The point at which the LOR enters the FOV, expressed in a coordinate
 /// system with one corner of the FOV at the origin.
 #[inline]
-fn find_entry_point(mut entry_point: Pointf32, fov: FOV) -> Pointf32 {
+fn find_entry_point(entry_point: Point, fov: FOV) -> Point {
     // Transform coordinates to align box with axes: making the lower boundaries
     // of the box lie on the zero-planes.
-    entry_point += Vectorf32::from(fov.half_width);
+    let entry_point = Pointf32::from(entry_point + fov.half_width);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     // TODO: figure out if we should support Point * Vector -> Point  (affine * vector -> affine)
@@ -307,7 +307,7 @@ fn find_entry_point(mut entry_point: Pointf32, fov: FOV) -> Pointf32 {
     // will pick the wrong voxel. Work around this problem by assuming that
     // anything very close to zero is exactly zero.
     entry_point.iter_mut().for_each(|x| if x.abs() < EPSf32 { *x = 0.0 });
-    entry_point
+    entry_point.into()
 }
 
 
