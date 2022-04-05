@@ -1,4 +1,4 @@
-use std::ops::{Index, Mul};
+use std::ops::{Index, Mul, Sub};
 use crate::{Length, Ratio};
 
 use crate::uom::{mm, ratio};
@@ -19,7 +19,16 @@ pub struct RatioVec {
     pub z: Ratio,
 }
 
-
+impl Sub for Vector {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Vector {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
 
 impl Mul<f32> for Vector {
     type Output = Self;
@@ -28,6 +37,28 @@ impl Mul<f32> for Vector {
             x: self.x * rhs,
             y: self.y * rhs,
             z: self.z * rhs,
+        }
+    }
+}
+
+impl Mul<RatioVec> for Vector {
+    type Output = Self;
+    fn mul(self, rhs: RatioVec) -> Self::Output {
+        Vector {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+        }
+    }
+}
+
+impl Mul<Vector> for RatioVec {
+    type Output = Vector;
+    fn mul(self, rhs: Vector) -> Self::Output {
+        Vector {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
         }
     }
 }
@@ -89,7 +120,39 @@ impl Vector {
         }
     }
 
+    pub fn component_mul(&self, rhs: &RatioVec) -> Self {
+        Vector {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+        }
+    }
+
 }
+
+
+impl RatioVec{
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self {
+            x: ratio(x),
+            y: ratio(y),
+            z: ratio(z)
+        }
+    }
+}
+
+
+impl Sub for RatioVec {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

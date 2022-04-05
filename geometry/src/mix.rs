@@ -3,7 +3,7 @@
 //! Everything in this module should probably be removed after the transition is
 //! complete.
 
-use crate::{Length, Point, Vector, RatioVec};
+use crate::{Length, Point, Vector, RatioPoint, RatioVec};
 
 
 impl From<ncollide3d::math::Point<f32>> for Point {
@@ -45,7 +45,6 @@ impl From<Vector> for ncollide3d::math::Vector<f32> {
         Self::new(x, y, z)
     }
 }
-
 
 impl From<&ncollide3d::math::Point<f32>> for Point {
     fn from(p: &ncollide3d::math::Point<f32>) -> Self {
@@ -90,6 +89,16 @@ impl From<&Vector> for ncollide3d::math::Vector<f32> {
 
 impl From<RatioVec> for ncollide3d::math::Vector<f32> {
     fn from(v: RatioVec) -> Self {
+        use uom::si::ratio::ratio;
+        let x = v.x.get::<ratio>();
+        let y = v.y.get::<ratio>();
+        let z = v.z.get::<ratio>();
+        Self::new(x, y, z)
+    }
+}
+
+impl From<RatioPoint> for ncollide3d::math::Point<f32> {
+    fn from(v: RatioPoint) -> Self {
         use uom::si::ratio::ratio;
         let x = v.x.get::<ratio>();
         let y = v.y.get::<ratio>();

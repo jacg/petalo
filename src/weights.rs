@@ -13,17 +13,14 @@
 //!    indices calculated by the algorithm, must be flipped back to the original
 //!    coordinate system.
 
-use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Vectorf32, ns_to_mm};
-use crate::types::{Length, Time, Ratio, PerLength, C};
+use crate::types::{Length, LengthU, LengthI, PerLength, Time, C,
+                   Point, Vector, Ratio, RatioPoint, RatioVec};
+
 use geometry::uom::{mm, mm_, ns_};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
-
-#[allow(non_upper_case_globals)]
-const EPSf32: Lengthf32 =            1e-5;
-const EPS   : Length = in_base_unit!(1e-5);
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -201,7 +198,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let tof_peak = find_tof_peak(entry_point, p1, p2, lor.dt);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
-    let entry_point = find_entry_point(entry_point, fov);
+    let entry_point: RatioPoint = find_entry_point(entry_point, fov);
 
     // Bookkeeping information needed during traversal of FOV
     let IndexTrackers {
@@ -216,7 +213,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let voxel_size = voxel_size(fov, p1, p2);
 
     // At what position along LOR is the next voxel boundary, in any dimension.
-    let next_boundary = Vector::from(first_boundaries(entry_point, voxel_size));
+    let next_boundary = first_boundaries(entry_point, voxel_size);
 
     // Return the values needed by `system_matrix_elements`
     let tof_peak = tof_peak;
@@ -283,30 +280,43 @@ pub fn system_matrix_elements(
 use crate::types::guomc::ConstZero;
 const F32_LENGTH_ZERO: Lengthf32 = 0.0;
 
+const EPS: Ratio = in_base_unit!(1e-5);
+
 /// The point at which the LOR enters the FOV, expressed in a coordinate
 /// system with one corner of the FOV at the origin.
 #[inline]
-fn find_entry_point(entry_point: Point, fov: FOV) -> Point {
+fn find_entry_point(entry_point: Point, fov: FOV) -> RatioPoint {
     // Transform coordinates to align box with axes: making the lower boundaries
     // of the box lie on the zero-planes.
-    let entry_point = Pointf32::from(entry_point + fov.half_width);
+    (entry_point + fov.half_width)
+
+        // Express entry point in voxel coordinates: floor(position) = index of
+        // voxel.
+        .component_div(fov.voxel_size)
+
+        // Floating-point subtractions which should give zero, usually miss very
+        // slightly: if this error is negative, the next step (which uses floor)
+        // will pick the wrong voxel. Work around this problem by assuming that
+        // anything very close to zero is exactly zero.
+        .map(|x| if x.abs() < EPS { Ratio::ZERO } else { x })
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     // TODO: figure out if we should support Point * Vector -> Point  (affine * vector -> affine)
     // NOTE: this should be Point<Ratio> rater than Point<Lengthf32>
-    let voxel_size = Vectorf32::from(fov.voxel_size);
-    let mut entry_point = Pointf32::new(
-        entry_point[0] / voxel_size[0],
-        entry_point[1] / voxel_size[1],
-        entry_point[2] / voxel_size[2],
-    );
 
-    // Floating-point subtractions which should give zero, usually miss very
-    // slightly: if this error is negative, the next step (which uses floor)
-    // will pick the wrong voxel. Work around this problem by assuming that
-    // anything very close to zero is exactly zero.
-    entry_point.iter_mut().for_each(|x| if x.abs() < EPSf32 { *x = 0.0 });
-    entry_point.into()
+    // let mut entry_point = Pointf32::new(
+    //     entry_point[0] / voxel_size[0],
+    //     entry_point[1] / voxel_size[1],
+    //     entry_point[2] / voxel_size[2],
+    // );
+
+    // // Floating-point subtractions which should give zero, usually miss very
+    // // slightly: if this error is negative, the next step (which uses floor)
+    // // will pick the wrong voxel. Work around this problem by assuming that
+    // // anything very close to zero is exactly zero.
+    // entry_point.iter_mut().for_each(|x| if x.abs() < EPSf32 { *x = 0.0 });
+    // entry_point.into()
+
 }
 
 
@@ -323,14 +333,12 @@ fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
 
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
-fn first_boundaries(entry_point: Point, voxel_size: Vector) -> Vectorf32 {
-    let entry_point: Pointf32 = entry_point.into();
-    let voxel_size: Vectorf32 = voxel_size.into();
-    // What fraction of the voxel has already been traversed at the entry
-    // point, along any axis.
-    let vox_done_fraction: Vectorf32 = entry_point - entry_point.map(|x| x.floor());
+fn first_boundaries(entry_point: RatioPoint, voxel_size: Vector) -> Vector {
+    use geometry::uom::uomcrate::si::ratio::ratio;
+    // How far have we penetrated into this voxel, along any axis
+    let frac_done: RatioVec = entry_point - entry_point.map(|x| x.floor::<ratio>());
     // Distances remaining to the nearest boundaries
-    (Vectorf32::repeat(1.0) - vox_done_fraction).component_mul(&voxel_size)
+    (RatioVec::new(1.0, 1.0, 1.0) - frac_done) * voxel_size
 }
 
 /// Voxel size expressed in LOR distance units: how far we must move along LOR
@@ -364,7 +372,7 @@ fn signed_i32(x: usize) -> i32 { x as i32 }
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]
-fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim_u) -> IndexTrackers {
+fn index_trackers(entry_point: RatioPoint, flipped: [bool; 3], [nx, ny, nz]: BoxDim_u) -> IndexTrackers {
     let entry_point: Pointf32 = entry_point.into();
     //use geometry::uom::uomcrate::ConstOne;
     //let one = ONE;

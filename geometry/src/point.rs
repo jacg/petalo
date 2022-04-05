@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign, Index, Sub, IndexMut};
-use crate::uom::mmps::f32::Length;
-use crate::Vector;
+use crate::{Length, Ratio};
+use crate::{Vector, RatioVec};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Point {
@@ -9,15 +9,62 @@ pub struct Point {
     pub z: Length,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RatioPoint {
+    pub x: Ratio,
+    pub y: Ratio,
+    pub z: Ratio,
+}
+
 impl Point {
     pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
-    pub fn component_div(&mut self, _other: &Self) -> Self { todo!() }
+
+    pub fn map(&self, mut f: impl FnMut(Length) -> Length) -> Self {
+        let &Self {x, y, z} = self;
+        Self {
+            x: f(x),
+            y: f(y),
+            z: f(z),
+        }
+    }
+
+    pub fn component_div(self, rhs: Vector) -> RatioPoint {
+        RatioPoint {
+            x: self.x / rhs.x,
+            y: self.y / rhs.y,
+            z: self.z / rhs.z,
+        }
+    }
+}
+
+impl RatioPoint {
+    pub fn new(x: Ratio, y: Ratio, z: Ratio) -> Self { Self { x, y, z } }
+
+    pub fn map(&self, mut f: impl FnMut(Ratio) -> Ratio) -> Self {
+        let &Self {x, y, z} = self;
+        Self {
+            x: f(x),
+            y: f(y),
+            z: f(z),
+        }
+    }
 }
 
 impl Sub for Point {
     type Output = Vector;
     fn sub(self, rhs: Self) -> Self::Output {
         Vector {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
+impl Sub for RatioPoint {
+    type Output = RatioVec;
+    fn sub(self, rhs: Self) -> Self::Output {
+        RatioVec {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
             z: self.z - rhs.z,
@@ -166,4 +213,13 @@ mod tests {
         p[3] = cm(4.0);
     }
 
+    #[test]
+    fn map_for_point() {
+        let a = Point::new(mm(1.0), mm(2.0), mm(3.0));
+        let b = a.map(|x| 2.0 * x);
+        let r = Point::new(mm(2.0), mm(4.0), mm(6.0));
+        assert_uom_eq!(millimeter, b.x, r.x, ulps <= 1);
+        assert_uom_eq!(millimeter, b.y, r.y, ulps <= 1);
+        assert_uom_eq!(millimeter, b.z, r.z, ulps <= 1);
+    }
 }
