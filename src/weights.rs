@@ -36,7 +36,7 @@ mod test {
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
     use crate::types::TWOPIf32;
-    use geometry::uom::{ns, ratio};
+    use geometry::uom::ratio;
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
@@ -74,12 +74,12 @@ mod test {
         let fov = FOV::new((mm(size.0), mm(size.1), mm(1.0)), (n.0, n.1, 1));
 
         // Values to plug in to visualizer:
-        let lor = LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0));
+        let lor = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0));
         let command = crate::visualize::vislor_command(&fov, &lor);
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weightf32> = LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0)).active_voxels(&fov, None, None);
+        let hits: Vec<Index3Weightf32> = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None, None);
 
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -126,11 +126,11 @@ mod test {
             let fov = FOV::new((mm(dx), mm(dy), mm(dz)), (nx, ny, nz));
 
             // Values to plug in to visualizer:
-            let lor = LOR::new(ns(0.0), ns(0.0), p1.into(), p2.into(), ratio(1.0));
+            let lor = LOR::new(Time::ZERO, Time::ZERO, p1.into(), p2.into(), ratio(1.0));
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = LOR::new(ns(0.0), ns(0.0), p1.into(), p2.into(), ratio(1.0))
+            let summed: Lengthf32 = LOR::new(Time::ZERO, Time::ZERO, p1.into(), p2.into(), ratio(1.0))
                 .active_voxels(&fov, None, None)
                 .into_iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))

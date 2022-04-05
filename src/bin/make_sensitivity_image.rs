@@ -37,9 +37,9 @@ use std::path::PathBuf;
 
 use petalo::{mlem, utils::group_digits, weights::FOV, types::Lengthf32};
 
-use petalo::types::Length;
-use geometry::uom::{ns, ratio};
-
+use petalo::types::{Length, Time};
+use geometry::uom::ratio;
+use petalo::types::guomc::ConstZero;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -88,7 +88,7 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detecto
             let p1 = random_point_on_cylinder(l, r);
             let p2 = random_point_on_cylinder(l, r);
             if fov.entry(&p1, &p2).is_some() {
-                return Some(petalo::weights::LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0)))
+                return Some(petalo::weights::LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)))
             }
         }
     };
