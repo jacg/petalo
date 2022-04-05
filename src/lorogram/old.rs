@@ -2,12 +2,11 @@ use ndhistogram::{axis::{Axis, Uniform}, Histogram};
 use super::axis::Cyclic;
 use crate::io::hdf5::Hdf5Lor;
 use crate::weights::LOR;
-use crate::types::Pointf32;
 use std::f32::consts::PI;
 
-type Lengthf32 = crate::types::Lengthf32;
-type Ratio  = crate::types::Ratiof32;
-type Angle  = crate::types::Anglef32;
+use crate::types::{Lengthf32, Ratiof32, Anglef32};
+use crate::types::Point;
+use geometry::uom::{mm, mm_, ns, ratio};
 
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }
@@ -36,7 +35,7 @@ impl Scattergram {
     /// Multiplicative contribution of scatters to trues, in nearby LORs.
     ///
     /// `(scatters + trues) / trues`
-    pub fn value(&self, lor: &LOR) -> Ratio {
+    pub fn value(&self, lor: &LOR) -> Ratiof32 {
         let trues = self.trues.value(lor);
         if trues > 0 {
             let scatters: f32 = self.scatters.value(lor) as f32;
@@ -45,7 +44,7 @@ impl Scattergram {
         } else { 1.0 }
     }
 
-    pub fn triplet(&self, lor: &LOR) -> (Ratio, f32, f32) {
+    pub fn triplet(&self, lor: &LOR) -> (Ratiof32, f32, f32) {
         let trues = self.trues.value(lor);
         if trues > 0 {
             let scatters: f32 = self.scatters.value(lor) as f32;
@@ -87,25 +86,25 @@ where
 pub type LorAxU = MappedAxis<LOR, Uniform<Lengthf32>>;
 pub type LorAxC = MappedAxis<LOR, Cyclic <Lengthf32>>;
 
-fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Lengthf32 { (p1.z + p2.z) / 2.0 }
+fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Lengthf32 { mm_((p1.z + p2.z) / 2.0) }
 
-fn delta_z(LOR{p1, p2, ..}: &LOR) -> Lengthf32 { (p1.z - p2.z).abs() }
+fn delta_z(LOR{p1, p2, ..}: &LOR) -> Lengthf32 { mm_((p1.z - p2.z).abs()) }
 
 fn distance_from_z_axis(LOR{ p1, p2, .. }: &LOR) -> Lengthf32 {
     let dx = p2.x - p1.x;
     let dy = p2.y - p1.y;
     let x1 = p1.x;
     let y1 = p1.y;
-    (dx * y1 - dy * x1).abs() / (dx*dx + dy*dy).sqrt()
+    mm_((dx * y1 - dy * x1).abs() / (dx*dx + dy*dy).sqrt())
 }
 
-fn phi(LOR{ p1, p2, .. }: &LOR) -> Angle {
+fn phi(LOR{ p1, p2, .. }: &LOR) -> Anglef32 {
     let dx = p2.x - p1.x;
     let dy = p2.y - p1.y;
-    phi_of_x_y(dx, dy)
+    phi_of_x_y(mm_(dx), mm_(dy))
 }
 
-fn phi_of_x_y(x: Lengthf32, y: Lengthf32) -> Angle { y.atan2(x) }
+fn phi_of_x_y(x: Lengthf32, y: Lengthf32) -> Anglef32 { y.atan2(x) }
 
 pub fn axis_z(nbins: usize, min: Lengthf32, max: Lengthf32) -> LorAxU {
     LorAxU {
@@ -234,5 +233,6 @@ pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), l
 }
 
 pub fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
-    LOR { p1: Pointf32::new(x1,y1,z1), p2: Pointf32::new(x2,y2,z2), dt: 0.0, additive_correction: 1.0 }
+    let (x1, y1, z1, x2, y2, z2) = (mm(x1), mm(y1), mm(z1), mm(x2), mm(y2), mm(z2));
+    LOR { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: ns(0.0), additive_correction: ratio(1.0) }
 }

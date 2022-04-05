@@ -84,7 +84,7 @@ use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};
 use petalo::mlem::Image;
 use petalo::io;
-use geometry::uom::mm_;
+use geometry::uom::{mm_, ratio};
 
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -179,6 +179,6 @@ fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) 
 
 fn calculate_additive_correction(measured_lors: &mut [LOR], sgram: Scattergram) {
     for lor in measured_lors {
-        lor.additive_correction = sgram.value(lor);
+        lor.additive_correction = ratio(sgram.value(lor));
     }
 }

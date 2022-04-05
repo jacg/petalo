@@ -23,7 +23,7 @@ use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
 use crate::types::{Length, Time, Ratio, PerLength};
-use geometry::uom::{mm, mm_};
+use geometry::uom::{mm, mm_, ns, ns_, ratio};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -71,17 +71,20 @@ mod test {
                    length: Lengthf32,
                    expected_voxels: Vec<(usize, usize)>) {
 
-        let p1 = Pointf32::new(p1.0, p1.1, 0.0);
-        let p2 = Pointf32::new(p2.0, p2.1, 0.0);
+        let p1 = (mm(p1.0), mm(p1.1));
+        let p2 = (mm(p2.0), mm(p2.1));
+
+        let p1 = Point::new(p1.0, p1.1, mm(0.0));
+        let p2 = Point::new(p2.0, p2.1, mm(0.0));
         let fov = FOV::new((mm(size.0), mm(size.1), mm(1.0)), (n.0, n.1, 1));
 
         // Values to plug in to visualizer:
-        let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
+        let lor = LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0));
         let command = crate::visualize::vislor_command(&fov, &lor);
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weightf32> = LOR::new(0.0, 0.0, p1, p2, 1.0).active_voxels(&fov, None, None);
+        let hits: Vec<Index3Weightf32> = LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0)).active_voxels(&fov, None, None);
 
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -128,11 +131,11 @@ mod test {
             let fov = FOV::new((mm(dx), mm(dy), mm(dz)), (nx, ny, nz));
 
             // Values to plug in to visualizer:
-            let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
+            let lor = LOR::new(ns(0.0), ns(0.0), p1.into(), p2.into(), ratio(1.0));
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = LOR::new(0.0, 0.0, p1, p2, 1.0)
+            let summed: Lengthf32 = LOR::new(ns(0.0), ns(0.0), p1.into(), p2.into(), ratio(1.0))
                 .active_voxels(&fov, None, None)
                 .into_iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
@@ -201,7 +204,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     };
 
     // How far the entry point is from the TOF peak
-    let tof_peak = find_tof_peak(entry_point, p1, p2, lor.dt);
+    let tof_peak = find_tof_peak(entry_point, p1, p2, ns_(lor.dt));
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     let entry_point = find_entry_point(entry_point, fov);
@@ -529,28 +532,28 @@ mod test_voxel_box {
 #[derive(Clone, Copy, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct LOR {
-    pub p1: Pointf32,
-    pub p2: Pointf32,
-    pub dt: Timef32,
+    pub p1: Point,
+    pub p2: Point,
+    pub dt: Time,
     /// Scatter and random corrections, which appear as an additive contribution
     /// to the sinogram bin in the MLEM forward projection. In order to make it
     /// compatible with a single LOR (rather than many LORs in a sinogram bin)
     /// it is expressed here as a *multiplicative* factor.
-    pub additive_correction: Ratiof32,
+    pub additive_correction: Ratio,
 }
 
 impl LOR {
-    pub fn new(t1: Timef32, t2: Timef32, p1: Pointf32, p2: Pointf32, additive_correction: Ratiof32) -> Self {
+    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point, additive_correction: Ratio) -> Self {
         Self { p1, p2, dt: t2 - t1, additive_correction }
     }
 
-    pub fn from_components((t1, t2): (Timef32, Timef32),
-                           (x1, y1, z1): (Lengthf32, Lengthf32, Lengthf32),
-                           (x2, y2, z2): (Lengthf32, Lengthf32, Lengthf32),
-                           additive_correction: Ratiof32
+    pub fn from_components((t1, t2): (Time, Time),
+                           (x1, y1, z1): (Length, Length, Length),
+                           (x2, y2, z2): (Length, Length, Length),
+                           additive_correction: Ratio
                           ) -> Self
     {
-        Self::new(t1, t2, Pointf32::new(x1,y1,z1), Pointf32::new(x2,y2,z2), additive_correction)
+        Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
     pub fn active_voxels(&self, fov: &FOV, cutoff: Option<Ratio>, sigma: Option<Time>) -> Vec<Index3Weightf32> {
@@ -581,10 +584,10 @@ impl fmt::Display for LOR {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (p, q) = (self.p1, self.p2);
         write!(f, "<LOR ({:8.2} {:8.2} {:8.2}) ({:8.2} {:8.2} {:8.2}) {:7.2}ns {:7.2}mm /{:7.2} >",
-               p.x, p.y, p.z,
-               q.x, q.y, q.z,
-               self.dt, ns_to_mm(self.dt) / 2.0,
-               (p-q).norm()
+               mm_(p.x), mm_(p.y), mm_(p.z),
+               mm_(q.x), mm_(q.y), mm_(q.z),
+               ns_(self.dt), ns_to_mm(ns_(self.dt)) / 2.0,
+               mm_((p-q).norm())
         )
     }
 }

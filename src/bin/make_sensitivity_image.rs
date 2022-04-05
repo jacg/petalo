@@ -37,6 +37,10 @@ use std::path::PathBuf;
 
 use petalo::{mlem, utils::group_digits, weights::FOV, types::Lengthf32};
 
+use petalo::types::{Length, Point, Ratio};
+use geometry::uom::{mm, ns, ratio};
+
+
 fn main() -> Result<(), Box<dyn Error>> {
 
     let Cli{ input, output, detector_length, detector_diameter, n_lors, rho } = Cli::from_args();
@@ -81,10 +85,10 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Lengthf32, dete
     let (l,r) = (detector_length, detector_diameter / 2.0);
     let one_useful_random_lor = move || {
         loop {
-            let p1 = random_point_on_cylinder(l,r);
-            let p2 = random_point_on_cylinder(l,r);
-            if fov.entry(&p1, &p2).is_some() {
-                return Some(petalo::weights::LOR::new(0.0, 0.0, p1, p2, 1.0))
+            let p1 = random_point_on_cylinder(mm(l), mm(r));
+            let p2 = random_point_on_cylinder(mm(l), mm(r));
+            if fov.entry(&p1.into(), &p2.into()).is_some() {
+                return Some(petalo::weights::LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0)))
             }
         }
     };
@@ -92,12 +96,12 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Lengthf32, dete
 }
 
 
-fn random_point_on_cylinder(l: Lengthf32, r: Lengthf32) -> petalo::types::Pointf32 {
+fn random_point_on_cylinder(l: Length, r: Length) -> petalo::types::Point {
     use std::f32::consts::TAU;
     use rand::random;
     let z     = l   * (random::<Lengthf32>() - 0.5);
     let theta = TAU *  random::<Lengthf32>();
     let x = r * theta.cos();
     let y = r * theta.sin();
-    petalo::types::Pointf32::new(x, y, z)
+    petalo::types::Point::new(x, y, z)
 }
