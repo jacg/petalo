@@ -189,7 +189,8 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // Simplify expression of the algorithm by flipping axes so that the
     // direction from p1 to p2 is non-negative along all axes. Remember
     // which directions have been flipped, to recover correct voxel indices.
-    let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
+    let (p1, p2, flipped) = flip_axes(lor.p1.into(), lor.p2.into());
+    let (p1, p2) = (Pointf32::from(p1), Pointf32::from(p2));
 
     // If and where LOR enters FOV.
     let entry_point: Pointf32 = match fov.entry(&p1, &p2) {
@@ -420,13 +421,11 @@ struct IndexTrackers {
 /// knowledge of which axes were flipped, so that the indices of subsequently
 /// found active voxels can be flipped back into the original coordinate system.
 #[inline]
-fn flip_axes(mut p1: Pointf32, mut p2: Pointf32) -> (Pointf32, Pointf32, [bool; 3]) {
-    //use geometry::uom::uomcrate::ConstZero;
-    //let zero = ZERO;
-    let zero = 0.0;
+fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
+    let zero = Length::ZERO;
 
     let dimensions = 3;
-    let original_lor_direction: Vectorf32 = p2 - p1;
+    let original_lor_direction: Vector = p2 - p1;
     let mut flipped = [false; 3];
     let mut flip_if_necessary = |n| {
         if original_lor_direction[n] < zero {
