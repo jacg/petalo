@@ -18,8 +18,8 @@ uom = { version = "0.32.0", default-features = false, features = [
         "use_serde", # Serde support.
     ] }
 ncollide3d = "0.32"
+float_eq = "0.7.0"
 
 [dev-dependencies]
 pretty_assertions = "1.0"
-float_eq = "0.7.0"
 rstest = "0.12"

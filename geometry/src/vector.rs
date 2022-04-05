@@ -72,7 +72,6 @@ impl Vector {
 #[cfg(test)]
 mod tests {
     use crate::Vector;
-    use float_eq::assert_float_eq;
     const EPS: f32 = f32::EPSILON;
     use uom::si::length::meter;
     use crate::uom::{nm, mm, cm, assert_uom_eq};

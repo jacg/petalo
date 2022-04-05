@@ -8,6 +8,7 @@ use crate::{io, types::{Lengthf32, Index1_u, Index3_u, Intensityf32}};
 use crate::types::{Length, PerLength, Ratio, Time};
 use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, FovHit};
 use crate::gauss::make_gauss_option;
+use geometry::uom::ratio_;
 
 pub type ImageData = Vec<Intensityf32>;
 
@@ -113,7 +114,7 @@ impl Image {
                     // Find active voxels and their weights
                     system_matrix_elements(
                         &mut indices, &mut weights,
-                        next_boundary.into(), voxel_size.into(),
+                        next_boundary.into(), voxel_size,
                         index, delta_index, remaining,
                         tof_peak, &notof
                     );
@@ -260,7 +261,7 @@ where
             // Find active voxels and their weights
             system_matrix_elements(
                 &mut indices, &mut weights,
-                next_boundary.into(), voxel_size.into(),
+                next_boundary.into(), voxel_size,
                 index, delta_index, remaining,
                 tof_peak, tof
             );
@@ -269,7 +270,7 @@ where
             let projection = forward_project(&weights, &indices, image) * lor.additive_correction;
 
             // Backprojection of LOR onto image
-            back_project(&mut backprojection, &weights, &indices, projection);
+            back_project(&mut backprojection, &weights, &indices, ratio_(projection));
         }
     }
     // Return updated FoldState

@@ -146,6 +146,7 @@ dependencies = [
 name = "bindings"
 version = "0.1.0"
 dependencies = [
+ "geometry",
  "petalo",
  "pyo3",
 ]

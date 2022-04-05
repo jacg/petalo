@@ -79,6 +79,10 @@ pub fn ratio(x: f32) -> Ratio  {   Ratio::new::<uom::si::ratio::ratio>(x) }
 // Reverse direction of the above. Rethink nomenclature once the dust has
 // settled after the transition to uom is complete.
 pub fn mm_(x: Length) -> f32 { x.get::<millimeter>() }
+pub fn ps_(x: Time  ) -> f32 { x.get::<picosecond>() }
+pub fn ns_(x: Time  ) -> f32 { x.get::<nanosecond>() }
+
+pub fn ratio_(x: Ratio) -> f32 { x.get::<uom::si::ratio::ratio>() }
 
 #[macro_export]
 macro_rules! in_base_unit {
@@ -92,13 +96,10 @@ macro_rules! in_base_unit {
 }
 
 
-#[cfg(test)]
-use float_eq::assert_float_eq;
-
-#[cfg(test)]
+#[macro_export]
 macro_rules! assert_uom_eq {
   ($unit:ident, $lhs:expr, $rhs:expr, $algo:ident <= $tol:expr) => {
-    assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
+    float_eq::assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
   };
 }
 

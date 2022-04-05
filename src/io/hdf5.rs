@@ -16,9 +16,11 @@ pub struct Args {
 
 use ndarray::{s, Array1};
 
-use crate::types::{Lengthf32, Pointf32, Energyf32, BoundPair};
+use crate::types::{Energyf32, BoundPair};
+use crate::types::Point;
 use crate::weights::LOR;
-type F = Lengthf32;
+
+use geometry::uom::{mm, ns, ratio};
 
 pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<std::ops::Range<usize>>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;
@@ -72,10 +74,10 @@ impl Event {
         let x2 = r2 * phi2.cos();
         let y2 = r2 * phi2.sin();
 
-        LOR::new(t1 as F, t2 as F,
-                 Pointf32::new(x1 as F, y1 as F, z1 as F),
-                 Pointf32::new(x2 as F, y2 as F, z2 as F),
-                 1.0,
+        LOR::new(ns(t1), ns(t2),
+                 Point::new(mm(x1), mm(y1), mm(z1)),
+                 Point::new(mm(x2), mm(y2), mm(z2)),
+                 ratio(1.0),
         )
     }
 
@@ -138,6 +140,7 @@ mod test {
     use crate::utils;
 
     use super::*;
+    use geometry::uom::mm_;
     use assert_approx_eq::assert_approx_eq;
 
     #[test] // Test higher-level `read_lors`
@@ -157,12 +160,12 @@ mod test {
             qcut: utils::parse_bounds("..").unwrap(),
         };
         let lors = read_lors(args.clone()).unwrap();
-        assert_approx_eq!(lors[2].p1.coords.x, -120.7552004817734, 1e-5);
+        assert_approx_eq!(mm_(lors[2].p1.x), -120.7552004817734, 1e-5);
 
         // ... then use the true data.
         let args = Args { use_true: true, ..args };
         let lors = read_lors(args).unwrap();
-        assert_approx_eq!(lors[2].p1.coords.x, -120.73839054997248, 1e-5);
+        assert_approx_eq!(mm_(lors[2].p1.x), -120.73839054997248, 1e-5);
         Ok(())
     }
 
@@ -248,7 +251,12 @@ pub struct Hdf5Lor {
 impl From<Hdf5Lor> for LOR {
     fn from(lor: Hdf5Lor) -> Self {
         let Hdf5Lor{dt, x1, y1, z1, x2, y2, z2, ..} = lor;
-        Self { dt, p1: Pointf32::new(x1, y1, z1), p2: Pointf32::new(x2, y2, z2), additive_correction: f32::NAN}
+        Self {
+            dt: ns(dt),
+            p1: Point::new(mm(x1), mm(y1), mm(z1)),
+            p2: Point::new(mm(x2), mm(y2), mm(z2)),
+            additive_correction: ratio(f32::NAN)
+        }
     }
 }
 

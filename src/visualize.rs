@@ -5,10 +5,11 @@ use kiss3d::scene::SceneNode;
 use kiss3d::camera::ArcBall;
 use kiss3d::nalgebra::{Point3, Translation3};
 
-use crate::types::ns_to_ps;
 use crate::types::Vectorf32;
 use crate::types::{Time, Ratio};
 use crate::weights::{FOV, LOR};
+
+use geometry::uom::{mm_, ps_};
 
 use structopt::clap::arg_enum;
 
@@ -52,8 +53,8 @@ impl Scene {
         let z_axis_colour = Point3::new(0.0, 0.0, 1.0);
 
         // LOR line
-        let p1_f32 = Point3::new(lor.p1.x as f32, lor.p1.y as f32, lor.p1.z as f32);
-        let p2_f32 = Point3::new(lor.p2.x as f32, lor.p2.y as f32, lor.p2.z as f32);
+        let p1_f32 = Point3::new(mm_(lor.p1.x), mm_(lor.p1.y), mm_(lor.p1.z));
+        let p2_f32 = Point3::new(mm_(lor.p2.x), mm_(lor.p2.y), mm_(lor.p2.z));
         let lor_colour = Point3::new(1.0, 1.0, 0.0);
 
         // FOV frame
@@ -210,12 +211,12 @@ pub fn vislor_command(fov: &FOV, lor: &LOR) -> String {
         ny = fov.n[1],
         nz = fov.n[2],
         t1 = 0.0,
-        t2 = ns_to_ps(lor.dt),
-        x1 = lor.p1.x,
-        y1 = lor.p1.y,
-        z1 = lor.p1.z,
-        x2 = lor.p2.x,
-        y2 = lor.p2.y,
-        z2 = lor.p2.z,
+        t2 = ps_(lor.dt),
+        x1 = mm_(lor.p1.x),
+        y1 = mm_(lor.p1.y),
+        z1 = mm_(lor.p1.z),
+        x2 = mm_(lor.p2.x),
+        y2 = mm_(lor.p2.y),
+        z2 = mm_(lor.p2.z),
     )
 }

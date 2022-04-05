@@ -20,8 +20,8 @@ pub struct Cli {
     pub out_file: String,
 
     /// Field Of View full-widths in mm [default: fit to data]
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<L>))]
-    pub size: Option<(L, L, L)>,
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>))]
+    pub size: Option<(Length, Length, Length)>,
 
     /// Field Of View size in number of voxels
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
@@ -32,10 +32,14 @@ pub struct Cli {
 
 use std::error::Error;
 use petalo::types::Lengthf32;
+use petalo::types::Length;
+use geometry::uom::mm;
 use petalo::weights::FOV;
 use petalo::mlem::Image;
 use petalo::io::hdf5::{read_table, Primary};
 type L = Lengthf32;
+use geometry::uom::mm_;
+use geometry::uom::uomcrate::si::length::millimeter;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
@@ -66,13 +70,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let size = if let Some((x,y,z)) = args.size { // from CLI args
         (x,y,z)
     } else { // from extrema of positions in input files
-        let (mut xmax, mut ymax, mut zmax): (L, L, L) = (10.0, 10.0, 10.0);
+        let (mut xmax, mut ymax, mut zmax): (Length, Length, Length) = (mm(10.0), mm(10.0), mm(10.0));
         for &Primary{ x,y,z, ..} in all_events.iter() {
-            xmax = xmax.max(x.abs());
-            ymax = ymax.max(y.abs());
-            zmax = zmax.max(z.abs());
+            xmax = xmax.max(mm(x).abs());
+            ymax = ymax.max(mm(y).abs());
+            zmax = zmax.max(mm(z).abs());
         }
-        ((2.0 * xmax).ceil(), (2.0 * ymax).ceil(), (2.0 * zmax).ceil())
+        ((2.0 * xmax).ceil::<millimeter>(), (2.0 * ymax).ceil::<millimeter>(), (2.0 * zmax).ceil::<millimeter>())
     };
     // --- Create empty image of appropriate size ------------------------------------
     let fov = FOV::new(size, nvoxels);
@@ -81,13 +85,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (xn, yn, zn) = args.nvoxels;
     let (xe, ye, ze) = size;
     let (xh, yh, zh) = (xe/2.0, ye/2.0, ze/2.0);
-    let (xs, ys, zs) = (xe / xn as L,
-                        ye / yn as L,
-                        ze / zn as L);
+    let (xs, ys, zs) = (mm_(xe) / xn as L,
+                        mm_(ye) / yn as L,
+                        mm_(ze) / zn as L);
     let pos_to_index3 = |x,y,z| {
-        let i = pos_to_index1(x, xs, xn, xh)?;
-        let j = pos_to_index1(y, ys, yn, yh)?;
-        let k = pos_to_index1(z, zs, zn, zh)?;
+        let i = pos_to_index1(x, xs, xn, mm_(xh))?;
+        let j = pos_to_index1(y, ys, yn, mm_(yh))?;
+        let k = pos_to_index1(z, zs, zn, mm_(zh))?;
         Some([i,j,k])
     };
     // --- Collect event data into image ---------------------------------------------
@@ -113,6 +117,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // that the programs crashes, choking on some file, depending on which other
     // files were processed before it. In some of these cases, the crash report
     // is also hidden.
+    let (xe, ye, ze) = (mm_(xe),  mm_(ye),  mm_(ze));
     let message =
         format!("Wrote image with phisical size {} x {} x {} and {} x {} x {} voxels to {}",
                                                 xe,  ye,  ze,    xn,  yn,  zn,    out_file);

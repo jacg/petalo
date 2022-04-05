@@ -9,11 +9,14 @@ use petalo::visualize::{lor_weights, Shape};
 use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, parse_bounds, CutoffOption};
 use petalo::io;
 
+use geometry::uom::mm;
+
 fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
 
-    let size = args.size;
+    let (dx, dy, dz) = args.size;
+    let size = (mm(dx), mm(dy), mm(dz));
     let nvox = args.nvoxels;
 
     let fov = FOV::new(size, nvox);

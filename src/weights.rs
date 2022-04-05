@@ -13,23 +13,17 @@
 //!    indices calculated by the algorithm, must be flipped back to the original
 //!    coordinate system.
 
-use ncollide3d::query::RayCast;
-use ncollide3d::shape::Cuboid;
-
-type Ray      = ncollide3d::query::Ray    <Lengthf32>;
-type Isometry = ncollide3d::math::Isometry<Lengthf32>;
-
 use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
-use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
+use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Timef32, Vectorf32, ns_to_mm};
 use crate::types::{Length, Time, Ratio, PerLength};
-use geometry::uom::mm;
+use geometry::uom::{mm, mm_, ns_};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
 #[allow(non_upper_case_globals)]
-const EPSf32: Lengthf32 =             1e-5;
-const EPS: Length = in_base_unit!(1e-5);
+const EPSf32: Lengthf32 =            1e-5;
+const EPS   : Length = in_base_unit!(1e-5);
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -42,6 +36,7 @@ mod test {
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
     use crate::types::TWOPIf32;
+    use geometry::uom::{ns, ratio};
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
@@ -71,17 +66,20 @@ mod test {
                    length: Lengthf32,
                    expected_voxels: Vec<(usize, usize)>) {
 
-        let p1 = Pointf32::new(p1.0, p1.1, 0.0);
-        let p2 = Pointf32::new(p2.0, p2.1, 0.0);
-        let fov = FOV::new((size.0, size.1, 1.0), (n.0, n.1, 1));
+        let p1 = (mm(p1.0), mm(p1.1));
+        let p2 = (mm(p2.0), mm(p2.1));
+
+        let p1 = Point::new(p1.0, p1.1, mm(0.0));
+        let p2 = Point::new(p2.0, p2.1, mm(0.0));
+        let fov = FOV::new((mm(size.0), mm(size.1), mm(1.0)), (n.0, n.1, 1));
 
         // Values to plug in to visualizer:
-        let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
+        let lor = LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0));
         let command = crate::visualize::vislor_command(&fov, &lor);
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weightf32> = LOR::new(0.0, 0.0, p1, p2, 1.0).active_voxels(&fov, None, None);
+        let hits: Vec<Index3Weightf32> = LOR::new(ns(0.0), ns(0.0), p1, p2, ratio(1.0)).active_voxels(&fov, None, None);
 
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -125,29 +123,29 @@ mod test {
             let p2_theta: Lengthf32 = p1_theta + (p2_delta * TWOPIf32);
             let p1 = Pointf32::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
             let p2 = Pointf32::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
-            let fov = FOV::new((dx, dy, dz), (nx, ny, nz));
+            let fov = FOV::new((mm(dx), mm(dy), mm(dz)), (nx, ny, nz));
 
             // Values to plug in to visualizer:
-            let lor = LOR::new(0.0, 0.0, p1, p2, 1.0);
+            let lor = LOR::new(ns(0.0), ns(0.0), p1.into(), p2.into(), ratio(1.0));
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = LOR::new(0.0, 0.0, p1, p2, 1.0)
+            let summed: Lengthf32 = LOR::new(ns(0.0), ns(0.0), p1.into(), p2.into(), ratio(1.0))
                 .active_voxels(&fov, None, None)
                 .into_iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
                 .map(|(_index, weight)| weight)
                 .sum();
 
-            let a = fov.entry(&p1, &p2);
-            let b = fov.entry(&p2, &p1);
+            let a = fov.entry(&p1.into(), &p2.into());
+            let b = fov.entry(&p2.into(), &p1.into());
 
             let in_one_go = match (a,b) {
                 (Some(a), Some(b)) => (a - b).magnitude(),
-                _ => 0.0
+                _ => mm(0.0)
             };
 
-            assert_approx_eq!(summed, in_one_go, 1e-3);
+            assert_float_eq!(summed, mm_(in_one_go), rel <= 1e-3);
 
         }
     }
@@ -190,17 +188,18 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // direction from p1 to p2 is non-negative along all axes. Remember
     // which directions have been flipped, to recover correct voxel indices.
     let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
+    let (p1, p2) = (Pointf32::from(p1), Pointf32::from(p2));
 
     // If and where LOR enters FOV.
-    let entry_point: Pointf32 = match fov.entry(&p1, &p2) {
+    let entry_point: Pointf32 = match fov.entry(&p1.into(), &p2.into()) {
         // If LOR misses the box, immediately return
         None => return None,
         // Otherwise, unwrap the point and continue
-        Some(point) => point,
+        Some(point) => point.into(),
     };
 
     // How far the entry point is from the TOF peak
-    let tof_peak = find_tof_peak(entry_point, p1, p2, lor.dt);
+    let tof_peak = find_tof_peak(entry_point, p1, p2, ns_(lor.dt));
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     let entry_point = find_entry_point(entry_point, fov);
@@ -284,7 +283,6 @@ pub fn system_matrix_elements(
 }
 
 use crate::types::guomc::ConstZero;
-const LENGTH_ZERO: Length = Length::ZERO;
 const F32_LENGTH_ZERO: Lengthf32 = 0.0;
 
 /// The point at which the LOR enters the FOV, expressed in a coordinate
@@ -359,7 +357,7 @@ fn floor_f32(x: f32) -> usize { x.floor() as usize }
 fn uom_signed(value: LengthU) -> LengthI { in_base_unit!(value.value as i32) }
 
 #[inline(always)]
-fn signed_f32(x: usize) -> i32 { x as i32 }
+fn signed_i32(x: usize) -> i32 { x as i32 }
 
 /// Calculate information needed to keep track of progress across FOV:
 /// voxel index and distance remaining until leaving the box
@@ -376,8 +374,8 @@ fn index_trackers(entry_point: Pointf32, flipped: [bool; 3], [nx, ny, nz]: BoxDi
                         floor_f32(entry_point.z)];
 
     // index is unsigned, but need signed values for delta_index
-    let [ix, iy, iz] = [signed_f32(ix), signed_f32(iy), signed_f32(iz)];
-    let [nx, ny, nz] = [signed_f32(nx), signed_f32(ny), signed_f32(nz)];
+    let [ix, iy, iz] = [signed_i32(ix), signed_i32(iy), signed_i32(iz)];
+    let [nx, ny, nz] = [signed_i32(nx), signed_i32(ny), signed_i32(nz)];
 
     // How much the 1d index changes along each dimension
     let delta_index = [
@@ -420,13 +418,11 @@ struct IndexTrackers {
 /// knowledge of which axes were flipped, so that the indices of subsequently
 /// found active voxels can be flipped back into the original coordinate system.
 #[inline]
-fn flip_axes(mut p1: Pointf32, mut p2: Pointf32) -> (Pointf32, Pointf32, [bool; 3]) {
-    //use geometry::uom::uomcrate::ConstZero;
-    //let zero = ZERO;
-    let zero = 0.0;
+fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
+    let zero = Length::ZERO;
 
     let dimensions = 3;
-    let original_lor_direction: Vectorf32 = p2 - p1;
+    let original_lor_direction: Vector = p2 - p1;
     let mut flipped = [false; 3];
     let mut flip_if_necessary = |n| {
         if original_lor_direction[n] < zero {
@@ -455,43 +451,54 @@ pub struct FOV {
 impl FOV {
 
     pub fn new(
-        full_size: (Lengthf32, Lengthf32, Lengthf32),
+        full_size: (Length, Length, Length),
         (nx, ny, nz): (usize, usize, usize)
     ) -> Self {
         let (dx, dy, dz) = full_size;
-        let half_width = Vectorf32::new(dx/2.0, dy/2.0, dz/2.0);
+        let half_width = Vector::new(dx/2.0, dy/2.0, dz/2.0);
         let n = [nx, ny, nz];
         let voxel_size = Self::voxel_size(n, half_width);
-            Self { half_width: half_width.into(), n, voxel_size: voxel_size.into(), }
+            Self { half_width, n, voxel_size }
     }
 
-    fn voxel_size(n: BoxDim_u, half_width: Vectorf32) -> Vectorf32 {
-        // TODO: generalize conversion of VecOf<int> -> VecOf<float>
-        let nl: Vectorf32 = Vectorf32::new(n[0] as Lengthf32, n[1] as Lengthf32, n[2] as Lengthf32);
-        (half_width * 2.0).component_div(&nl)
+    fn voxel_size(n: BoxDim_u, half_width: Vector) -> Vector {
+        let full_width = half_width * 2.0;
+        Vector::new(full_width[0] / n[0] as f32,
+                    full_width[1] / n[1] as f32,
+                    full_width[2] / n[2] as f32,
+        )
     }
 
-    pub fn voxel_centre(&self, i: Index3_u) -> Pointf32 {
+    /// Find centre of voxel with given 3D index
+    pub fn voxel_centre(&self, i: Index3_u) -> Point {
         //i.map(|n| n as f64 + 0.5).component_mul(&self.voxel_size).into()
         let s = self.voxel_size;
         Point::new((i[0] as Lengthf32 + 0.5) * s.x - self.half_width[0],
-                      (i[1] as Lengthf32 + 0.5) * s.y - self.half_width[1],
-                      (i[2] as Lengthf32 + 0.5) * s.z - self.half_width[2],)
-            .into()
+                   (i[1] as Lengthf32 + 0.5) * s.y - self.half_width[1],
+                   (i[2] as Lengthf32 + 0.5) * s.z - self.half_width[2],)
     }
 
-    pub fn voxel_centre1(&self, i: Index1_u) -> Pointf32 {
+    /// Find centre of voxel with given 1D index
+    pub fn voxel_centre1(&self, i: Index1_u) -> Point {
         self.voxel_centre(index1_to_3(i, self.n))
     }
 
-    pub fn entry(&self, p1: &Pointf32, p2: &Pointf32) -> Option<Pointf32> {
-        let lor_direction: Vectorf32 = (p2 - p1).normalize();
-        let lor_length: Lengthf32 = (p2 - p1).norm();
-        let lor: Ray = Ray::new(*p1, lor_direction);
+    pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
+
+        use ncollide3d::query::RayCast;
+        use ncollide3d::shape::Cuboid;
+
+        type Ray      = ncollide3d::query::Ray    <Lengthf32>;
+        type Isometry = ncollide3d::math::Isometry<Lengthf32>;
+
+        let lor_direction: Vectorf32 = Vectorf32::from(p2 - p1).normalize();
+        let lor_length   : Lengthf32 = Vectorf32::from(p2 - p1).norm();
+        let lor: Ray = Ray::new(p1.into(), lor_direction);
         let iso: Isometry = Isometry::identity();
         Cuboid::new(self.half_width.into())
             .toi_with_ray(&iso, &lor, lor_length, true)
             .map(|toi| lor.origin + lor.dir * toi)
+            .map(Into::into)
     }
 
 }
@@ -512,9 +519,10 @@ mod test_voxel_box {
              case([1,1,1], [ 1.0,  1.0,  1.0]),
     )]
     fn test_voxel_centre(index: Index3_u, expected_position: [Lengthf32; 3]) {
-        let fov = FOV::new((4.0, 4.0, 4.0), (2,2,2));
+        let fov = FOV::new((mm(4.0), mm(4.0), mm(4.0)), (2,2,2));
         let c = fov.voxel_centre(index);
-        assert_float_eq!([c.x, c.y, c.z], expected_position, ulps <= [0, 0, 0]);
+        let c = [mm_(c.x), mm_(c.y), mm_(c.z)];
+        assert_float_eq!(c, expected_position, ulps <= [1, 1, 1]);
     }
 }
 
@@ -526,28 +534,28 @@ mod test_voxel_box {
 #[derive(Clone, Copy, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct LOR {
-    pub p1: Pointf32,
-    pub p2: Pointf32,
-    pub dt: Timef32,
+    pub p1: Point,
+    pub p2: Point,
+    pub dt: Time,
     /// Scatter and random corrections, which appear as an additive contribution
     /// to the sinogram bin in the MLEM forward projection. In order to make it
     /// compatible with a single LOR (rather than many LORs in a sinogram bin)
     /// it is expressed here as a *multiplicative* factor.
-    pub additive_correction: Ratiof32,
+    pub additive_correction: Ratio,
 }
 
 impl LOR {
-    pub fn new(t1: Timef32, t2: Timef32, p1: Pointf32, p2: Pointf32, additive_correction: Ratiof32) -> Self {
+    pub fn new(t1: Time, t2: Time, p1: Point, p2: Point, additive_correction: Ratio) -> Self {
         Self { p1, p2, dt: t2 - t1, additive_correction }
     }
 
-    pub fn from_components((t1, t2): (Timef32, Timef32),
-                           (x1, y1, z1): (Lengthf32, Lengthf32, Lengthf32),
-                           (x2, y2, z2): (Lengthf32, Lengthf32, Lengthf32),
-                           additive_correction: Ratiof32
+    pub fn from_components((t1, t2): (Time, Time),
+                           (x1, y1, z1): (Length, Length, Length),
+                           (x2, y2, z2): (Length, Length, Length),
+                           additive_correction: Ratio
                           ) -> Self
     {
-        Self::new(t1, t2, Pointf32::new(x1,y1,z1), Pointf32::new(x2,y2,z2), additive_correction)
+        Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
     pub fn active_voxels(&self, fov: &FOV, cutoff: Option<Ratio>, sigma: Option<Time>) -> Vec<Index3Weightf32> {
@@ -559,7 +567,7 @@ impl LOR {
             Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
                 system_matrix_elements(
                     &mut indices, &mut weights,
-                    next_boundary.into(), voxel_size.into(),
+                    next_boundary.into(), voxel_size,
                     index, delta_index, remaining,
                     tof_peak, &tof
                 );
@@ -578,10 +586,10 @@ impl fmt::Display for LOR {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (p, q) = (self.p1, self.p2);
         write!(f, "<LOR ({:8.2} {:8.2} {:8.2}) ({:8.2} {:8.2} {:8.2}) {:7.2}ns {:7.2}mm /{:7.2} >",
-               p.x, p.y, p.z,
-               q.x, q.y, q.z,
-               self.dt, ns_to_mm(self.dt) / 2.0,
-               (p-q).norm()
+               mm_(p.x), mm_(p.y), mm_(p.z),
+               mm_(q.x), mm_(q.y), mm_(q.z),
+               ns_(self.dt), ns_to_mm(ns_(self.dt)) / 2.0,
+               mm_((p-q).norm())
         )
     }
 }

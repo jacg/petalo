@@ -56,6 +56,8 @@ impl FomConfig {
         let background_rois = bg_rois.into_iter().map(pyroi_to_fomroi).collect();
 
         let cfg = fom::FomConfig{ rois, background_rois, background_activity: bg};
+        use geometry::uom::mm;
+        let size = (mm(size.0), mm(size.1), mm(size.2));
         FomConfig{ cfg, fov: FOV::new(size, voxels)}
     }
 

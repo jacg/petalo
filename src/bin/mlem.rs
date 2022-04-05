@@ -14,8 +14,8 @@ pub struct Cli {
     pub iterations: usize,
 
     /// Field Of View full-widths in mm
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<Lengthf32>), default_value = "300,300,300")]
-    pub size: (Lengthf32, Lengthf32, Lengthf32),
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "300mm,300mm,300mm")]
+    pub size: (Length, Length, Length),
 
     /// Field Of View size in number of voxels
     #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
@@ -78,13 +78,13 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::types::{Lengthf32, Energyf32, Chargef32, BoundPair};
-use petalo::types::{Time, Ratio};
+use petalo::types::{Energyf32, Chargef32, BoundPair};
+use petalo::types::{Length, Time, Ratio};
 use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};
 use petalo::mlem::Image;
 use petalo::io;
-use geometry::uom::mm_;
+use geometry::uom::{mm_, ratio};
 
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -157,14 +157,13 @@ fn guess_filename(args: &Cli) -> String {
 }
 
 
-type FovSize = (Lengthf32, Lengthf32, Lengthf32);
+type FovSize = (Length, Length, Length);
 type NVoxels = (usize , usize , usize );
 
 /// Panic if the image size does not match the specified values
 fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) {
     let size = image.fov.half_width;
     let (idx, idy, idz) = (size[0]*2.0, size[1]*2.0, size[2]*2.0);
-    let (idx, idy, idz) = (mm_(idx), mm_(idy), mm_(idz));
     let [inx, iny, inz] = image.fov.n;
     let (enx, eny, enz) = nvoxels;
     let (edx, edy, edz) = fov_size;
@@ -172,14 +171,14 @@ fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) 
         // TODO enable use of density images with different
         // pixelizations as long as they cover the whole FOV.
         println!("Mismatch sensitivity image and output image size:");
-        println!("Sensitivity image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", inx,iny,inz, idx,idy,idz);
-        println!("     Output image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", enx,eny,enz, edx,edy,edz);
+        println!("Sensitivity image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", inx,iny,inz, mm_(idx),mm_(idy),mm_(idz));
+        println!("     Output image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", enx,eny,enz, mm_(edx),mm_(edy),mm_(edz));
         panic!("For now, the sensitivity image must match the dimensions of the output image exactly.");
     }
 }
 
 fn calculate_additive_correction(measured_lors: &mut [LOR], sgram: Scattergram) {
     for lor in measured_lors {
-        lor.additive_correction = sgram.value(lor);
+        lor.additive_correction = ratio(sgram.value(lor));
     }
 }

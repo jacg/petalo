@@ -1,5 +1,6 @@
 use crate::io::raw;
 use crate::types::{Lengthf32, Pointf32, Intensityf32, Ratiof32};
+use crate::types::Point;
 use crate::mlem::{Image, ImageData};
 use crate::weights::FOV;
 
@@ -67,7 +68,7 @@ impl ROI {
 }
 
 /// A 3D point with an associated value. Used to represent voxels
-pub type PointValue = (Pointf32, Intensityf32);
+pub type PointValue = (Point, Intensityf32);
 
 // TODO replace vec with iterator in output
 impl Image {
@@ -77,7 +78,7 @@ impl Image {
         let roi_contains = roi.contains_fn();
         for (index, value) in self.data.iter().copied().enumerate() {
             let p = self.fov.voxel_centre1(index);
-            if roi_contains(p) { out.push(value) }
+            if roi_contains(p.into()) { out.push(value) }
         }
         out
     }
@@ -101,7 +102,7 @@ pub fn mean_in_region(roi: ROI, voxels: &[PointValue]) -> f32 {
 /// Iterator which filters out voxels that lie outside given ROI
 pub fn in_roi(in_roi: InRoiFn, voxels: &[PointValue]) -> impl Iterator<Item = PointValue> + '_ {
     voxels.iter()
-        .filter(move |(p,_)| in_roi(*p))
+        .filter(move |(p,_)| in_roi(p.into()))
         .copied()
 }
 
@@ -134,6 +135,7 @@ pub fn centres_of_slices_closest_to(targets: &[Lengthf32], half_width: Lengthf32
 mod test_in_roi {
     use super::*;
     use rstest::rstest;
+    use geometry::uom::mm;
 
     // Arrange for outer voxels to be centred at +/- 100.0, when n = 10
     const MAGIC: Lengthf32 = 10.0 / 9.0 * 200.0;
@@ -153,7 +155,7 @@ mod test_in_roi {
         expected_len: usize
     ) {
         let data = vec![1.0; n*n*n];
-        let fov = FOV::new((l,l,l), (n,n,n));
+        let fov = FOV::new((mm(l),mm(l),mm(l)), (n,n,n));
         let image = Image::new(fov, data);
         let inside = image.values_inside_roi(ROI::Sphere(centre, r));
         println!("{} {}", inside.len(), expected_len);
@@ -175,7 +177,7 @@ mod test_in_roi {
         expected_len: usize
     ) {
         let data = vec![1.0; n*n*n];
-        let fov = FOV::new((l,l,l), (n,n,n));
+        let fov = FOV::new((mm(l),mm(l),mm(l)), (n,n,n));
         let image = Image::new(fov, data);
         let inside = image.values_inside_roi(ROI::CylinderZ(centre, r));
         println!("{} {}", inside.len(), expected_len);
@@ -216,7 +218,7 @@ mod test_in_roi {
     fn which_voxels(roi: ROI, expected: usize) {
         let data = vec![1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0];
         let (l, n) = (4.0, 2);
-        let fov = FOV::new((l,l,l), (n,n,n));
+        let fov = FOV::new((mm(l),mm(l),mm(l)), (n,n,n));
         let image = Image::new(fov, data);
         let pattern = image.values_inside_roi(roi)
             .iter().sum::<Intensityf32>()
