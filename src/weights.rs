@@ -216,7 +216,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let voxel_size = voxel_size(fov, p1.into(), p2.into());
 
     // At what position along LOR is the next voxel boundary, in any dimension.
-    let next_boundary = Vector::from(first_boundaries(entry_point.into(), voxel_size.into()));
+    let next_boundary = Vector::from(first_boundaries(entry_point, voxel_size));
 
     let voxel_size = Vector::from(voxel_size);
     // Return the values needed by `system_matrix_elements`
@@ -324,7 +324,9 @@ fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
 
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
-fn first_boundaries(entry_point: Pointf32, voxel_size: Vectorf32) -> Vectorf32 {
+fn first_boundaries(entry_point: Point, voxel_size: Vector) -> Vectorf32 {
+    let entry_point: Pointf32 = entry_point.into();
+    let voxel_size: Vectorf32 = voxel_size.into();
     // What fraction of the voxel has already been traversed at the entry
     // point, along any axis.
     let vox_done_fraction: Vectorf32 = entry_point - entry_point.map(|x| x.floor());
