@@ -16,7 +16,7 @@
 use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Timef32, Vectorf32, ns_to_mm};
-use crate::types::{Length, Time, Ratio, PerLength};
+use crate::types::{Length, Time, Ratio, PerLength, C};
 use geometry::uom::{mm, mm_, ns_};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
@@ -188,10 +188,9 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // direction from p1 to p2 is non-negative along all axes. Remember
     // which directions have been flipped, to recover correct voxel indices.
     let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
-    let (p1, p2) = (Pointf32::from(p1), Pointf32::from(p2));
 
     // If and where LOR enters FOV.
-    let entry_point: Pointf32 = match fov.entry(&p1.into(), &p2.into()) {
+    let entry_point: Pointf32 = match fov.entry(&p1, &p2) {
         // If LOR misses the box, immediately return
         None => return None,
         // Otherwise, unwrap the point and continue
@@ -199,7 +198,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     };
 
     // How far the entry point is from the TOF peak
-    let tof_peak = find_tof_peak(entry_point, p1, p2, ns_(lor.dt));
+    let tof_peak = find_tof_peak(entry_point.into(), p1, p2, lor.dt);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     let entry_point = find_entry_point(entry_point, fov);
@@ -221,7 +220,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
 
     let voxel_size = Vector::from(voxel_size);
     // Return the values needed by `system_matrix_elements`
-    let tof_peak = mm(tof_peak);
+    let tof_peak = tof_peak;
     Some(FovHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
 }
 
@@ -314,10 +313,9 @@ fn find_entry_point(mut entry_point: Pointf32, fov: FOV) -> Pointf32 {
 
 /// Distance from entry point to the LOR's TOF peak
 #[inline]
-fn find_tof_peak(entry_point: Pointf32, p1: Pointf32, p2: Pointf32, dt: Timef32) -> Lengthf32 {
+fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
     let half_lor_length = (p1 - p2).norm() / 2.0;
-    let tof_shift = ns_to_mm(dt) / 2.0; // NOTE ignoring refractive index
-    //tof_shift = C *      dt  / 2.0; // NOTE ignoring refractive index
+    let tof_shift = C * dt / 2.0; // NOTE ignoring refractive index
     let p1_to_peak = half_lor_length - tof_shift;
     let p1_to_entry = (entry_point - p1).norm();
     p1_to_peak - p1_to_entry
