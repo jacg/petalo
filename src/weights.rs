@@ -13,12 +13,6 @@
 //!    indices calculated by the algorithm, must be flipped back to the original
 //!    coordinate system.
 
-use ncollide3d::query::RayCast;
-use ncollide3d::shape::Cuboid;
-
-type Ray      = ncollide3d::query::Ray    <Lengthf32>;
-type Isometry = ncollide3d::math::Isometry<Lengthf32>;
-
 use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
 use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
@@ -490,6 +484,13 @@ impl FOV {
     }
 
     pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
+
+        use ncollide3d::query::RayCast;
+        use ncollide3d::shape::Cuboid;
+
+        type Ray      = ncollide3d::query::Ray    <Lengthf32>;
+        type Isometry = ncollide3d::math::Isometry<Lengthf32>;
+
         let lor_direction: Vectorf32 = Vectorf32::from(p2 - p1).normalize();
         let lor_length   : Lengthf32 = Vectorf32::from(p2 - p1).norm();
         let lor: Ray = Ray::new(p1.into(), lor_direction);
