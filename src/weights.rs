@@ -365,7 +365,8 @@ fn signed_i32(x: usize) -> i32 { x as i32 }
 /// voxel index and distance remaining until leaving the box
 #[inline]
 #[allow(clippy::identity_op)]
-fn index_trackers(entry_point: Pointf32, flipped: [bool; 3], [nx, ny, nz]: BoxDim_u) -> IndexTrackers {
+fn index_trackers(entry_point: Point, flipped: [bool; 3], [nx, ny, nz]: BoxDim_u) -> IndexTrackers {
+    let entry_point: Pointf32 = entry_point.into();
     //use geometry::uom::uomcrate::ConstOne;
     //let one = ONE;
     let one = 1;
