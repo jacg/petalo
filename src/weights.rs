@@ -283,7 +283,6 @@ pub fn system_matrix_elements(
 }
 
 use crate::types::guomc::ConstZero;
-const LENGTH_ZERO: Length = Length::ZERO;
 const F32_LENGTH_ZERO: Lengthf32 = 0.0;
 
 /// The point at which the LOR enters the FOV, expressed in a coordinate
