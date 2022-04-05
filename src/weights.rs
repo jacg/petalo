@@ -214,10 +214,10 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // Voxel size expressed in LOR distance units: how far we must move along
     // LOR to cross one voxel in any given dimension. Will be infinite for any
     // axis which is parallel to the LOR.
-    let voxel_size = voxel_size(fov, p1, p2);
+    let voxel_size = voxel_size(fov, p1.into(), p2.into());
 
     // At what position along LOR is the next voxel boundary, in any dimension.
-    let next_boundary = Vector::from(first_boundaries(entry_point, voxel_size));
+    let next_boundary = Vector::from(first_boundaries(entry_point, voxel_size.into()));
 
     let voxel_size = Vector::from(voxel_size);
     // Return the values needed by `system_matrix_elements`
@@ -338,9 +338,13 @@ fn first_boundaries(entry_point: Pointf32, voxel_size: Vectorf32) -> Vectorf32 {
 /// to cross one voxel in any given dimension. Will be infinite for any axis
 /// which is parallel to the LOR.
 #[inline]
-fn voxel_size(fov: FOV, p1: Pointf32, p2: Pointf32) -> Vectorf32 {
+fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
+    let p1: Pointf32 = p1.into();
+    let p2: Pointf32 = p2.into();
     let lor_direction = (p2-p1).normalize();
-    Vectorf32::from(fov.voxel_size).component_div(&lor_direction)
+    Vectorf32::from(fov.voxel_size)
+        .component_div(&lor_direction)
+        .into()
 }
 
 use geometry::Quantity;
