@@ -102,7 +102,7 @@ pub fn mean_in_region(roi: ROI, voxels: &[PointValue]) -> f32 {
 /// Iterator which filters out voxels that lie outside given ROI
 pub fn in_roi(in_roi: InRoiFn, voxels: &[PointValue]) -> impl Iterator<Item = PointValue> + '_ {
     voxels.iter()
-        .filter(move |(p,_)| in_roi(p.into()))
+        .filter(move |(p,_)| in_roi((*p).into()))
         .copied()
 }
 

@@ -46,17 +46,6 @@ impl From<Vector> for ncollide3d::math::Vector<f32> {
     }
 }
 
-impl From<&Point> for ncollide3d::math::Point<f32> {
-    fn from(p: &Point) -> Self {
-        use uom::si::length::millimeter as mm;
-        let x = p.x.get::<mm>();
-        let y = p.y.get::<mm>();
-        let z = p.z.get::<mm>();
-        Self::new(x, y, z)
-    }
-}
-
-
 impl From<RatioVec> for ncollide3d::math::Vector<f32> {
     fn from(v: RatioVec) -> Self {
         use uom::si::ratio::ratio;
@@ -74,15 +63,5 @@ impl From<RatioPoint> for ncollide3d::math::Point<f32> {
         let y = v.y.get::<ratio>();
         let z = v.z.get::<ratio>();
         Self::new(x, y, z)
-    }
-}
-
-impl From<&ncollide3d::math::Vector<f32>> for RatioVec {
-    fn from(v: &ncollide3d::math::Vector<f32>) -> Self {
-        use crate::uom::ratio;
-        let x = ratio(v.x);
-        let y = ratio(v.y);
-        let z = ratio(v.z);
-        Self{x, y, z}
     }
 }
