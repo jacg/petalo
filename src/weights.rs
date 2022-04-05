@@ -134,8 +134,8 @@ mod test {
                 .map(|(_index, weight)| weight)
                 .sum();
 
-            let a = fov.entry(&p1.into(), &p2.into());
-            let b = fov.entry(&p2.into(), &p1.into());
+            let a = fov.entry(p1.into(), p2.into());
+            let b = fov.entry(p2.into(), p1.into());
 
             let in_one_go = match (a,b) {
                 (Some(a), Some(b)) => (a - b).magnitude(),
@@ -187,7 +187,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
 
     // If and where LOR enters FOV.
-    let entry_point: Point = match fov.entry(&p1, &p2) {
+    let entry_point: Point = match fov.entry(p1, p2) {
         // If LOR misses the box, immediately return
         None => return None,
         // Otherwise, unwrap the point and continue
@@ -349,7 +349,7 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     // TODO: The units are a bit dodgy here. See the TODOs for
     // Vector::{normalize,component_div}
     let lor_direction = (p2-p1).normalize();
-    fov.voxel_size.component_div(&lor_direction)
+    fov.voxel_size.component_div(lor_direction)
 }
 
 use geometry::Quantity;
@@ -493,7 +493,7 @@ impl FOV {
         self.voxel_centre(index1_to_3(i, self.n))
     }
 
-    pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
+    pub fn entry(&self, p1: Point, p2: Point) -> Option<Point> {
 
         use ncollide3d::query::RayCast;
         use ncollide3d::shape::Cuboid;

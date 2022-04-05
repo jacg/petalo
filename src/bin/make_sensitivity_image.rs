@@ -87,7 +87,7 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detecto
         loop {
             let p1 = random_point_on_cylinder(l, r);
             let p2 = random_point_on_cylinder(l, r);
-            if fov.entry(&p1, &p2).is_some() {
+            if fov.entry(p1, p2).is_some() {
                 return Some(petalo::weights::LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)))
             }
         }

@@ -112,7 +112,7 @@ impl Vector {
         RatioVec {x, y, z}
     }
 
-    pub fn component_div(&self, rhs: &RatioVec) -> Self {
+    pub fn component_div(&self, rhs: RatioVec) -> Self {
         Vector {
             x: self.x / rhs.x,
             y: self.y / rhs.y,
@@ -120,7 +120,7 @@ impl Vector {
         }
     }
 
-    pub fn component_mul(&self, rhs: &RatioVec) -> Self {
+    pub fn component_mul(&self, rhs: RatioVec) -> Self {
         Vector {
             x: self.x * rhs.x,
             y: self.y * rhs.y,
