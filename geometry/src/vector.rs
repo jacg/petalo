@@ -1,7 +1,7 @@
 use std::ops::{Index, Mul};
 use crate::uom::mmps::f32::Length;
 
-//use crate::Point;
+use crate::uom::mm;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vector {
@@ -64,8 +64,14 @@ impl Vector {
     }
 
     pub fn argmin(self) -> (usize, Length) { todo!() }
-    pub fn norm(self) -> Length { todo!() }
-    pub fn normalize(self) -> Self { todo!() }
+
+    pub fn norm(self) -> Length {
+        mm(ncollide3d::math::Vector::<f32>::from(self).norm())
+    }
+
+    pub fn normalize(self) -> Self {
+        ncollide3d::math::Vector::<f32>::from(self).normalize().into()
+    }
 
 }
 
