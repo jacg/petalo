@@ -187,7 +187,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     // Simplify expression of the algorithm by flipping axes so that the
     // direction from p1 to p2 is non-negative along all axes. Remember
     // which directions have been flipped, to recover correct voxel indices.
-    let (p1, p2, flipped) = flip_axes(lor.p1.into(), lor.p2.into());
+    let (p1, p2, flipped) = flip_axes(lor.p1, lor.p2);
     let (p1, p2) = (Pointf32::from(p1), Pointf32::from(p2));
 
     // If and where LOR enters FOV.
@@ -458,8 +458,8 @@ impl FOV {
         let (dx, dy, dz) = full_size;
         let half_width = Vector::new(dx/2.0, dy/2.0, dz/2.0);
         let n = [nx, ny, nz];
-        let voxel_size = Self::voxel_size(n, half_width.into());
-            Self { half_width: half_width.into(), n, voxel_size: voxel_size.into(), }
+        let voxel_size = Self::voxel_size(n, half_width);
+            Self { half_width, n, voxel_size }
     }
 
     fn voxel_size(n: BoxDim_u, half_width: Vector) -> Vector {
@@ -568,7 +568,7 @@ impl LOR {
             Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
                 system_matrix_elements(
                     &mut indices, &mut weights,
-                    next_boundary.into(), voxel_size.into(),
+                    next_boundary.into(), voxel_size,
                     index, delta_index, remaining,
                     tof_peak, &tof
                 );
