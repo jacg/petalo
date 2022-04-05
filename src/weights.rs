@@ -142,15 +142,15 @@ mod test {
                 .map(|(_index, weight)| weight)
                 .sum();
 
-            let a = fov.entry(&p1, &p2);
-            let b = fov.entry(&p2, &p1);
+            let a = fov.entry(&p1.into(), &p2.into());
+            let b = fov.entry(&p2.into(), &p1.into());
 
             let in_one_go = match (a,b) {
                 (Some(a), Some(b)) => (a - b).magnitude(),
-                _ => 0.0
+                _ => mm(0.0)
             };
 
-            assert_approx_eq!(summed, in_one_go, 1e-3);
+            assert_float_eq!(summed, mm_(in_one_go), rel <= 1e-3);
 
         }
     }
@@ -196,11 +196,11 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     let (p1, p2) = (Pointf32::from(p1), Pointf32::from(p2));
 
     // If and where LOR enters FOV.
-    let entry_point: Pointf32 = match fov.entry(&p1, &p2) {
+    let entry_point: Pointf32 = match fov.entry(&p1.into(), &p2.into()) {
         // If LOR misses the box, immediately return
         None => return None,
         // Otherwise, unwrap the point and continue
-        Some(point) => point,
+        Some(point) => point.into(),
     };
 
     // How far the entry point is from the TOF peak
@@ -489,14 +489,15 @@ impl FOV {
         self.voxel_centre(index1_to_3(i, self.n))
     }
 
-    pub fn entry(&self, p1: &Pointf32, p2: &Pointf32) -> Option<Pointf32> {
-        let lor_direction: Vectorf32 = (p2 - p1).normalize();
-        let lor_length: Lengthf32 = (p2 - p1).norm();
-        let lor: Ray = Ray::new(*p1, lor_direction);
+    pub fn entry(&self, p1: &Point, p2: &Point) -> Option<Point> {
+        let lor_direction: Vectorf32 = Vectorf32::from(p2 - p1).normalize();
+        let lor_length   : Lengthf32 = Vectorf32::from(p2 - p1).norm();
+        let lor: Ray = Ray::new(p1.into(), lor_direction);
         let iso: Isometry = Isometry::identity();
         Cuboid::new(self.half_width.into())
             .toi_with_ray(&iso, &lor, lor_length, true)
             .map(|toi| lor.origin + lor.dir * toi)
+            .map(Into::into)
     }
 
 }
