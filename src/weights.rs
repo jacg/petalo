@@ -15,9 +15,9 @@
 
 use crate::types::{LengthU, LengthI, Point, Vector};
 use geometry::in_base_unit;
-use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Ratiof32, Timef32, Vectorf32, ns_to_mm};
+use crate::types::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, Lengthf32, Pointf32, Timef32, Vectorf32, ns_to_mm};
 use crate::types::{Length, Time, Ratio, PerLength};
-use geometry::uom::{mm, mm_, ns, ns_, ratio};
+use geometry::uom::{mm, mm_, ns_};
 use crate::gauss::make_gauss_option;
 use crate::mlem::{index3_to_1, index1_to_3};
 
@@ -36,6 +36,7 @@ mod test {
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
     use crate::types::TWOPIf32;
+    use geometry::uom::{ns, ratio};
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The

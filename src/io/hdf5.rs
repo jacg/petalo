@@ -16,11 +16,11 @@ pub struct Args {
 
 use ndarray::{s, Array1};
 
-use crate::types::{Lengthf32, Pointf32, Energyf32, BoundPair};
+use crate::types::{Energyf32, BoundPair};
 use crate::types::Point;
 use crate::weights::LOR;
 
-use geometry::uom::{mm, mm_, ns, ratio};
+use geometry::uom::{mm, ns, ratio};
 
 pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<std::ops::Range<usize>>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;
@@ -140,6 +140,7 @@ mod test {
     use crate::utils;
 
     use super::*;
+    use geometry::uom::mm_;
     use assert_approx_eq::assert_approx_eq;
 
     #[test] // Test higher-level `read_lors`

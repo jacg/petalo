@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::ops::{Bound, Range};
 
-use crate::types::{Timef32, Lengthf32, Pointf32, BoundPair};
+use crate::types::{Timef32, Lengthf32, BoundPair};
 use crate::types::{Point, Ratio};
 use crate::weights::{LOR};
 use geometry::uom::{mm, ns, ratio};

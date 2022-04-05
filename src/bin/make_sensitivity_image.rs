@@ -37,7 +37,7 @@ use std::path::PathBuf;
 
 use petalo::{mlem, utils::group_digits, weights::FOV, types::Lengthf32};
 
-use petalo::types::{Length, Point, Ratio};
+use petalo::types::Length;
 use geometry::uom::{mm, ns, ratio};
 
 
