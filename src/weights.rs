@@ -198,7 +198,7 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
     };
 
     // How far the entry point is from the TOF peak
-    let tof_peak = find_tof_peak(entry_point.into(), p1, p2, lor.dt);
+    let tof_peak = find_tof_peak(entry_point, p1, p2, lor.dt);
 
     // Express entry point in voxel coordinates: floor(position) = index of voxel.
     let entry_point = find_entry_point(entry_point, fov);
@@ -208,17 +208,16 @@ pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
         index,       // current 1d index into 3d array of voxels
         delta_index, // how the index changes along each dimension
         remaining,   // voxels until edge of FOV in each dimension
-    } = index_trackers(entry_point.into(), flipped, fov.n);
+    } = index_trackers(entry_point, flipped, fov.n);
 
     // Voxel size expressed in LOR distance units: how far we must move along
     // LOR to cross one voxel in any given dimension. Will be infinite for any
     // axis which is parallel to the LOR.
-    let voxel_size = voxel_size(fov, p1.into(), p2.into());
+    let voxel_size = voxel_size(fov, p1, p2);
 
     // At what position along LOR is the next voxel boundary, in any dimension.
     let next_boundary = Vector::from(first_boundaries(entry_point, voxel_size));
 
-    let voxel_size = Vector::from(voxel_size);
     // Return the values needed by `system_matrix_elements`
     let tof_peak = tof_peak;
     Some(FovHit { next_boundary, voxel_size, index, delta_index, remaining, tof_peak } )
@@ -342,7 +341,7 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     // TODO: The units are a bit dodgy here. See the TODOs for
     // Vector::{normalize,component_div}
     let lor_direction = (p2-p1).normalize();
-    fov.voxel_size.component_div(&lor_direction).into()
+    fov.voxel_size.component_div(&lor_direction)
 }
 
 use geometry::Quantity;
