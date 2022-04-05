@@ -3,6 +3,8 @@ use crate::uom::mmps::f32::Length;
 
 use crate::uom::mm;
 
+type NcVector = ncollide3d::math::Vector::<f32>;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vector {
     pub x: Length,
@@ -63,14 +65,18 @@ impl Vector {
         (x*x + y*y + z*z).sqrt()
     }
 
-    pub fn argmin(self) -> (usize, Length) { todo!() }
+    pub fn argmin   (self) -> (usize, Length) { todo!() }
+    pub fn norm     (self) -> Length { mm(NcVector::from(self).norm()) }
 
-    pub fn norm(self) -> Length {
-        mm(ncollide3d::math::Vector::<f32>::from(self).norm())
-    }
+    // TODO: should return vector of ratios
+    pub fn normalize(self) -> Self   {    NcVector::from(self).normalize().into() }
 
-    pub fn normalize(self) -> Self {
-        ncollide3d::math::Vector::<f32>::from(self).normalize().into()
+    pub fn component_div(&self, rhs: &Self) -> Self {
+        // TODO: RHS should have arbitrary units, and the return type should
+        // reflect the correct units resulting from the division of LHS / RHS
+        let lhs = NcVector::from(self);
+        let rhs = NcVector::from(rhs);
+        lhs.component_div(&rhs).into()
     }
 
 }

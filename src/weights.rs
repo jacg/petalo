@@ -337,12 +337,10 @@ fn first_boundaries(entry_point: Pointf32, voxel_size: Vectorf32) -> Vectorf32 {
 /// which is parallel to the LOR.
 #[inline]
 fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
-    let p1: Pointf32 = p1.into();
-    let p2: Pointf32 = p2.into();
+    // TODO: The units are a bit dodgy here. See the TODOs for
+    // Vector::{normalize,component_div}
     let lor_direction = (p2-p1).normalize();
-    Vectorf32::from(fov.voxel_size)
-        .component_div(&lor_direction)
-        .into()
+    fov.voxel_size.component_div(&lor_direction).into()
 }
 
 use geometry::Quantity;
