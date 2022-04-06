@@ -1,7 +1,7 @@
-use std::ops::{Index, Mul};
-use crate::uom::mmps::f32::Length;
+use std::ops::{Index, Mul, Sub};
+use crate::{Length, Ratio};
 
-use crate::uom::mm;
+use crate::uom::{mm, ratio};
 
 type NcVector = ncollide3d::math::Vector::<f32>;
 
@@ -12,7 +12,23 @@ pub struct Vector {
     pub z: Length,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RatioVec {
+    pub x: Ratio,
+    pub y: Ratio,
+    pub z: Ratio,
+}
 
+impl Sub for Vector {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Vector {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
 
 impl Mul<f32> for Vector {
     type Output = Self;
@@ -21,6 +37,28 @@ impl Mul<f32> for Vector {
             x: self.x * rhs,
             y: self.y * rhs,
             z: self.z * rhs,
+        }
+    }
+}
+
+impl Mul<RatioVec> for Vector {
+    type Output = Self;
+    fn mul(self, rhs: RatioVec) -> Self::Output {
+        Vector {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+        }
+    }
+}
+
+impl Mul<Vector> for RatioVec {
+    type Output = Vector;
+    fn mul(self, rhs: Vector) -> Self::Output {
+        Vector {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
         }
     }
 }
@@ -68,18 +106,53 @@ impl Vector {
     pub fn argmin   (self) -> (usize, Length) { todo!() }
     pub fn norm     (self) -> Length { mm(NcVector::from(self).norm()) }
 
-    // TODO: should return vector of ratios
-    pub fn normalize(self) -> Self   {    NcVector::from(self).normalize().into() }
+    pub fn normalize(self) -> RatioVec {
+        let n = NcVector::from(self).normalize();
+        let (x, y, z) = (ratio(n.x), ratio(n.y), ratio(n.z));
+        RatioVec {x, y, z}
+    }
 
-    pub fn component_div(&self, rhs: &Self) -> Self {
-        // TODO: RHS should have arbitrary units, and the return type should
-        // reflect the correct units resulting from the division of LHS / RHS
-        let lhs = NcVector::from(self);
-        let rhs = NcVector::from(rhs);
-        lhs.component_div(&rhs).into()
+    pub fn component_div(&self, rhs: RatioVec) -> Self {
+        Vector {
+            x: self.x / rhs.x,
+            y: self.y / rhs.y,
+            z: self.z / rhs.z,
+        }
+    }
+
+    pub fn component_mul(&self, rhs: RatioVec) -> Self {
+        Vector {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+        }
     }
 
 }
+
+
+impl RatioVec{
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self {
+            x: ratio(x),
+            y: ratio(y),
+            z: ratio(z)
+        }
+    }
+}
+
+
+impl Sub for RatioVec {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
