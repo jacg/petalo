@@ -25,7 +25,7 @@ pub struct Cli {
 use std::error::Error;
 use petalo::{fom::{InRoiFn, PointValue}, io::raw::Image3D};
 use petalo::types::{Lengthf32, Intensityf32};
-use petalo::mlem::Image;
+use petalo::image::Image;
 use petalo::fom;
 use petalo::fom::{Sphere, ROI, centres_of_slices_closest_to};
 use geometry::uom::mm_;

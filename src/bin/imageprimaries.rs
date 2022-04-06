@@ -35,7 +35,7 @@ use petalo::types::Lengthf32;
 use petalo::types::Length;
 use geometry::uom::mm;
 use petalo::weights::FOV;
-use petalo::mlem::Image;
+use petalo::image::Image;
 use petalo::io::hdf5::{read_table, Primary};
 type L = Lengthf32;
 use geometry::uom::mm_;

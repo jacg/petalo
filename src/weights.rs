@@ -20,7 +20,7 @@ use crate::types::{Length, LengthU, LengthI, PerLength, Time, C,
 
 use geometry::uom::{mm, mm_, ns_};
 use crate::gauss::make_gauss_option;
-use crate::mlem::{index3_to_1, index1_to_3};
+use crate::image::{index3_to_1, index1_to_3};
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]

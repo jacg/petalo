@@ -35,7 +35,8 @@ use structopt::StructOpt;
 use std::{error::Error, io::Write};
 use std::path::PathBuf;
 
-use petalo::{mlem, utils::group_digits, weights::FOV, types::Lengthf32};
+use petalo::{utils::group_digits, weights::FOV, types::Lengthf32};
+use petalo::image::Image;
 
 use petalo::types::{Length, Time};
 use geometry::uom::ratio;
@@ -61,14 +62,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     report_time("Startup");
 
-    let density = mlem::Image::from_raw_file(&input)?;
+    let density = Image::from_raw_file(&input)?;
     report_time(&format!("Read density image {:?}", input));
 
 
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
     // TODO parallelize
     let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
-    let sensitivity = mlem::Image::sensitivity_image(density.fov, density, lors, n_lors, rho);
+    let sensitivity = Image::sensitivity_image(density.fov, density, lors, n_lors, rho);
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();

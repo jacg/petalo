@@ -7,3 +7,4 @@ pub mod mlem;
 pub mod gauss;
 pub mod fom;
 pub mod lorogram;
+pub mod image;

@@ -82,7 +82,7 @@ use petalo::types::{Energyf32, Chargef32, BoundPair};
 use petalo::types::{Length, Time, Ratio};
 use petalo::lorogram::Scattergram;
 use petalo::weights::{LOR, FOV};
-use petalo::mlem::Image;
+use petalo::image::Image;
 use petalo::io;
 use geometry::uom::{mm_, ratio};
 

@@ -102,7 +102,7 @@ impl Image3D {
 }
 
 // TODO: Ideally mlem::Image and Image3D would be a single type.
-use super::super::mlem::Image as MLEMImage;
+use super::super::image::Image as MLEMImage;
 impl From<&MLEMImage> for Image3D {
     fn from(image: &MLEMImage) -> Self {
         let n = image.fov.n;
@@ -186,7 +186,7 @@ mod test_with_metadata {
     #[test]
     fn roundtrip_via_mlem_image() {
         let original = guinea_pig();
-        let converted = crate::mlem::Image::from(&original);
+        let converted = crate::image::Image::from(&original);
         let recovered = Image3D::from(&converted);
         assert_eq!(original, recovered);
     }
