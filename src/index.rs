@@ -1,4 +1,4 @@
-use crate::types::Weightf32;
+use crate::Weightf32;
 
 #[allow(non_camel_case_types)] pub type Index1_u = usize;
 #[allow(non_camel_case_types)] pub type Index3_u = [usize; 3];
@@ -43,7 +43,7 @@ where
 mod test_index_conversion {
     use super::*;
     use rstest::rstest;
-    use crate::types::Index3_u;
+    use crate::Index3_u;
 
     // -------------------- Some hand-picked examples ------------------------------
     #[rstest(/**/    size   , index3 , index1,

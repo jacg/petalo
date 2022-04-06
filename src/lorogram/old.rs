@@ -4,10 +4,10 @@ use crate::io::hdf5::Hdf5Lor;
 use crate::weights::LOR;
 use std::f32::consts::PI;
 
-use crate::types::{Lengthf32, Ratiof32, Anglef32};
-use crate::types::{Point, Time};
+use crate::{Lengthf32, Ratiof32, Anglef32};
+use crate::{Point, Time};
 use geometry::uom::{mm, mm_, ratio};
-use crate::types::guomc::ConstZero;
+use crate::guomc::ConstZero;
 
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }

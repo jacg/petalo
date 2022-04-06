@@ -31,8 +31,8 @@ pub struct Cli {
 // --------------------------------------------------------------------------------
 
 use std::error::Error;
-use petalo::types::Lengthf32;
-use petalo::types::Length;
+use petalo::Lengthf32;
+use petalo::Length;
 use geometry::uom::mm;
 use petalo::fov::FOV;
 use petalo::image::Image;

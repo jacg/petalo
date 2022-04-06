@@ -1,8 +1,8 @@
 use std::error::Error;
 use structopt::StructOpt;
 
-use petalo::types::Lengthf32;
-use petalo::types::{Time, Ratio};
+use petalo::Lengthf32;
+use petalo::{Time, Ratio};
 use petalo::{weights::LOR, fov::FOV};
 use petalo::visualize::{lor_weights, Shape};
 

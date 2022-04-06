@@ -14,9 +14,9 @@
 //!    coordinate system.
 
 use geometry::in_base_unit;
-use crate::types::{BoxDim_u, Index3Weightf32, Lengthf32, Pointf32, Vectorf32, ns_to_mm};
-use crate::types::{Length, LengthU, LengthI, PerLength, Time, C,
-                   Point, Vector, Ratio, RatioPoint, RatioVec};
+use crate::{BoxDim_u, Index3Weightf32, Lengthf32, Pointf32, Vectorf32, ns_to_mm};
+use crate::{Length, LengthU, LengthI, PerLength, Time, C,
+            Point, Vector, Ratio, RatioPoint, RatioVec};
 use crate::fov::FOV;
 
 use geometry::uom::{mm, mm_, ns_};
@@ -33,7 +33,7 @@ mod test {
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
-    use crate::types::TWOPIf32;
+    use crate::TWOPIf32;
     use geometry::uom::ratio;
 
     // --------------------------------------------------------------------------------
@@ -278,7 +278,7 @@ pub fn system_matrix_elements(
     }
 }
 
-use crate::types::guomc::ConstZero;
+use crate::guomc::ConstZero;
 const F32_LENGTH_ZERO: Lengthf32 = 0.0;
 
 const EPS: Ratio = in_base_unit!(1e-5);

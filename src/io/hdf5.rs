@@ -11,13 +11,13 @@ pub struct Args {
     pub use_true: bool,
     pub legacy_input_format: bool,
     pub ecut: BoundPair<Energyf32>,
-    pub qcut: BoundPair<crate::types::Chargef32>,
+    pub qcut: BoundPair<crate::Chargef32>,
 }
 
 use ndarray::{s, Array1};
 
-use crate::types::{Energyf32, BoundPair};
-use crate::types::Point;
+use crate::{Energyf32, BoundPair};
+use crate::Point;
 use crate::weights::LOR;
 
 use geometry::uom::{mm, ns, ratio};

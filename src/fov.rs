@@ -1,8 +1,8 @@
 /// The size and granularity of the Field of View (FOV) in which images should
 /// be reconstructed
 
-use crate::types::Lengthf32;
-use crate::types::{Length, Point, Vector};
+use crate::Lengthf32;
+use crate::{Length, Point, Vector};
 use crate::index::{BoxDim_u, Index3_u, Index1_u, index1_to_3};
 use geometry::uom::mm_;
 

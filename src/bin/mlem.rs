@@ -78,8 +78,8 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::types::{Energyf32, Chargef32, BoundPair};
-use petalo::types::{Length, Time, Ratio};
+use petalo::{Energyf32, Chargef32, BoundPair};
+use petalo::{Length, Time, Ratio};
 use petalo::lorogram::Scattergram;
 use petalo::{weights::LOR, fov::FOV};
 use petalo::image::Image;

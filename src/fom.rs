@@ -1,6 +1,6 @@
 use crate::io::raw;
-use crate::types::{Lengthf32, Pointf32, Intensityf32, Ratiof32};
-use crate::types::Point;
+use crate::{Lengthf32, Pointf32, Intensityf32, Ratiof32};
+use crate::Point;
 use crate::image::{Image, ImageData};
 use crate::fov::FOV;
 
