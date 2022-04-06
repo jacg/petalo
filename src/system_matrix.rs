@@ -33,7 +33,7 @@ mod test {
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
-    use crate::{TWOPIf32, Pointf32};
+    use crate::TWOPI;
     use geometry::uom::ratio;
 
     // --------------------------------------------------------------------------------
@@ -117,26 +117,27 @@ mod test {
             ny in  5..50_usize,
             nz in  5..90_usize,
         ) {
-            let p1_theta: Lengthf32 = p1_angle * TWOPIf32;
-            let p2_theta: Lengthf32 = p1_theta + (p2_delta * TWOPIf32);
-            let p1 = Pointf32::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
-            let p2 = Pointf32::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
+            let (r, p1_z, p2_z) = (mm(r), mm(p1_z), mm(p2_z));
+            let p1_theta = p1_angle * TWOPI;
+            let p2_theta = p1_theta + (p2_delta * TWOPI);
+            let p1 = Point::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
+            let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
             let fov = FOV::new((mm(dx), mm(dy), mm(dz)), (nx, ny, nz));
 
             // Values to plug in to visualizer:
-            let lor = LOR::new(Time::ZERO, Time::ZERO, p1.into(), p2.into(), ratio(1.0));
+            let lor = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0));
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = LOR::new(Time::ZERO, Time::ZERO, p1.into(), p2.into(), ratio(1.0))
+            let summed: Lengthf32 = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
                 .active_voxels(&fov, None, None)
                 .into_iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
                 .map(|(_index, weight)| weight)
                 .sum();
 
-            let a = fov.entry(p1.into(), p2.into());
-            let b = fov.entry(p2.into(), p1.into());
+            let a = fov.entry(p1, p2);
+            let b = fov.entry(p2, p1);
 
             let in_one_go = match (a,b) {
                 (Some(a), Some(b)) => (a - b).magnitude(),

@@ -87,7 +87,7 @@ mod test_fov {
              case([1,1,0], [ 1.0,  1.0, -1.0]),
              case([1,1,1], [ 1.0,  1.0,  1.0]),
     )]
-    fn test_voxel_centre(index: Index3_u, expected_position: [Lengthf32; 3]) {
+    fn test_voxel_centre(index: Index3_u, expected_position: [f32; 3]) {
         let fov = FOV::new((mm(4.0), mm(4.0), mm(4.0)), (2,2,2));
         let c = fov.voxel_centre(index);
         let c = [mm_(c.x), mm_(c.y), mm_(c.z)];

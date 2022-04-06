@@ -22,7 +22,9 @@ pub type Weightf32 = f32;  // TODO uom Weight
 pub type Ratiof32 = f32;
 pub type Ratio = geometry::Ratio;
 
-pub type Anglef32  = f32; // TODO uom Angle
+pub use geometry::{Angle, TWOPI};
+pub type Anglef32  = f32; // TODO eliminate
+
 pub type Energyf32 = f32; // TODO uom Energy
 pub type Chargef32 = f32; // TODO uom Charge
 
@@ -74,7 +76,3 @@ mod test_conversions {
     #[test] fn roundtrip_b() { assert_approx_eq!(mm_to_ps(ps_to_mm(T)), T); }
 
 }
-
-#[allow(non_upper_case_globals)]
-pub const TWOPIf32: Lengthf32 = std::f32::consts::TAU as Lengthf32;
-pub const TWOPI: Ratio = in_base_unit!(std::f32::consts::TAU);

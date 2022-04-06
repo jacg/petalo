@@ -41,6 +41,13 @@ pub mod mmps {
     ISQ!(uom::si, f32, (millimeter, kilogram, picosecond, ampere, kelvin, mole, candela));
 
     pub type PerLength = Quantity<super::super::InvertDimension<uom::si::length::Dimension>, super::Units, f32>;
+
+    /// The full circle constant (τ) Equal to 2π.
+    pub const TWOPI: Angle = Angle {
+        dimension: std::marker::PhantomData,
+        units: std::marker::PhantomData,
+        value: std::f32::consts::TAU,
+    };
   }
 
   pub mod i32 {
@@ -55,11 +62,9 @@ pub mod mmps {
 
 }
 
-pub use mmps::f32::Acceleration;
-
 //use uom::fmt::DisplayStyle::Abbreviation;
 pub use uom::si::Quantity;
-pub use mmps::f32::{Length, Time, Velocity, Ratio, PerLength};
+pub use mmps::f32::{Angle, TWOPI, Length, Time, Velocity, Ratio, PerLength};
 use uom::si::{length  ::{nanometer, millimeter, centimeter},
               time    ::{nanosecond, picosecond},
               velocity:: meter_per_second};
