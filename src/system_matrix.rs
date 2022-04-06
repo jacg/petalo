@@ -14,7 +14,7 @@
 //!    coordinate system.
 
 use geometry::in_base_unit;
-use crate::{Index3Weightf32, Lengthf32, Vectorf32, ns_to_mm};
+use crate::{Index3Weightf32, Lengthf32, Vectorf32};
 use crate::{Length, PerLength, Time, C,
             Point, Vector, Ratio, RatioPoint, RatioVec};
 use crate::fov::FOV;
@@ -347,7 +347,7 @@ impl fmt::Display for LOR {
         write!(f, "<LOR ({:8.2} {:8.2} {:8.2}) ({:8.2} {:8.2} {:8.2}) {:7.2}ns {:7.2}mm /{:7.2} >",
                mm_(p.x), mm_(p.y), mm_(p.z),
                mm_(q.x), mm_(q.y), mm_(q.z),
-               ns_(self.dt), ns_to_mm(ns_(self.dt)) / 2.0,
+               ns_(self.dt), mm_(self.dt * C) / 2.0,
                mm_((p-q).norm())
         )
     }
