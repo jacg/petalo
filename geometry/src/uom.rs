@@ -87,7 +87,7 @@ pub fn ratio_(x: Ratio) -> f32 { x.get::<uom::si::ratio::ratio>() }
 #[macro_export]
 macro_rules! in_base_unit {
   ($value:expr) => {
-    Quantity {
+    crate::Quantity {
       dimension: std::marker::PhantomData,
       units: std::marker::PhantomData,
       value: $value,
