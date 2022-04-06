@@ -5,7 +5,7 @@ use crate::system_matrix::LOR;
 use std::f32::consts::PI;
 
 use crate::{Lengthf32, Ratiof32, Anglef32};
-use crate::{Point, Time};
+use crate::{Angle, Length, Point, Time};
 use geometry::uom::{mm, mm_, ratio};
 use crate::guomc::ConstZero;
 
@@ -102,10 +102,10 @@ fn distance_from_z_axis(LOR{ p1, p2, .. }: &LOR) -> Lengthf32 {
 fn phi(LOR{ p1, p2, .. }: &LOR) -> Anglef32 {
     let dx = p2.x - p1.x;
     let dy = p2.y - p1.y;
-    phi_of_x_y(mm_(dx), mm_(dy))
+    geometry::uom::radian_(phi_of_x_y(dx, dy))
 }
 
-fn phi_of_x_y(x: Lengthf32, y: Lengthf32) -> Anglef32 { y.atan2(x) }
+fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
 
 pub fn axis_z(nbins: usize, min: Lengthf32, max: Lengthf32) -> LorAxU {
     LorAxU {
