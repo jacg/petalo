@@ -18,7 +18,7 @@ use ndarray::{s, Array1};
 
 use crate::{Energyf32, BoundPair};
 use crate::Point;
-use crate::weights::LOR;
+use crate::system_matrix::LOR;
 
 use geometry::uom::{mm, ns, ratio};
 

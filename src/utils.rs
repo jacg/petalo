@@ -3,7 +3,7 @@ use std::ops::{Bound, Range};
 
 use crate::{Timef32, Lengthf32, BoundPair};
 use crate::{Point, Ratio};
-use crate::weights::{LOR};
+use crate::system_matrix::LOR;
 use geometry::uom::{mm, ns, ratio};
 
 pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {

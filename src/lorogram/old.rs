@@ -1,7 +1,7 @@
 use ndhistogram::{axis::{Axis, Uniform}, Histogram};
 use super::axis::Cyclic;
 use crate::io::hdf5::Hdf5Lor;
-use crate::weights::LOR;
+use crate::system_matrix::LOR;
 use std::f32::consts::PI;
 
 use crate::{Lengthf32, Ratiof32, Anglef32};

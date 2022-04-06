@@ -1,7 +1,7 @@
 mod exports;
 pub use exports::*;
 
-pub mod weights;
+pub mod system_matrix;
 pub mod visualize;
 pub mod io;
 pub mod utils;

@@ -1,4 +1,4 @@
-pub use crate::weights::{LOR, find_tof_peak, find_entry_point, voxel_size, first_boundaries};
+pub use crate::system_matrix::{LOR, find_tof_peak, find_entry_point, voxel_size, first_boundaries};
 
 use ncollide3d as nc;
 

@@ -81,7 +81,7 @@ use std::fs::create_dir_all;
 use petalo::{Energyf32, Chargef32, BoundPair};
 use petalo::{Length, Time, Ratio};
 use petalo::lorogram::Scattergram;
-use petalo::{weights::LOR, fov::FOV};
+use petalo::{system_matrix::LOR, fov::FOV};
 use petalo::image::Image;
 use petalo::io;
 use geometry::uom::{mm_, ratio};
