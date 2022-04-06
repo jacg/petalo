@@ -14,14 +14,14 @@
 //!    coordinate system.
 
 use geometry::in_base_unit;
-use crate::{BoxDim_u, Index3Weightf32, Lengthf32, Pointf32, Vectorf32, ns_to_mm};
-use crate::{Length, LengthU, LengthI, PerLength, Time, C,
+use crate::{Index3Weightf32, Lengthf32, Vectorf32, ns_to_mm};
+use crate::{Length, PerLength, Time, C,
             Point, Vector, Ratio, RatioPoint, RatioVec};
 use crate::fov::FOV;
 
 use geometry::uom::{mm, mm_, ns_};
 use crate::gauss::make_gauss_option;
-use crate::index::{index3_to_1, index1_to_3};
+use crate::index::index1_to_3;
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -33,7 +33,7 @@ mod test {
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
-    use crate::TWOPIf32;
+    use crate::{TWOPIf32, Pointf32};
     use geometry::uom::ratio;
 
     // --------------------------------------------------------------------------------
@@ -282,8 +282,6 @@ pub fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     let lor_direction = (p2-p1).normalize();
     fov.voxel_size.component_div(lor_direction)
 }
-
-use geometry::Quantity;
 
 //--------------------------------------------------------------------------------
 /// Line Of Response.
