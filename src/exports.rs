@@ -8,19 +8,19 @@ pub use guomc::typenum::{Z0, N1};
 use geometry::in_base_unit;
 
 pub type Lengthf32  = f32;
-pub type Length  = geometry::Length;
+pub use geometry::Length;
 
 pub type PerLength = geometry::PerLength;
 
 pub type Timef32 = f32;
-pub type Time = geometry::Time;
+pub use geometry::Time;
 
 pub type Velocity = geometry::Velocity;
 
 pub type Weightf32 = f32;  // TODO uom Weight
 
 pub type Ratiof32 = f32;
-pub type Ratio = geometry::Ratio;
+pub use geometry::Ratio;
 
 pub use geometry::{Angle, TWOPI};
 pub type Anglef32  = f32; // TODO eliminate
@@ -32,7 +32,7 @@ pub type Intensityf32 = f32; // TODO uom Intensity
 
 pub use geometry::RatioVec;
 pub type Vectorf32 = nc::math::Vector<Lengthf32>;
-pub type Vector    = geometry::Vector;
+pub use geometry::Vector;
 
 pub use geometry::RatioPoint;
 pub type Pointf32 = nc::math::Point <Lengthf32>;
