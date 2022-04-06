@@ -7,8 +7,6 @@ use geometry::in_base_unit;
 
 pub type Lengthf32  = f32;
 pub type Length  = geometry::Length;
-pub type LengthI = geometry::uom::uomcrate::si::i32  ::Length;
-pub type LengthU = geometry::uom::uomcrate::si::usize::Length;
 
 pub type PerLength = geometry::PerLength;
 
@@ -36,12 +34,7 @@ pub use geometry::RatioPoint;
 pub type Pointf32 = nc::math::Point <Lengthf32>;
 pub type Point    = geometry::Point;
 
-#[allow(non_camel_case_types)] pub type Index1_u = usize;
-#[allow(non_camel_case_types)] pub type Index3_u = [usize; 3];
-#[allow(non_camel_case_types)] pub type BoxDim_u = [usize; 3];
-pub type BoxDim = [LengthU; 3];
-
-pub type Index3Weightf32 = (Index3_u, Weightf32);
+pub use crate::index::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, LengthI, LengthU};
 
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
