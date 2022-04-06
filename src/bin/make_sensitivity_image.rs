@@ -41,6 +41,7 @@ use petalo::image::Image;
 use petalo::{Length, Time};
 use geometry::uom::ratio;
 use petalo::guomc::ConstZero;
+use petalo::system_matrix as sm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -82,14 +83,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl Iterator<Item = petalo::weights::LOR> {
+fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl Iterator<Item = sm::LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
     let one_useful_random_lor = move || {
         loop {
             let p1 = random_point_on_cylinder(l, r);
             let p2 = random_point_on_cylinder(l, r);
             if fov.entry(p1, p2).is_some() {
-                return Some(petalo::weights::LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)))
+                return Some(petalo::system_matrix::LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)))
             }
         }
     };

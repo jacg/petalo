@@ -6,7 +6,7 @@ use rayon::prelude::*;
 
 use crate::{io, Lengthf32, Index1_u, Index3_u, Intensityf32};
 use crate::{Length, PerLength, Ratio, Time};
-use crate::weights::{lor_fov_hit, system_matrix_elements, LOR, FovHit};
+use crate::{fov::{lor_fov_hit, FovHit}, system_matrix::{system_matrix_elements, LOR}};
 use crate::fov::FOV;
 use crate::gauss::make_gauss_option;
 use geometry::uom::ratio_;
@@ -51,7 +51,7 @@ impl Image {
     // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(fov: FOV, density: Self, lors: impl Iterator<Item = crate::weights::LOR>, n_lors: usize, stradivarius: f32) -> Self {
+    pub fn sensitivity_image(fov: FOV, density: Self, lors: impl Iterator<Item = crate::system_matrix::LOR>, n_lors: usize, stradivarius: f32) -> Self {
         let a = &fov;
         let b = &density.fov;
         if a.n != b.n || a.half_width != b.half_width {

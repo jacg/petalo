@@ -7,7 +7,7 @@ use kiss3d::nalgebra::{Point3, Translation3};
 
 use crate::Vectorf32;
 use crate::{Time, Ratio};
-use crate::weights::LOR;
+use crate::system_matrix::LOR;
 use crate::fov::FOV;
 
 use geometry::uom::{mm_, ps_};
