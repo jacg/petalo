@@ -102,7 +102,7 @@ impl Image3D {
 }
 
 // TODO: Ideally mlem::Image and Image3D would be a single type.
-use super::super::mlem::Image as MLEMImage;
+use super::super::image::Image as MLEMImage;
 impl From<&MLEMImage> for Image3D {
     fn from(image: &MLEMImage) -> Self {
         let n = image.fov.n;
@@ -120,7 +120,7 @@ impl From<&Image3D> for MLEMImage {
         let n = (px as usize, py as usize, pz as usize);
         let [wx, wy, wz] = image.mm;
         let half_width = (mm(wx), mm(wy), mm(wz));
-        let fov = crate::weights::FOV::new(half_width, n);
+        let fov = crate::fov::FOV::new(half_width, n);
         let data = image.data.clone();
         Self { fov, data }
     }
@@ -186,7 +186,7 @@ mod test_with_metadata {
     #[test]
     fn roundtrip_via_mlem_image() {
         let original = guinea_pig();
-        let converted = crate::mlem::Image::from(&original);
+        let converted = crate::image::Image::from(&original);
         let recovered = Image3D::from(&converted);
         assert_eq!(original, recovered);
     }

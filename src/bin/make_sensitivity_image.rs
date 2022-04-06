@@ -35,11 +35,12 @@ use structopt::StructOpt;
 use std::{error::Error, io::Write};
 use std::path::PathBuf;
 
-use petalo::{mlem, utils::group_digits, weights::FOV, types::Lengthf32};
+use petalo::{utils::group_digits, fov::FOV, Lengthf32};
+use petalo::image::Image;
 
-use petalo::types::{Length, Time};
+use petalo::{Length, Time};
 use geometry::uom::ratio;
-use petalo::types::guomc::ConstZero;
+use petalo::guomc::ConstZero;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -61,14 +62,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     report_time("Startup");
 
-    let density = mlem::Image::from_raw_file(&input)?;
+    let density = Image::from_raw_file(&input)?;
     report_time(&format!("Read density image {:?}", input));
 
 
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
     // TODO parallelize
     let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
-    let sensitivity = mlem::Image::sensitivity_image(density.fov, density, lors, n_lors, rho);
+    let sensitivity = Image::sensitivity_image(density.fov, density, lors, n_lors, rho);
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
@@ -96,12 +97,12 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detecto
 }
 
 
-fn random_point_on_cylinder(l: Length, r: Length) -> petalo::types::Point {
+fn random_point_on_cylinder(l: Length, r: Length) -> petalo::Point {
     use std::f32::consts::TAU;
     use rand::random;
     let z     = l   * (random::<Lengthf32>() - 0.5);
     let theta = TAU *  random::<Lengthf32>();
     let x = r * theta.cos();
     let y = r * theta.sin();
-    petalo::types::Point::new(x, y, z)
+    petalo::Point::new(x, y, z)
 }

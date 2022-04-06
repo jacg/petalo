@@ -5,9 +5,10 @@ use kiss3d::scene::SceneNode;
 use kiss3d::camera::ArcBall;
 use kiss3d::nalgebra::{Point3, Translation3};
 
-use crate::types::Vectorf32;
-use crate::types::{Time, Ratio};
-use crate::weights::{FOV, LOR};
+use crate::Vectorf32;
+use crate::{Time, Ratio};
+use crate::weights::LOR;
+use crate::fov::FOV;
 
 use geometry::uom::{mm_, ps_};
 

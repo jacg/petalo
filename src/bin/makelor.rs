@@ -3,7 +3,7 @@ use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
 use petalo::io;
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
-use petalo::types::{Pointf32, Timef32, Lengthf32, Energyf32};
+use petalo::{Pointf32, Timef32, Lengthf32, Energyf32};
 use petalo::utils::group_digits;
 
 #[derive(StructOpt, Debug, Clone)]

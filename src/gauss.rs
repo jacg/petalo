@@ -1,4 +1,4 @@
-use crate::types::{Length, PerLength, Ratio, Time, TWOPI, C};
+use crate::{Length, PerLength, Ratio, Time, TWOPI, C};
 
 use geometry::uom::uomcrate as guomc;
 use guomc::ConstZero; // num_traits::Zero;
