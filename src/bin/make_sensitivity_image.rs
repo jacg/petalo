@@ -35,7 +35,7 @@ use structopt::StructOpt;
 use std::{error::Error, io::Write};
 use std::path::PathBuf;
 
-use petalo::{utils::group_digits, weights::FOV, types::Lengthf32};
+use petalo::{utils::group_digits, fov::FOV, types::Lengthf32};
 use petalo::image::Image;
 
 use petalo::types::{Length, Time};

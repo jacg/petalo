@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use petalo::{image::Image, weights::FOV, fom, types::{Lengthf32 as L, Intensityf32}};
+use petalo::{image::Image, fov::FOV, fom, types::{Lengthf32 as L, Intensityf32}};
 
 #[pyfunction]
 #[text_signature = "(n, /)"]

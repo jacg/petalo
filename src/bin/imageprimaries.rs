@@ -34,7 +34,7 @@ use std::error::Error;
 use petalo::types::Lengthf32;
 use petalo::types::Length;
 use geometry::uom::mm;
-use petalo::weights::FOV;
+use petalo::fov::FOV;
 use petalo::image::Image;
 use petalo::io::hdf5::{read_table, Primary};
 type L = Lengthf32;

@@ -120,7 +120,7 @@ impl From<&Image3D> for MLEMImage {
         let n = (px as usize, py as usize, pz as usize);
         let [wx, wy, wz] = image.mm;
         let half_width = (mm(wx), mm(wy), mm(wz));
-        let fov = crate::weights::FOV::new(half_width, n);
+        let fov = crate::fov::FOV::new(half_width, n);
         let data = image.data.clone();
         Self { fov, data }
     }

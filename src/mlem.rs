@@ -6,7 +6,8 @@ use rayon::prelude::*;
 
 use crate::{io, types::{Lengthf32, Index1_u, Index3_u, Intensityf32}};
 use crate::types::{Length, PerLength, Ratio, Time};
-use crate::weights::{lor_fov_hit, system_matrix_elements, FOV, LOR, FovHit};
+use crate::weights::{lor_fov_hit, system_matrix_elements, LOR, FovHit};
+use crate::fov::FOV;
 use crate::gauss::make_gauss_option;
 use geometry::uom::ratio_;
 
