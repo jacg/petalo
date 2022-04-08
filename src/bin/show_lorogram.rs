@@ -5,6 +5,7 @@ use petalo::io::hdf5::{Hdf5Lor, read_table};
 use petalo::lorogram::{axis_z, axis_dz, axis_phi, axis_r, fill_scattergram, mk_lor};
 use ndhistogram::ndhistogram;
 use std::f32::consts::PI;
+use geometry::uom::{mm, ratio_};
 
 
 #[derive(StructOpt, Debug, Clone)]
@@ -40,13 +41,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         println!("===== z dependence ======================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_z(nbins_z, -l/2.0, l/2.0); usize)), lors);
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_z(nbins_z, mm(-l/2.0), mm(l/2.0)); usize)), lors);
 
         println!("     z       (s/t) + 1     trues   scatters");
         for i in 0..nbins_z {
             let z = l0 + (i as f32 + 0.5) * step_z;
             let p = (0.0, 0.0, z as f32);
             let (v, t, s) = sgram.triplet(&mk_lor((p, p)));
+            let v = ratio_(v);
             println!("{z:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
     }
@@ -63,6 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let p1 = (x, 0.0, 0.0);
             let p2 = (0.0, y, 0.0);
             let (v, t, s) = sgram.triplet(&mk_lor((p1, p2)));
+            let v = ratio_(v);
             let phi_in_degrees = phi * 180.0 / PI;
             println!("{phi_in_degrees:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
@@ -70,26 +73,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         println!("===== r dependence ====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_r(nbins_r, r_max); usize)), lors);
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_r(nbins_r, mm(r_max)); usize)), lors);
         println!("     r       (s/t) + 1     trues   scatters");
         for i in 0..nbins_r {
             let r = (i as f32 + 0.5) * step_r;
             let p1 = (r,  100.0, 0.0);
             let p2 = (r, -100.0, 0.0);
             let (v, t, s) = sgram.triplet(&mk_lor((p1, p2)));
+            let v = ratio_(v);
             println!("{r:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
     }
     {
         println!("===== obliqueness ====================================");
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
-        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_dz(nbins_dz, dz_max); usize)), lors);
+        let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_dz(nbins_dz, mm(dz_max)); usize)), lors);
         println!("     dz      (s/t) + 1     trues   scatters");
         for i in 0..nbins_dz {
             let dz = (i as f32 + 0.5) * step_dz;
             let p1 = (0.0, 0.0,  dz/2.0);
             let p2 = (0.0, 0.0, -dz/2.0);
             let (v, t, s) = sgram.triplet(&mk_lor((p1, p2)));
+            let v = ratio_(v);
             println!("{dz:7.1}   {v:10.2}    {t:8}  {s:8}");
         }
     }
@@ -98,8 +103,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let sgram = fill_scattergram(
             &|| Box::new(
-                ndhistogram!(axis_z (nbins_z , -l/2.0, l/2.0),
-                             axis_dz(nbins_dz, dz_max);
+                ndhistogram!(axis_z (nbins_z , mm(-l/2.0), mm(l/2.0)),
+                             axis_dz(nbins_dz, mm(dz_max));
                              usize)
             ),
             lors
@@ -118,6 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let p1 = (0.0, 0.0, z + dz/2.0);
                 let p2 = (0.0, 0.0, z - dz/2.0);
                 let v = sgram.value(&mk_lor((p1, p2)));
+                let v = ratio_(v);
                 print!(" {v:6.1}");
             }
             println!();
@@ -128,8 +134,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let sgram = fill_scattergram(
             &|| Box::new(
-                ndhistogram!(axis_z(nbins_z , -l/2.0, l/2.0),
-                             axis_r(nbins_r, r_max);
+                ndhistogram!(axis_z(nbins_z, mm(-l/2.0), mm(l/2.0)),
+                             axis_r(nbins_r, mm(r_max));
                              usize)
             ),
             lors
@@ -148,6 +154,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let p1 = (r, -100.0, z);
                 let p2 = (r,  100.0, z);
                 let v = sgram.value(&mk_lor((p1, p2)));
+                let v = ratio_(v);
                 print!(" {v:6.1}");
             }
             println!();
@@ -160,9 +167,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let lors = read_table::<Hdf5Lor>(&infile, &args.dataset, args.event_range.clone())?;
         let sgram = fill_scattergram(
             &|| Box::new(
-                ndhistogram!(axis_z  (nbins_z  , -l/2.0, l/2.0),
-                             axis_dz (nbins_dz , dz_max),
-                             axis_r  (nbins_r  , r_max);
+                ndhistogram!(axis_z  (nbins_z  , mm(-l/2.0), mm(l/2.0)),
+                             axis_dz (nbins_dz , mm(dz_max)),
+                             axis_r  (nbins_r  , mm(r_max));
                              usize)
             ),
             lors
@@ -183,7 +190,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let r  = (j as f32 + 0.5) * step_r;
                     let p1 = (r, -100.0, z+dz/2.0);
                     let p2 = (r,  100.0, z-dz/2.0);
-                    let v = sgram.value(&mk_lor((p1, p2)));
+                    let v = ratio_(sgram.value(&mk_lor((p1, p2))));
                     print!(" {v:6.1}");
                 }
                 println!();
