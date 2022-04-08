@@ -3,8 +3,19 @@ use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
 use petalo::io;
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
-use petalo::{Pointf32, Timef32, Lengthf32, Energyf32};
+use petalo::Energyf32;
+use petalo::{Length, Time, Point, Ratio};
+use geometry::uom::mmps::f32::Area;
+use geometry::uom::uomcrate::ConstZero;
 use petalo::utils::group_digits;
+
+// TODO: try to remove the need for these
+use geometry::uom::{mm, mm_, ns, ns_, ratio};
+// The mair problems seems to be that uom types do not implement various third-party traits, such as:
+// + std::iter::Sum
+// + hdf5:H5Type
+// + From<ordered_float::NotNan>
+// + Dbscan something or other
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -55,8 +66,8 @@ enum Reco {
         min_count: usize,
 
         /// Maximum distance between neighbours in cluster
-        #[structopt(short = "d", long, default_value = "100")]
-        max_distance: f32,
+        #[structopt(short = "d", long, default_value = "100 mm")]
+        max_distance: Length,
     }
 }
 
@@ -177,7 +188,9 @@ fn lor_from_barycentre_of_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
     let nan = f32::NAN; let q1 = nan; let q2 = nan;
 
     Some(Hdf5Lor {
-        dt: t2 - t1,   x1, y1, z1,   x2, y2, z2,
+        dt: ns_(t2 - t1),
+        x1: mm_(x1), y1: mm_(y1), z1: mm_(z1),
+        x2: mm_(x2), y2: mm_(y2), z2: mm_(z2),
         q1, q2, E1, E2,
     })
 }
@@ -189,9 +202,9 @@ fn lor_from_hits(hits: &[QT], xyzs: &SensorMap) -> Option<Hdf5Lor> {
     let (p2, t2) = cluster_xyzt(&cluster_b, xyzs)?;
     //println!("{:?} {:?}", xyzt_a, xyzt_b);
     Some(Hdf5Lor {
-        dt: t2 - t1,
-        x1: p1.x, y1: p1.y, z1: p1.z,
-        x2: p2.x, y2: p2.y, z2: p2.z,
+        dt: ns_(t2 - t1),
+        x1: mm_(p1.x), y1: mm_(p1.y), z1: mm_(p1.z),
+        x2: mm_(p2.x), y2: mm_(p2.y), z2: mm_(p2.z),
         // TODO qs and Es missing
         q1: f32::NAN, q2: f32::NAN,   E1: f32::NAN, E2: f32::NAN,
     })
@@ -216,16 +229,16 @@ mod test_n_clusters {
     }
 }
 
-fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolerance: f32) -> Option<Hdf5Lor> {
+fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolerance: Length) -> Option<Hdf5Lor> {
     use linfa_clustering::AppxDbscan;
     use linfa::traits::Transformer;
     let active_sensor_positions: ndarray::Array2<f32> = hits.iter()
         .flat_map(|QT { sensor_id, ..}| xyzs.get(sensor_id))
-        .map(|&(x,y,z)| [x,y,z])
+        .map(|&(x,y,z)| [mm_(x), mm_(y), mm_(z)])
         .collect::<Vec<_>>()
         .into();
     let params = AppxDbscan::params(min_points)
-        .tolerance(tolerance); // > 7mm between sipm centres
+        .tolerance(mm_(tolerance)); // > 7mm between sipm centres
     let labels = params.transform(&active_sensor_positions).ok()?;
     let n_clusters = xxx(&labels);
     if n_clusters != 2 { return None }
@@ -254,35 +267,35 @@ fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolera
     })
 }
 
-fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Pointf32, Timef32)> {
+fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Time)> {
     let (x,y,z) = sipm_charge_barycentre(hits, xyzs)?;
     let ts = k_smallest(10, hits.iter().map(|h| h.t))?;
     let t = mean(&ts)?;
     //let t = hits.iter().cloned().map(|h| Finite::<f32>::from(h.t0)).min()?.into();
-    Some((Pointf32::new(x,y,z),t))
+    Some((Point::new(x,y,z),t))
 }
 
-fn mean(data: &[f32]) -> Option<f32> {
+fn mean(data: &[Time]) -> Option<Time> {
     let n = data.len();
     if n > 0 {
-        let sum: f32 = data.iter().sum();
+        let sum: Time = data.iter().fold(Time::ZERO, |acc, &x| acc+x);
         Some(sum / n as f32)
     }
     else { None }
 }
 
 // TODO: I'm sure it can be done more efficiently than this quick hack
-fn k_smallest<I>(k: usize, data: I) -> Option<Vec<f32>>
+fn k_smallest<I>(k: usize, data: I) -> Option<Vec<Time>>
 where
-    I: IntoIterator<Item = f32>,
+    I: IntoIterator<Item = Time>,
 {
     use ordered_float::NotNan;
     let mut heap = std::collections::BinaryHeap::<NotNan<f32>>::new();
-    for v in data { heap.push(NotNan::new(-v).ok()?); } // NB negate to turn max-heap into min-heap
+    for v in data { heap.push(NotNan::new(-ns_(v)).ok()?); } // NB negate to turn max-heap into min-heap
     let mut result = vec![];
     for _ in 0..k {
         let x = heap.pop()?;
-        result.push((-x).into()); // NB undo earlier negation
+        result.push(ns((-x).into())); // NB undo earlier negation
     }
     Some(result)
 }
@@ -291,7 +304,7 @@ fn find_sensor_with_highest_charge(sensors: &[QT]) -> Option<u32> {
     sensors.iter().max_by_key(|e| e.q).map(|e| e.sensor_id)
 }
 
-type SensorMap = std::collections::HashMap<u32, (f32, f32, f32)>;
+type SensorMap = std::collections::HashMap<u32, (Length, Length, Length)>;
 
 fn group_into_clusters(hits: &[QT], xyzs: &SensorMap) -> Option<(Vec::<QT>, Vec::<QT>)> {
     let sensor_with_highest_charge = find_sensor_with_highest_charge(hits)?;
@@ -300,23 +313,23 @@ fn group_into_clusters(hits: &[QT], xyzs: &SensorMap) -> Option<(Vec::<QT>, Vec:
     let &(xm, ym, _) = xyzs.get(&sensor_with_highest_charge)?;
     for hit in hits.iter().cloned() {
         let &(x, y, _) = xyzs.get(&hit.sensor_id)?;
-        if dot((xm, ym), (x,y)) > 0.0 { a.push(hit) }
-        else                          { b.push(hit) }
+        if dot((xm, ym), (x,y)) > Area::ZERO { a.push(hit) }
+        else                                 { b.push(hit) }
     }
     if !b.is_empty() { Some((a, b)) } else { None }
 }
 
-fn dot((x1,y1): (f32, f32), (x2,y2): (f32, f32)) -> f32 { x1*x2 + y1*y2 }
+fn dot((x1,y1): (Length, Length), (x2,y2): (Length, Length)) -> Area { x1*x2 + y1*y2 }
 
-fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f32)> {
+fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(Length, Length, Length)> {
     if hits.is_empty() { return None }
-    let mut qs = 0_f32;
-    let mut xx = 0.0;
-    let mut yy = 0.0;
-    let mut zz = 0.0;
-    for QT{ sensor_id, q, .. } in hits {
-        let (x, y, z) = xyzs.get(sensor_id)?;
-        let q = *q as f32;
+    let mut qs = Ratio::ZERO;
+    let mut xx = Length::ZERO;
+    let mut yy = Length::ZERO;
+    let mut zz = Length::ZERO;
+    for &QT{ sensor_id, q, .. } in hits {
+        let &(x, y, z) = xyzs.get(&sensor_id)?;
+        let q = ratio(q as f32);
         qs += q;
         xx += x * q;
         yy += y * q;
@@ -326,20 +339,20 @@ fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(f32, f32, f3
 }
 
 #[allow(nonstandard_style)]
-fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Lengthf32, Lengthf32, Lengthf32, Timef32, Energyf32)> {
+fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Time, Energyf32)> {
     if vertices.is_empty() { return None }
     let mut delta_E  = 0_f32;
-    let mut xx = 0.0;
-    let mut yy = 0.0;
-    let mut zz = 0.0;
-    let mut tt = 0.0;
-    for Vertex { x, y, z, t, pre_KE, post_KE, .. } in vertices {
+    let mut xx = Length::ZERO;
+    let mut yy = Length::ZERO;
+    let mut zz = Length::ZERO;
+    let mut tt = Time::ZERO;
+    for &&Vertex { x, y, z, t, pre_KE, post_KE, .. } in vertices {
         let dE = pre_KE - post_KE;
         delta_E += dE;
-        xx += x * dE;
-        yy += y * dE;
-        zz += z * dE;
-        tt += t * dE; // TODO figure out what *really* needs to be done here
+        xx += mm(x) * dE;
+        yy += mm(y) * dE;
+        zz += mm(z) * dE;
+        tt += ns(t) * dE; // TODO figure out what *really* needs to be done here
     };
     Some((xx / delta_E, yy / delta_E, zz / delta_E, tt / delta_E, delta_E))
 }
@@ -349,7 +362,7 @@ pub struct QT {
     pub event_id: u32,
     pub sensor_id: u32,
     pub q: u32,
-    pub t: f32,
+    pub t: Time,
 }
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
@@ -421,7 +434,7 @@ fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> V
     for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
         for &Waveform{ event_id: te, sensor_id: ts, time:t} in titer.by_ref() {
             if event_id == te && sensor_id == ts {
-                qts.push(QT{ event_id, sensor_id, q, t });
+                qts.push(QT{ event_id, sensor_id, q, t: ns(t) });
                 break;
             }
         }
@@ -439,7 +452,7 @@ fn group_by<T>(group_by: impl FnMut(&T) -> u32, qts: impl IntoIterator<Item = T>
 
 fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
     xyzs.iter().cloned()
-        .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (x, y, z)))
+        .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (mm(x), mm(y), mm(z))))
         .collect()
 }
 

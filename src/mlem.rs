@@ -4,7 +4,7 @@ use ndarray::azip;
 #[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
-use crate::{io, Lengthf32, Index1_u, Index3_u, Intensityf32};
+use crate::{io, Lengthf32, Index1_u, Intensityf32};
 use crate::{Length, PerLength, Ratio, Time};
 use crate::{fov::{lor_fov_hit, FovHit}, system_matrix::{system_matrix_elements, LOR}};
 use crate::fov::FOV;

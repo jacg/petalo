@@ -4,9 +4,9 @@ use crate::io::hdf5::Hdf5Lor;
 use crate::system_matrix::LOR;
 use std::f32::consts::PI;
 
-use crate::{Lengthf32, Ratiof32, Anglef32};
-use crate::{Point, Time};
-use geometry::uom::{mm, mm_, ratio};
+use crate::Lengthf32;
+use crate::{Angle, Length, Point, Time, Ratio};
+use geometry::uom::{mm, mm_, ratio, radian_};
 use crate::guomc::ConstZero;
 
 /// Distinguish between true, scatter and random prompt signals
@@ -36,22 +36,22 @@ impl Scattergram {
     /// Multiplicative contribution of scatters to trues, in nearby LORs.
     ///
     /// `(scatters + trues) / trues`
-    pub fn value(&self, lor: &LOR) -> Ratiof32 {
+    pub fn value(&self, lor: &LOR) -> Ratio {
         let trues = self.trues.value(lor);
-        if trues > 0 {
+        ratio(if trues > 0 {
             let scatters: f32 = self.scatters.value(lor) as f32;
             let trues = trues as f32;
             (scatters + trues) / trues
-        } else { 1.0 }
+        } else { 1.0 })
     }
 
-    pub fn triplet(&self, lor: &LOR) -> (Ratiof32, f32, f32) {
+    pub fn triplet(&self, lor: &LOR) -> (Ratio, f32, f32) {
         let trues = self.trues.value(lor);
         if trues > 0 {
             let scatters: f32 = self.scatters.value(lor) as f32;
             let trues = trues as f32;
-            ((scatters + trues) / trues, trues, scatters)
-        } else { (1.0, 0.0, self.scatters.value(lor) as f32) }
+            (ratio((scatters + trues) / trues), trues, scatters)
+        } else { (ratio(1.0), 0.0, self.scatters.value(lor) as f32) }
     }
 }
 // --------------------------------------------------------------------------------
@@ -87,51 +87,51 @@ where
 pub type LorAxU = MappedAxis<LOR, Uniform<Lengthf32>>;
 pub type LorAxC = MappedAxis<LOR, Cyclic <Lengthf32>>;
 
-fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Lengthf32 { mm_((p1.z + p2.z) / 2.0) }
+fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Length { (p1.z + p2.z) / 2.0 }
 
-fn delta_z(LOR{p1, p2, ..}: &LOR) -> Lengthf32 { mm_((p1.z - p2.z).abs()) }
+fn delta_z(LOR{p1, p2, ..}: &LOR) -> Length { (p1.z - p2.z).abs() }
 
-fn distance_from_z_axis(LOR{ p1, p2, .. }: &LOR) -> Lengthf32 {
+fn distance_from_z_axis(LOR{ p1, p2, .. }: &LOR) -> Length {
     let dx = p2.x - p1.x;
     let dy = p2.y - p1.y;
     let x1 = p1.x;
     let y1 = p1.y;
-    mm_((dx * y1 - dy * x1).abs() / (dx*dx + dy*dy).sqrt())
+    (dx * y1 - dy * x1).abs() / (dx*dx + dy*dy).sqrt()
 }
 
-fn phi(LOR{ p1, p2, .. }: &LOR) -> Anglef32 {
+fn phi(LOR{ p1, p2, .. }: &LOR) -> Angle {
     let dx = p2.x - p1.x;
     let dy = p2.y - p1.y;
-    phi_of_x_y(mm_(dx), mm_(dy))
+    phi_of_x_y(dx, dy)
 }
 
-fn phi_of_x_y(x: Lengthf32, y: Lengthf32) -> Anglef32 { y.atan2(x) }
+fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
 
-pub fn axis_z(nbins: usize, min: Lengthf32, max: Lengthf32) -> LorAxU {
+pub fn axis_z(nbins: usize, min: Length, max: Length) -> LorAxU {
     LorAxU {
-        axis: Uniform::new(nbins, min, max),
-        map: Box::new(z_of_midpoint),
+        axis: Uniform::new(nbins, mm_(min), mm_(max)),
+        map: Box::new(|z| mm_(z_of_midpoint(z))),
     }
 }
 
-pub fn axis_dz(nbins: usize, max: Lengthf32) -> LorAxU {
+pub fn axis_dz(nbins: usize, max: Length) -> LorAxU {
     LorAxU {
-        axis: Uniform::new(nbins, 0.0, max),
-        map: Box::new(delta_z),
+        axis: Uniform::new(nbins, 0.0, mm_(max)),
+        map: Box::new(|x| mm_(delta_z(x))),
     }
 }
 
-pub fn axis_r(nbins: usize, max: Lengthf32) -> LorAxU {
+pub fn axis_r(nbins: usize, max: Length) -> LorAxU {
     LorAxU {
-        axis: Uniform::new(nbins, 0.0, max),
-        map: Box::new(distance_from_z_axis),
+        axis: Uniform::new(nbins, 0.0, mm_(max)),
+        map: Box::new(|x| mm_(distance_from_z_axis(x))),
     }
 }
 
 pub fn axis_phi(nbins: usize) -> LorAxC {
     LorAxC {
         axis: Cyclic::new(nbins, 0.0, PI),
-        map: Box::new(phi),
+        map: Box::new(|x| radian_(phi(x))),
     }
 }
 
@@ -162,8 +162,8 @@ mod test_mapped_axes {
         let l = 1000.0;
         let max_dz = l;
         let mut h = ndhistogram!(
-            axis_z (nbins_z , -l/2.0, l/2.0),
-            axis_dz(nbins_dz, max_dz);
+            axis_z (nbins_z , mm(-l/2.0), mm(l/2.0)),
+            axis_dz(nbins_dz, mm(max_dz));
             usize
         );
         let (z, delta) = (123.4, 543.2);

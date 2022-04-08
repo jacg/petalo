@@ -1,6 +1,6 @@
 use crate::{Intensityf32, Index1_u, Index3_u};
 use crate::fov::FOV;
-use crate::index::{index1_to_3, index3_to_1};
+use crate::index::index3_to_1;
 pub type ImageData = Vec<Intensityf32>;
 
 

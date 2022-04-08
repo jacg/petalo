@@ -128,7 +128,7 @@ pub fn read_scattergram(args: Args) -> Result<Scattergram, Box<dyn Error>> {
     let nbins_r = 10;
     let r_max = 120.0;
     let now = std::time::Instant::now();
-    let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_r(nbins_r, r_max); usize)), h5lors);
+    let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_r(nbins_r, mm(r_max)); usize)), h5lors);
     println!("Calculated Scattergram in {} ms", crate::utils::group_digits(now.elapsed().as_millis()));
     Ok(sgram)
 }

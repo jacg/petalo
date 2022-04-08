@@ -14,14 +14,14 @@
 //!    coordinate system.
 
 use geometry::in_base_unit;
-use crate::{BoxDim_u, Index3Weightf32, Lengthf32, Pointf32, Vectorf32, ns_to_mm};
-use crate::{Length, LengthU, LengthI, PerLength, Time, C,
+use crate::{Index3Weightf32, Lengthf32, Vectorf32};
+use crate::{Length, PerLength, Time, C,
             Point, Vector, Ratio, RatioPoint, RatioVec};
 use crate::fov::FOV;
 
 use geometry::uom::{mm, mm_, ns_};
 use crate::gauss::make_gauss_option;
-use crate::index::{index3_to_1, index1_to_3};
+use crate::index::index1_to_3;
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -33,7 +33,7 @@ mod test {
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
-    use crate::TWOPIf32;
+    use crate::TWOPI;
     use geometry::uom::ratio;
 
     // --------------------------------------------------------------------------------
@@ -117,26 +117,27 @@ mod test {
             ny in  5..50_usize,
             nz in  5..90_usize,
         ) {
-            let p1_theta: Lengthf32 = p1_angle * TWOPIf32;
-            let p2_theta: Lengthf32 = p1_theta + (p2_delta * TWOPIf32);
-            let p1 = Pointf32::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
-            let p2 = Pointf32::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
+            let (r, p1_z, p2_z) = (mm(r), mm(p1_z), mm(p2_z));
+            let p1_theta = p1_angle * TWOPI;
+            let p2_theta = p1_theta + (p2_delta * TWOPI);
+            let p1 = Point::new(r * p1_theta.cos(), r * p1_theta.sin(), p1_z);
+            let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
             let fov = FOV::new((mm(dx), mm(dy), mm(dz)), (nx, ny, nz));
 
             // Values to plug in to visualizer:
-            let lor = LOR::new(Time::ZERO, Time::ZERO, p1.into(), p2.into(), ratio(1.0));
+            let lor = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0));
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = LOR::new(Time::ZERO, Time::ZERO, p1.into(), p2.into(), ratio(1.0))
+            let summed: Lengthf32 = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
                 .active_voxels(&fov, None, None)
                 .into_iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
                 .map(|(_index, weight)| weight)
                 .sum();
 
-            let a = fov.entry(p1.into(), p2.into());
-            let b = fov.entry(p2.into(), p1.into());
+            let a = fov.entry(p1, p2);
+            let b = fov.entry(p2, p1);
 
             let in_one_go = match (a,b) {
                 (Some(a), Some(b)) => (a - b).magnitude(),
@@ -283,8 +284,6 @@ pub fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     fov.voxel_size.component_div(lor_direction)
 }
 
-use geometry::Quantity;
-
 //--------------------------------------------------------------------------------
 /// Line Of Response.
 ///
@@ -348,7 +347,7 @@ impl fmt::Display for LOR {
         write!(f, "<LOR ({:8.2} {:8.2} {:8.2}) ({:8.2} {:8.2} {:8.2}) {:7.2}ns {:7.2}mm /{:7.2} >",
                mm_(p.x), mm_(p.y), mm_(p.z),
                mm_(q.x), mm_(q.y), mm_(q.z),
-               ns_(self.dt), ns_to_mm(ns_(self.dt)) / 2.0,
+               ns_(self.dt), mm_(self.dt * C) / 2.0,
                mm_((p-q).norm())
         )
     }

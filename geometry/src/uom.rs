@@ -41,6 +41,13 @@ pub mod mmps {
     ISQ!(uom::si, f32, (millimeter, kilogram, picosecond, ampere, kelvin, mole, candela));
 
     pub type PerLength = Quantity<super::super::InvertDimension<uom::si::length::Dimension>, super::Units, f32>;
+
+    /// The full circle constant (τ) Equal to 2π.
+    pub const TWOPI: Angle = Angle {
+        dimension: std::marker::PhantomData,
+        units: std::marker::PhantomData,
+        value: std::f32::consts::TAU,
+    };
   }
 
   pub mod i32 {
@@ -55,11 +62,9 @@ pub mod mmps {
 
 }
 
-pub use mmps::f32::Acceleration;
-
 //use uom::fmt::DisplayStyle::Abbreviation;
 pub use uom::si::Quantity;
-pub use mmps::f32::{Length, Time, Velocity, Ratio, PerLength};
+pub use mmps::f32::{Angle, TWOPI, Length, Time, Velocity, Ratio, PerLength};
 use uom::si::{length  ::{nanometer, millimeter, centimeter},
               time    ::{nanosecond, picosecond},
               velocity:: meter_per_second};
@@ -74,7 +79,8 @@ pub fn ns (x: f32) -> Time     {    Time::new::      <nanosecond>(x) }
 pub fn ps (x: f32) -> Time     {    Time::new::      <picosecond>(x) }
 pub fn m_s(x: f32) -> Velocity {Velocity::new::<meter_per_second>(x) }
 
-pub fn ratio(x: f32) -> Ratio  {   Ratio::new::<uom::si::ratio::ratio>(x) }
+pub fn ratio (x: f32) -> Ratio  {   Ratio::new::<uom::si::ratio::ratio>(x) }
+pub fn radian(x: f32) -> Angle  {   Angle::new::<uom::si::angle::radian>(x) }
 
 // Reverse direction of the above. Rethink nomenclature once the dust has
 // settled after the transition to uom is complete.
@@ -82,7 +88,8 @@ pub fn mm_(x: Length) -> f32 { x.get::<millimeter>() }
 pub fn ps_(x: Time  ) -> f32 { x.get::<picosecond>() }
 pub fn ns_(x: Time  ) -> f32 { x.get::<nanosecond>() }
 
-pub fn ratio_(x: Ratio) -> f32 { x.get::<uom::si::ratio::ratio>() }
+pub fn ratio_ (x: Ratio) -> f32 { x.get::<uom::si::ratio::ratio>() }
+pub fn radian_(x: Angle) -> f32 { x.get::<uom::si::angle::radian>() }
 
 #[macro_export]
 macro_rules! in_base_unit {
