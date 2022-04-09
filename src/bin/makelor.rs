@@ -278,7 +278,7 @@ fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Time)> {
 fn mean(data: &[Time]) -> Option<Time> {
     let n = data.len();
     if n > 0 {
-        let sum: Time = data.iter().fold(Time::ZERO, |acc, &x| acc+x);
+        let sum: Time = data.iter().cloned().sum();
         Some(sum / n as f32)
     }
     else { None }
