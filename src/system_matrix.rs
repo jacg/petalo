@@ -19,7 +19,7 @@ use crate::{Length, PerLength, Time, C,
             Point, Vector, Ratio, RatioPoint, RatioVec};
 use crate::fov::FOV;
 
-use geometry::uom::{mm, mm_, ns_};
+use geometry::uom::{mm, mm_, ns_, ratio_};
 use crate::gauss::make_gauss_option;
 use crate::index::index1_to_3;
 
@@ -184,7 +184,7 @@ pub fn system_matrix_elements(
         if let Some(gauss) = &tof {
             let g: PerLength = gauss(mm(here) - tof_peak);
             // Turn into dimensionless number: TODO normalization
-            let g: f32 = (mm(1000.0) * g).get::<geometry::uom::uomcrate::si::ratio::ratio>();
+            let g: f32 = ratio_(mm(1000.0) * g);
             weight *= g;
         }
 
