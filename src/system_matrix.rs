@@ -231,24 +231,6 @@ pub fn find_entry_point(entry_point: Point, fov: FOV) -> RatioPoint {
         // will pick the wrong voxel. Work around this problem by assuming that
         // anything very close to zero is exactly zero.
         .map(|x| if x.abs() < EPS { Ratio::ZERO } else { x })
-
-    // Express entry point in voxel coordinates: floor(position) = index of voxel.
-    // TODO: figure out if we should support Point * Vector -> Point  (affine * vector -> affine)
-    // NOTE: this should be Point<Ratio> rater than Point<Lengthf32>
-
-    // let mut entry_point = Pointf32::new(
-    //     entry_point[0] / voxel_size[0],
-    //     entry_point[1] / voxel_size[1],
-    //     entry_point[2] / voxel_size[2],
-    // );
-
-    // // Floating-point subtractions which should give zero, usually miss very
-    // // slightly: if this error is negative, the next step (which uses floor)
-    // // will pick the wrong voxel. Work around this problem by assuming that
-    // // anything very close to zero is exactly zero.
-    // entry_point.iter_mut().for_each(|x| if x.abs() < EPSf32 { *x = 0.0 });
-    // entry_point.into()
-
 }
 
 
