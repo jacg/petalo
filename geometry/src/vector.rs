@@ -114,8 +114,17 @@ impl Vector {
         (x*x + y*y + z*z).sqrt()
     }
 
-    pub fn argmin   (self) -> (usize, Length) { todo!() }
-    pub fn norm     (self) -> Length { mm(NcVector::from(self).norm()) }
+    pub fn argmin(self) -> (usize, Length) {
+        if self.x <= self.y {
+            if self.x <= self.z { (0, self.x) }
+            else                { (2, self.z) }
+        } else {
+            if self.y <= self.z { (1, self.y) }
+            else                { (2, self.z) }
+        }
+    }
+
+    pub fn norm(self) -> Length { mm(NcVector::from(self).norm()) }
 
     pub fn normalize(self) -> RatioVec {
         let n = NcVector::from(self).normalize();
