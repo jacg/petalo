@@ -162,7 +162,7 @@ mod test {
 pub fn system_matrix_elements(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Lengthf32>,
-    mut next_boundary: Vectorf32,
+    mut next_boundary: Vector,
     voxel_size: Vector,
     mut index: i32,
     delta_index: [i32; 3],
@@ -176,7 +176,6 @@ pub fn system_matrix_elements(
     loop {
         // Which voxel boundary will be hit next, and its position
         let (dimension, boundary_position) = next_boundary.argmin();
-        let boundary_position = mm(boundary_position);
 
         // The weight is the length of LOR in this voxel
         let mut weight = boundary_position - here;
@@ -199,7 +198,7 @@ pub fn system_matrix_elements(
         here = boundary_position;
 
         // Find the next boundary in this dimension
-        next_boundary[dimension] += Vectorf32::from(voxel_size)[dimension];
+        next_boundary[dimension] += voxel_size[dimension];
 
         // Move index across the boundary we are crossing
         index += delta_index[dimension];
@@ -211,7 +210,6 @@ pub fn system_matrix_elements(
 }
 
 use crate::guomc::ConstZero;
-const F32_LENGTH_ZERO: Lengthf32 = 0.0;
 
 const EPS: Ratio = in_base_unit!(1e-5);
 

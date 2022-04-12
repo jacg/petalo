@@ -82,7 +82,7 @@ impl Image {
                     // Find active voxels and their weights
                     system_matrix_elements(
                         &mut indices, &mut weights,
-                        next_boundary.into(), voxel_size,
+                        next_boundary, voxel_size,
                         index, delta_index, remaining,
                         tof_peak, &notof
                     );
@@ -229,7 +229,7 @@ where
             // Find active voxels and their weights
             system_matrix_elements(
                 &mut indices, &mut weights,
-                next_boundary.into(), voxel_size,
+                next_boundary, voxel_size,
                 index, delta_index, remaining,
                 tof_peak, tof
             );
