@@ -248,8 +248,8 @@ where
 #[inline]
 fn forward_project(weights: &[Lengthf32], indices: &[usize], image: &Image) -> Lengthf32 {
     let mut projection = 0.0;
-    for (w, j) in weights.iter().zip(indices.iter()) {
-        projection += w * image[*j]
+    for (w, &j) in weights.iter().zip(indices.iter()) {
+        projection += w * image[j]
     }
     projection
 }
@@ -257,8 +257,8 @@ fn forward_project(weights: &[Lengthf32], indices: &[usize], image: &Image) -> L
 #[inline]
 fn back_project(backprojection: &mut Vec<Lengthf32>, weights: &[Lengthf32], indices: &[usize], projection: Lengthf32) {
     let projection_reciprocal = 1.0 / projection;
-    for (w, j) in weights.iter().zip(indices.iter()) {
-        backprojection[*j] += w * projection_reciprocal;
+    for (w, &j) in weights.iter().zip(indices.iter()) {
+        backprojection[j] += w * projection_reciprocal;
     }
 }
 
