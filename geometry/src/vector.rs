@@ -1,4 +1,4 @@
-use std::ops::{Index, Mul, Sub};
+use std::ops::{Index, IndexMut, Mul, Sub};
 use crate::{Length, Ratio};
 
 use crate::uom::{mm, ratio};
@@ -70,6 +70,17 @@ impl Index<usize> for Vector {
             0 => &self.x,
             1 => &self.y,
             2 => &self.z,
+            _ => panic!("index {index} is out of bounds [0,2]")
+        }
+    }
+}
+
+impl IndexMut<usize> for Vector {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
             _ => panic!("index {index} is out of bounds [0,2]")
         }
     }
