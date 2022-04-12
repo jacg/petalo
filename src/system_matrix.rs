@@ -171,27 +171,28 @@ pub fn system_matrix_elements(
     tof: &Option<impl Fn(Length) -> PerLength>) {
 
     // How far we have moved since entering the FOV
-    let mut here = F32_LENGTH_ZERO;
+    let mut here = Length::ZERO;
 
     loop {
         // Which voxel boundary will be hit next, and its position
         let (dimension, boundary_position) = next_boundary.argmin();
+        let boundary_position = mm(boundary_position);
 
         // The weight is the length of LOR in this voxel
         let mut weight = boundary_position - here;
 
         // If TOF enabled, adjust weight
         if let Some(gauss) = &tof {
-            let g: PerLength = gauss(mm(here) - tof_peak);
+            let g: PerLength = gauss(here - tof_peak);
             // Turn into dimensionless number: TODO normalization
             let g: f32 = ratio_(mm(1000.0) * g);
             weight *= g;
         }
 
         // Store the index and weight of the voxel we have just crossed
-        if weight > 0.0 {
+        if weight > Length::ZERO {
             indices.push(index as usize);
-            weights.push(weight);
+            weights.push(mm_(weight));
         }
 
         // Move along LOR until it leaves this voxel
