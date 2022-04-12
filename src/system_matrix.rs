@@ -183,8 +183,9 @@ pub fn system_matrix_elements(
         // If TOF enabled, adjust weight
         if let Some(gauss) = &tof {
             let g: PerLength = gauss(here - tof_peak);
-            // Turn into dimensionless number: TODO normalization
-            let g: f32 = ratio_(mm(1000.0) * g);
+            // TODO Normalization
+            let completely_arbitrary_factor = 666.0;
+            let g: f32 = ratio_(mm(completely_arbitrary_factor) * g);
             weight *= g;
         }
 
