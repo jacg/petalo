@@ -1,7 +1,9 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use petalo::{image::Image, fov::FOV, fom, Lengthf32 as L, Intensityf32};
+type L = f32;
+use petalo::{image::Image, fov::FOV, fom, Intensityf32};
+use geometry::uom::mm;
 
 #[pyfunction]
 #[text_signature = "(n, /)"]
@@ -106,10 +108,10 @@ fn pyroi_to_fomroi(pyroi: ROI) -> petalo::fom::ROI {
     use              ROI as lr;
     use petalo::fom::ROI as fr;
     match pyroi {
-        lr::Sphere {x,y,z,r} => fr::Sphere ((x,y,z), r),
-        lr::CylinderX{y,z,r} => fr::CylinderX((y,z), r),
-        lr::CylinderY{x,z,r} => fr::CylinderX((x,z), r),
-        lr::CylinderZ{x,y,r} => fr::CylinderZ((x,y), r),
+        lr::Sphere {x,y,z,r} => fr::Sphere((mm(x), mm(y), mm(z)), mm(r)),
+        lr::CylinderX{y,z,r} => fr::CylinderX(    (mm(y), mm(z)), mm(r)),
+        lr::CylinderY{x,z,r} => fr::CylinderX(    (mm(x), mm(z)), mm(r)),
+        lr::CylinderZ{x,y,r} => fr::CylinderZ(    (mm(x), mm(y)), mm(r)),
     }
 }
 

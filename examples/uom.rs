@@ -44,13 +44,13 @@ fn main() {
     let two_l1 = two * l1;             // Multiplication by dimensionless number
 
     // Reusable format arguments
-    let fmm = Length::format_args(millimeter, Abbreviation);
-    let  fm = Length::format_args(     meter, Abbreviation);
-    let fkm = Length::format_args( kilometer, Abbreviation);
+    let fmm = |x| Length::format_args(millimeter, Abbreviation).with(x);
+    let  fm = |x| Length::format_args(     meter, Abbreviation).with(x);
+    let fkm = |x| Length::format_args( kilometer, Abbreviation).with(x);
 
     // Print out values along with their units
-    println!("{} = {} = {} / 2",  fm.with(l1), fkm.with(l1), fm.with(two_l1));
-    println!("{} = {}", fmm.with(l3),  fm.with(l3));
+    println!("{} = {} = {} / 2",  fm(l1), fkm(l1), fm(two_l1));
+    println!("{} = {}", fmm(l3),  fm(l3));
     println!("{}", v1.into_format_args(meter_per_second, Abbreviation));
     println!("{:?}", v2 / c);
 

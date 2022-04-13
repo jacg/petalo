@@ -19,7 +19,7 @@ use crate::{Length, PerLength, Time, C,
             Point, Vector, Ratio, RatioPoint, RatioVec};
 use crate::fov::FOV;
 
-use geometry::uom::{mm, mm_, ns_};
+use geometry::uom::{mm, mm_, ns_, ratio_};
 use crate::gauss::make_gauss_option;
 use crate::index::index1_to_3;
 
@@ -162,7 +162,7 @@ mod test {
 pub fn system_matrix_elements(
     indices: &mut Vec<usize>,
     weights: &mut Vec<Lengthf32>,
-    mut next_boundary: Vectorf32,
+    mut next_boundary: Vector,
     voxel_size: Vector,
     mut index: i32,
     delta_index: [i32; 3],
@@ -171,7 +171,7 @@ pub fn system_matrix_elements(
     tof: &Option<impl Fn(Length) -> PerLength>) {
 
     // How far we have moved since entering the FOV
-    let mut here = F32_LENGTH_ZERO;
+    let mut here = Length::ZERO;
 
     loop {
         // Which voxel boundary will be hit next, and its position
@@ -182,23 +182,24 @@ pub fn system_matrix_elements(
 
         // If TOF enabled, adjust weight
         if let Some(gauss) = &tof {
-            let g: PerLength = gauss(mm(here) - tof_peak);
-            // Turn into dimensionless number: TODO normalization
-            let g: f32 = (mm(1000.0) * g).get::<geometry::uom::uomcrate::si::ratio::ratio>();
+            let g: PerLength = gauss(here - tof_peak);
+            // TODO Normalization
+            let completely_arbitrary_factor = 666.0;
+            let g: f32 = ratio_(mm(completely_arbitrary_factor) * g);
             weight *= g;
         }
 
         // Store the index and weight of the voxel we have just crossed
-        if weight > 0.0 {
+        if weight > Length::ZERO {
             indices.push(index as usize);
-            weights.push(weight);
+            weights.push(mm_(weight));
         }
 
         // Move along LOR until it leaves this voxel
         here = boundary_position;
 
         // Find the next boundary in this dimension
-        next_boundary[dimension] += Vectorf32::from(voxel_size)[dimension];
+        next_boundary[dimension] += voxel_size[dimension];
 
         // Move index across the boundary we are crossing
         index += delta_index[dimension];
@@ -210,7 +211,6 @@ pub fn system_matrix_elements(
 }
 
 use crate::guomc::ConstZero;
-const F32_LENGTH_ZERO: Lengthf32 = 0.0;
 
 const EPS: Ratio = in_base_unit!(1e-5);
 
@@ -231,24 +231,6 @@ pub fn find_entry_point(entry_point: Point, fov: FOV) -> RatioPoint {
         // will pick the wrong voxel. Work around this problem by assuming that
         // anything very close to zero is exactly zero.
         .map(|x| if x.abs() < EPS { Ratio::ZERO } else { x })
-
-    // Express entry point in voxel coordinates: floor(position) = index of voxel.
-    // TODO: figure out if we should support Point * Vector -> Point  (affine * vector -> affine)
-    // NOTE: this should be Point<Ratio> rater than Point<Lengthf32>
-
-    // let mut entry_point = Pointf32::new(
-    //     entry_point[0] / voxel_size[0],
-    //     entry_point[1] / voxel_size[1],
-    //     entry_point[2] / voxel_size[2],
-    // );
-
-    // // Floating-point subtractions which should give zero, usually miss very
-    // // slightly: if this error is negative, the next step (which uses floor)
-    // // will pick the wrong voxel. Work around this problem by assuming that
-    // // anything very close to zero is exactly zero.
-    // entry_point.iter_mut().for_each(|x| if x.abs() < EPSf32 { *x = 0.0 });
-    // entry_point.into()
-
 }
 
 

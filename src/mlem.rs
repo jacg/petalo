@@ -82,7 +82,7 @@ impl Image {
                     // Find active voxels and their weights
                     system_matrix_elements(
                         &mut indices, &mut weights,
-                        next_boundary.into(), voxel_size,
+                        next_boundary, voxel_size,
                         index, delta_index, remaining,
                         tof_peak, &notof
                     );
@@ -229,7 +229,7 @@ where
             // Find active voxels and their weights
             system_matrix_elements(
                 &mut indices, &mut weights,
-                next_boundary.into(), voxel_size,
+                next_boundary, voxel_size,
                 index, delta_index, remaining,
                 tof_peak, tof
             );
@@ -248,8 +248,8 @@ where
 #[inline]
 fn forward_project(weights: &[Lengthf32], indices: &[usize], image: &Image) -> Lengthf32 {
     let mut projection = 0.0;
-    for (w, j) in weights.iter().zip(indices.iter()) {
-        projection += w * image[*j]
+    for (w, &j) in weights.iter().zip(indices.iter()) {
+        projection += w * image[j]
     }
     projection
 }
@@ -257,8 +257,8 @@ fn forward_project(weights: &[Lengthf32], indices: &[usize], image: &Image) -> L
 #[inline]
 fn back_project(backprojection: &mut Vec<Lengthf32>, weights: &[Lengthf32], indices: &[usize], projection: Lengthf32) {
     let projection_reciprocal = 1.0 / projection;
-    for (w, j) in weights.iter().zip(indices.iter()) {
-        backprojection[*j] += w * projection_reciprocal;
+    for (w, &j) in weights.iter().zip(indices.iter()) {
+        backprojection[j] += w * projection_reciprocal;
     }
 }
 

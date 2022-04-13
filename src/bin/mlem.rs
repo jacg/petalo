@@ -14,7 +14,7 @@ pub struct Cli {
     pub iterations: usize,
 
     /// Field Of View full-widths in mm
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "300mm,300mm,300mm")]
+    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "300 mm,300 mm,300 mm")]
     pub size: (Length, Length, Length),
 
     /// Field Of View size in number of voxels
