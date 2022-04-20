@@ -369,6 +369,7 @@ mod test_vertex_rec {
     use assert_approx_eq::assert_approx_eq;
     use geometry::uom::radian;
     #[test]
+    #[allow(nonstandard_style)]
     fn bary_vertex_test() {
         let mut verts = Vec::<Vertex>::with_capacity(10);
         let r = mm(355.0);
