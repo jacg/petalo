@@ -369,35 +369,36 @@ mod test_vertex_rec {
     use assert_approx_eq::assert_approx_eq;
     use geometry::uom::radian;
     #[test]
-    #[allow(nonstandard_style)]
     fn bary_vertex_test() {
-        let mut verts = Vec::<Vertex>::with_capacity(10);
+
+        // Create a vertex with interesting x,y and dummy values elsewhere
+        fn vertex(x: Length, y: Length) -> Vertex {
+            Vertex {
+                // interesting values
+                x: mm_(x), y: mm_(y),
+                // dummy values
+                z: 23.4, t: 123.0,
+                event_id: 0, parent_id: 0, track_id: 0, process_id: 0, volume_id: 0,
+                moved: 0.0, deposited: 0, pre_KE: 511.0, post_KE: 0.0,
+            }
+        }
+
+        // Place all vertices at same distance from axis
         let r = mm(355.0);
-        let z =     22.0;
-        let pre_KE = 511.0;
-        let post_KE = 0.0;
-        let t = 22.0;
-        for i in 0..10 {
-            let angle = radian(i as f32 * std::f32::consts::PI / 20.0);
-            let x = mm_(r * angle.cos());
-            let y = mm_(r * angle.sin());
-            verts.push(Vertex {event_id: i,
-                               parent_id: 0,
-                               track_id: 0,
-                               process_id: 0,
-                               volume_id: 0,
-                               moved: 0.0,
-                               deposited: 0,// up to here dummy values
-                               x, y, z, t, pre_KE, post_KE})
-        }
-        // How can this be done in a less stupid way without
-        // losing control over the positions.
-        let mut vert_ref = Vec::<&Vertex>::with_capacity(10);
-        for vert in verts.iter() {
-            vert_ref.push(vert);
-        }
-        let bary_vert = vertex_barycentre(&vert_ref).unwrap();
-        let bary_r = (bary_vert.0*bary_vert.0 + bary_vert.1*bary_vert.1).sqrt();
+
+        // Distribute vertices on quarter circle
+        let vertices: Vec<Vertex> = (0..10)
+            .map(|i| radian(i as f32 * std::f32::consts::PI / 20.0))
+            .map(|angle| (r * angle.cos(), r * angle.sin()))
+            .map(|(x,y)| vertex(x,y))
+            .collect();
+
+        // Create vector of vertex refs, as required by vertex_barycentre
+        let vertex_refs: Vec<&Vertex> = vertices.iter().collect();
+
+        let barycentre = vertex_barycentre(&vertex_refs).unwrap();
+        let bary_r = (barycentre.0 * barycentre.0 +
+                      barycentre.1 * barycentre.1  ).sqrt();
         assert_approx_eq!(mm_(bary_r), mm_(r), 1e-3);
     }
 }
