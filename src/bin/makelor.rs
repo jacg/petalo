@@ -182,8 +182,8 @@ fn lor_from_barycentre_of_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
         .filter(|v| v.volume_id == 0)
         .partition(|v| v.track_id == 1);
 
-    let (x1, y1, z1, t1, E1) = vertex_barycentre(&a)?;
-    let (x2, y2, z2, t2, E2) = vertex_barycentre(&b)?;
+    let Barycentre { x: x1, y: y1, z: z1, t: t1, E: E1 } = vertex_barycentre(&a)?;
+    let Barycentre { x: x2, y: y2, z: z2, t: t2, E: E2 } = vertex_barycentre(&b)?;
 
     let nan = f32::NAN; let q1 = nan; let q2 = nan;
 
@@ -339,7 +339,17 @@ fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(Length, Leng
 }
 
 #[allow(nonstandard_style)]
-fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Time, Energyf32)> {
+#[derive(Copy, Clone)]
+struct Barycentre {
+    x: Length,
+    y: Length,
+    z: Length,
+    t: Time,
+    E: Energyf32,
+}
+
+#[allow(nonstandard_style)]
+fn vertex_barycentre(vertices: &[&Vertex]) -> Option<Barycentre> {
     if vertices.is_empty() { return None }
     let mut delta_E  = 0_f32;
     let mut rr = Length::ZERO;
@@ -360,7 +370,7 @@ fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Ti
     cc /= delta_E;
     let xx = rr * cc;
     let yy = rr * (ratio(1.0) - cc*cc).sqrt();
-    Some((xx, yy, zz / delta_E, tt / delta_E, delta_E))
+    Some(Barycentre { x: xx, y: yy, z: zz / delta_E, t: tt / delta_E, E: delta_E })
 }
 
 #[cfg(test)]
@@ -396,9 +406,8 @@ mod test_vertex_barycentre {
         // Create vector of vertex refs, as required by vertex_barycentre
         let vertex_refs: Vec<&Vertex> = vertices.iter().collect();
 
-        let barycentre = vertex_barycentre(&vertex_refs).unwrap();
-        let bary_r = (barycentre.0 * barycentre.0 +
-                      barycentre.1 * barycentre.1  ).sqrt();
+        let Barycentre { x, y, .. } = vertex_barycentre(&vertex_refs).unwrap();
+        let bary_r = (x*x + y*y).sqrt();
         assert_float_eq!(mm_(bary_r), mm_(r), ulps <= 1);
     }
 }
