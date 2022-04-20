@@ -357,6 +357,43 @@ fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Ti
     Some((xx / delta_E, yy / delta_E, zz / delta_E, tt / delta_E, delta_E))
 }
 
+#[cfg(test)]
+mod test_vertex_rec {
+    use super::*;
+    use assert_approx_eq::assert_approx_eq;
+    #[test]
+    fn bary_vertex_test() {
+        let mut verts = Vec::<Vertex>::with_capacity(10);
+        let rad = 355.0;
+        let z = 22.0;
+        let pre_KE = 511.0;
+        let post_KE = 0.0;
+        let t = 22.0;
+        for i in 0..10 {
+            let angle  = i as f32 * std::f32::consts::PI / 20.0;
+            let x = rad * angle.cos();
+            let y = rad * angle.sin();
+            verts.push(Vertex {event_id: i,
+                               parent_id: 0,
+                               track_id: 0,
+                               process_id: 0,
+                               volume_id: 0,
+                               moved: 0.0,
+                               deposited: 0,// up to here dummy values
+                               x, y, z, t, pre_KE, post_KE})
+        }
+        // How can this be done in a less stupid way without
+        // losing control over the positions.
+        let mut vert_ref = Vec::<&Vertex>::with_capacity(10);
+        for vert in verts.iter() {
+            vert_ref.push(vert);
+        }
+        let bary_vert = vertex_barycentre(&vert_ref).unwrap();
+        let bary_rad = (bary_vert.0*bary_vert.0 + bary_vert.1*bary_vert.1).sqrt();
+        assert_approx_eq!(bary_rad, rad, 1e-3);
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct QT {
     pub event_id: u32,
