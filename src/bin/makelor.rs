@@ -366,7 +366,7 @@ fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Ti
 #[cfg(test)]
 mod test_vertex_rec {
     use super::*;
-    use assert_approx_eq::assert_approx_eq;
+    use float_eq::assert_float_eq;
     use geometry::uom::radian;
     #[test]
     fn bary_vertex_test() {
@@ -399,7 +399,7 @@ mod test_vertex_rec {
         let barycentre = vertex_barycentre(&vertex_refs).unwrap();
         let bary_r = (barycentre.0 * barycentre.0 +
                       barycentre.1 * barycentre.1  ).sqrt();
-        assert_approx_eq!(mm_(bary_r), mm_(r), 1e-3);
+        assert_float_eq!(mm_(bary_r), mm_(r), ulps <= 1);
     }
 }
 
