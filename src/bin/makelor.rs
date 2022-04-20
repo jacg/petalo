@@ -364,13 +364,13 @@ fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Ti
 }
 
 #[cfg(test)]
-mod test_vertex_rec {
+mod test_vertex_barycentre {
     use super::*;
     use float_eq::assert_float_eq;
     use geometry::uom::radian;
-    #[test]
-    fn bary_vertex_test() {
 
+    #[test]
+    fn curvature_should_not_reduce_radius() {
         // Create a vertex with interesting x,y and dummy values elsewhere
         fn vertex(x: Length, y: Length) -> Vertex {
             Vertex {
