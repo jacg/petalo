@@ -342,37 +342,44 @@ fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(Length, Leng
 fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Time, Energyf32)> {
     if vertices.is_empty() { return None }
     let mut delta_E  = 0_f32;
-    let mut xx = Length::ZERO;
-    let mut yy = Length::ZERO;
+    let mut rr = Length::ZERO;
+    let mut cc = Ratio::ZERO;
     let mut zz = Length::ZERO;
     let mut tt = Time::ZERO;
     for &&Vertex { x, y, z, t, pre_KE, post_KE, .. } in vertices {
         let dE = pre_KE - post_KE;
+        let (x, y, z, t) = (mm(x), mm(y), mm(z), ns(t));
         delta_E += dE;
-        xx += mm(x) * dE;
-        yy += mm(y) * dE;
-        zz += mm(z) * dE;
-        tt += ns(t) * dE; // TODO figure out what *really* needs to be done here
+        let radius = (x*x + y*y).sqrt();
+        rr += radius * dE;
+        cc += (x / radius) * dE;
+        zz += z * dE;
+        tt += t * dE; // TODO figure out what *really* needs to be done here
     };
-    Some((xx / delta_E, yy / delta_E, zz / delta_E, tt / delta_E, delta_E))
+    rr /= delta_E;
+    cc /= delta_E;
+    let xx = rr * cc;
+    let yy = rr * (ratio(1.0) - cc*cc).sqrt();
+    Some((xx, yy, zz / delta_E, tt / delta_E, delta_E))
 }
 
 #[cfg(test)]
 mod test_vertex_rec {
     use super::*;
     use assert_approx_eq::assert_approx_eq;
+    use geometry::uom::radian;
     #[test]
     fn bary_vertex_test() {
         let mut verts = Vec::<Vertex>::with_capacity(10);
-        let rad = 355.0;
-        let z = 22.0;
+        let r = mm(355.0);
+        let z =     22.0;
         let pre_KE = 511.0;
         let post_KE = 0.0;
         let t = 22.0;
         for i in 0..10 {
-            let angle  = i as f32 * std::f32::consts::PI / 20.0;
-            let x = rad * angle.cos();
-            let y = rad * angle.sin();
+            let angle = radian(i as f32 * std::f32::consts::PI / 20.0);
+            let x = mm_(r * angle.cos());
+            let y = mm_(r * angle.sin());
             verts.push(Vertex {event_id: i,
                                parent_id: 0,
                                track_id: 0,
@@ -389,8 +396,8 @@ mod test_vertex_rec {
             vert_ref.push(vert);
         }
         let bary_vert = vertex_barycentre(&vert_ref).unwrap();
-        let bary_rad = (bary_vert.0*bary_vert.0 + bary_vert.1*bary_vert.1).sqrt();
-        assert_approx_eq!(bary_rad, rad, 1e-3);
+        let bary_r = (bary_vert.0*bary_vert.0 + bary_vert.1*bary_vert.1).sqrt();
+        assert_approx_eq!(mm_(bary_r), mm_(r), 1e-3);
     }
 }
 
