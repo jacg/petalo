@@ -378,27 +378,29 @@ mod test_vertex_barycentre {
     use super::*;
     use float_eq::assert_float_eq;
     use geometry::uom::radian;
+    use std::f32::consts::PI;
+
+    /// Create a vertex with interesting x,y and dummy values elsewhere
+    fn vertex(x: Length, y: Length) -> Vertex {
+        Vertex {
+            // interesting values
+            x: mm_(x), y: mm_(y),
+            // dummy values
+            z: 23.4, t: 123.0,
+            event_id: 0, parent_id: 0, track_id: 0, process_id: 0, volume_id: 0,
+            moved: 0.0, deposited: 0, pre_KE: 511.0, post_KE: 0.0,
+        }
+    }
 
     #[test]
     fn curvature_should_not_reduce_radius() {
-        // Create a vertex with interesting x,y and dummy values elsewhere
-        fn vertex(x: Length, y: Length) -> Vertex {
-            Vertex {
-                // interesting values
-                x: mm_(x), y: mm_(y),
-                // dummy values
-                z: 23.4, t: 123.0,
-                event_id: 0, parent_id: 0, track_id: 0, process_id: 0, volume_id: 0,
-                moved: 0.0, deposited: 0, pre_KE: 511.0, post_KE: 0.0,
-            }
-        }
 
         // Place all vertices at same distance from axis
         let r = mm(355.0);
 
         // Distribute vertices on quarter circle
         let vertices: Vec<Vertex> = (0..10)
-            .map(|i| radian(i as f32 * std::f32::consts::PI / 20.0))
+            .map(|i| radian(i as f32 * PI / 20.0))
             .map(|angle| (r * angle.cos(), r * angle.sin()))
             .map(|(x,y)| vertex(x,y))
             .collect();
@@ -409,6 +411,27 @@ mod test_vertex_barycentre {
         let Barycentre { x, y, .. } = vertex_barycentre(&vertex_refs).unwrap();
         let bary_r = (x*x + y*y).sqrt();
         assert_float_eq!(mm_(bary_r), mm_(r), ulps <= 1);
+    }
+
+    #[test]
+    fn angular_distribution_mean() {
+
+        let r = 100.0;
+
+        // One vertex at 0 degrees, the other at 90 degrees.
+        let vertices = vec![vertex(mm(100.0), mm(0.0)), vertex(mm(0.0), mm(100.0))];
+
+        // The barycentre of the above points should be at 45 degrees or pi / 4.
+        let angle = PI / 4.0;
+        let (expected_x, expected_y) = (r * angle.cos(), r * angle.sin());
+
+        // Create vector of vertex refs, as required by vertex_barycentre
+        let vertex_refs: Vec<&Vertex> = vertices.iter().collect();
+
+        let Barycentre { x, y, .. } = vertex_barycentre(&vertex_refs).unwrap();
+
+        assert_float_eq!(mm_(x), expected_x, ulps <= 1);
+        assert_float_eq!(mm_(y), expected_y, ulps <= 1);
     }
 }
 
