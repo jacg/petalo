@@ -353,23 +353,24 @@ fn vertex_barycentre(vertices: &[&Vertex]) -> Option<Barycentre> {
     if vertices.is_empty() { return None }
     let mut delta_E  = 0_f32;
     let mut rr = Length::ZERO;
-    let mut cc = Ratio::ZERO;
+    let mut xx = Length::ZERO;
+    let mut yy = Length::ZERO;
     let mut zz = Length::ZERO;
     let mut tt = Time::ZERO;
     for &&Vertex { x, y, z, t, pre_KE, post_KE, .. } in vertices {
         let dE = pre_KE - post_KE;
         let (x, y, z, t) = (mm(x), mm(y), mm(z), ns(t));
         delta_E += dE;
-        let radius = (x*x + y*y).sqrt();
-        rr += radius * dE;
-        cc += (x / radius) * dE;
+        rr += (x*x + y*y).sqrt() * dE;
+        xx += x * dE;
+        yy += y * dE;
         zz += z * dE;
         tt += t * dE; // TODO figure out what *really* needs to be done here
     };
     rr /= delta_E;
-    cc /= delta_E;
-    let xx = rr * cc;
-    let yy = rr * (ratio(1.0) - cc*cc).sqrt();
+    let angle = yy.atan2(xx);
+    xx = rr * angle.cos();
+    yy = rr * angle.sin();
     Some(Barycentre { x: xx, y: yy, z: zz / delta_E, t: tt / delta_E, E: delta_E })
 }
 
