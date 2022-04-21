@@ -351,7 +351,7 @@ struct Barycentre {
 #[allow(nonstandard_style)]
 fn vertex_barycentre(vertices: &[&Vertex]) -> Option<Barycentre> {
     if vertices.is_empty() { return None }
-    let mut delta_E  = 0_f32;
+    let mut delta_E = 0.0;
     let mut rr = Length::ZERO;
     let mut xx = Length::ZERO;
     let mut yy = Length::ZERO;
