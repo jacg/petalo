@@ -365,13 +365,14 @@ fn vertex_barycentre(vertices: &[&Vertex]) -> Option<Barycentre> {
         xx += x * dE;
         yy += y * dE;
         zz += z * dE;
-        tt += t * dE; // TODO figure out what *really* needs to be done here
+        tt += t;
     };
     rr /= delta_E;
     let angle = yy.atan2(xx);
-    xx = rr * angle.cos();
-    yy = rr * angle.sin();
-    Some(Barycentre { x: xx, y: yy, z: zz / delta_E, t: tt / delta_E, E: delta_E })
+    xx  = rr * angle.cos();
+    yy  = rr * angle.sin();
+    tt /= vertices.len() as f32;
+    Some(Barycentre { x: xx, y: yy, z: zz / delta_E, t: tt, E: delta_E })
 }
 
 #[cfg(test)]
