@@ -382,15 +382,15 @@ mod test_vertex_barycentre {
     use geometry::uom::radian;
     use std::f32::consts::PI;
 
-    /// Create a vertex with interesting x,y and dummy values elsewhere
-    fn vertex(x: Length, y: Length) -> Vertex {
+    /// Create a vertex with interesting x,y, optional pre_KE and dummy values elsewhere
+    fn vertex(x: Length, y: Length, pre_ke: Option<Energyf32>) -> Vertex {
         Vertex {
             // interesting values
             x: mm_(x), y: mm_(y),
             // dummy values
             z: 23.4, t: 123.0,
             event_id: 0, parent_id: 0, track_id: 0, process_id: 0, volume_id: 0,
-            moved: 0.0, deposited: 0, pre_KE: 511.0, post_KE: 0.0,
+            moved: 0.0, deposited: 0, pre_KE: pre_ke.unwrap_or(511.0), post_KE: 0.0,
         }
     }
 
@@ -404,7 +404,7 @@ mod test_vertex_barycentre {
         let vertices: Vec<Vertex> = (0..10)
             .map(|i| radian(i as f32 * PI / 20.0))
             .map(|angle| (r * angle.cos(), r * angle.sin()))
-            .map(|(x,y)| vertex(x,y))
+            .map(|(x,y)| vertex(x,y, None))
             .collect();
 
         // Create vector of vertex refs, as required by vertex_barycentre
@@ -421,7 +421,7 @@ mod test_vertex_barycentre {
         let r = 100.0;
 
         // One vertex at 0 degrees, the other at 90 degrees.
-        let vertices = vec![vertex(mm(100.0), mm(0.0)), vertex(mm(0.0), mm(100.0))];
+        let vertices = vec![vertex(mm(100.0), mm(0.0), None), vertex(mm(0.0), mm(100.0), None)];
 
         // The barycentre of the above points should be at 45 degrees or pi / 4.
         let angle = PI / 4.0;
@@ -434,6 +434,24 @@ mod test_vertex_barycentre {
 
         assert_float_eq!(mm_(x), expected_x, ulps <= 1);
         assert_float_eq!(mm_(y), expected_y, ulps <= 1);
+    }
+
+    #[test]
+    fn energy_weights_used_correctly() {
+        let energies = vec![450.0, 475.0, 511.0, 475.0, 450.0];
+        let ys = vec![357.0, 362.0, 367.0, 372.0, 377.0];
+        let vertices: Vec<Vertex> = ys.iter().zip(energies.iter())
+            .map(|(y, e)| vertex(mm(0.0), mm(*y), Some(*e)))
+            .collect();
+
+        // Create vector of vertex refs, as required by vertex_barycentre
+        let vertex_refs: Vec<&Vertex> = vertices.iter().collect();
+
+        let Barycentre { x, y, E, .. } = vertex_barycentre(&vertex_refs).unwrap();
+
+        assert_float_eq!(E, energies.iter().sum(), ulps <= 1);
+        assert_float_eq!(mm_(x), 0.0, abs <= 1e-4);
+        assert_float_eq!(mm_(y), ys[2], ulps <=1);
     }
 }
 
