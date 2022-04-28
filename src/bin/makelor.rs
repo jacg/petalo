@@ -365,7 +365,7 @@ fn vertex_barycentre(vertices: &[&Vertex]) -> Option<Barycentre> {
         xx += x * dE;
         yy += y * dE;
         zz += z * dE;
-        tt += t;
+        tt += t; // Time coordinate as mean of arrival time. charge not relevant.
     };
     rr /= delta_E;
     let angle = yy.atan2(xx);
