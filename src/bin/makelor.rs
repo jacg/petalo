@@ -365,7 +365,10 @@ fn vertex_barycentre(vertices: &[&Vertex]) -> Option<Barycentre> {
         xx += x * dE;
         yy += y * dE;
         zz += z * dE;
-        tt += t; // Time coordinate as mean of arrival time. charge not relevant.
+        // Mean time as simple compromise since want to be as close to
+        // the start of event without having to much variation caused
+        // by using the first detected photon (or vertex here).
+        tt += t;
     };
     rr /= delta_E;
     let angle = yy.atan2(xx);
