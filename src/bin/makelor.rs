@@ -179,11 +179,11 @@ fn lor_from_first_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
 fn lor_from_barycentre_of_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
     let (a,b): (Vec<_>, Vec<_>) = vertices
         .iter()
-        .filter(|v| v.volume_id == 0)
-        .partition(|v| v.track_id == 1);
+        .filter(|v| v.volume_id == 0 && v.parent_id <= 2)
+        .partition(|v| v.track_id == 1 || v.parent_id == 1);
 
-    let (x1, y1, z1, t1, E1) = vertex_barycentre(&a)?;
-    let (x2, y2, z2, t2, E2) = vertex_barycentre(&b)?;
+    let Barycentre { x: x1, y: y1, z: z1, t: t1, E: E1 } = vertex_barycentre(&a)?;
+    let Barycentre { x: x2, y: y2, z: z2, t: t2, E: E2 } = vertex_barycentre(&b)?;
 
     let nan = f32::NAN; let q1 = nan; let q2 = nan;
 
@@ -339,22 +339,128 @@ fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(Length, Leng
 }
 
 #[allow(nonstandard_style)]
-fn vertex_barycentre(vertices: &[&Vertex]) -> Option<(Length, Length, Length, Time, Energyf32)> {
+#[derive(Copy, Clone)]
+struct Barycentre {
+    x: Length,
+    y: Length,
+    z: Length,
+    t: Time,
+    E: Energyf32,
+}
+
+#[allow(nonstandard_style)]
+fn vertex_barycentre(vertices: &[&Vertex]) -> Option<Barycentre> {
     if vertices.is_empty() { return None }
-    let mut delta_E  = 0_f32;
+    let mut delta_E = 0.0;
+    let mut rr = Length::ZERO;
     let mut xx = Length::ZERO;
     let mut yy = Length::ZERO;
     let mut zz = Length::ZERO;
     let mut tt = Time::ZERO;
     for &&Vertex { x, y, z, t, pre_KE, post_KE, .. } in vertices {
         let dE = pre_KE - post_KE;
+        let (x, y, z, t) = (mm(x), mm(y), mm(z), ns(t));
         delta_E += dE;
-        xx += mm(x) * dE;
-        yy += mm(y) * dE;
-        zz += mm(z) * dE;
-        tt += ns(t) * dE; // TODO figure out what *really* needs to be done here
+        rr += (x*x + y*y).sqrt() * dE;
+        xx += x * dE;
+        yy += y * dE;
+        zz += z * dE;
+        // Mean time as simple compromise since want to be as close to
+        // the start of event without having to much variation caused
+        // by using the first detected photon (or vertex here).
+        tt += t;
     };
-    Some((xx / delta_E, yy / delta_E, zz / delta_E, tt / delta_E, delta_E))
+    rr /= delta_E;
+    let angle = yy.atan2(xx);
+    xx  = rr * angle.cos();
+    yy  = rr * angle.sin();
+    tt /= vertices.len() as f32;
+    Some(Barycentre { x: xx, y: yy, z: zz / delta_E, t: tt, E: delta_E })
+}
+
+#[cfg(test)]
+mod test_vertex_barycentre {
+    use super::*;
+    use float_eq::assert_float_eq;
+    use geometry::uom::radian;
+    use std::f32::consts::PI;
+
+    /// Create a vertex with interesting x,y, optional pre_KE and dummy values elsewhere
+    fn vertex(x: Length, y: Length, pre_ke: Option<Energyf32>) -> Vertex {
+        Vertex {
+            // interesting values
+            x: mm_(x), y: mm_(y),
+            // dummy values
+            z: 23.4, t: 123.0,
+            event_id: 0, parent_id: 0, track_id: 0, process_id: 0, volume_id: 0,
+            moved: 0.0, deposited: 0, pre_KE: pre_ke.unwrap_or(511.0), post_KE: 0.0,
+        }
+    }
+
+    #[test]
+    fn curvature_should_not_reduce_radius() {
+
+        // Place all vertices at same distance from axis
+        let r = mm(355.0);
+
+        // Distribute vertices on quarter circle
+        let vertices: Vec<Vertex> = (0..10)
+            .map(|i| radian(i as f32 * PI / 20.0))
+            .map(|angle| (r * angle.cos(), r * angle.sin()))
+            .map(|(x,y)| vertex(x,y, None))
+            .collect();
+
+        // Create vector of vertex refs, as required by vertex_barycentre
+        let vertex_refs: Vec<&Vertex> = vertices.iter().collect();
+
+        let Barycentre { x, y, .. } = vertex_barycentre(&vertex_refs).unwrap();
+        let bary_r = (x*x + y*y).sqrt();
+        assert_float_eq!(mm_(bary_r), mm_(r), ulps <= 1);
+    }
+
+    #[test]
+    fn angular_distribution_mean() {
+
+        let r = 100.0;
+
+        // One vertex at 0 degrees, the other at 90 degrees.
+        let vertices = vec![vertex(mm(100.0), mm(0.0), None), vertex(mm(0.0), mm(100.0), None)];
+
+        // The barycentre of the above points should be at 45 degrees or pi / 4.
+        let angle = PI / 4.0;
+        let (expected_x, expected_y) = (r * angle.cos(), r * angle.sin());
+
+        // Create vector of vertex refs, as required by vertex_barycentre
+        let vertex_refs: Vec<&Vertex> = vertices.iter().collect();
+
+        let Barycentre { x, y, .. } = vertex_barycentre(&vertex_refs).unwrap();
+
+        assert_float_eq!(mm_(x), expected_x, ulps <= 1);
+        assert_float_eq!(mm_(y), expected_y, ulps <= 1);
+    }
+
+    #[test]
+    fn energy_weights_used_correctly() {
+        let energies = vec![511.0, 415.7, 350.0, 479.0, 222.5];
+        let ys       = vec![353.5, 382.0, 367.3, 372.9, 377.0];
+        let vertices: Vec<Vertex> = ys.iter().zip(energies.iter())
+            .map(|(y, e)| vertex(mm(0.0), mm(*y), Some(*e)))
+            .collect();
+
+        // Create vector of vertex refs, as required by vertex_barycentre
+        let vertex_refs: Vec<&Vertex> = vertices.iter().collect();
+
+        let weighted_sum = ys.iter().zip(energies.iter())
+            .fold(0.0, |acc, (y, w)| acc + y * w);
+        let expected_e = energies.iter().sum();
+        let expected_y = weighted_sum / expected_e;
+
+        let Barycentre { x, y, E, .. } = vertex_barycentre(&vertex_refs).unwrap();
+
+        assert_float_eq!(E, expected_e, ulps <= 1);
+        assert_float_eq!(mm_(x), 0.0, abs <= 2e-5);
+        assert_float_eq!(mm_(y), expected_y, ulps <=1);
+    }
 }
 
 #[derive(Clone, Debug)]
