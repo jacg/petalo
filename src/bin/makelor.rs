@@ -438,8 +438,8 @@ mod test_vertex_barycentre {
 
     #[test]
     fn energy_weights_used_correctly() {
-        let energies = vec![450.0, 475.0, 511.0, 475.0, 450.0];
-        let ys = vec![357.0, 362.0, 367.0, 372.0, 377.0];
+        let energies = vec![511.0, 475.0, 450.0, 425.0, 400.0];
+        let ys       = vec![357.0, 362.0, 367.0, 372.0, 377.0];
         let vertices: Vec<Vertex> = ys.iter().zip(energies.iter())
             .map(|(y, e)| vertex(mm(0.0), mm(*y), Some(*e)))
             .collect();
@@ -449,9 +449,11 @@ mod test_vertex_barycentre {
 
         let Barycentre { x, y, E, .. } = vertex_barycentre(&vertex_refs).unwrap();
 
+        let expected_y = 366.3985;
+
         assert_float_eq!(E, energies.iter().sum(), ulps <= 1);
-        assert_float_eq!(mm_(x), 0.0, abs <= 1e-4);
-        assert_float_eq!(mm_(y), ys[2], ulps <=1);
+        assert_float_eq!(mm_(x), 0.0, abs <= 2e-5);
+        assert_float_eq!(mm_(y), expected_y, ulps <=1);
     }
 }
 
