@@ -1,0 +1,603 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Wenneker Article
+% LaTeX Template
+% Version 2.0 (28/2/17)
+%
+% This template was downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Authors:
+% Vel (vel@LaTeXTemplates.com)
+% Frits Wenneker
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%   PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[10pt, a4paper, twocolumn]{article} % 10pt font size (11 and 12 also possible), A4 paper (letterpaper for US letter) and two column layout (remove for one column)
+
+\input{structure.tex} % Specifies the document structure and loads requires packages
+
+\newcommand\dd[1]  { \,\textrm d{#1} }   % infintesimal
+
+%----------------------------------------------------------------------------------------
+%   ARTICLE INFORMATION
+%----------------------------------------------------------------------------------------
+
+\title{Continuous-Detector List-Mode MLEM} % The article title
+
+% \author{
+%   \authorstyle{Jacek Generowicz\textsuperscript{1}} % Authors
+%   \newline\newline % Space before institutions
+%   \textsuperscript{1}\institution{Jacek's comfy chair, Geneva, CH}\\ % Institution 1
+% }
+
+% Example of a one line author/institution relationship
+%\author{\newauthor{John Marston} \newinstitution{Universidad Nacional Autónoma de México, Mexico City, Mexico}}
+
+\date{} % Add a date here if you would like one to appear underneath the title block, use \today for the current date, leave empty for no date
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\maketitle % Print the title
+
+\thispagestyle{firstpage} % Apply the page style for the first page (no headers and footers)
+
+%----------------------------------------------------------------------------------------
+%   ABSTRACT
+%----------------------------------------------------------------------------------------
+
+\lettrineabstract{All the literature assumes discretized detectors and lots of
+  histograms all over the place. This doesn't make much sense in the case of a
+  continuous LXe detector. Can we avoid binning? If so, how?}
+
+%----------------------------------------------------------------------------------------
+%   ARTICLE CONTENTS
+%----------------------------------------------------------------------------------------
+
+\section{List-mode MLEM with binned LORs}
+
+Equation~(13.68) from~\citep{Handbook} expresses list-mode MLEM (using slightly
+different notation) as:
+
+
+\begin{equation}
+  \label{eq:mlem}
+  \lambda_{j}^{k+1} =
+  \frac
+  {\lambda_j^{k}}
+  {\displaystyle\sum_{i\in L} A_{ij}}
+  {\displaystyle\sum_{{i\in M}}A_{ij}}
+  \frac{1}
+  {\overline{b}_{i} + \displaystyle\sum_{j\in V}A_{ij}\lambda_{j}^{k}}
+\end{equation}
+\begin{itemize}
+  \item
+  \(\lambda_{j}^{k}\): activity in voxel \(j\) of reconstructed image after \(k\) iterations
+  \item
+  \(A_{ij}\): the \textit{system matrix} whose elements are the
+  probabilities that an annihilation in voxel \(j\) is observed in LOR
+  \(i\)
+  \item
+  \(L\): the set of all LORs that could potentially be observed by the detector
+  \item
+  \(M\): the set of \textit{measured} LORs, those that \textit{have} been observed in the current data acquisition
+  \item
+  \(V\): the set of voxels in the reconstructed image, or field of view (FOV)
+  \item
+  \(\overline{b}_{i}\): estimation of scatter and random events observed in LOR \(i\)
+\end{itemize}
+
+
+A number of factors contribute to \(A_{ij}\):
+\begin{itemize}
+  \item geometry: the intersections of the LORs with the voxels
+  \item attenuation
+  \item detector
+  sensitivity
+  \item etc.
+  \item etc.
+\end{itemize}
+
+The system matrix can also be viewed as a function
+\begin{equation}
+  \label{eq:afun-discrete}
+  A(i,j): L \times V \rightarrow \mathrm{Probability}
+\end{equation}
+quantifying the coupling between voxels (image space) and LORs
+(observation space).
+
+Equation~(\ref{eq:mlem}) can be broken down into the following components:
+\begin{itemize}
+  \item
+  The \textit{forward projection} of the image onto LOR \(i\)
+  \begin{equation}
+  \label{eq:forward-project-discrete}
+  F_{i} = \overline{b}_{i} + \sum_{j\in V}A_{ij}\lambda_{j}^{k}
+  \end{equation}
+    is the expectation value of observing LOR \(i\), given the current
+    (after iteration \(k\)) reconstructed numbers of annihilations having
+    taken place in each voxel in the FOV, and taking into account an
+    estimate of additive contributions from scatters and randoms,
+    \(\overline{b}_{i}\).
+  \item
+  The \textit{backward projection} of LORs into image space
+  \begin{equation}
+  \label{eq:back-project-discrete}
+  B_{j} = \sum_{i\in M}\frac{A_{ij}}{F_{i}}
+  \end{equation}
+    distributes the observed signal among the image voxels in which the
+    signal is most likely to have originated.
+  \item
+  The \textit{sensitivity image}
+  \begin{equation}
+  \label{eq:normalize-discrete}
+  S_{j} = \sum_{i\in L}A_{ij}
+  \end{equation}
+  is the probability that an annihilation in voxel \(j\) is detected at all.
+\end{itemize}
+It is important to note that the sum in the back-projection, \(B_{j}\),
+considers only the observed LORs, \(i\in M\), while the sum in the sensitivity
+image, \(S_{j}\), takes into account all potentially observable LORs,
+\(i\in L\).
+
+Equation~(\ref{eq:mlem}) can be expressed in terms of these components as
+\begin{equation}
+  \label{eq:mlem-components}
+  \lambda_{j}^{k+1} = \frac{\lambda_{j}^{{k}}}{S_{j}} B_{j}
+\end{equation}
+However, all that precedes assumes that there is a finite number of observable
+LORs, and that each of these LORs occupies a finite volume in LOR-space.
+
+%----------------------------------------------------------------------------------------
+
+\section{Continuous detector}
+In our LXe detector the LOR-segment endpoints are not binned into regions
+covered by finitely-sized detector crystals, instead they can fall on
+continuously distributed points within the LXe. This means that the number of
+potential LORs is infinite, and that each LOR occupies an infinitesimal volume
+in LOR-space.
+
+Consequently, it no longer makes sense to think of \(A_{ij}\) as a matrix, leaving the functional perspective as the only sensible one:
+\begin{equation}
+  \label{eq:afun-continuous}
+  A(l,j): L\times V\rightarrow \mathrm{Probability\ density}
+\end{equation}
+% \begin{table}
+%   \caption{Differences between functions (\ref{eq:afun-discrete}) and (\ref{eq:afun-continuous})}
+%   \label{tab:continuous-vs-discrete}
+%   \centering
+%   \begin{tabular}{ll}
+%   \toprule
+%   \multicolumn{2}{c}{Detector} \\
+%   \multicolumn{1}{c}{Discretized} & \multicolumn{1}{c}{Continuous} \\
+%   \midrule
+%   Finite number of LORs in domain & Infinite number of LORs in domain \\
+%   Finitely-sized LORs & Infinitesimally-sized LORs \\
+%   Codomain: probability & Codomain: probability density \\
+%   \bottomrule
+%   \end{tabular}
+% \end{table}
+The crucial differences between functions~(\ref{eq:afun-discrete}) and~(\ref{eq:afun-continuous}) are
+% summarized in table (\ref{tab:continuous-vs-discrete}).
+that, in the latter
+\begin{itemize}
+  \item \(L\) contains an infinite number of infinitesimally-sized LORs, as opposed to a finite number of finitely-sized LORs.
+  \item The codomain is probability \textrm{density} (PD), rather than
+    probability.
+\end{itemize}
+
+
+Equations~(\ref{eq:forward-project-discrete}--\ref{eq:normalize-discrete})
+need to be adapted to account for these differences, becoming
+\begin{equation}
+  \label{eq:forward-project-continuous}
+  F(l) = \overline{b}(l) + \sum_{j\in V}A(l,j)\lambda_{j}
+\end{equation}
+%
+\begin{equation}
+  \label{eq:back-project-continuous}
+  B_{j} = \sum_{l\in M}\frac{A(l,j)}{F(l)}
+\end{equation}
+%
+\begin{equation}
+  \label{eq:normalize-continuous}
+  S_{j} = \int_{L} A(l, v) \dd L
+\end{equation}
+In doing so, a number of components which were originally expressed in terms of
+a finite number of discrete values are replaced with analogues with continuous
+domains:
+\begin{align}
+  A_{ij}            & \rightarrow A(l,j)                    \nonumber \\
+  F_{i}             & \rightarrow F(l)                      \nonumber \\
+  \overline{b}_{i}  & \rightarrow \overline{b}(l)           \nonumber \\
+  S_{j}:\ \ \sum_{i\in L}A_{ij} & \rightarrow \int_{L} A(l, v) \dd L    \nonumber
+\end{align}
+
+We need to understand how these continuous versions can be calculated in the
+computer code that implements the reconstruction.
+
+%----------------------------------------------------------------------------------------
+
+\section{The core problem}
+
+How can we express the \(A(l,j)\) and \(\overline{b}(l)\) terms in equation
+(\ref{eq:forward-project-continuous}) as probability (or expectation) density
+functions (PDFs)?
+
+In the code we have tried to histogram trues and scatters, in order to deduce
+the scatter-to-true ratio for LORs in various bins. The hope is that this PDF
+varies gently, and can thus be approximated adequately with fairly
+coarse-grained (and therefore cheap) histograms. Given this binning, the
+absolute counts are trivially turned into densities by dividing by the bin size.
+
+\textbf{If we can somehow turn \(A\) into a PDF, then, surely, the problem is
+  solved!}
+
+Components of \(A\) such as the attenuation factors, are multiplicative
+contributions applied to the fundamental geometric part of \(A(l,j)\). The
+latter is calculated by measuring the length of the segment of LOR \(l\) lying
+within voxel \(j\). \textbf{How can this length be converted into a probability
+  density?} Some ideas are explored in Section~\ref{sec:spherical-cow}.
+
+%----------------------------------------------------------------------------------------
+
+\section{Automatic normalization and sensitivity image estimation}
+
+\subsection{Back-projection normalizes}\label{sec:back-projection-normalizes}
+
+The dimensions of \(A\) and \(F\) cancel in equations
+(\ref{eq:back-project-discrete}) and (\ref{eq:back-project-continuous}), so the
+back-projection eliminates any arbitrary scale factors and removes the need for
+correct normalization of \(A\) \ldots were it not for the presence of
+\(\overline{b}\) in equations (\ref{eq:forward-project-discrete}) and
+(\ref{eq:forward-project-continuous}). So correct normalization is not necessary
+if \(A\) and \(\overline{b}\) are expressed on compatible scales (see
+Section~\ref{sec:scatter-per-true-trick}), or if \(\overline{b}\) is entirely
+absent \ldots were it not for the presence of \(A\) in the sensitivity image,
+(\ref{eq:normalize-discrete}) and (\ref{eq:normalize-continuous}). But \ldots
+
+\subsection{Sensitivity image is not evaluated directly}
+
+\ldots the sensitivity image, \(S_{j}\), is not calculated directly as implied
+by (\ref{eq:normalize-discrete}) and (\ref{eq:normalize-continuous}). It is
+estimated by other means. Which, again absolves us from the need to normalize
+\(A\) correctly, \textbf{as long as it is compatible with \(\overline{b}\)}.
+Which is why we could ignore this whole issue as long as we didn't try to
+correct for scatter or randoms.
+
+\subsection{Sensitivity estimation}
+
+At present, the code completely ignores \(S_{j}\) (it is assumed to be 1
+everywhere), unless the attenuation correction option is enabled, in which case
+a pre-computed sensitivity image is used. This image is constructed by selecting
+random LORs which have both ends on the detection surface and which pass through
+the FOV\@. We forward-project the attenuation image onto these LORs and
+back-project them onto a blank image, to build the sensitivity image.
+
+If the sensitivity image is constructed with few LORs, it is very noisy, and
+this noise is introduced into the image reconstructed by MLEM\@. It takes
+\(10^{9}\) LORs to get a smooth image for a FOV with
+\(235 \times 235 \times 215 \approx 10^{7}\) voxels, which requires about 2
+hours of computation, in serial mode. My guesstimate is that parallelization
+would speed this up by a factor of 3-ish.
+
+Can we do better by generating \(N\) LORs, perhaps uniformly distributed across
+solid angle, from the centre of each voxel? Some of these LORs will not hit the
+detector at both ends: can this be used to incorporate the angular acceptance
+part of the sensitivity image?
+
+%----------------------------------------------------------------------------------------
+
+\section{Dimensional Analysis}
+
+Ignoring time of flight (TOF) for the time being (until Section~\ref{sec:tof}),
+processing the data acquired by the detector yields pairs of 3-dimensional
+spatial coordinates which define segments of the (infinitely long) LORs being
+observed. Knowledge of where a segment starts and ends, adds no useful
+information over that conveyed by the whole LOR, meaning that two of these six
+degrees of freedom are superfluous\footnote{So we should probably take advantage
+  of this to reduce the size of the HDF5 files containing LORs.}. Thus the set of
+all observable LORs, \(L\), is a subset of \(\mathbb{R}^{4}\). Consequently the
+\(\dd L\) appearing in~(\ref{eq:normalize-continuous}) is
+4-dimensional\footnote{How should we parametrize these 4 dimensions? Sinograms
+  would typically be parametrized with something like
+  \begin{itemize}
+  \item \(z\): \(z\)-coordinate of LOR's point of nearest approach to \(z\)-axis.
+  \item \(|\vec{s}|\): distance between LOR and \(z\)-axis.
+  \item \(\phi\): orientation of \(\vec{s}\)
+  \item \(\tan \theta\): obliqueness of LOR\@.
+  \end{itemize}
+  This would then probably match the binning scheme we would use when estimating
+  additive corrections. }.
+
+The dimensions of various quantities appearing in equations
+(\ref{eq:forward-project-discrete}--\ref{eq:normalize-discrete}) are set out in
+table~\ref{tab:dimensions-continuous}, which should be contrasted with the
+analogous quantities appearing in equations
+(\ref{eq:forward-project-continuous}--\ref{eq:normalize-continuous}), whose
+dimensions are shown in table~\ref{tab:dimensions-discrete}.
+
+
+\begin{table}
+  \centering
+  \begin{tabular}{lll}
+  \toprule
+  Quantity & Dimension & Interpretation \\
+  \midrule
+  \(\lambda_{j}\)       & 1              & Number of annihilations \\
+  \(A(l,j)\)           &  \(\dd L^{-1}\) & Probability density     \\
+  \(\overline{b}(l)\)  &  \(\dd L^{-1}\) & Expectation density     \\
+  \(F(l)\)             &  \(\dd L^{-1}\) & Expectation density     \\
+  \(B_{j}\)            &  1              & Inverse expectation     \\
+  \(S_{j}\)            &  1              & Probability             \\
+  \bottomrule
+  \end{tabular}
+  \caption{Dimensions for continuous LOR-space}\label{tab:dimensions-continuous}
+\end{table}
+
+\begin{table}
+  \centering
+  \begin{tabular}{lll}
+  \toprule
+  Quantity & Dimension & Interpretation \\
+  \midrule
+  %\(\lambda_{j}\)       & 1 & Number of annihilations \\
+  \(A_{ij}\)            & 1 & Probability \\
+  \(\overline{b}_{i}\)  & 1 & Expectation \\
+  \(F_{i}\)             & 1 & Expectation \\
+  %\(B_{j}\)             & 1 & Inverse expectation          \\
+  %\(S_{j}\)             & 1 & Probability                  \\
+  \bottomrule
+  \end{tabular}
+  \caption{Dimensions for discrete LOR-space}\label{tab:dimensions-discrete}
+\end{table}
+
+%----------------------------------------------------------------------------------------
+
+\section{TOF}\label{sec:tof}
+
+No need to bin TOF info. This is an advantage of list mode wrt sinogram-based
+methods. But the TOF gaussian returns a probability density with units
+Length\(^{-1}\) (or Time\(^{-1}\)). It's not immediately obvious where to get a
+Length (or Time) which would turn this back into a ratio.
+
+%----------------------------------------------------------------------------------------
+
+\section{Consider a spherical cow}\label{sec:spherical-cow}
+
+The geometrical components of the system matrix, \(A\), are found by a
+Siddon-like algorithm~\citep{Siddon}, which calculates the lengths of
+LOR-segments within each voxel, so these have units such as millimetres. But
+table~\ref{tab:dimensions-continuous} shows that \(A\) should have units of
+probability density in 4-dimensional LOR-space. Therefore the key question is,
+\textbf{how can we convert these millimetres into probability densities in
+  LOR-space?} In the rest of this section I grope around in the dark, hoping to
+get closer to some sort of answer.
+
+Consider an hermetic detector with a 100\% efficient, infinitesimally thin
+detecting surface. LOR \(l\) is defined by the two points \(l_{1}\) and
+\(l_{2}\) at which it crosses the detection surface. By considering single
+points, rather than entire voxels, we relate \(A(l,j)\) to
+\(A(l,p) = A(l_{1}, l_{2}, p)\), by
+\begin{equation}
+  A(l,j) = \int_{p\in j}A(l, p)\dd p\label{eq:A-voxel-point}
+\end{equation}
+where \(p\) is a single point lying
+within the FOV\@, and \(A(\ldots, p)\) is the probability that an annihilation
+at point \(p\) is detected in LOR \(l\).
+
+The hermeticity and 100\% efficiency\footnote{Deviations from these ideal
+  conditions are encoded in the other components of \(A\): these ideals are
+  correct from the perspective of the purely geometric part of \(A\).} of the
+detector guarantee that
+\[N(p) = \int A(l_{1}, l_{2}, p) \dd l_{1}\dd l_{2} = 1\] where \(N(p)\) (the
+pointwise equivalent of the voxel-oriented \(S_{j}\) in equation
+(\ref{eq:normalize-continuous})) is the probability that an annihilation at
+point \(p\) be detected by the detector. We note that \(A(l_{1}, l_{2}, p)\) is
+zero wherever \(l_{1}, l_{2}\) and \(p\) are not collinear, so \(A\) can be
+factored into
+
+\begin{equation}
+A(l_{1}, l_{2}, p) = c(l_{1}, l_{2}, p)\cdot a(l_{1}, l_{2}, p)\label{eq:factorize-A}
+\end{equation}
+
+where \(c\)
+is a Dirac delta-like collinearity function, and \(a\) takes care of any
+positional dependence there might me \ldots is there any? There must be some in
+the \(\dd l\)s, at least, so \(a\) must compensate for that.
+
+The \(\dd l_{1,2}\) are 2-dimensional. It might be helpful to try to build
+intuition in a simplified, 2-dimensional model where the detecting surface is a
+circle, centred around a square FOV made up of square voxels. In which case the
+\(\dd l_{1,2}\) would be 1-dimensional.
+
+What's the point of all this? We're trying to understand the \(A\) in
+(\ref{eq:forward-project-continuous}) as a probability density function,
+specifically how the length of the LOR segment in the voxel gives rise to a
+probability density.
+
+The colinearity component of \(A\) makes it possible to evaluate the inegral in
+equation~(\ref{eq:A-voxel-point}) as a line integral along LOR \(l\) inside
+voxel \(v\). For a fixed LOR \(l\), \(A(\ldots, p\in l)\) should be a constant
+(really?\footnote{Whatever variation there is in the non-colinearity component
+  of \(A\), should be depend on the angle between \(l\) and the detection
+  surface, and this does not vary for a fixed LOR.}), so this integral amounts
+to multiplication of \(A\) by the aforementioned length of the LOR segment in
+\(v\).
+
+What are the dimensions of \(A\), \(c\) and \(a\) in equation
+(\ref{eq:factorize-A})? Do these combine with the length-multiplication in the
+last paragraph, to give us the density we want?
+
+
+\section{Can we discretize arbitrarily?}
+
+Discretized 3D detectors with long axes, have a \textit{staggering} number of
+potential LORs (especially if highly oblique LORs are not discarded, as is our
+aim). This number is so large that it significantly exceeds the number of
+observed LORs in a data acquisition. Consequently, sinograms (histograms) into
+which the observed LORs would be binned, would be very sparse. For such large
+detectors, list mode (among other advantages) is a much more memory-efficient
+way of storing the LORs, than sinograms.
+
+Why can't we store our LORs in list mode, and pretend that they occupy some
+finite, discretized space, in order to solve the problem of the probably
+density, discussed in earlier sections?
+
+I have various half-formed arguments in my mind \ldots watch this space.
+
+\subsection{Aside}
+
+The histograms of scatters and trues which we use to estimate the scatter
+contribution, must be very coarse-grained; otherwise they would be sparse and
+therefore completely useless for the purpose of calculating scatter-to-true
+ratios. These histograms have known bin sizes, and therefore could give us true
+and scatter counts per \(\dd L\).
+
+\section{What's wrong with the scatter-per-trues trick?}\label{sec:scatter-per-true-trick}
+
+\(\overline{b}\) has contributions from scatter, \(\overline{s}\), and random,
+\(\overline{r}\), events:
+\begin{align*}
+  \overline{b}(l)  &= \overline{s}(l) + \overline{r}(l) \\
+  \overline{b}_{i}  &= \overline{s}_{i} + \overline{r}_{i}
+\end{align*}
+Ignoring randoms, for the time being, we generate histograms of scatters,
+\(\overline{s}_{i}\), and trues, \(\overline{t}_{i}\), in order to estimate the
+scatter contributions in arbitrary LOR bins \(i\). These bins are arbitrary in
+the sense that they bear no relation to any binning imposed by the detector
+itself.
+
+We can turn these two histograms of absolute counts, into an estimate of the
+relative additive contribution \textit{per observed true event}:
+\begin{equation}
+  \overline{\beta}_{i}\
+  =
+  \frac{\overline{b}_{i} + \overline{t}_{i}}{\overline{t}_{i}}
+  =
+  \frac{\overline{b}_{i}}{\overline{t}_{i}} + 1\label{eq:scatter-per-true}
+\end{equation}
+for observations in the region of LOR-space occupied by bin \(i\). The division
+in equation~(\ref{eq:scatter-per-true}) cancels the units of \(\overline{b}\) and
+\(\overline{t}\) ensuring that \(\overline{\beta}\) is dimensionless. So, if
+there is an adequate equivalence between \(\overline{t}_{i}\) and
+\(\sum_{j\in V}A(l,j)\lambda_{j}\),
+equation~(\ref{eq:forward-project-continuous}) can be rewritten as
+\[
+  F(l) =  \overline{\beta}_{i(l)} \sum_{j\in V}A(l,j)\lambda_{j}
+\]
+where \(i(l)\) is the bin containing LOR \(l\) (or we could smooth by
+interpolating \(\overline{\beta}\) between neighbouring bins). In which case,
+according to the arguments in Section~\ref{sec:back-projection-normalizes} the
+problem should be solved.
+
+\textbf{Are there insurmountable problems around the link between
+  \(\overline{t}_{i}\) and \(\sum_{j\in V}A(l,j)\lambda_{j}\)?}
+
+\begin{itemize}
+  \item \(\sum_{j\in V}A(l,j)\lambda_{j}\) is not a count of observations: it's
+        a projection, an expectation value based on the---initially completely
+        incorrect---reconstructed distribution of activity, which will be very
+        different from 1 in the early iterations, but should converge to 1 in
+        later iterations. In list mode, by definition, every observation is in
+        its own LOR `bin' that has a count of 1. So perhaps the correct version
+        is
+        \[ F(l) = \overline{\beta}_{i(l)} + \sum_{j\in V}A(l,j)\lambda_{j}\]
+        where \(\beta\) multiplies the implicit count of 1 observation in this
+        `bin'. In which case, the implicit 1 would need to have the same units
+        as \(A(l,j)\lambda_{j}\): expectation density. This seems plausible.
+  \item The implicit count of 1, in the above point, occurs for every
+        coincidence recorded by the detector. This includes scatters and
+        randoms, not only trues: these 1s coming from observations in nearby
+        LORs sum to the total count of trues plus additive noise, not just
+        trues. So multiplying the \(\beta\) from equation
+        (\ref{eq:scatter-per-true}) by these 1s, effectively multiplies it by
+        \(t + b\), not just by \(t\), giving \((t+b)^{2}/t\) rather than the
+        desired \(t+b\). So there's something not quite right here. But this
+        seems to built-in to the original formulation of the forward-projection,
+        in any case.
+\end{itemize}
+
+% \section{Section}
+
+% This sentence requires citation \citep{Reference1}. This sentence requires
+% multiple citations to imply that it is better supported
+% \citep{Reference2,Reference3}. Finally, when conducting an appeal to authority,
+% it can be useful to cite a reference in-text, much like \cite{Reference1} do
+% quite a bit. %Oh, and make sure to check out the bear in Figure \ref{bear}.
+
+% \begin{align}
+%   A =
+%   \begin{bmatrix}
+%     A_{11} & A_{21} \\
+%     A_{21} & A_{22}
+%   \end{bmatrix}
+% \end{align}
+
+% %------------------------------------------------
+
+% \subsection{Subsection}
+
+% \begin{itemize}
+%   \item First item in a list
+%   \item Second item in a list
+%   \item Third item in a list
+% \end{itemize}
+
+% \begin{description}
+%   \item[First] This is the first item
+%   \item[Last] This is the last item
+% \end{description}
+
+% %------------------------------------------------
+
+% \subsection{Subsection}
+
+% \begin{enumerate}
+%   \item First numbered item in a list
+%   \item Second numbered item in a list
+%   \item Third numbered item in a list
+% \end{enumerate
+
+% \begin{table}
+%   \caption{Example table}
+%   \centering
+%   \begin{tabular}{llr}
+    %     \toprule
+    %     \multicolumn{2}{c}{Name} \\
+    %     \cmidrule(r){1-2}
+    %     First Name & Last Name & Grade \\
+    %     \midrule
+    %     John & Doe & $7.5$ \\
+    %     Richard & Miles & $5$ \\
+    %     \bottomrule
+    %     \end{tabular}
+    %     \end{table}
+
+    %     ------------------------------------------------
+
+% \section{Section}
+
+% \begin{figure}
+%   \includegraphics[width=\linewidth]{bear.jpg} % Figure image
+%   \caption{A majestic grizzly bear} % Figure caption
+%   \label{bear} % Label for referencing with \ref{bear}
+% \end{figure}
+
+%----------------------------------------------------------------------------------------
+%   BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+\nocite{Jacobs}
+\printbibliography[title={References}] % Print the bibliography, section title in curly brackets
+
+%----------------------------------------------------------------------------------------
+
+\end{document}
