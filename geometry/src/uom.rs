@@ -81,6 +81,7 @@ pub fn m_s(x: f32) -> Velocity {Velocity::new::<meter_per_second>(x) }
 
 pub fn ratio (x: f32) -> Ratio  {   Ratio::new::<uom::si::ratio::ratio>(x) }
 pub fn radian(x: f32) -> Angle  {   Angle::new::<uom::si::angle::radian>(x) }
+pub fn turn  (x: f32) -> Angle  {   Angle::new::<uom::si::angle::revolution>(x) }
 
 // Reverse direction of the above. Rethink nomenclature once the dust has
 // settled after the transition to uom is complete.
@@ -90,6 +91,7 @@ pub fn ns_(x: Time  ) -> f32 { x.get::<nanosecond>() }
 
 pub fn ratio_ (x: Ratio) -> f32 { x.get::<uom::si::ratio::ratio>() }
 pub fn radian_(x: Angle) -> f32 { x.get::<uom::si::angle::radian>() }
+pub fn turn_  (x: Angle) -> f32 { x.get::<uom::si::angle::revolution>() }
 
 #[macro_export]
 macro_rules! in_base_unit {
