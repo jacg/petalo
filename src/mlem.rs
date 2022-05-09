@@ -271,3 +271,70 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], 
     })
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use geometry::{uom::{mm, ns, ratio, turn, turn_}, Angle};
+    use rstest::rstest;
+    use float_eq::assert_float_eq;
+
+
+    /// A version of tan that avoids problems near the poles of tan
+    /// angle -> a,b ∈ \[-1, 1\] such that b/a = tan(angle)
+    fn inverse_atan2(mut angle: Angle) -> (Ratio, Ratio) {
+        let full   : Angle = turn(1.0);
+        let half   : Angle = full    / 2.0;
+        let quarter: Angle = half    / 2.0;
+        let eighth : Angle = quarter / 2.0;
+        // Move to preferred range [-1/8, +3/8) turns
+        while angle >= 3.0 * eighth {
+            angle -= half;
+        }
+        if angle < eighth { (ratio(1.0)             , angle.tan()) }
+        else              { ((quarter - angle).tan(), ratio(1.0) ) }
+
+    }
+
+    /// Tangent of n / 32 full turns
+    fn t32(n: i32) -> f32 { ratio_(turn(n as f32 / 32.0).tan()) }
+
+    #[rstest(/**/    turns   ,       x ,       y  ,
+             case( 0.0 / 32.0,      1.0,      0.0),
+             case( 1.0 / 32.0,      1.0,  t32(1) ),
+             case( 2.0 / 32.0,      1.0,  t32(2) ),
+             case( 3.0 / 32.0,      1.0,  t32(3) ),
+             case( 4.0 / 32.0,      1.0,      1.0),
+             case( 5.0 / 32.0,  t32(3) ,      1.0),
+             case( 6.0 / 32.0,  t32(2) ,      1.0),
+             case( 7.0 / 32.0,  t32(1) ,      1.0),
+             case( 8.0 / 32.0,      0.0,      1.0),
+             case( 9.0 / 32.0, -t32(1) ,      1.0),
+             case(10.0 / 32.0, -t32(2) ,      1.0),
+             case(11.0 / 32.0, -t32(3) ,      1.0),
+             case(12.0 / 32.0,      1.0,     -1.0),
+             case(13.0 / 32.0,      1.0, -t32(3) ),
+             case(14.0 / 32.0,      1.0, -t32(2) ),
+             case(15.0 / 32.0,      1.0, -t32(1) ),
+             case(16.0 / 32.0,      1.0,      0.0),
+             case(17.0 / 32.0,      1.0,  t32(1) ),
+             case(18.0 / 32.0,      1.0,  t32(2) ),
+             case(19.0 / 32.0,      1.0,  t32(3) ),
+             case(20.0 / 32.0,      1.0,      1.0),
+             case(21.0 / 32.0,  t32(3) ,      1.0),
+             case(22.0 / 32.0,  t32(2) ,      1.0),
+             case(23.0 / 32.0,  t32(1) ,      1.0),
+             case(24.0 / 32.0,      0.0,      1.0),
+             case(25.0 / 32.0, -t32(1) ,      1.0),
+             case(26.0 / 32.0, -t32(2) ,      1.0),
+             case(27.0 / 32.0, -t32(3) ,      1.0),
+             case(28.0 / 32.0,      1.0,     -1.0),
+             case(29.0 / 32.0,      1.0, -t32(3)),
+             case(30.0 / 32.0,      1.0, -t32(2)),
+             case(31.0 / 32.0,      1.0, -t32(1)),
+    )]
+    fn inv_atan2(turns: f32, x: f32, y: f32) {
+        let (a,b) = inverse_atan2(turn(turns));
+        assert_float_eq!((ratio_(a),ratio_(b)), (x,y), abs <= (3e-7, 3e-7));
+    }
+
+}
