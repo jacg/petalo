@@ -423,4 +423,113 @@ mod tests {
         assert_float_eq!((ratio_(a),ratio_(b)), (x,y), abs <= (3e-7, 3e-7));
     }
 
+    /// Add `n` uniformly angularly distributed LOR passing through `(x,y)`, to `lors`
+    fn n_decays_at(n: usize, (x, y): (Length, Length), lors: &mut Vec<LOR>) {
+        for angle in n_angles_around_half_circle_starting_from(n, turn(0.01)) {
+            let lor = Line::from_point_and_angle((x,y), angle);
+            match lor.circle_intersection(mm(100.0)) {
+                Points::Two { x1, y1, x2, y2 } => {
+                    lors.push(LOR::from_components((ns(0.0), ns(0.0)),
+                                                   (x1, y1, mm(0.0)),
+                                                   (x2, y2, mm(0.0)),
+                                                   ratio(1.0)))
+                },
+                _ => panic!("LOR does not cross detector at two points.")
+            }
+        }
+    }
+
+    fn n_angles_around_half_circle_starting_from(n: usize, start: Angle) -> impl Iterator<Item = Angle> {
+        let mut i = 0;
+        let step = turn(0.5) / (n as f32);
+        std::iter::from_fn(move || {
+            if i < n {
+                let angle = start + i as f32 * step;
+                i += 1;
+                Some(angle)
+            } else {
+                None
+            }
+        })
+    }
+
+    #[rstest(/**/ n, start    , expected,
+             case(0, turn(0.4), vec![]),
+             case(1, turn(0.3), vec![turn(0.3)]),
+             case(2, turn(0.2), vec![turn(0.2), turn(0.45)]),
+             case(2, turn(0.1), vec![turn(0.1), turn(0.35)]),
+             case(5, turn(0.2), vec![turn(0.2), turn(0.3), turn(0.4), turn(0.5), turn(0.6)]),
+    )]
+    fn distributed_angles(n: usize, start: Angle, expected: Vec<Angle>) {
+        let angles: Vec<f32> = n_angles_around_half_circle_starting_from(n, start)
+            .map(turn_)
+            .collect();
+        let expected: Vec<f32> = expected
+            .into_iter()
+            .map(turn_)
+            .collect();
+        assert_float_eq!(angles, expected, ulps_all <= 1);
+    }
+
+    #[test]
+    fn mlem_without_corrections() {
+        let n = 41;
+        let l = mm(n as f32);
+        let fov = FOV::new((l, l, mm(1.0)),
+                           (n, n,    1   ));
+        let mut lors = vec![];
+        // Top right
+        for x in 10..=15 { for y in 8..=13 {
+                n_decays_at(100, (mm(x as f32), mm(y as f32)), &mut lors);
+            }
+        }
+
+        // Top left
+        for x in -15..=-10 { for y in 8..=13 {
+                n_decays_at( 50, (mm(x as f32), mm(y as f32)), &mut lors);
+            }
+        }
+
+        // Bottom centre
+        for x in -7..=7 { for y in -8..=-4 {
+                n_decays_at(200, (mm(x as f32), mm(y as f32)), &mut lors);
+            }
+        }
+
+        // // Uniform noise
+        // for x in -20..=20 { for y in -20..=20 {
+        //         n_decays_at(20, (mm(x as f32), mm(y as f32)), &mut lors);
+        //     }
+        // }
+
+        let scale = 1.0;
+
+        use std::path::PathBuf;
+
+        let image_target_directory = String::from("/tmp/test_mlem");
+        // If the directory where images will be written does not exist yet, make it
+        std::fs::create_dir_all(PathBuf::from(&image_target_directory)).unwrap();
+
+
+        Image::mlem(fov, &lors, None, None, None)
+            .take(10)
+            .enumerate()
+            .for_each(|(count, i)| {
+
+                // Save images for inspection with viewraw
+                let image_path = PathBuf::from(format!("{image_target_directory}/{count:02}.raw"));
+                crate::io::raw::Image3D::from(&i).write_to_file(&image_path).unwrap();
+
+                // // Print voxel values to screen: will appear if test fails.
+                // for y in (0..n).rev() {
+                //     for x in 0..n {
+                //         print!("{:3.0} ", scale * i[[x,y,0]]);
+                //     }
+                //     println!();
+                // }
+                // println!();
+
+            });
+        //assert!(false);
+    }
 }
