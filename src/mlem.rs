@@ -500,6 +500,12 @@ mod tests {
         activity: usize,
     }
 
+    fn detect_lors(mut lors: &mut Vec<LOR>, rois: &[ROI]) {
+        for roi in rois {
+            for (x,y) in grid(roi.x, roi.y) { n_decays_at(roi.activity, (x, y), &mut lors) }
+        }
+    }
+
     // Regions of interest for re-use in tests
     #[fixture] fn roi_a() -> ROI { ROI { x: ( 10, 15), y: (  8,13), activity:  50 } }
     #[fixture] fn roi_b() -> ROI { ROI { x: (-15,-10), y: (  8,13), activity: 150 } }
@@ -516,11 +522,8 @@ mod tests {
         let mut trues = vec![];
         let mut noise = vec![];
 
-        let (a,b,c,n) = (roi_a, roi_b, roi_c, roi_n);
-        for (x,y) in grid(a.x, a.y) { n_decays_at(a.activity, (x, y), &mut trues); }
-        for (x,y) in grid(b.x, b.y) { n_decays_at(b.activity, (x, y), &mut trues); }
-        for (x,y) in grid(c.x, c.y) { n_decays_at(c.activity, (x, y), &mut trues); }
-        for (x,y) in grid(n.x, n.y) { n_decays_at(n.activity, (x, y), &mut noise); }
+        let mut trues = vec![]; detect_lors(&mut trues, &[roi_a, roi_b, roi_c]);
+        let mut noise = vec![]; detect_lors(&mut noise, &[roi_n]);
 
         let mut lors = trues;
         lors.extend(noise);
