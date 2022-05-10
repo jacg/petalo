@@ -471,13 +471,12 @@ mod tests {
         assert_float_eq!(angles, expected, ulps_all <= 1);
     }
 
-    use std::ops::RangeInclusive;
-    fn grid(xs: RangeInclusive<i32>, ys: RangeInclusive<i32>) -> impl Iterator<Item = (Length, Length)> {
-        let mut x = *xs.start();
-        let mut y = *ys.start();
+    fn grid(xs: (i32, i32), ys: (i32, i32)) -> impl Iterator<Item = (Length, Length)> {
+        let mut x = xs.0;
+        let mut y = ys.0;
         return std::iter::from_fn(move || {
-            if y > *ys.end() { x += 1; y = *ys.start() }
-            if x > *xs.end() { return None }
+            if y > ys.1 { x += 1; y = ys.0 }
+            if x > xs.1 { return None }
             y += 1;
             Some((mm(x as f32), mm((y - 1) as f32)))
         })
@@ -491,10 +490,10 @@ mod tests {
                            (n, n,    1   ));
         let mut lors = vec![];
 
-        for (x,y) in grid( 10..= 15,  8..=13) { n_decays_at(100, (x, y), &mut lors); } // Top right
-        for (x,y) in grid(-15..=-10,  8..=13) { n_decays_at(150, (x, y), &mut lors); } // Top left
-        for (x,y) in grid(- 7..=  7, -8..=-4) { n_decays_at(100, (x, y), &mut lors); } // Bottom centre
-        for (x,y) in grid(-20..= 20,-20..=20) { n_decays_at(20 , (x, y), &mut lors); } // Uniform noise
+        for (x,y) in grid(( 10, 15), (  8,13)) { n_decays_at(100, (x, y), &mut lors); } // Top right
+        for (x,y) in grid((-15,-10), (  8,13)) { n_decays_at(150, (x, y), &mut lors); } // Top left
+        for (x,y) in grid((- 7,  7), ( -8,-4)) { n_decays_at(100, (x, y), &mut lors); } // Bottom centre
+        for (x,y) in grid((-20, 20), (-20,20)) { n_decays_at( 20, (x, y), &mut lors); } // Uniform noise
 
         let scale = 1.0;
 
