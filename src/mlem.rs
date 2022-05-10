@@ -289,6 +289,21 @@ mod tests {
             let line = Self { a, b, c: -(a*x + b*y) };
             line
         }
+
+        fn circle_intersection(self, r: Length) -> Points {
+            let eps = mm(000.1) * mm(000.1);
+            let Self{ a, b, c } = self;
+            let a2_b2 = a*a + b*b;
+            let x = - (a*c) / a2_b2;
+            let y = - (b*c) / a2_b2;
+            if  c*c > r*r*a2_b2        + eps { return Points::Zero }
+            if (c*c - r*r*a2_b2).abs() < eps { return Points::One { x,  y } }
+            let d = r*r - c*c / a2_b2;
+            let m = (d / a2_b2).sqrt();
+            let (x1, y1) = (x + m*b, y - m*a);
+            let (x2, y2) = (x - m*b, y + m*a);
+            Points::Two { x1, y1, x2, y2 }
+        }
     }
 
     impl std::fmt::Display for Line {
@@ -298,6 +313,9 @@ mod tests {
             write!(f, "{a}x {b:+}y {c:+} = 0")
         }
     }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    enum Points { Zero, One{ x: Length, y: Length }, Two{ x1: Length, y1: Length, x2: Length, y2: Length } }
 
     #[rstest(/**/   x ,   y ,  turns ,      a ,   b ,   c ,
              case( 0.0,  0.0,   0.0  ,     1.0,  0.0,  0.0), // x =  0
@@ -325,6 +343,25 @@ mod tests {
         assert_float_eq!(ratio_(line.a), a, ulps <= 1);
         assert_float_eq!(ratio_(line.b), b, ulps <= 1);
         assert_float_eq!(   mm_(line.c), c, ulps <= 1);
+    }
+
+    #[rstest(/**/   x ,  y , turns,     r   , expected,
+             // Horizontal lines, close to x = 2
+             case( 2.1, 6.6, 0.0  , mm(2.0) , Points::Zero)                                                       ,
+             case( 2.0, 6.6, 0.0  , mm(2.0) , Points::One { x : mm( 2.0), y : mm( 0.0)                           }),
+             //case( 1.9, 6.6, 0.0  , mm(2.0) , Points::Two { x1: mm( 1.9), y1: mm( 0.6), x2: mm(1.9), y2: mm(0.6) }),
+             case( 0.0, 6.6, 0.0  , mm(2.0) , Points::Two { x1: mm( 0.0), y1: mm(-2.0), x2: mm(0.0), y2: mm(2.0) }),
+             // Vertical lines, close to y = 2
+             case( 9.9, 2.1, 0.25 , mm(2.0) , Points::Zero)                                                       ,
+             case( 9.9, 2.0, 0.25 , mm(2.0) , Points::One { x : mm( 0.0), y : mm( 2.0)                           }),
+             case( 9.9, 0.0, 0.25 , mm(2.0) , Points::Two { x1: mm(-2.0), y1: mm( 0.0), x2: mm(2.0), y2: mm(0.0) }),
+    )]
+    fn intersect_line_circle(x: f32, y: f32, turns: f32, r: Length, expected: Points) {
+        let (x, y, turns) = (mm(x), mm(y), turn(turns));
+        let line = Line::from_point_and_angle((x,y), turns);
+        let points = line.circle_intersection(r);
+        println!("---------> {line} <------------");
+        assert_eq!(points, expected);
     }
 
     /// A version of tan that avoids problems near the poles of tan
