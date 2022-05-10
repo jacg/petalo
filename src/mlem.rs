@@ -512,15 +512,16 @@ mod tests {
     #[fixture] fn roi_c() -> ROI { ROI { x: (- 7,  7), y: ( -8,-4), activity: 100 } }
     #[fixture] fn roi_n() -> ROI { ROI { x: (-20, 20), y: (-20,20), activity:  20 } }
 
-    #[rstest]
-    fn mlem_without_corrections(roi_a: ROI, roi_b: ROI, roi_c: ROI, roi_n: ROI) {
+    #[fixture]
+    fn fov() -> FOV {
         let n = 41;
         let l = mm(n as f32);
-        let fov = FOV::new((l, l, mm(1.0)),
-                           (n, n,    1   ));
+        FOV::new((l, l, mm(1.0)),
+                 (n, n,    1   ))
+    }
 
-        let mut trues = vec![];
-        let mut noise = vec![];
+    #[rstest]
+    fn mlem_without_corrections(fov: FOV, roi_a: ROI, roi_b: ROI, roi_c: ROI, roi_n: ROI) {
 
         let mut trues = vec![]; detect_lors(&mut trues, &[roi_a, roi_b, roi_c]);
         let mut noise = vec![]; detect_lors(&mut noise, &[roi_n]);
