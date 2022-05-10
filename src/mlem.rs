@@ -500,12 +500,17 @@ mod tests {
         let l = mm(n as f32);
         let fov = FOV::new((l, l, mm(1.0)),
                            (n, n,    1   ));
-        let mut lors = vec![];
 
-        for (x,y) in grid(( 10, 15), (  8,13)) { n_decays_at(100, (x, y), &mut lors); } // Top right
-        for (x,y) in grid((-15,-10), (  8,13)) { n_decays_at(150, (x, y), &mut lors); } // Top left
-        for (x,y) in grid((- 7,  7), ( -8,-4)) { n_decays_at(100, (x, y), &mut lors); } // Bottom centre
-        for (x,y) in grid((-20, 20), (-20,20)) { n_decays_at( 20, (x, y), &mut lors); } // Uniform noise
+        let mut trues = vec![];
+        let mut noise = vec![];
+
+        for (x,y) in grid(( 10, 15), (  8,13)) { n_decays_at(100, (x, y), &mut trues); } // Top right
+        for (x,y) in grid((-15,-10), (  8,13)) { n_decays_at(150, (x, y), &mut trues); } // Top left
+        for (x,y) in grid((- 7,  7), ( -8,-4)) { n_decays_at(100, (x, y), &mut trues); } // Bottom centre
+        for (x,y) in grid((-20, 20), (-20,20)) { n_decays_at( 20, (x, y), &mut noise); } // Uniform noise
+
+        let mut lors = trues;
+        lors.extend(noise);
 
         let scale = 1.0;
 
