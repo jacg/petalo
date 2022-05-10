@@ -512,25 +512,21 @@ mod tests {
         let mut lors = trues;
         lors.extend(noise);
 
-        let scale = 1.0;
 
         Image::mlem(fov, &lors, None, None, None)
             .take(10)
             .inspect(save_each_image_in(String::from("/tmp/test_mlem")))
-            .for_each(|_| {});
-
-            //     // // Print voxel values to screen: will appear if test fails.
-            //     // for y in (0..n).rev() {
-            //     //     for x in 0..n {
-            //     //         print!("{:3.0} ", scale * i[[x,y,0]]);
-            //     //     }
-            //     //     println!();
-            //     // }
-            //     // println!();
-
-            // });
-
-
+            .for_each(|_| {
+                // // Print voxel values to screen: will appear if test fails.
+                // let scale = 1.0;
+                // for y in (0..n).rev() {
+                //     for x in 0..n {
+                //         print!("{:3.0} ", scale * i[[x,y,0]]);
+                //     }
+                //     println!();
+                // }
+                // println!();
+            });
         //assert!(false);
     }
 }
