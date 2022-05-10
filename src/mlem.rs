@@ -271,3 +271,262 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], 
     })
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use geometry::{uom::{mm, mm_, ns, ratio, turn, turn_}, Angle};
+    use rstest::rstest;
+    use float_eq::assert_float_eq;
+
+    /// ax + by + c = 0
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    struct Line { a: Ratio, b: Ratio, c: Length }
+
+    impl Line {
+        fn from_point_and_angle((x,y): (Length, Length), angle: Angle) -> Line {
+            let (b,a) = inverse_atan2(angle);
+            let b = -b;
+            let line = Self { a, b, c: -(a*x + b*y) };
+            line
+        }
+
+        fn circle_intersection(self, r: Length) -> Points {
+            let eps = mm(000.1) * mm(000.1);
+            let Self{ a, b, c } = self;
+            let a2_b2 = a*a + b*b;
+            let x = - (a*c) / a2_b2;
+            let y = - (b*c) / a2_b2;
+            if  c*c > r*r*a2_b2        + eps { return Points::Zero }
+            if (c*c - r*r*a2_b2).abs() < eps { return Points::One { x,  y } }
+            let d = r*r - c*c / a2_b2;
+            let m = (d / a2_b2).sqrt();
+            let (x1, y1) = (x + m*b, y - m*a);
+            let (x2, y2) = (x - m*b, y + m*a);
+            Points::Two { x1, y1, x2, y2 }
+        }
+    }
+
+    impl std::fmt::Display for Line {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            let Line { a, b, c } = *self;
+            let (a, b, c) = (ratio_(a), ratio_(b), mm_(c));
+            write!(f, "{a}x {b:+}y {c:+} = 0")
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    enum Points { Zero, One{ x: Length, y: Length }, Two{ x1: Length, y1: Length, x2: Length, y2: Length } }
+
+    #[rstest(/**/   x ,   y ,  turns ,      a ,   b ,   c ,
+             case( 0.0,  0.0,   0.0  ,     0.0, -1.0,  0.0), // y =  0
+             case( 9.0,  0.0,   0.0  ,     0.0, -1.0,  0.0), // y =  0
+             case( 0.0,  0.0,   0.25 ,     1.0,  0.0,  0.0), // x =  0
+             case( 0.0,  3.0,   0.25 ,     1.0,  0.0,  0.0), // x =  0
+             case( 0.0,  2.0,   0.0  ,     0.0, -1.0,  2.0), // y =  2
+             case( 5.0,  2.0,   0.0  ,     0.0, -1.0,  2.0), // y =  2
+             case( 0.0, -2.0,   0.0  ,     0.0, -1.0, -2.0), // y = -2
+             case( 2.0,  0.0,   0.25 ,     1.0,  0.0, -2.0), // x =  2
+             case( 2.0,  9.0,   0.25 ,     1.0,  0.0, -2.0), // x =  2
+             case(-2.0,  0.0,   0.25 ,     1.0,  0.0,  2.0), // x = -2
+             case( 0.0,  0.0,   0.125,     1.0, -1.0,  0.0), // y =  x
+             case( 2.0,  0.0,   0.125,     1.0, -1.0, -2.0), // y =  x - 2
+             case( 0.0, -2.0,   0.125,     1.0, -1.0, -2.0), // y =  x - 2
+             case(-2.0,  0.0,   0.125,     1.0, -1.0,  2.0), // y =  x + 2
+             case( 0.0,  2.0,   0.125,     1.0, -1.0,  2.0), // y =  x + 2
+             //case( 0.0,  0.0,   0.17618,   1.0, -0.5,  0.0), // y = 2x
+    )]
+    fn construct_line(x: f32, y: f32, turns: f32, a: f32, b: f32, c: f32) {
+        let (x, y, turns) = (mm(x), mm(y), turn(turns));
+        let line = Line::from_point_and_angle((x,y), turns);
+        let expected = Line { a: ratio(a), b: ratio(b), c: mm(c) };
+        println!("constructed: {line}\nexpected   : {expected}");
+        assert_float_eq!(ratio_(line.a), a, ulps <= 1);
+        assert_float_eq!(ratio_(line.b), b, ulps <= 1);
+        assert_float_eq!(   mm_(line.c), c, ulps <= 1);
+    }
+
+    #[rstest(/**/   x ,  y , turns,     r   , expected,
+             // Vertical lines, close to y = 2
+             case( 6.6, 2.1, 0.0  , mm(2.0) , Points::Zero)                                                       ,
+             case( 6.6, 2.0, 0.0  , mm(2.0) , Points::One { x : mm( 0.0), y : mm( 2.0)                           }),
+             //case( 6.6, 1.9, 0.0  , mm(2.0) , Points::Two { x1: mm(-0.6), y1: mm( 1.9), x2: mm(0.6), y2: mm(1.9) }),
+             case( 6.6, 0.0, 0.0  , mm(2.0) , Points::Two { x1: mm(-2.0), y1: mm( 0.0), x2: mm(2.0), y2: mm(0.0) }),
+             // Horizontal lines, close to x = 2
+             case( 2.1, 9.9, 0.25 , mm(2.0) , Points::Zero)                                                       ,
+             case( 2.0, 9.9, 0.25 , mm(2.0) , Points::One { x : mm( 2.0), y : mm( 0.0)                           }),
+             //case( 1.9, 9.9, 0.25 , mm(2.0) , Points::Two { x1: mm( 1.9), y1: mm(-0.6), x2: mm(1.9), y2: mm(0.6) }),
+             case( 0.0, 9.9, 0.25 , mm(2.0) , Points::Two { x1: mm( 0.0), y1: mm(-2.0), x2: mm(0.0), y2: mm(2.0) }),
+    )]
+    fn intersect_line_circle(x: f32, y: f32, turns: f32, r: Length, expected: Points) {
+        let (x, y, turns) = (mm(x), mm(y), turn(turns));
+        let line = Line::from_point_and_angle((x,y), turns);
+        let points = line.circle_intersection(r);
+        println!("---------> {line} <------------");
+        assert_eq!(points, expected);
+    }
+
+    /// A version of tan that avoids problems near the poles of tan
+    /// angle -> a,b ∈ \[-1, 1\] such that b/a = tan(angle)
+    fn inverse_atan2(mut angle: Angle) -> (Ratio, Ratio) {
+        let full   : Angle = turn(1.0);
+        let half   : Angle = full    / 2.0;
+        let quarter: Angle = half    / 2.0;
+        let eighth : Angle = quarter / 2.0;
+        // Move to preferred range [-1/8, +3/8) turns
+        while angle >= 3.0 * eighth {
+            angle -= half;
+        }
+        if angle < eighth { (ratio(1.0)             , angle.tan()) }
+        else              { ((quarter - angle).tan(), ratio(1.0) ) }
+
+    }
+
+    /// Tangent of n / 32 full turns
+    fn t32(n: i32) -> f32 { ratio_(turn(n as f32 / 32.0).tan()) }
+
+    #[rstest(/**/    turns   ,       x ,       y  ,
+             case( 0.0 / 32.0,      1.0,      0.0),
+             case( 1.0 / 32.0,      1.0,  t32(1) ),
+             case( 2.0 / 32.0,      1.0,  t32(2) ),
+             case( 3.0 / 32.0,      1.0,  t32(3) ),
+             case( 4.0 / 32.0,      1.0,      1.0),
+             case( 5.0 / 32.0,  t32(3) ,      1.0),
+             case( 6.0 / 32.0,  t32(2) ,      1.0),
+             case( 7.0 / 32.0,  t32(1) ,      1.0),
+             case( 8.0 / 32.0,      0.0,      1.0),
+             case( 9.0 / 32.0, -t32(1) ,      1.0),
+             case(10.0 / 32.0, -t32(2) ,      1.0),
+             case(11.0 / 32.0, -t32(3) ,      1.0),
+             case(12.0 / 32.0,      1.0,     -1.0),
+             case(13.0 / 32.0,      1.0, -t32(3) ),
+             case(14.0 / 32.0,      1.0, -t32(2) ),
+             case(15.0 / 32.0,      1.0, -t32(1) ),
+             case(16.0 / 32.0,      1.0,      0.0),
+             case(17.0 / 32.0,      1.0,  t32(1) ),
+             case(18.0 / 32.0,      1.0,  t32(2) ),
+             case(19.0 / 32.0,      1.0,  t32(3) ),
+             case(20.0 / 32.0,      1.0,      1.0),
+             case(21.0 / 32.0,  t32(3) ,      1.0),
+             case(22.0 / 32.0,  t32(2) ,      1.0),
+             case(23.0 / 32.0,  t32(1) ,      1.0),
+             case(24.0 / 32.0,      0.0,      1.0),
+             case(25.0 / 32.0, -t32(1) ,      1.0),
+             case(26.0 / 32.0, -t32(2) ,      1.0),
+             case(27.0 / 32.0, -t32(3) ,      1.0),
+             case(28.0 / 32.0,      1.0,     -1.0),
+             case(29.0 / 32.0,      1.0, -t32(3)),
+             case(30.0 / 32.0,      1.0, -t32(2)),
+             case(31.0 / 32.0,      1.0, -t32(1)),
+    )]
+    fn inv_atan2(turns: f32, x: f32, y: f32) {
+        let (a,b) = inverse_atan2(turn(turns));
+        assert_float_eq!((ratio_(a),ratio_(b)), (x,y), abs <= (3e-7, 3e-7));
+    }
+
+    /// Add `n` uniformly angularly distributed LOR passing through `(x,y)`, to `lors`
+    fn n_decays_at(n: usize, (x, y): (Length, Length), lors: &mut Vec<LOR>) {
+        for angle in n_angles_around_half_circle_starting_from(n, turn(0.01)) {
+            let lor = Line::from_point_and_angle((x,y), angle);
+            match lor.circle_intersection(mm(100.0)) {
+                Points::Two { x1, y1, x2, y2 } => {
+                    lors.push(LOR::from_components((ns(0.0), ns(0.0)),
+                                                   (x1, y1, mm(0.0)),
+                                                   (x2, y2, mm(0.0)),
+                                                   ratio(1.0)))
+                },
+                _ => panic!("LOR does not cross detector at two points.")
+            }
+        }
+    }
+
+    fn n_angles_around_half_circle_starting_from(n: usize, start: Angle) -> impl Iterator<Item = Angle> {
+        let mut i = 0;
+        let step = turn(0.5) / (n as f32);
+        std::iter::from_fn(move || {
+            if i < n {
+                let angle = start + i as f32 * step;
+                i += 1;
+                Some(angle)
+            } else {
+                None
+            }
+        })
+    }
+
+    #[rstest(/**/ n, start    , expected,
+             case(0, turn(0.4), vec![]),
+             case(1, turn(0.3), vec![turn(0.3)]),
+             case(2, turn(0.2), vec![turn(0.2), turn(0.45)]),
+             case(2, turn(0.1), vec![turn(0.1), turn(0.35)]),
+             case(5, turn(0.2), vec![turn(0.2), turn(0.3), turn(0.4), turn(0.5), turn(0.6)]),
+    )]
+    fn distributed_angles(n: usize, start: Angle, expected: Vec<Angle>) {
+        let angles: Vec<f32> = n_angles_around_half_circle_starting_from(n, start)
+            .map(turn_)
+            .collect();
+        let expected: Vec<f32> = expected
+            .into_iter()
+            .map(turn_)
+            .collect();
+        assert_float_eq!(angles, expected, ulps_all <= 1);
+    }
+
+    fn grid(xs: (i32, i32), ys: (i32, i32)) -> impl Iterator<Item = (Length, Length)> {
+        let mut x = xs.0;
+        let mut y = ys.0;
+        return std::iter::from_fn(move || {
+            if y > ys.1 { x += 1; y = ys.0 }
+            if x > xs.1 { return None }
+            y += 1;
+            Some((mm(x as f32), mm((y - 1) as f32)))
+        })
+    }
+
+    // TODO: this should be reused in bin/mlem:main (report_time complicates it)
+    fn save_each_image_in(directory: String) -> impl FnMut(&Image) {
+        use std::path::PathBuf;
+        std::fs::create_dir_all(PathBuf::from(&directory)).unwrap();
+        let mut count = 0;
+        move |image| {
+            count += 1;
+            let image_path = PathBuf::from(format!("{directory}/{:02}.raw", count));
+            crate::io::raw::Image3D::from(image).write_to_file(&image_path).unwrap();
+        }
+    }
+
+    #[test]
+    fn mlem_without_corrections() {
+        let n = 41;
+        let l = mm(n as f32);
+        let fov = FOV::new((l, l, mm(1.0)),
+                           (n, n,    1   ));
+
+        let mut trues = vec![];
+        let mut noise = vec![];
+
+        for (x,y) in grid(( 10, 15), (  8,13)) { n_decays_at(100, (x, y), &mut trues); } // Top right
+        for (x,y) in grid((-15,-10), (  8,13)) { n_decays_at(150, (x, y), &mut trues); } // Top left
+        for (x,y) in grid((- 7,  7), ( -8,-4)) { n_decays_at(100, (x, y), &mut trues); } // Bottom centre
+        for (x,y) in grid((-20, 20), (-20,20)) { n_decays_at( 20, (x, y), &mut noise); } // Uniform noise
+
+        let mut lors = trues;
+        lors.extend(noise);
+
+
+        Image::mlem(fov, &lors, None, None, None)
+            .take(10)
+            .inspect(save_each_image_in(String::from("/tmp/test_mlem")))
+            .for_each(|_| {
+                // // Print voxel values to screen: will appear if test fails.
+                // let scale = 1.0;
+                // for y in (0..n).rev() {
+                //     for x in 0..n {
+                //         print!("{:3.0} ", scale * i[[x,y,0]]);
+                //     }
+                //     println!();
+                // }
+                // println!();
+            });
+        //assert!(false);
+    }
+}
