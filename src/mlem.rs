@@ -274,10 +274,58 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use geometry::{uom::{mm, ns, ratio, turn, turn_}, Angle};
+    use geometry::{uom::{mm, mm_, ns, ratio, turn, turn_}, Angle};
     use rstest::rstest;
     use float_eq::assert_float_eq;
 
+    /// ax + by + c = 0
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    struct Line { a: Ratio, b: Ratio, c: Length }
+
+    impl Line {
+        fn from_point_and_angle((x,y): (Length, Length), angle: Angle) -> Line {
+            let (a,b) = inverse_atan2(angle);
+            let b = -b;
+            let line = Self { a, b, c: -(a*x + b*y) };
+            line
+        }
+    }
+
+    impl std::fmt::Display for Line {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            let Line { a, b, c } = *self;
+            let (a, b, c) = (ratio_(a), ratio_(b), mm_(c));
+            write!(f, "{a}x {b:+}y {c:+} = 0")
+        }
+    }
+
+    #[rstest(/**/   x ,   y ,  turns ,      a ,   b ,   c ,
+             case( 0.0,  0.0,   0.0  ,     1.0,  0.0,  0.0), // x =  0
+             case( 0.0,  9.0,   0.0  ,     1.0,  0.0,  0.0), // x =  0
+             case( 0.0,  0.0,   0.25 ,     0.0, -1.0,  0.0), // y =  0
+             case( 3.0,  0.0,   0.25 ,     0.0, -1.0,  0.0), // y =  0
+             case( 2.0,  0.0,   0.0  ,     1.0,  0.0, -2.0), // x =  2
+             case( 2.0,  5.0,   0.0  ,     1.0,  0.0, -2.0), // x =  2
+             case(-2.0,  0.0,   0.0  ,     1.0,  0.0,  2.0), // x = -2
+             case(-2.0,  6.0,   0.0  ,     1.0,  0.0,  2.0), // x = -2
+             case( 0.0,  2.0,   0.25 ,     0.0, -1.0,  2.0), // y =  2
+             case( 0.0, -2.0,   0.25 ,     0.0, -1.0, -2.0), // y = -2
+             case( 0.0,  0.0,   0.125,     1.0, -1.0,  0.0), // y =  x
+             case( 2.0,  0.0,   0.125,     1.0, -1.0, -2.0), // y =  x - 2
+             case( 0.0, -2.0,   0.125,     1.0, -1.0, -2.0), // y =  x - 2
+             case(-2.0,  0.0,   0.125,     1.0, -1.0,  2.0), // y =  x + 2
+             case( 0.0,  2.0,   0.125,     1.0, -1.0,  2.0), // y =  x + 2
+             //case( 0.0,  0.0,   0.17618  ,     0.5, -1.0,  0.0), // y = 2x
+    )]
+    fn construct_line(x: f32, y: f32, turns: f32, a: f32, b: f32, c: f32) {
+        let (x, y, turns) = (mm(x), mm(y), turn(turns));
+        let line = Line::from_point_and_angle((x,y), turns);
+        let expected = Line { a: ratio(a), b: ratio(b), c: mm(c) };
+        println!("constructed: {line}\nexpected   : {expected}");
+        assert_float_eq!(ratio_(line.a), a, ulps <= 1);
+        assert_float_eq!(ratio_(line.b), b, ulps <= 1);
+        assert_float_eq!(   mm_(line.c), c, ulps <= 1);
+    }
 
     /// A version of tan that avoids problems near the poles of tan
     /// angle -> a,b ∈ \[-1, 1\] such that b/a = tan(angle)
