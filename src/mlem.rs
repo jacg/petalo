@@ -284,7 +284,7 @@ mod tests {
 
     impl Line {
         fn from_point_and_angle((x,y): (Length, Length), angle: Angle) -> Line {
-            let (a,b) = inverse_atan2(angle);
+            let (b,a) = inverse_atan2(angle);
             let b = -b;
             let line = Self { a, b, c: -(a*x + b*y) };
             line
@@ -318,22 +318,22 @@ mod tests {
     enum Points { Zero, One{ x: Length, y: Length }, Two{ x1: Length, y1: Length, x2: Length, y2: Length } }
 
     #[rstest(/**/   x ,   y ,  turns ,      a ,   b ,   c ,
-             case( 0.0,  0.0,   0.0  ,     1.0,  0.0,  0.0), // x =  0
-             case( 0.0,  9.0,   0.0  ,     1.0,  0.0,  0.0), // x =  0
-             case( 0.0,  0.0,   0.25 ,     0.0, -1.0,  0.0), // y =  0
-             case( 3.0,  0.0,   0.25 ,     0.0, -1.0,  0.0), // y =  0
-             case( 2.0,  0.0,   0.0  ,     1.0,  0.0, -2.0), // x =  2
-             case( 2.0,  5.0,   0.0  ,     1.0,  0.0, -2.0), // x =  2
-             case(-2.0,  0.0,   0.0  ,     1.0,  0.0,  2.0), // x = -2
-             case(-2.0,  6.0,   0.0  ,     1.0,  0.0,  2.0), // x = -2
-             case( 0.0,  2.0,   0.25 ,     0.0, -1.0,  2.0), // y =  2
-             case( 0.0, -2.0,   0.25 ,     0.0, -1.0, -2.0), // y = -2
+             case( 0.0,  0.0,   0.0  ,     0.0, -1.0,  0.0), // y =  0
+             case( 9.0,  0.0,   0.0  ,     0.0, -1.0,  0.0), // y =  0
+             case( 0.0,  0.0,   0.25 ,     1.0,  0.0,  0.0), // x =  0
+             case( 0.0,  3.0,   0.25 ,     1.0,  0.0,  0.0), // x =  0
+             case( 0.0,  2.0,   0.0  ,     0.0, -1.0,  2.0), // y =  2
+             case( 5.0,  2.0,   0.0  ,     0.0, -1.0,  2.0), // y =  2
+             case( 0.0, -2.0,   0.0  ,     0.0, -1.0, -2.0), // y = -2
+             case( 2.0,  0.0,   0.25 ,     1.0,  0.0, -2.0), // x =  2
+             case( 2.0,  9.0,   0.25 ,     1.0,  0.0, -2.0), // x =  2
+             case(-2.0,  0.0,   0.25 ,     1.0,  0.0,  2.0), // x = -2
              case( 0.0,  0.0,   0.125,     1.0, -1.0,  0.0), // y =  x
              case( 2.0,  0.0,   0.125,     1.0, -1.0, -2.0), // y =  x - 2
              case( 0.0, -2.0,   0.125,     1.0, -1.0, -2.0), // y =  x - 2
              case(-2.0,  0.0,   0.125,     1.0, -1.0,  2.0), // y =  x + 2
              case( 0.0,  2.0,   0.125,     1.0, -1.0,  2.0), // y =  x + 2
-             //case( 0.0,  0.0,   0.17618  ,     0.5, -1.0,  0.0), // y = 2x
+             //case( 0.0,  0.0,   0.17618,   1.0, -0.5,  0.0), // y = 2x
     )]
     fn construct_line(x: f32, y: f32, turns: f32, a: f32, b: f32, c: f32) {
         let (x, y, turns) = (mm(x), mm(y), turn(turns));
@@ -346,15 +346,16 @@ mod tests {
     }
 
     #[rstest(/**/   x ,  y , turns,     r   , expected,
-             // Horizontal lines, close to x = 2
-             case( 2.1, 6.6, 0.0  , mm(2.0) , Points::Zero)                                                       ,
-             case( 2.0, 6.6, 0.0  , mm(2.0) , Points::One { x : mm( 2.0), y : mm( 0.0)                           }),
-             //case( 1.9, 6.6, 0.0  , mm(2.0) , Points::Two { x1: mm( 1.9), y1: mm( 0.6), x2: mm(1.9), y2: mm(0.6) }),
-             case( 0.0, 6.6, 0.0  , mm(2.0) , Points::Two { x1: mm( 0.0), y1: mm(-2.0), x2: mm(0.0), y2: mm(2.0) }),
              // Vertical lines, close to y = 2
-             case( 9.9, 2.1, 0.25 , mm(2.0) , Points::Zero)                                                       ,
-             case( 9.9, 2.0, 0.25 , mm(2.0) , Points::One { x : mm( 0.0), y : mm( 2.0)                           }),
-             case( 9.9, 0.0, 0.25 , mm(2.0) , Points::Two { x1: mm(-2.0), y1: mm( 0.0), x2: mm(2.0), y2: mm(0.0) }),
+             case( 6.6, 2.1, 0.0  , mm(2.0) , Points::Zero)                                                       ,
+             case( 6.6, 2.0, 0.0  , mm(2.0) , Points::One { x : mm( 0.0), y : mm( 2.0)                           }),
+             //case( 6.6, 1.9, 0.0  , mm(2.0) , Points::Two { x1: mm(-0.6), y1: mm( 1.9), x2: mm(0.6), y2: mm(1.9) }),
+             case( 6.6, 0.0, 0.0  , mm(2.0) , Points::Two { x1: mm(-2.0), y1: mm( 0.0), x2: mm(2.0), y2: mm(0.0) }),
+             // Horizontal lines, close to x = 2
+             case( 2.1, 9.9, 0.25 , mm(2.0) , Points::Zero)                                                       ,
+             case( 2.0, 9.9, 0.25 , mm(2.0) , Points::One { x : mm( 2.0), y : mm( 0.0)                           }),
+             //case( 1.9, 9.9, 0.25 , mm(2.0) , Points::Two { x1: mm( 1.9), y1: mm(-0.6), x2: mm(1.9), y2: mm(0.6) }),
+             case( 0.0, 9.9, 0.25 , mm(2.0) , Points::Two { x1: mm( 0.0), y1: mm(-2.0), x2: mm(0.0), y2: mm(2.0) }),
     )]
     fn intersect_line_circle(x: f32, y: f32, turns: f32, r: Length, expected: Points) {
         let (x, y, turns) = (mm(x), mm(y), turn(turns));
