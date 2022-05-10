@@ -488,9 +488,8 @@ mod tests {
         std::fs::create_dir_all(PathBuf::from(&directory)).unwrap();
         let mut count = 0;
         move |image| {
-            let n = count;
             count += 1;
-            let image_path = PathBuf::from(format!("{directory}/{count:02}.raw"));
+            let image_path = PathBuf::from(format!("{directory}/{:02}.raw", count));
             crate::io::raw::Image3D::from(image).write_to_file(&image_path).unwrap();
         }
     }

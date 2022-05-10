@@ -136,6 +136,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for (n, image) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image))
         .take(args.iterations)
         .enumerate() {
+            let n = n+1;
             report_time(&format!("Iteration {:2}", n));
             let path = PathBuf::from(format!("{}{:02}.raw", file_pattern, n));
             petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
