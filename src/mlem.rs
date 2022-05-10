@@ -494,6 +494,12 @@ mod tests {
         }
     }
 
+    struct ROI {
+        x: (i32, i32),
+        y: (i32, i32),
+        activity: usize,
+    }
+
     #[test]
     fn mlem_without_corrections() {
         let n = 41;
@@ -501,13 +507,18 @@ mod tests {
         let fov = FOV::new((l, l, mm(1.0)),
                            (n, n,    1   ));
 
+        let a = ROI { x: ( 10, 15), y: (  8,13), activity:  50 }; // Top right
+        let b = ROI { x: (-15,-10), y: (  8,13), activity: 150 }; // Top left
+        let c = ROI { x: (- 7,  7), y: ( -8,-4), activity: 100 }; // Bottom centre
+        let n = ROI { x: (-20, 20), y: (-20,20), activity:  20 }; // Noise
+
         let mut trues = vec![];
         let mut noise = vec![];
 
-        for (x,y) in grid(( 10, 15), (  8,13)) { n_decays_at(100, (x, y), &mut trues); } // Top right
-        for (x,y) in grid((-15,-10), (  8,13)) { n_decays_at(150, (x, y), &mut trues); } // Top left
-        for (x,y) in grid((- 7,  7), ( -8,-4)) { n_decays_at(100, (x, y), &mut trues); } // Bottom centre
-        for (x,y) in grid((-20, 20), (-20,20)) { n_decays_at( 20, (x, y), &mut noise); } // Uniform noise
+        for (x,y) in grid(a.x, a.y) { n_decays_at(a.activity, (x, y), &mut trues); }
+        for (x,y) in grid(b.x, b.y) { n_decays_at(b.activity, (x, y), &mut trues); }
+        for (x,y) in grid(c.x, c.y) { n_decays_at(c.activity, (x, y), &mut trues); }
+        for (x,y) in grid(n.x, n.y) { n_decays_at(n.activity, (x, y), &mut noise); }
 
         let mut lors = trues;
         lors.extend(noise);
