@@ -275,7 +275,7 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], 
 mod tests {
     use super::*;
     use geometry::{uom::{mm, mm_, ns, ratio, turn, turn_}, Angle};
-    use rstest::rstest;
+    use rstest::{rstest, fixture};
     use float_eq::assert_float_eq;
 
     /// ax + by + c = 0
@@ -500,21 +500,23 @@ mod tests {
         activity: usize,
     }
 
-    #[test]
-    fn mlem_without_corrections() {
+    // Regions of interest for re-use in tests
+    #[fixture] fn roi_a() -> ROI { ROI { x: ( 10, 15), y: (  8,13), activity:  50 } }
+    #[fixture] fn roi_b() -> ROI { ROI { x: (-15,-10), y: (  8,13), activity: 150 } }
+    #[fixture] fn roi_c() -> ROI { ROI { x: (- 7,  7), y: ( -8,-4), activity: 100 } }
+    #[fixture] fn roi_n() -> ROI { ROI { x: (-20, 20), y: (-20,20), activity:  20 } }
+
+    #[rstest]
+    fn mlem_without_corrections(roi_a: ROI, roi_b: ROI, roi_c: ROI, roi_n: ROI) {
         let n = 41;
         let l = mm(n as f32);
         let fov = FOV::new((l, l, mm(1.0)),
                            (n, n,    1   ));
 
-        let a = ROI { x: ( 10, 15), y: (  8,13), activity:  50 }; // Top right
-        let b = ROI { x: (-15,-10), y: (  8,13), activity: 150 }; // Top left
-        let c = ROI { x: (- 7,  7), y: ( -8,-4), activity: 100 }; // Bottom centre
-        let n = ROI { x: (-20, 20), y: (-20,20), activity:  20 }; // Noise
-
         let mut trues = vec![];
         let mut noise = vec![];
 
+        let (a,b,c,n) = (roi_a, roi_b, roi_c, roi_n);
         for (x,y) in grid(a.x, a.y) { n_decays_at(a.activity, (x, y), &mut trues); }
         for (x,y) in grid(b.x, b.y) { n_decays_at(b.activity, (x, y), &mut trues); }
         for (x,y) in grid(c.x, c.y) { n_decays_at(c.activity, (x, y), &mut trues); }
@@ -522,7 +524,6 @@ mod tests {
 
         let mut lors = trues;
         lors.extend(noise);
-
 
         Image::mlem(fov, &lors, None, None, None)
             .take(10)
