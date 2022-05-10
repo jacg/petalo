@@ -483,7 +483,7 @@ mod tests {
     }
 
     // TODO: this should be reused in bin/mlem:main (report_time complicates it)
-    fn save_each_image_in(directory: String) -> impl FnMut(Image) -> Image {
+    fn save_each_image_in(directory: String) -> impl FnMut(&Image) {
         use std::path::PathBuf;
         std::fs::create_dir_all(PathBuf::from(&directory)).unwrap();
         let mut count = 0;
@@ -491,8 +491,7 @@ mod tests {
             let n = count;
             count += 1;
             let image_path = PathBuf::from(format!("{directory}/{count:02}.raw"));
-            crate::io::raw::Image3D::from(&image).write_to_file(&image_path).unwrap();
-            image
+            crate::io::raw::Image3D::from(image).write_to_file(&image_path).unwrap();
         }
     }
 
@@ -513,7 +512,7 @@ mod tests {
 
         Image::mlem(fov, &lors, None, None, None)
             .take(10)
-            .map(save_each_image_in(String::from("/tmp/test_mlem")))
+            .inspect(save_each_image_in(String::from("/tmp/test_mlem")))
             .for_each(|_| {});
 
             //     // // Print voxel values to screen: will appear if test fails.
