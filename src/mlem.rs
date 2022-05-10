@@ -482,6 +482,20 @@ mod tests {
         })
     }
 
+    // TODO: this should be reused in bin/mlem:main (report_time complicates it)
+    fn save_each_image_in(directory: String) -> impl FnMut(Image) -> Image {
+        use std::path::PathBuf;
+        std::fs::create_dir_all(PathBuf::from(&directory)).unwrap();
+        let mut count = 0;
+        move |image| {
+            let n = count;
+            count += 1;
+            let image_path = PathBuf::from(format!("{directory}/{count:02}.raw"));
+            crate::io::raw::Image3D::from(&image).write_to_file(&image_path).unwrap();
+            image
+        }
+    }
+
     #[test]
     fn mlem_without_corrections() {
         let n = 41;
@@ -497,32 +511,23 @@ mod tests {
 
         let scale = 1.0;
 
-        use std::path::PathBuf;
-
-        let image_target_directory = String::from("/tmp/test_mlem");
-        // If the directory where images will be written does not exist yet, make it
-        std::fs::create_dir_all(PathBuf::from(&image_target_directory)).unwrap();
-
-
         Image::mlem(fov, &lors, None, None, None)
             .take(10)
-            .enumerate()
-            .for_each(|(count, i)| {
+            .map(save_each_image_in(String::from("/tmp/test_mlem")))
+            .for_each(|_| {});
 
-                // Save images for inspection with viewraw
-                let image_path = PathBuf::from(format!("{image_target_directory}/{count:02}.raw"));
-                crate::io::raw::Image3D::from(&i).write_to_file(&image_path).unwrap();
+            //     // // Print voxel values to screen: will appear if test fails.
+            //     // for y in (0..n).rev() {
+            //     //     for x in 0..n {
+            //     //         print!("{:3.0} ", scale * i[[x,y,0]]);
+            //     //     }
+            //     //     println!();
+            //     // }
+            //     // println!();
 
-                // // Print voxel values to screen: will appear if test fails.
-                // for y in (0..n).rev() {
-                //     for x in 0..n {
-                //         print!("{:3.0} ", scale * i[[x,y,0]]);
-                //     }
-                //     println!();
-                // }
-                // println!();
+            // });
 
-            });
+
         //assert!(false);
     }
 }
