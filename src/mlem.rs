@@ -275,7 +275,7 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], 
 mod tests {
     use super::*;
     use geometry::{uom::{mm, mm_, ns, ratio, turn, turn_}, Angle};
-    use rstest::rstest;
+    use rstest::{rstest, fixture};
     use float_eq::assert_float_eq;
 
     /// ax + by + c = 0
@@ -420,7 +420,7 @@ mod tests {
     )]
     fn inv_atan2(turns: f32, x: f32, y: f32) {
         let (a,b) = inverse_atan2(turn(turns));
-        assert_float_eq!((ratio_(a),ratio_(b)), (x,y), abs <= (3e-7, 3e-7));
+        assert_float_eq!((ratio_(a),ratio_(b)), (x,y), abs <= (3e-7, 4e-7));
     }
 
     /// Add `n` uniformly angularly distributed LOR passing through `(x,y)`, to `lors`
@@ -494,39 +494,100 @@ mod tests {
         }
     }
 
-    #[test]
-    fn mlem_without_corrections() {
-        let n = 41;
+    struct ROI {
+        x: (i32, i32),
+        y: (i32, i32),
+        activity: usize,
+    }
+
+    fn detect_lors(mut lors: &mut Vec<LOR>, rois: &[ROI]) {
+        for roi in rois {
+            for (x,y) in grid(roi.x, roi.y) { n_decays_at(roi.activity, (x, y), &mut lors) }
+        }
+    }
+
+    const ACT_1: usize =  60;
+    const ACT_2: usize = 100;
+    const ACT_3: usize =  80;
+    const BG   : usize =  20;
+    const NOISE: usize =  30;
+    // Regions of interest for re-use in tests
+    #[fixture] fn roi_1() -> ROI { ROI { x: (-15,-10), y: (  8,13), activity: ACT_1 - BG } }
+    #[fixture] fn roi_2() -> ROI { ROI { x: ( 10, 15), y: (  8,13), activity: ACT_2 - BG } }
+    #[fixture] fn roi_3() -> ROI { ROI { x: (- 7,  7), y: ( -8,-4), activity: ACT_3 - BG } }
+    #[fixture] fn roi_b() -> ROI { ROI { x: (-20, 20), y: (-20,20), activity: BG         } }
+    #[fixture] fn roi_n() -> ROI { ROI { x: (-25, 25), y: (-25,25), activity: NOISE      } }
+
+    #[fixture]
+    fn fov() -> FOV {
+        let n = 51;
         let l = mm(n as f32);
-        let fov = FOV::new((l, l, mm(1.0)),
-                           (n, n,    1   ));
+        FOV::new((l, l, mm(1.0)),
+                 (n, n,    1   ))
+    }
 
-        let mut trues = vec![];
-        let mut noise = vec![];
+    enum Bins {
+        None,
+        R    { nbins    : usize, maxr: Length },
+        Phi  { nbins    : usize },
+        RPhi { nbins_phi: usize, nbins_r: usize, maxr: Length },
+    }
 
-        for (x,y) in grid(( 10, 15), (  8,13)) { n_decays_at(100, (x, y), &mut trues); } // Top right
-        for (x,y) in grid((-15,-10), (  8,13)) { n_decays_at(150, (x, y), &mut trues); } // Top left
-        for (x,y) in grid((- 7,  7), ( -8,-4)) { n_decays_at(100, (x, y), &mut trues); } // Bottom centre
-        for (x,y) in grid((-20, 20), (-20,20)) { n_decays_at( 20, (x, y), &mut noise); } // Uniform noise
+    #[rstest(/**/ name        , bins,
+             case("corr_none" , Bins::None),
+             case("corr-r"    , Bins::R    {                nbins  : 20, maxr: mm(30.0) }),
+             case("corr-phi"  , Bins::Phi  { nbins:     20             }),
+             case("corr-r-phi", Bins::RPhi { nbins_phi: 20, nbins_r: 20, maxr: mm(30.0) }),
+    )]
+    fn mlem_reco(fov: FOV,
+                 roi_1: ROI, roi_2: ROI, roi_3: ROI,
+                 roi_b: ROI, roi_n: ROI,
+                 bins: Bins, name: &str)
+    {
+
+        use crate::lorogram::{Scattergram, Prompt, axis_phi, axis_r};
+        use ndhistogram::ndhistogram;
+
+        let mut sgram = match bins {
+            Bins::None => None,
+            Bins::R { nbins, maxr } =>
+                Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_r  (nbins, maxr); usize)))),
+            Bins::Phi { nbins } =>
+                Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(nbins      ); usize)))),
+            Bins::RPhi { nbins_phi, nbins_r, maxr } =>
+                Some(Scattergram::new(&|| Box::new(ndhistogram!(
+                    axis_phi(nbins_phi          ),
+                    axis_r  (nbins_r  , maxr);
+                    usize)))),
+
+        };
+
+
+        let mut trues = vec![]; detect_lors(&mut trues, &[roi_1, roi_2, roi_3, roi_b]);
+        let mut noise = vec![]; detect_lors(&mut noise, &[roi_n]);
+
+        if let Some(sgram) = &mut sgram {
+            for lor in &trues { sgram.fill(Prompt::True   , lor); }
+            for lor in &noise { sgram.fill(Prompt::Scatter, lor); }
+        }
 
         let mut lors = trues;
         lors.extend(noise);
 
+        if let Some(sgram) = sgram {
+            for mut lor in &mut lors {
+                lor.additive_correction = sgram.value(lor);
+            }
+        }
 
-        Image::mlem(fov, &lors, None, None, None)
-            .take(10)
-            .inspect(save_each_image_in(String::from("/tmp/test_mlem")))
-            .for_each(|_| {
-                // // Print voxel values to screen: will appear if test fails.
-                // let scale = 1.0;
-                // for y in (0..n).rev() {
-                //     for x in 0..n {
-                //         print!("{:3.0} ", scale * i[[x,y,0]]);
-                //     }
-                //     println!();
-                // }
-                // println!();
-            });
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
+        let _ = pool.install(|| {
+            Image::mlem(fov, &lors, None, None, None)
+                .take(10)
+                .inspect(save_each_image_in(format!("/tmp/test-mlem-{name}")))
+                .for_each(|_| {
+                });
+        });
         //assert!(false);
     }
 }
