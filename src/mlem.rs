@@ -526,51 +526,66 @@ mod tests {
                  (n, n,    1   ))
     }
 
-    #[rstest]
-    fn mlem_without_corrections(fov: FOV,
-                                roi_1: ROI, roi_2: ROI, roi_3: ROI,
-                                roi_b: ROI, roi_n: ROI)
+    enum Bins {
+        None,
+        R    { nbins    : usize, maxr: Length },
+        Phi  { nbins    : usize },
+        RPhi { nbins_phi: usize, nbins_r: usize, maxr: Length },
+    }
+
+    #[rstest(/**/ name        , bins,
+             case("corr_none" , Bins::None),
+             case("corr-r"    , Bins::R    {                nbins  : 10, maxr: mm(30.0) }),
+             case("corr-phi"  , Bins::Phi  { nbins: 10                 }),
+             case("corr-r-phi", Bins::RPhi { nbins_phi: 10, nbins_r: 10, maxr: mm(30.0) }),
+    )]
+    fn mlem_reco(fov: FOV,
+                 roi_1: ROI, roi_2: ROI, roi_3: ROI,
+                 roi_b: ROI, roi_n: ROI,
+                 bins: Bins, name: &str)
     {
+
+        use crate::lorogram::{Scattergram, Prompt, axis_phi, axis_r};
+        use ndhistogram::ndhistogram;
+
+        let mut sgram = match bins {
+            Bins::None => None,
+            Bins::R { nbins, maxr } =>
+                Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_r  (nbins, maxr); usize)))),
+            Bins::Phi { nbins } =>
+                Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(nbins      ); usize)))),
+            Bins::RPhi { nbins_phi, nbins_r, maxr } =>
+                Some(Scattergram::new(&|| Box::new(ndhistogram!(
+                    axis_phi(nbins_phi          ),
+                    axis_r  (nbins_r  , maxr);
+                    usize)))),
+
+        };
+
 
         let mut trues = vec![]; detect_lors(&mut trues, &[roi_1, roi_2, roi_3, roi_b]);
         let mut noise = vec![]; detect_lors(&mut noise, &[roi_n]);
 
-        use crate::lorogram::{Scattergram, Prompt, axis_phi, axis_r};
-        use ndhistogram::ndhistogram;
-        //let mut sgram = Scattergram::new(&|| Box::new(ndhistogram!(axis_r  (10, mm(30.0)); usize)));
-        //let mut sgram = Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(10          ); usize)));
-
-        // let mut sgram = Scattergram::new(&|| Box::new(ndhistogram!(
-        //     axis_phi(10          ),
-        //     axis_r  (10, mm(30.0));
-        //     usize)));
-
-        // for lor in &trues { sgram.fill(Prompt::True   , lor); }
-        // for lor in &noise { sgram.fill(Prompt::Scatter, lor); }
+        if let Some(sgram) = &mut sgram {
+            for lor in &trues { sgram.fill(Prompt::True   , lor); }
+            for lor in &noise { sgram.fill(Prompt::Scatter, lor); }
+        }
 
         let mut lors = trues;
-        //lors.extend(noise);
+        lors.extend(noise);
 
-        // for mut lor in &mut lors {
-        //     lor.additive_correction = sgram.value(lor);
-        // }
+        if let Some(sgram) = sgram {
+            for mut lor in &mut lors {
+                lor.additive_correction = sgram.value(lor);
+            }
+        }
 
-
-        let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
         let _ = pool.install(|| {
             Image::mlem(fov, &lors, None, None, None)
-                .take(100)
-                .inspect(save_each_image_in(String::from("/tmp/test-mlem-no-noise")))
+                .take(10)
+                .inspect(save_each_image_in(format!("/tmp/test-mlem-{name}")))
                 .for_each(|_| {
-                    // // Print voxel values to screen: will appear if test fails.
-                    // let scale = 1.0;
-                    // for y in (0..n).rev() {
-                    //     for x in 0..n {
-                    //         print!("{:3.0} ", scale * i[[x,y,0]]);
-                    //     }
-                    //     println!();
-                    // }
-                    // println!();
                 });
         });
         //assert!(false);
