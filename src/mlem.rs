@@ -536,7 +536,7 @@ mod tests {
     #[rstest(/**/ name        , bins,
              case("corr-none" , Bins::None),
              case("corr-r"    , Bins::R    {                nbins  : 20, maxr: mm(30.0) }),
-             case("corr-phi"  , Bins::Phi  { nbins:     20             }),
+             case("corr-phi"  , Bins::Phi  { nbins:     20                              }),
              case("corr-r-phi", Bins::RPhi { nbins_phi: 20, nbins_r: 20, maxr: mm(30.0) }),
     )]
     fn mlem_reco(fov: FOV,
@@ -556,7 +556,7 @@ mod tests {
                 Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(nbins      ); usize)))),
             Bins::RPhi { nbins_phi, nbins_r, maxr } =>
                 Some(Scattergram::new(&|| Box::new(ndhistogram!(
-                    axis_phi(nbins_phi          ),
+                    axis_phi(nbins_phi      ),
                     axis_r  (nbins_r  , maxr);
                     usize)))),
 
