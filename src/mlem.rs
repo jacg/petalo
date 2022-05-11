@@ -506,32 +506,58 @@ mod tests {
         }
     }
 
+    const ACT_1: usize =  60;
+    const ACT_2: usize = 100;
+    const ACT_3: usize =  80;
+    const BG   : usize =  20;
+    const NOISE: usize =  30;
     // Regions of interest for re-use in tests
-    #[fixture] fn roi_a() -> ROI { ROI { x: ( 10, 15), y: (  8,13), activity:  50 } }
-    #[fixture] fn roi_b() -> ROI { ROI { x: (-15,-10), y: (  8,13), activity: 150 } }
-    #[fixture] fn roi_c() -> ROI { ROI { x: (- 7,  7), y: ( -8,-4), activity: 100 } }
-    #[fixture] fn roi_n() -> ROI { ROI { x: (-20, 20), y: (-20,20), activity:  20 } }
+    #[fixture] fn roi_1() -> ROI { ROI { x: (-15,-10), y: (  8,13), activity: ACT_1 - BG } }
+    #[fixture] fn roi_2() -> ROI { ROI { x: ( 10, 15), y: (  8,13), activity: ACT_2 - BG } }
+    #[fixture] fn roi_3() -> ROI { ROI { x: (- 7,  7), y: ( -8,-4), activity: ACT_3 - BG } }
+    #[fixture] fn roi_b() -> ROI { ROI { x: (-20, 20), y: (-20,20), activity: BG         } }
+    #[fixture] fn roi_n() -> ROI { ROI { x: (-25, 25), y: (-25,25), activity: NOISE      } }
 
     #[fixture]
     fn fov() -> FOV {
-        let n = 41;
+        let n = 51;
         let l = mm(n as f32);
         FOV::new((l, l, mm(1.0)),
                  (n, n,    1   ))
     }
 
     #[rstest]
-    fn mlem_without_corrections(fov: FOV, roi_a: ROI, roi_b: ROI, roi_c: ROI, roi_n: ROI) {
+    fn mlem_without_corrections(fov: FOV,
+                                roi_1: ROI, roi_2: ROI, roi_3: ROI,
+                                roi_b: ROI, roi_n: ROI)
+    {
 
-        let mut trues = vec![]; detect_lors(&mut trues, &[roi_a, roi_b, roi_c]);
+        let mut trues = vec![]; detect_lors(&mut trues, &[roi_1, roi_2, roi_3, roi_b]);
         let mut noise = vec![]; detect_lors(&mut noise, &[roi_n]);
 
+        use crate::lorogram::{Scattergram, Prompt, axis_phi, axis_r};
+        use ndhistogram::ndhistogram;
+        //let mut sgram = Scattergram::new(&|| Box::new(ndhistogram!(axis_r  (10, mm(30.0)); usize)));
+        //let mut sgram = Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(10          ); usize)));
+
+        // let mut sgram = Scattergram::new(&|| Box::new(ndhistogram!(
+        //     axis_phi(10          ),
+        //     axis_r  (10, mm(30.0));
+        //     usize)));
+
+        // for lor in &trues { sgram.fill(Prompt::True   , lor); }
+        // for lor in &noise { sgram.fill(Prompt::Scatter, lor); }
+
         let mut lors = trues;
-        lors.extend(noise);
+        //lors.extend(noise);
+
+        // for mut lor in &mut lors {
+        //     lor.additive_correction = sgram.value(lor);
+        // }
 
         Image::mlem(fov, &lors, None, None, None)
-            .take(10)
-            .inspect(save_each_image_in(String::from("/tmp/test_mlem")))
+            .take(100)
+            .inspect(save_each_image_in(String::from("/tmp/test-mlem-no-noise")))
             .for_each(|_| {
                 // // Print voxel values to screen: will appear if test fails.
                 // let scale = 1.0;
