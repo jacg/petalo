@@ -420,7 +420,7 @@ mod tests {
     )]
     fn inv_atan2(turns: f32, x: f32, y: f32) {
         let (a,b) = inverse_atan2(turn(turns));
-        assert_float_eq!((ratio_(a),ratio_(b)), (x,y), abs <= (3e-7, 3e-7));
+        assert_float_eq!((ratio_(a),ratio_(b)), (x,y), abs <= (3e-7, 4e-7));
     }
 
     /// Add `n` uniformly angularly distributed LOR passing through `(x,y)`, to `lors`
