@@ -535,9 +535,9 @@ mod tests {
 
     #[rstest(/**/ name        , bins,
              case("corr_none" , Bins::None),
-             case("corr-r"    , Bins::R    {                nbins  : 10, maxr: mm(30.0) }),
-             case("corr-phi"  , Bins::Phi  { nbins: 10                 }),
-             case("corr-r-phi", Bins::RPhi { nbins_phi: 10, nbins_r: 10, maxr: mm(30.0) }),
+             case("corr-r"    , Bins::R    {                nbins  : 20, maxr: mm(30.0) }),
+             case("corr-phi"  , Bins::Phi  { nbins:     20             }),
+             case("corr-r-phi", Bins::RPhi { nbins_phi: 20, nbins_r: 20, maxr: mm(30.0) }),
     )]
     fn mlem_reco(fov: FOV,
                  roi_1: ROI, roi_2: ROI, roi_3: ROI,
