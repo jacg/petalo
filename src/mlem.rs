@@ -555,20 +555,24 @@ mod tests {
         //     lor.additive_correction = sgram.value(lor);
         // }
 
-        Image::mlem(fov, &lors, None, None, None)
-            .take(100)
-            .inspect(save_each_image_in(String::from("/tmp/test-mlem-no-noise")))
-            .for_each(|_| {
-                // // Print voxel values to screen: will appear if test fails.
-                // let scale = 1.0;
-                // for y in (0..n).rev() {
-                //     for x in 0..n {
-                //         print!("{:3.0} ", scale * i[[x,y,0]]);
-                //     }
-                //     println!();
-                // }
-                // println!();
-            });
+
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
+        let _ = pool.install(|| {
+            Image::mlem(fov, &lors, None, None, None)
+                .take(100)
+                .inspect(save_each_image_in(String::from("/tmp/test-mlem-no-noise")))
+                .for_each(|_| {
+                    // // Print voxel values to screen: will appear if test fails.
+                    // let scale = 1.0;
+                    // for y in (0..n).rev() {
+                    //     for x in 0..n {
+                    //         print!("{:3.0} ", scale * i[[x,y,0]]);
+                    //     }
+                    //     println!();
+                    // }
+                    // println!();
+                });
+        });
         //assert!(false);
     }
 }
