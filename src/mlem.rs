@@ -534,7 +534,7 @@ mod tests {
     }
 
     #[rstest(/**/ name        , bins,
-             case("corr_none" , Bins::None),
+             case("corr-none" , Bins::None),
              case("corr-r"    , Bins::R    {                nbins  : 20, maxr: mm(30.0) }),
              case("corr-phi"  , Bins::Phi  { nbins:     20             }),
              case("corr-r-phi", Bins::RPhi { nbins_phi: 20, nbins_r: 20, maxr: mm(30.0) }),
