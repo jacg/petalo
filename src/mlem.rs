@@ -428,7 +428,7 @@ mod tests {
         let mut lors = vec![];
         for angle in n_angles_around_half_circle_starting_from(n, turn(0.01)) {
             let lor = Line::from_point_and_angle((x,y), angle);
-            match lor.circle_intersection(mm(50.0)) {
+            match lor.circle_intersection(DETECTOR_RADIUS) {
                 Points::Two { x1, y1, x2, y2 } => {
                     lors.push(LOR::from_components((ns(0.0), ns(0.0)),
                                                    (x1, y1, mm(0.0)),
@@ -514,7 +514,7 @@ mod tests {
     fn make_noise(na: usize, nb: usize, spread: Angle) -> Vec<LOR> {
         let mut noise = vec![];
         fn hmm(a: Angle, b: Angle) -> LOR {
-            let r = mm(50.0); // TODO elitinate the corresponding magic number in `n_decays_at`
+            let r = DETECTOR_RADIUS;
             LOR::from_components((ns(0.0), ns(0.0)),
                                  (r*a.cos(), r*a.sin(), mm(0.0)),
                                  (r*b.cos(), r*b.sin(), mm(0.0)),
@@ -532,6 +532,9 @@ mod tests {
         }
         noise
     }
+
+    use geometry::in_base_unit;
+    pub const DETECTOR_RADIUS: Length = in_base_unit!(50.0);
 
     const ACT_1: usize =  60;
     const ACT_2: usize = 100;
