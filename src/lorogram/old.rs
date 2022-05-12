@@ -42,7 +42,7 @@ impl Scattergram {
             let scatters: f32 = self.scatters.value(lor) as f32;
             let trues = trues as f32;
             (scatters + trues) / trues
-        } else { 1.0 })
+        } else { f32::MAX })
     }
 
     pub fn triplet(&self, lor: &LOR) -> (Ratio, f32, f32) {
