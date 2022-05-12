@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     println!("{}", lor);
-    lor_weights(lor, fov, args.shape, args.cutoff, args.sigma);
+    lor_weights(lor, fov, args.shape, args.cutoff, args.tof);
     Ok(())
 }
 
@@ -48,7 +48,7 @@ pub struct Cli {
 
     /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
     #[structopt(short, long)]
-    sigma: Option<Time>,
+    tof: Option<Time>,
 
     /// TOF cutoff (✕ sigma). to disable: `-k no`
     #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
