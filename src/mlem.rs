@@ -539,8 +539,8 @@ mod tests {
     const BG   : usize =  20;
     const NOISE: usize =  30;
     // Regions of interest for re-use in tests
-    #[fixture] fn roi_1() -> ROI { ROI { x: (-15,-10), y: (  8,13), activity: ACT_1 - BG } }
-    #[fixture] fn roi_2() -> ROI { ROI { x: ( 10, 15), y: (  8,13), activity: ACT_2 - BG } }
+    #[fixture] fn roi_1() -> ROI { ROI { x: (-15,-10), y: (  9,14), activity: ACT_1 - BG } }
+    #[fixture] fn roi_2() -> ROI { ROI { x: ( 10, 15), y: (  6,11), activity: ACT_2 - BG } }
     #[fixture] fn roi_3() -> ROI { ROI { x: (- 7,  7), y: ( -8,-4), activity: ACT_3 - BG } }
     #[fixture] fn roi_b() -> ROI { ROI { x: (-20, 20), y: (-20,20), activity: BG         } }
     #[fixture] fn roi_n() -> ROI { ROI { x: (-20, 20), y: (-20,20), activity: NOISE      } }
