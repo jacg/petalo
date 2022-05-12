@@ -423,8 +423,9 @@ mod tests {
         assert_float_eq!((ratio_(a),ratio_(b)), (x,y), abs <= (3e-7, 4e-7));
     }
 
-    /// Add `n` uniformly angularly distributed LOR passing through `(x,y)`, to `lors`
-    fn n_decays_at(n: usize, (x, y): (Length, Length), lors: &mut Vec<LOR>) {
+    /// `n` uniformly angularly distributed LOR passing through `(x,y)`
+    fn n_decays_at(n: usize, (x, y): (Length, Length)) -> Vec<LOR> {
+        let mut lors = vec![];
         for angle in n_angles_around_half_circle_starting_from(n, turn(0.01)) {
             let lor = Line::from_point_and_angle((x,y), angle);
             match lor.circle_intersection(mm(50.0)) {
@@ -437,6 +438,7 @@ mod tests {
                 _ => panic!("LOR does not cross detector at two points.")
             }
         }
+        lors
     }
 
     fn n_angles_around_half_circle_starting_from(n: usize, start: Angle) -> impl Iterator<Item = Angle> {
@@ -504,7 +506,7 @@ mod tests {
     fn trues_from_rois(rois: &[ROI]) -> Vec<LOR> {
         let mut lors = vec![];
         for roi in rois {
-            for (x,y) in grid(roi.x, roi.y) { n_decays_at(roi.activity, (x, y), &mut lors) }
+            for (x,y) in grid(roi.x, roi.y) { lors.extend(n_decays_at(roi.activity, (x, y))) }
         }
         lors
     }
