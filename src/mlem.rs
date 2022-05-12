@@ -506,7 +506,7 @@ mod tests {
     fn trues_from_rois(rois: &[&ROI]) -> Vec<LOR> {
         let mut lors = vec![];
         for roi in rois {
-            for (x,y) in grid(roi.x, roi.y) { lors.extend(n_lors_through(roi.activity*10, (x, y))) }
+            for (x,y) in grid(roi.x, roi.y) { lors.extend(n_lors_through(roi.activity, (x, y))) }
         }
         lors
     }
@@ -527,7 +527,7 @@ mod tests {
 
         for roi in rois {
             for (x,y) in grid(roi.x, roi.y) {
-                for mut lor in  n_lors_through(roi.activity*20, (x, y)) {
+                for mut lor in  n_lors_through(roi.activity*2, (x, y)) {
                     let delta = turn(rng.gen_range(-0.1_f32..=0.1));
                     if rng.gen() { lor.p1 = rotate_by(delta, lor.p1); }
                     else         { lor.p2 = rotate_by(delta, lor.p2); }
