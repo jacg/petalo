@@ -1,4 +1,4 @@
-use ndhistogram::{axis::{Axis, Uniform}, Histogram};
+use ndhistogram::{axis::{Axis, Uniform}, Histogram, ndhistogram};
 use super::axis::Cyclic;
 use crate::io::hdf5::Hdf5Lor;
 use crate::system_matrix::LOR;
@@ -8,6 +8,35 @@ use crate::Lengthf32;
 use crate::{Angle, Length, Point, Time, Ratio};
 use geometry::uom::{mm, mm_, ratio, radian_};
 use crate::guomc::ConstZero;
+
+
+// TODO: the None is really Option's job, but it was included here, to make test
+// cases more concise to write. It should probably go.
+/// Scattergram specification
+pub enum Bins {
+    None,
+    R    { nbins    : usize, maxr: Length },
+    Phi  { nbins    : usize },
+    RPhi { nbins_phi: usize, nbins_r: usize, maxr: Length },
+}
+
+impl Bins {
+    pub fn build(self) -> Option<Scattergram> {
+        match self {
+            Bins::None => None,
+            Bins::R { nbins, maxr } =>
+                Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_r  (nbins, maxr); usize)))),
+            Bins::Phi { nbins } =>
+                Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(nbins      ); usize)))),
+            Bins::RPhi { nbins_phi, nbins_r, maxr } =>
+                Some(Scattergram::new(&|| Box::new(ndhistogram!(
+                    axis_phi(nbins_phi      ),
+                    axis_r  (nbins_r  , maxr);
+                    usize)))),
+
+        }
+    }
+}
 
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }

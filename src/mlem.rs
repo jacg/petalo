@@ -574,13 +574,8 @@ mod tests {
                  (n, n,    1   ))
     }
 
-    /// Scattergram specification
-    enum Bins {
-        None,
-        R    { nbins    : usize, maxr: Length },
-        Phi  { nbins    : usize },
-        RPhi { nbins_phi: usize, nbins_r: usize, maxr: Length },
-    }
+
+    use crate::lorogram::{Bins, Prompt};
 
     #[rstest(/**/ name        , bins,
              case("corr-none" , Bins::None),
@@ -593,22 +588,7 @@ mod tests {
                  bins: Bins, name: &str)
     {
 
-        use crate::lorogram::{Scattergram, Prompt, axis_phi, axis_r};
-        use ndhistogram::ndhistogram;
-
-        let mut sgram = match bins {
-            Bins::None => None,
-            Bins::R { nbins, maxr } =>
-                Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_r  (nbins, maxr); usize)))),
-            Bins::Phi { nbins } =>
-                Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(nbins      ); usize)))),
-            Bins::RPhi { nbins_phi, nbins_r, maxr } =>
-                Some(Scattergram::new(&|| Box::new(ndhistogram!(
-                    axis_phi(nbins_phi      ),
-                    axis_r  (nbins_r  , maxr);
-                    usize)))),
-
-        };
+        let mut sgram = bins.build();
 
         // Generate scatters and trues
         let trues =   trues_from_rois(&[&roi_1, &roi_2, &roi_3, &roi_b]);
