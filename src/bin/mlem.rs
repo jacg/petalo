@@ -58,10 +58,6 @@ pub struct Cli {
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
 
-    /// The input dataset contains the old true/reco r/phi format
-    #[structopt(long)]
-    pub legacy_input_format: bool,
-
     /// Ignore events with gamma energy/keV outside this range
     #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energyf32>), default_value = "..")]
     pub ecut: BoundPair<Energyf32>,
@@ -103,10 +99,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time("Startup");
 
     // Read event data from disk into memory
-    let                      Cli{ input_file, dataset, event_range, use_true, legacy_input_format,
-                                  ecut, qcut, .. } = args.clone();
-    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, legacy_input_format,
-                                  ecut, qcut };
+    let                      Cli{ input_file, dataset, event_range, use_true, ecut, qcut, .. } = args.clone();
+    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, ecut, qcut };
     println!("Reading LOR data from disk ...");
     let sgram = io::hdf5::read_scattergram(io_args.clone())?;
     let mut measured_lors = io::hdf5::read_lors(io_args)?;

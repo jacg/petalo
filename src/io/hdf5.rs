@@ -9,7 +9,6 @@ pub struct Args {
     pub dataset: String,
     pub event_range: Option<std::ops::Range<usize>>,
     pub use_true: bool,
-    pub legacy_input_format: bool,
     pub ecut: BoundPair<Energyf32>,
     pub qcut: BoundPair<crate::Chargef32>,
 }
@@ -33,60 +32,10 @@ pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<
     Ok(data)
 }
 
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct Event {
-    event_id:    f32,
-    true_energy: f32,
-    true_r1: f32, true_phi1: f32, true_z1: f32, true_t1: f32,
-    true_r2: f32, true_phi2: f32, true_z2: f32, true_t2: f32,
-    phot_like1: f32, phot_like2: f32,
-    reco_r1: f32, reco_phi1: f32, reco_z1: f32, reco_t1: f32,
-    reco_r2: f32, reco_phi2: f32, reco_z2: f32, reco_t2: f32,
-    not_sel: f32,
-}
-
-impl Event {
-
-    fn reco_coords(&self) -> (f32, f32, f32, f32, f32, f32, f32, f32) {
-        let &Event{reco_r1, reco_phi1, reco_z1, reco_t1,
-                   reco_r2, reco_phi2, reco_z2, reco_t2, ..} = self;
-        (reco_r1, reco_phi1, reco_z1, reco_t1,
-         reco_r2, reco_phi2, reco_z2, reco_t2,)
-    }
-
-    fn true_coords(&self) -> (f32, f32, f32, f32, f32, f32, f32, f32) {
-        let &Event{true_r1, true_phi1, true_z1, true_t1,
-                  true_r2, true_phi2, true_z2, true_t2, ..} = self;
-        (true_r1, true_phi1, true_z1, true_t1,
-         true_r2, true_phi2, true_z2, true_t2,)
-    }
-
-    fn to_lor(&self, use_true: bool) -> LOR {
-        let (r1, phi1, z1, t1,
-             r2, phi2, z2, t2) = match use_true {
-            true  => self.true_coords(),
-            false => self.reco_coords(),
-        };
-        let x1 = r1 * phi1.cos();
-        let y1 = r1 * phi1.sin();
-
-        let x2 = r2 * phi2.cos();
-        let y2 = r2 * phi2.sin();
-
-        LOR::new(ns(t1), ns(t2),
-                 Point::new(mm(x1), mm(y1), mm(z1)),
-                 Point::new(mm(x2), mm(y2), mm(z2)),
-                 ratio(1.0),
-        )
-    }
-
-}
-
 #[allow(nonstandard_style)]
-pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
+pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
     let mut rejected = 0;
-    let it: Vec<LOR> = if ! args.legacy_input_format {
+    let hdf5_lors: Vec<Hdf5Lor> = {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
             .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
@@ -96,11 +45,6 @@ pub fn read_lors(args: Args) -> Result<Vec<LOR>, Box<dyn Error>> {
                 else { rejected += 1; false }
             })
             .map(LOR::from)
-            .collect()
-    } else {
-        read_table::<Event>  (&args.input_file, &args.dataset, args.event_range.clone())?
-            .iter()
-            .map(|e| e.to_lor(args.use_true))
             .collect()
     };
     let used = it.len();
@@ -155,7 +99,6 @@ mod test {
             dataset: "reco_info/table".into(),
             event_range: Some(0..4),
             use_true: false,
-            legacy_input_format: true,
             ecut: utils::parse_bounds("..").unwrap(),
             qcut: utils::parse_bounds("..").unwrap(),
         };
@@ -177,7 +120,6 @@ mod test {
             dataset: "reco_info/table".into(),
             event_range: Some(0..4),
             use_true: false,
-            legacy_input_format: true,
             ecut: utils::parse_bounds("..").unwrap(),
             qcut: utils::parse_bounds("..").unwrap(),
         };
