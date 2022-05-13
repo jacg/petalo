@@ -11,20 +11,21 @@ use crate::guomc::ConstZero;
 
 
 /// Scattergram specification
-pub enum Bins {
+pub enum BuildScattergram {
     R    { nbins    : usize, maxr: Length },
     Phi  { nbins    : usize },
     RPhi { nbins_phi: usize, nbins_r: usize, maxr: Length },
 }
 
-impl Bins {
+impl BuildScattergram {
     pub fn build(self) -> Scattergram {
+        use BuildScattergram::*;
         match self {
-            Bins::R { nbins, maxr } =>
+            R { nbins, maxr } =>
                 Scattergram::new(&|| Box::new(ndhistogram!(axis_r  (nbins, maxr); usize))),
-            Bins::Phi { nbins } =>
+            Phi { nbins } =>
                 Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(nbins      ); usize))),
-            Bins::RPhi { nbins_phi, nbins_r, maxr } =>
+            RPhi { nbins_phi, nbins_r, maxr } =>
                 Scattergram::new(&|| Box::new(ndhistogram!(
                     axis_phi(nbins_phi      ),
                     axis_r  (nbins_r  , maxr);

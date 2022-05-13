@@ -575,7 +575,7 @@ mod tests {
     }
 
 
-    use crate::lorogram::{Bins, Bins::*, Prompt};
+    use crate::lorogram::{BuildScattergram, BuildScattergram::*, Prompt};
 
     #[rstest(/**/ name        , correction,
              case("corr-none" , None                                                     ),
@@ -585,10 +585,10 @@ mod tests {
     )]
     fn mlem_reco(fov: FOV,
                  roi_1: ROI, roi_2: ROI, roi_3: ROI, roi_b: ROI,
-                 correction: Option<Bins>, name: &str)
+                 correction: Option<BuildScattergram>, name: &str)
     {
 
-        let mut sgram = correction.map(Bins::build);
+        let mut sgram = correction.map(BuildScattergram::build);
 
         // Generate scatters and trues
         let trues =   trues_from_rois(&[&roi_1, &roi_2, &roi_3, &roi_b]);
