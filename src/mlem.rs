@@ -603,20 +603,20 @@ mod tests {
     }
 
 
-    use crate::lorogram::{BuildScattergram, BuildScattergram::*, Prompt};
+    use crate::lorogram::{BuildScattergram as Sc, Prompt};
 
     #[rstest(/**/ name        , correction,
              case("corr-none" , None                                                     ),
-             case("corr-r"    , Some(R    {                nbins  : 20, maxr: mm(30.0) })),
-             case("corr-phi"  , Some(Phi  { nbins:     20                              })),
-             case("corr-r-phi", Some(RPhi { nbins_phi: 20, nbins_r: 20, maxr: mm(30.0) })),
+             case("corr-r"    , Some(Sc::new()             .r_bins(20).r_max(mm(30.0)))),
+             case("corr-phi"  , Some(Sc::new().phi_bins(20)                           )),
+             case("corr-r-phi", Some(Sc::new().phi_bins(20).r_bins(20).r_max(mm(30.0)))),
     )]
     fn mlem_reco(fov: FOV,
                  roi_1: ROI, roi_2: ROI, roi_3: ROI, roi_b: ROI,
-                 correction: Option<BuildScattergram>, name: &str)
+                 correction: Option<Sc>, name: &str)
     {
 
-        let mut sgram = correction.map(BuildScattergram::build);
+        let mut sgram = correction.map(Sc::build);
 
         // Generate scatters and trues
         let trues = trues_from_rois(&[&roi_1, &roi_2, &roi_3], &roi_b, 1);
