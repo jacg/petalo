@@ -606,17 +606,17 @@ mod tests {
     use crate::lorogram::{BuildScattergram as Sc, Prompt};
 
     #[rstest(/**/ name        , correction,
-             case("corr-none" , None                                                     ),
-             case("corr-r"    , Some(Sc::new()             .r_bins(20).r_max(mm(30.0)))),
-             case("corr-phi"  , Some(Sc::new().phi_bins(20)                           )),
-             case("corr-r-phi", Some(Sc::new().phi_bins(20).r_bins(20).r_max(mm(30.0)))),
+             case("corr-none" , Sc::new()                                        ),
+             case("corr-r"    , Sc::new()             .r_bins(20).r_max(mm(30.0))),
+             case("corr-phi"  , Sc::new().phi_bins(20)                           ),
+             case("corr-r-phi", Sc::new().phi_bins(20).r_bins(20).r_max(mm(30.0))),
     )]
     fn mlem_reco(fov: FOV,
                  roi_1: ROI, roi_2: ROI, roi_3: ROI, roi_b: ROI,
-                 correction: Option<Sc>, name: &str)
+                 correction: Sc, name: &str)
     {
 
-        let mut sgram = correction.map(Sc::build);
+        let mut sgram = correction.build();
 
         // Generate scatters and trues
         let trues = trues_from_rois(&[&roi_1, &roi_2, &roi_3], &roi_b, 1);

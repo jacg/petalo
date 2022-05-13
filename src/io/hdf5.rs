@@ -2,6 +2,7 @@
 
 use std::error::Error;
 use std::ops::RangeBounds;
+use crate::lorogram::{Scattergram, Prompt};
 
 #[derive(Clone)]
 pub struct Args {
@@ -35,6 +36,8 @@ pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<
 #[allow(nonstandard_style)]
 pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
     let mut rejected = 0;
+
+    // Read LOR data from disk
     let hdf5_lors: Vec<Hdf5Lor> = {
         read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
             .iter().cloned()
@@ -44,101 +47,41 @@ pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec
                 if eok && qok { true }
                 else { rejected += 1; false }
             })
-            .map(LOR::from)
             .collect()
     };
-    let used = it.len();
+
+    // Fill scattergram, if scatter corrections requested
+    if let Some(ref mut scattergram) = &mut scattergram {
+        for h5lor @&Hdf5Lor { x1, x2, E1, E2, .. } in &hdf5_lors {
+            if x1.is_nan() || x2.is_nan() { continue }
+            let prompt = if E1.min(E2) < 511.0 { Prompt::Scatter } else { Prompt::True };
+            scattergram.fill(prompt, &LOR::from(h5lor));
+        }
+    }
+
+    // Convert raw data (Hdf5Lors) to LORs used by MLEM
+    let lors: Vec<_> = if let Some(scattergram) = scattergram {
+        // With additive correction weights
+        hdf5_lors
+            .into_iter()
+            .map(|hdf5_lor| {
+                let mut lor: LOR = hdf5_lor.into();
+                lor.additive_correction = scattergram.value(&lor);
+                lor
+            }).collect()
+    } else {
+        // Without additive correction weights
+        hdf5_lors.into_iter().map(LOR::from).collect()
+    };
+
+    let used = lors.len();
     let used_pct = 100 * used / (used + rejected);
     use crate::utils::group_digits as g;
     println!("Using {} LORs (rejected {}, kept {}%)", g(used), g(rejected), used_pct);
-    Ok(it)
-}
-
-use ndhistogram::ndhistogram;
-
-use crate::lorogram::{axis_r, Lorogram, Prompt, Scattergram};
-
-pub fn read_scattergram(args: Args) -> Result<Scattergram, Box<dyn Error>> {
-    fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
-        let mut sgram = Scattergram::new(make_empty_lorogram);
-        for h5lor @Hdf5Lor { x1, x2, E1, E2, .. } in lors {
-            if x1.is_nan() || x2.is_nan() { continue }
-            let prompt = if E1.min(E2) < 511.0 { Prompt::Scatter } else { Prompt::True };
-            sgram.fill(prompt, &LOR::from(h5lor));
-        }
-        sgram
-    }
-    let h5lors = read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?;
-    let nbins_r = 10;
-    let r_max = 120.0;
-    let now = std::time::Instant::now();
-    let sgram = fill_scattergram(&|| Box::new(ndhistogram!(axis_r(nbins_r, mm(r_max)); usize)), h5lors);
-    println!("Calculated Scattergram in {} ms", crate::utils::group_digits(now.elapsed().as_millis()));
-    Ok(sgram)
+    Ok(lors)
 }
 
 
-#[cfg(test)]
-mod test {
-
-    use crate::utils;
-
-    use super::*;
-    use geometry::uom::mm_;
-    use assert_approx_eq::assert_approx_eq;
-
-    #[test] // Test higher-level `read_lors`
-    fn read_lors_hdf5() -> hdf5::Result<()> {
-
-        // suppress spamming stdout
-        let _suppress_errors = hdf5::silence_errors(true);
-
-        // First use the reco data to construct the LORs ...
-        let args = Args {
-            input_file: "src/io/test.h5".into(),
-            dataset: "reco_info/table".into(),
-            event_range: Some(0..4),
-            use_true: false,
-            ecut: utils::parse_bounds("..").unwrap(),
-            qcut: utils::parse_bounds("..").unwrap(),
-        };
-        let lors = read_lors(args.clone()).unwrap();
-        assert_approx_eq!(mm_(lors[2].p1.x), -120.7552004817734, 1e-5);
-
-        // ... then use the true data.
-        let args = Args { use_true: true, ..args };
-        let lors = read_lors(args).unwrap();
-        assert_approx_eq!(mm_(lors[2].p1.x), -120.73839054997248, 1e-5);
-        Ok(())
-    }
-
-    #[test] // Test lower-level components used by `read_lors`
-    fn read_hdf5() -> hdf5::Result<()> {
-
-        let args = Args {
-            input_file: "src/io/test.h5".into(),
-            dataset: "reco_info/table".into(),
-            event_range: Some(0..4),
-            use_true: false,
-            ecut: utils::parse_bounds("..").unwrap(),
-            qcut: utils::parse_bounds("..").unwrap(),
-        };
-
-        let events = read_table::<Event>(&args.input_file, &args.dataset, args.event_range)?;
-        assert_approx_eq!(events[2].true_r1, 394.2929992675781);
-        assert_approx_eq!(events[2].reco_r1, 394.3750647735979);
-
-        // Leave this here in case we want to regenerate the test file
-
-        // hdf5::File::create("test.h5")?
-        //     .create_group("reco_info")?
-        //     .new_dataset_builder()
-        //     .with_data(&events)
-        //     .create("table")?;
-
-        Ok(())
-    }
-}
 
 // --------------------------------------------------------------------------------
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
@@ -197,7 +140,19 @@ impl From<Hdf5Lor> for LOR {
             dt: ns(dt),
             p1: Point::new(mm(x1), mm(y1), mm(z1)),
             p2: Point::new(mm(x2), mm(y2), mm(z2)),
-            additive_correction: ratio(f32::NAN)
+            additive_correction: ratio(1.0)
+        }
+    }
+}
+
+impl From<&Hdf5Lor> for LOR {
+    fn from(lor: &Hdf5Lor) -> Self {
+        let &Hdf5Lor{dt, x1, y1, z1, x2, y2, z2, ..} = lor;
+        Self {
+            dt: ns(dt),
+            p1: Point::new(mm(x1), mm(y1), mm(z1)),
+            p2: Point::new(mm(x2), mm(y2), mm(z2)),
+            additive_correction: ratio(1.0)
         }
     }
 }

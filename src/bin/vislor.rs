@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let io_args = io::hdf5::Args{ dataset, use_true, input_file,
                                       ecut: parse_bounds("..").unwrap(), qcut: parse_bounds("..").unwrap(),
                                       event_range: Some(event_range) };
-        petalo::io::hdf5::read_lors(io_args)?[0]
+        petalo::io::hdf5::read_lors(io_args, None)?[0]
     } else {
         args.lor
     };

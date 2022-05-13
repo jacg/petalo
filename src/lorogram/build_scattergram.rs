@@ -12,7 +12,7 @@ pub struct BuildScattergram {
 
 macro_rules! axes {
     ($($axes:expr),+) => {
-        Scattergram::new(&|| Box::new(ndhistogram!($($axes),+; usize)))
+        Some(Scattergram::new(&|| Box::new(ndhistogram!($($axes),+; usize))))
     };
 }
 
@@ -34,16 +34,15 @@ impl BuildScattergram {
         self
     }
 
-    pub fn build(self) -> Scattergram {
+    pub fn build(self) -> Option<Scattergram> {
         let r   = self.  r_bins.map(|n_bins| (n_bins, self.r_max.unwrap()));
         let phi = self.phi_bins;
-        let f = Scattergram::new;
         if let Some((r_bins, r_max)) = r {
             if let Some(n) = phi { axes!(axis_r(r_bins, r_max), axis_phi(n)) }
             else                 { axes!(axis_r(r_bins, r_max)             ) }
         } else {
             if let Some(n) = phi { axes!(                       axis_phi(n)) }
-            else                 { panic!("Histogram without axes") }
+            else                 { None }
         }
     }
 
