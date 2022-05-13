@@ -575,13 +575,13 @@ mod tests {
     }
 
 
-    use crate::lorogram::{Bins, Prompt};
+    use crate::lorogram::{Bins, Bins::*, Prompt};
 
     #[rstest(/**/ name        , correction,
-             case("corr-none" , None                                                           ),
-             case("corr-r"    , Some(Bins::R    {                nbins  : 20, maxr: mm(30.0) })),
-             case("corr-phi"  , Some(Bins::Phi  { nbins:     20                              })),
-             case("corr-r-phi", Some(Bins::RPhi { nbins_phi: 20, nbins_r: 20, maxr: mm(30.0) })),
+             case("corr-none" , None                                                     ),
+             case("corr-r"    , Some(R    {                nbins  : 20, maxr: mm(30.0) })),
+             case("corr-phi"  , Some(Phi  { nbins:     20                              })),
+             case("corr-r-phi", Some(RPhi { nbins_phi: 20, nbins_r: 20, maxr: mm(30.0) })),
     )]
     fn mlem_reco(fov: FOV,
                  roi_1: ROI, roi_2: ROI, roi_3: ROI, roi_b: ROI,
