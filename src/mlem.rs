@@ -538,28 +538,6 @@ mod tests {
         lors
     }
 
-    fn make_noise(na: usize, nb: usize, spread: Angle) -> Vec<LOR> {
-        let mut noise = vec![];
-        fn hmm(a: Angle, b: Angle) -> LOR {
-            let r = DETECTOR_RADIUS;
-            LOR::from_components((ns(0.0), ns(0.0)),
-                                 (r*a.cos(), r*a.sin(), mm(0.0)),
-                                 (r*b.cos(), r*b.sin(), mm(0.0)),
-                                 ratio(1.0))
-        }
-        let slice_width = spread / (nb - 1) as f32;
-        for a in n_angles_around_half_circle_starting_from(na, turn(0.0)) {
-            for b in 0..nb {
-                let b = a + turn(0.5) - spread / 2.0 + b as f32 * slice_width;
-                noise.push(hmm(a            , b            ));
-                noise.push(hmm(a + turn(0.5), b            ));
-                noise.push(hmm(a            , b + turn(0.5)));
-                noise.push(hmm(a + turn(0.5), b + turn(0.5)));
-            }
-        }
-        noise
-    }
-
     use geometry::in_base_unit;
     pub const DETECTOR_RADIUS: Length = in_base_unit!(50.0);
 
