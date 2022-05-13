@@ -540,11 +540,12 @@ mod tests {
     ///
     /// The given LORs are adjusted by randomly picking one end and shifting it
     /// around the detector ring by a random angle within `max_deviation`.
-    fn scatter_lors(lors: impl Iterator<Item = LOR>, max_deviation: Angle) -> Vec<LOR> {
+    ///
+    /// The number of scatters generated per input LOR is controlled by `scale`.
+    fn scatter_lors(lors: impl Iterator<Item = LOR>, max_deviation: Angle, scale: i16) -> Vec<LOR> {
         let max_deviation: f32 = turn_(max_deviation);
         use geometry::Point;
         use rand::prelude::*;
-        let mut rng = thread_rng();
 
         fn rotate_by(delta: Angle, Point { x, y, z }: Point) -> Point {
             let new_angle = y.atan2(x) + delta;
@@ -553,13 +554,30 @@ mod tests {
             Point { x, y, z }
         }
 
-        lors.into_iter()
-            .map(|mut lor| {
-                let delta = turn(rng.gen_range(-max_deviation..=max_deviation));
-                if rng.gen() { lor.p1 = rotate_by(delta, lor.p1); }
-                else         { lor.p2 = rotate_by(delta, lor.p2); }
-                lor
+        // How to scatter one LOR
+        let scatter = |mut lor: LOR| {
+            let mut rng = thread_rng();
+            let delta = turn(rng.gen_range(-max_deviation..=max_deviation));
+            if rng.gen() { lor.p1 = rotate_by(delta, lor.p1); }
+            else         { lor.p2 = rotate_by(delta, lor.p2); }
+            lor
+        };
+
+        // How to produce multiple scatters derived single LOR
+        let scaled_scatter = |lor: LOR| {
+            let mut i = 0;
+            std::iter::from_fn(move || {
+                if i < scale {
+                    i += 1;
+                    Some(scatter(lor))
+                } else {
+                    None
+                }
             })
+        };
+
+        lors.into_iter()
+            .flat_map(scaled_scatter)
             .collect()
     }
 
@@ -601,8 +619,8 @@ mod tests {
         let mut sgram = correction.map(BuildScattergram::build);
 
         // Generate scatters and trues
-        let trues = trues_from_rois(&[&roi_1, &roi_2, &roi_3], &roi_b, 10);
-        let noise = scatter_lors(trues.iter().cloned(), turn(0.1));
+        let trues = trues_from_rois(&[&roi_1, &roi_2, &roi_3], &roi_b, 1);
+        let noise = scatter_lors(trues.iter().cloned(), turn(0.1), 1);
 
         // Fill scattergam, if required
         if let Some(sgram) = &mut sgram {
