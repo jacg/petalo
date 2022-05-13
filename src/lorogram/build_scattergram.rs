@@ -10,6 +10,12 @@ pub struct BuildScattergram {
     r_max: Option<Length>,
 }
 
+macro_rules! axes {
+    ($($axes:expr),+) => {
+        Scattergram::new(&|| Box::new(ndhistogram!($($axes),+; usize)))
+    };
+}
+
 impl BuildScattergram {
 
     pub fn new() -> Self { Self { phi_bins: None, r_bins: None, r_max: None } }
@@ -21,6 +27,7 @@ impl BuildScattergram {
         self.r_max.get_or_insert(mm(30.0));
         self
     }
+
     pub fn r_max(mut self, r: Length) -> Self {
         self.r_max = Some(r);
         self.r_bins.get_or_insert(50);
@@ -32,11 +39,11 @@ impl BuildScattergram {
         let phi = self.phi_bins;
         let f = Scattergram::new;
         if let Some((r_bins, r_max)) = r {
-            if let Some(n) = phi { f(&|| Box::new(ndhistogram!(axis_r(r_bins, r_max), axis_phi(n); usize))) }
-            else                 { f(&|| Box::new(ndhistogram!(axis_r(r_bins, r_max)             ; usize))) }
+            if let Some(n) = phi { axes!(axis_r(r_bins, r_max), axis_phi(n)) }
+            else                 { axes!(axis_r(r_bins, r_max)             ) }
         } else {
-            if let Some(n) = phi { f(&|| Box::new(ndhistogram!(                       axis_phi(n); usize))) }
-            else                   { panic!("Histogram without axes") }
+            if let Some(n) = phi { axes!(                       axis_phi(n)) }
+            else                 { panic!("Histogram without axes") }
         }
     }
 
