@@ -577,18 +577,18 @@ mod tests {
 
     use crate::lorogram::{Bins, Prompt};
 
-    #[rstest(/**/ name        , bins,
-             case("corr-none" , Bins::None),
-             case("corr-r"    , Bins::R    {                nbins  : 20, maxr: mm(30.0) }),
-             case("corr-phi"  , Bins::Phi  { nbins:     20                              }),
-             case("corr-r-phi", Bins::RPhi { nbins_phi: 20, nbins_r: 20, maxr: mm(30.0) }),
+    #[rstest(/**/ name        , correction,
+             case("corr-none" , None                                                           ),
+             case("corr-r"    , Some(Bins::R    {                nbins  : 20, maxr: mm(30.0) })),
+             case("corr-phi"  , Some(Bins::Phi  { nbins:     20                              })),
+             case("corr-r-phi", Some(Bins::RPhi { nbins_phi: 20, nbins_r: 20, maxr: mm(30.0) })),
     )]
     fn mlem_reco(fov: FOV,
                  roi_1: ROI, roi_2: ROI, roi_3: ROI, roi_b: ROI,
-                 bins: Bins, name: &str)
+                 correction: Option<Bins>, name: &str)
     {
 
-        let mut sgram = bins.build();
+        let mut sgram = correction.map(Bins::build);
 
         // Generate scatters and trues
         let trues =   trues_from_rois(&[&roi_1, &roi_2, &roi_3, &roi_b]);

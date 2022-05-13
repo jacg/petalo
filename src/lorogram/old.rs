@@ -10,29 +10,25 @@ use geometry::uom::{mm, mm_, ratio, radian_};
 use crate::guomc::ConstZero;
 
 
-// TODO: the None is really Option's job, but it was included here, to make test
-// cases more concise to write. It should probably go.
 /// Scattergram specification
 pub enum Bins {
-    None,
     R    { nbins    : usize, maxr: Length },
     Phi  { nbins    : usize },
     RPhi { nbins_phi: usize, nbins_r: usize, maxr: Length },
 }
 
 impl Bins {
-    pub fn build(self) -> Option<Scattergram> {
+    pub fn build(self) -> Scattergram {
         match self {
-            Bins::None => None,
             Bins::R { nbins, maxr } =>
-                Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_r  (nbins, maxr); usize)))),
+                Scattergram::new(&|| Box::new(ndhistogram!(axis_r  (nbins, maxr); usize))),
             Bins::Phi { nbins } =>
-                Some(Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(nbins      ); usize)))),
+                Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(nbins      ); usize))),
             Bins::RPhi { nbins_phi, nbins_r, maxr } =>
-                Some(Scattergram::new(&|| Box::new(ndhistogram!(
+                Scattergram::new(&|| Box::new(ndhistogram!(
                     axis_phi(nbins_phi      ),
                     axis_r  (nbins_r  , maxr);
-                    usize)))),
+                    usize))),
 
         }
     }
