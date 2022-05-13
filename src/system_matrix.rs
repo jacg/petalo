@@ -14,7 +14,7 @@
 //!    coordinate system.
 
 use geometry::in_base_unit;
-use crate::{Index3Weightf32, Lengthf32, Vectorf32};
+use crate::{Index3Weightf32, Lengthf32};
 use crate::{Length, PerLength, Time, C,
             Point, Vector, Ratio, RatioPoint, RatioVec};
 use crate::fov::FOV;
