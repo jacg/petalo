@@ -1,4 +1,4 @@
-use ndhistogram::{axis::{Axis, Uniform}, Histogram};
+use ndhistogram::{axis::{Axis, Uniform}, Histogram, ndhistogram};
 use super::axis::Cyclic;
 use crate::io::hdf5::Hdf5Lor;
 use crate::system_matrix::LOR;
@@ -8,6 +8,32 @@ use crate::Lengthf32;
 use crate::{Angle, Length, Point, Time, Ratio};
 use geometry::uom::{mm, mm_, ratio, radian_};
 use crate::guomc::ConstZero;
+
+
+/// Scattergram specification
+pub enum BuildScattergram {
+    R    { nbins    : usize, maxr: Length },
+    Phi  { nbins    : usize },
+    RPhi { nbins_phi: usize, nbins_r: usize, maxr: Length },
+}
+
+impl BuildScattergram {
+    pub fn build(self) -> Scattergram {
+        use BuildScattergram::*;
+        match self {
+            R { nbins, maxr } =>
+                Scattergram::new(&|| Box::new(ndhistogram!(axis_r  (nbins, maxr); usize))),
+            Phi { nbins } =>
+                Scattergram::new(&|| Box::new(ndhistogram!(axis_phi(nbins      ); usize))),
+            RPhi { nbins_phi, nbins_r, maxr } =>
+                Scattergram::new(&|| Box::new(ndhistogram!(
+                    axis_phi(nbins_phi      ),
+                    axis_r  (nbins_r  , maxr);
+                    usize))),
+
+        }
+    }
+}
 
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }
