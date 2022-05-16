@@ -54,7 +54,7 @@ pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec
     if let Some(ref mut scattergram) = &mut scattergram {
         for h5lor @&Hdf5Lor { x1, x2, E1, E2, .. } in &hdf5_lors {
             if x1.is_nan() || x2.is_nan() { continue }
-            let prompt = if E1.min(E2) < 511.0 { Prompt::Scatter } else { Prompt::True };
+            let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
             scattergram.fill(prompt, &LOR::from(h5lor));
         }
     }

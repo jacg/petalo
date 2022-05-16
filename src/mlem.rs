@@ -602,8 +602,45 @@ mod tests {
                  (n, n,    1   ))
     }
 
+    #[fixture]
+    #[once]
+    fn trues_and_scatters(roi_1: ROI, roi_2: ROI, roi_3: ROI, roi_b: ROI) -> (Vec<LOR>, Vec<LOR>) {
+        // Generate scatters and trues
+        let trues = trues_from_rois(&[&roi_1, &roi_2, &roi_3], &roi_b, 1);
+        let noise = scatter_lors(trues.iter().cloned(), turn(0.1), 1);
 
-    use crate::lorogram::{BuildScattergram as Sc, Prompt};
+        // // Write LORs to file, for use in testing of CLI scattergram specification
+        // let mut hdf5lors: Vec<Hdf5Lor> = vec![];
+        // {
+        //     let mklor = | &LOR { p1, p2, .. }, prompt | {
+        //         let (E1, E2) = match prompt {
+        //             Prompt::True    => (511.0, 511.0),
+        //             Prompt::Scatter => (450.0, 450.0),
+        //             _ => panic!("Not expecting randoms"),
+        //         };
+        //         Hdf5Lor {
+        //             dt: 0.0,
+        //             x1: mm_(p1.x), y1: mm_(p1.y), z1: mm_(p1.z),
+        //             x2: mm_(p2.x), y2: mm_(p2.y), z2: mm_(p2.z),
+        //             q1: f32::NAN, q2: f32::NAN,
+        //             E1, E2
+        //         }
+        //     };
+        //     for lor in &trues { hdf5lors.push(mklor(lor, Prompt::True   )); }
+        //     for lor in &noise { hdf5lors.push(mklor(lor, Prompt::Scatter)); }
+        // }
+        // let filename = std::path::PathBuf::from("/tmp/test-mlem/lors.h5");
+        // std::fs::create_dir_all(filename.parent().unwrap()).unwrap();
+        // hdf5::File::create(filename).unwrap()
+        //     .create_group("reco_info").unwrap()
+        //     .new_dataset_builder()
+        //     .with_data(&hdf5lors)
+        //     .create("lors").unwrap();
+
+        (trues, noise)
+    }
+
+    use crate::{lorogram::{BuildScattergram as Sc, Prompt}, io::hdf5::Hdf5Lor};
 
     #[rstest(/**/ name        , correction,
              case("corr-none" , Sc::new()                                        ),
@@ -611,25 +648,22 @@ mod tests {
              case("corr-phi"  , Sc::new().phi_bins(20)                           ),
              case("corr-r-phi", Sc::new().phi_bins(20).r_bins(20).r_max(mm(30.0))),
     )]
-    fn mlem_reco(fov: FOV,
-                 roi_1: ROI, roi_2: ROI, roi_3: ROI, roi_b: ROI,
-                 correction: Sc, name: &str)
+    fn mlem_reco(correction: Sc, name: &str, fov: FOV,
+                 trues_and_scatters: &(Vec<LOR>, Vec<LOR>))
     {
+        let (trues, noise) = trues_and_scatters;
 
         let mut sgram = correction.build();
 
-        // Generate scatters and trues
-        let trues = trues_from_rois(&[&roi_1, &roi_2, &roi_3], &roi_b, 1);
-        let noise = scatter_lors(trues.iter().cloned(), turn(0.1), 1);
 
         // Fill scattergam, if required
         if let Some(sgram) = &mut sgram {
-            for lor in &trues { sgram.fill(Prompt::True   , lor); }
-            for lor in &noise { sgram.fill(Prompt::Scatter, lor); }
+            for lor in trues { sgram.fill(Prompt::True   , lor); }
+            for lor in noise { sgram.fill(Prompt::Scatter, lor); }
         }
 
         // Combines trues and scatters into single collection of prompts
-        let mut lors = trues;
+        let mut lors = trues.clone();
         lors.extend(noise);
 
         // Annotate each LOR with additive correction taken from scattergam
@@ -644,7 +678,7 @@ mod tests {
         let _ = pool.install(|| {
             Image::mlem(fov, &lors, None, None, None)
                 .take(10)
-                .inspect(save_each_image_in(format!("/tmp/test-mlem-{name}")))
+                .inspect(save_each_image_in(format!("/tmp/test-mlem/{name}/")))
                 .for_each(|_| {
                 });
         });
