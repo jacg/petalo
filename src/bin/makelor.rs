@@ -141,7 +141,7 @@ fn main() -> hdf5::Result<()> {
     // --- write lors to hdf5 --------------------------------------------------------
     println!("Writing LORs to {}", args.out);
     hdf5::File::create(args.out)?
-        .create_group("reco_info")?
+        .create_group("reco_info")? // TODO rethink all the HDF% group names
         .new_dataset_builder()
         .with_data(&lors)
         .create("lors")?;
