@@ -86,6 +86,14 @@ pub struct Cli {
     #[structopt(long)]
     pub scatter_z_length: Option<Length>,
 
+    /// Apply scatter corrections with  dz-axis using this number of bins
+    #[structopt(long)]
+    pub scatter_dz_bins: Option<usize>,
+
+    /// Apply scatter corrections with  dz-axis up to this value
+    #[structopt(long)]
+    pub scatter_dz_max: Option<Length>,
+
 }
 
 // --------------------------------------------------------------------------------
@@ -197,7 +205,9 @@ fn build_scattergram(args: Cli) -> Option<Scattergram> {
     if let Some(n) = args.scatter_phi_bins { builder = builder.phi_bins(n) };
     if let Some(n) = args.scatter_r_bins   { builder = builder.  r_bins(n) };
     if let Some(n) = args.scatter_z_bins   { builder = builder.  z_bins(n) };
-    if let Some(r) = args.scatter_r_max    { builder = builder.r_max   (r) };
+    if let Some(n) = args.scatter_dz_bins  { builder = builder. dz_bins(n) };
+    if let Some(r) = args.scatter_r_max    { builder = builder. r_max  (r) };
+    if let Some(z) = args.scatter_dz_max   { builder = builder.dz_max  (z) };
     if let Some(l) = args.scatter_z_length { builder = builder.z_length(l) };
     builder.build()
 }
