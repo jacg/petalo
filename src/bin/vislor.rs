@@ -26,11 +26,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     // exclusive.
     let lor = if let Some(input_file) = args.clone().input_file {
         let event_range = args.event..args.event+1;
-        let                      Cli{ dataset, use_true, legacy_input_format, .. } = args.clone();
-        let io_args = io::hdf5::Args{ dataset, use_true, legacy_input_format, input_file,
+        let                      Cli{ dataset, use_true, .. } = args.clone();
+        let io_args = io::hdf5::Args{ dataset, use_true, input_file,
                                       ecut: parse_bounds("..").unwrap(), qcut: parse_bounds("..").unwrap(),
                                       event_range: Some(event_range) };
-        petalo::io::hdf5::read_lors(io_args)?[0]
+        petalo::io::hdf5::read_lors(io_args, None)?[0]
     } else {
         args.lor
     };
@@ -86,9 +86,5 @@ pub struct Cli {
     /// Use true rather than reco LOR data from file
     #[structopt(long)]
     use_true: bool,
-
-    /// The input dataset contains the old true/reco r/phi format
-    #[structopt(long)]
-    legacy_input_format: bool,
 
 }

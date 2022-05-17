@@ -2,7 +2,7 @@
 use structopt::StructOpt;
 
 use petalo::{utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption,
-                     group_digits}};
+                     group_digits}, lorogram::BuildScattergram};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -58,10 +58,6 @@ pub struct Cli {
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
 
-    /// The input dataset contains the old true/reco r/phi format
-    #[structopt(long)]
-    pub legacy_input_format: bool,
-
     /// Ignore events with gamma energy/keV outside this range
     #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energyf32>), default_value = "..")]
     pub ecut: BoundPair<Energyf32>,
@@ -69,6 +65,34 @@ pub struct Cli {
     /// Ignore events with detected charge/pes outside this range
     #[structopt(short, long, parse(try_from_str = parse_bounds::<Chargef32>), default_value = "..")]
     pub qcut: BoundPair<Chargef32>,
+
+    /// Apply scatter corrections with   r-axis up to this value
+    #[structopt(long)]
+    pub scatter_r_max: Option<Length>,
+
+    /// Apply scatter corrections with   r-axis using this number of bins
+    #[structopt(long)]
+    pub scatter_r_bins: Option<usize>,
+
+    /// Apply scatter corrections with phi-axis using this number of bins
+    #[structopt(long)]
+    pub scatter_phi_bins: Option<usize>,
+
+    /// Apply scatter corrections with   z-axis using this number of bins
+    #[structopt(long)]
+    pub scatter_z_bins: Option<usize>,
+
+    /// Apply scatter corrections with   z-axis: full-length of z-axis
+    #[structopt(long)]
+    pub scatter_z_length: Option<Length>,
+
+    /// Apply scatter corrections with  dz-axis using this number of bins
+    #[structopt(long)]
+    pub scatter_dz_bins: Option<usize>,
+
+    /// Apply scatter corrections with  dz-axis up to this value
+    #[structopt(long)]
+    pub scatter_dz_max: Option<Length>,
 
 }
 
@@ -81,7 +105,7 @@ use std::fs::create_dir_all;
 use petalo::{Energyf32, Chargef32, BoundPair};
 use petalo::{Length, Time, Ratio};
 use petalo::lorogram::Scattergram;
-use petalo::{system_matrix::LOR, fov::FOV};
+use petalo::fov::FOV;
 use petalo::image::Image;
 use petalo::io;
 use geometry::uom::mm_;
@@ -103,16 +127,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time("Startup");
 
     // Read event data from disk into memory
-    let                      Cli{ input_file, dataset, event_range, use_true, legacy_input_format,
-                                  ecut, qcut, .. } = args.clone();
-    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, legacy_input_format,
-                                  ecut, qcut };
+    let                      Cli{ input_file, dataset, event_range, use_true, ecut, qcut, .. } = args.clone();
+    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, ecut, qcut };
+
+    let scattergram = build_scattergram(args.clone());
+
     println!("Reading LOR data from disk ...");
-    let sgram = io::hdf5::read_scattergram(io_args.clone())?;
-    let mut measured_lors = io::hdf5::read_lors(io_args)?;
+    let measured_lors = io::hdf5::read_lors(io_args.clone(), scattergram)?;
     report_time("Loaded LOR data from disk");
-    calculate_additive_correction(&mut measured_lors, sgram);
-    report_time("Added additive correction values to LORs");
 
     // Define field of view extent and voxelization
     let fov = FOV::new(args.size, args.nvoxels);
@@ -178,8 +200,14 @@ fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) 
     }
 }
 
-fn calculate_additive_correction(measured_lors: &mut [LOR], sgram: Scattergram) {
-    for lor in measured_lors {
-        lor.additive_correction = sgram.value(lor);
-    }
+fn build_scattergram(args: Cli) -> Option<Scattergram> {
+    let mut builder = BuildScattergram::new();
+    if let Some(n) = args.scatter_phi_bins { builder = builder.phi_bins(n) };
+    if let Some(n) = args.scatter_r_bins   { builder = builder.  r_bins(n) };
+    if let Some(n) = args.scatter_z_bins   { builder = builder.  z_bins(n) };
+    if let Some(n) = args.scatter_dz_bins  { builder = builder. dz_bins(n) };
+    if let Some(r) = args.scatter_r_max    { builder = builder. r_max  (r) };
+    if let Some(z) = args.scatter_dz_max   { builder = builder.dz_max  (z) };
+    if let Some(l) = args.scatter_z_length { builder = builder.z_length(l) };
+    builder.build()
 }
