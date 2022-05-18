@@ -250,11 +250,11 @@ pub fn sd(data: &[Intensityf32]) -> Option<Intensityf32> {
 
 pub fn mu_and_sigma(data: &[Intensityf32]) -> Option<(Intensityf32, Intensityf32)> {
     let mu = mean(data)?;
-    let sigma = data.iter().cloned()
+    let variance = data.iter().cloned()
         .map(|x| x-mu)
         .map(|x| x*x)
         .sum::<Intensityf32>() / data.len() as Intensityf32;
-    Some((mu, sigma))
+    Some((mu, variance.sqrt()))
 
 }
 
@@ -265,25 +265,25 @@ mod test_mean {
     #[test]
     fn test_mean() {
         let it = mean(&vec![1.0, 1.0, 1.0]);
-        assert!(it == Some(1.0));
+        assert_eq!(it, Some(1.0));
 
         let it = mean(&vec![1.0, 2.0, 3.0, 4.0]);
-        assert!(it == Some(2.5));
+        assert_eq!(it, Some(2.5));
 
         let it = mean(&vec![]);
-        assert!(it == None);
+        assert_eq!(it, None);
     }
 
     #[test]
     fn test_mu_and_sigma() {
         if let Some((mu, sigma)) = mu_and_sigma(&vec![1.0, 1.0, 1.0]) {
-            assert!(mu    == 1.0);
-            assert!(sigma == 0.0);
+            assert_eq!(mu,    1.0);
+            assert_eq!(sigma, 0.0);
         };
 
-        if let Some((mu, sigma)) = mu_and_sigma(&vec![2.0, 4.0, 2.0, 4.0]) {
-            assert!(mu    == 3.0);
-            assert!(sigma == 1.0);
+        if let Some((mu, sigma)) = mu_and_sigma(&vec![5.0, 6.0, 7.0, 8.0, 9.0]) {
+            assert_eq!(mu,    7.0);
+            assert_eq!(sigma, 2.0_f32.sqrt());
         };
 
         assert!(mu_and_sigma(&vec![]) == None);
