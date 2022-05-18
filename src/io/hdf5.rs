@@ -37,6 +37,18 @@ pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<
 
 use crate::fov::{FOV, lor_fov_hit, FovHit};
 
+/// Fill `scattergram`, with spatial distribution of scatters probabilities
+/// gathered from `lors`
+fn fill_scattergram(scattergram: &mut Option<Scattergram>, lors: &[Hdf5Lor]) {
+    if let Some(ref mut scattergram) = scattergram.as_mut() {
+        for h5lor @&Hdf5Lor { x1, x2, E1, E2, .. } in lors {
+            if x1.is_nan() || x2.is_nan() { continue }
+            let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
+            scattergram.fill(prompt, &LOR::from(h5lor));
+        }
+    }
+}
+
 #[allow(nonstandard_style)]
 pub fn read_lors(args: Args, fov: FOV, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
     let mut cut = 0;
@@ -56,14 +68,8 @@ pub fn read_lors(args: Args, fov: FOV, mut scattergram: Option<Scattergram>) -> 
             .collect()
     };
 
-    // Fill scattergram, if scatter corrections requested
-    if let Some(ref mut scattergram) = &mut scattergram {
-        for h5lor @&Hdf5Lor { x1, x2, E1, E2, .. } in &hdf5_lors {
-            if x1.is_nan() || x2.is_nan() { continue }
-            let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
-            scattergram.fill(prompt, &LOR::from(h5lor));
-        }
-    }
+    // Use LORs to gather statistics about spatial distribution of scatter probability
+    fill_scattergram(&mut scattergram, &hdf5_lors);
 
     // Needed in upcoming LOR-filter closure
     let (image, mut weights, mut indices) = projection_buffers(fov);
