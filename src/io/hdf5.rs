@@ -2,7 +2,9 @@
 
 use std::error::Error;
 use std::ops::RangeBounds;
+use crate::gauss::make_gauss_option;
 use crate::lorogram::{Scattergram, Prompt};
+use crate::mlem::projection_buffers;
 
 #[derive(Clone)]
 pub struct Args {
@@ -18,7 +20,7 @@ use ndarray::{s, Array1};
 
 use crate::{Energyf32, BoundPair};
 use crate::Point;
-use crate::system_matrix::LOR;
+use crate::system_matrix::{LOR, system_matrix_elements};
 
 use geometry::uom::{mm, ns, ratio};
 
@@ -33,9 +35,13 @@ pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<
     Ok(data)
 }
 
+use crate::fov::{FOV, lor_fov_hit, FovHit};
+
 #[allow(nonstandard_style)]
-pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
-    let mut rejected = 0;
+pub fn read_lors(args: Args, fov: FOV, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
+    let mut cut = 0;
+    let mut dodgy = 0;
+    let mut miss = 0;
 
     // Read LOR data from disk
     let hdf5_lors: Vec<Hdf5Lor> = {
@@ -45,7 +51,7 @@ pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec
                 let eok = args.ecut.contains(E1) && args.ecut.contains(E2);
                 let qok = args.qcut.contains(q1) && args.qcut.contains(q2);
                 if eok && qok { true }
-                else { rejected += 1; false }
+                else { cut += 1; false }
             })
             .collect()
     };
@@ -59,6 +65,10 @@ pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec
         }
     }
 
+    // Needed in upcoming LOR-filter closure
+    let (image, mut weights, mut indices) = projection_buffers(fov);
+    let notof = make_gauss_option(None, None);
+
     // Convert raw data (Hdf5Lors) to LORs used by MLEM
     let lors: Vec<_> = if let Some(scattergram) = scattergram {
         // With additive correction weights
@@ -68,16 +78,57 @@ pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec
                 let mut lor: LOR = hdf5_lor.into();
                 lor.additive_correction = scattergram.value(&lor);
                 lor
-            }).collect()
+            })
+            // Very rarely, a LOR produces indexing problems (probably because
+            // of float inaccuracies) in the system matrix calculation, and
+            // crashes the whole reconstruction. Remove these before we get
+            // started.
+            .filter(|lor| {
+                match lor_fov_hit(lor, fov) {
+                    // LOR missed FOV: don't keep it
+                    None => {
+                        miss += 1;
+                        false
+                    },
+                    // Check check the indices of the active system matrix
+                    // elements. Filter out the LOR if any index is out of
+                    // bounds.
+                    Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+
+                        // Throw away previous LOR's values
+                        weights.clear();
+                        indices.clear();
+
+                        // Find active voxels and their weights
+                        system_matrix_elements(
+                            &mut indices, &mut weights,
+                            next_boundary, voxel_size,
+                            index, delta_index, remaining,
+                            tof_peak, &notof);
+
+                        for index in &indices {
+                            if index >= &image.len() {
+                                dodgy += 1;
+                                return false;
+                            }
+                        }
+                        true
+                    }
+
+
+                }
+            })
+            .collect()
     } else {
         // Without additive correction weights
         hdf5_lors.into_iter().map(LOR::from).collect()
     };
 
     let used = lors.len();
-    let used_pct = 100 * used / (used + rejected);
+    let used_pct = 100 * used / (used + cut);
     use crate::utils::group_digits as g;
-    println!("Using {} LORs (rejected {}, kept {}%)", g(used), g(rejected), used_pct);
+    println!("Using {} LORs (cut {}    miss FOV {}    dodgy index {}    kept {}%)",
+                 g(used),      g(cut),       g(miss),          g(dodgy), used_pct);
     Ok(lors)
 }
 
