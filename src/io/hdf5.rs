@@ -18,7 +18,7 @@ pub struct Args {
 
 use ndarray::{s, Array1};
 
-use crate::{Energyf32, BoundPair};
+use crate::{Chargef32, Energyf32, BoundPair};
 use crate::Point;
 use crate::system_matrix::{LOR, system_matrix_elements};
 
@@ -49,24 +49,38 @@ fn fill_scattergram(scattergram: &mut Option<Scattergram>, lors: &[Hdf5Lor]) {
     }
 }
 
-#[allow(nonstandard_style)]
-pub fn read_lors(args: Args, fov: FOV, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
+/// Read HDF5 LORs from file, potentially filtering according to event, energy
+/// and charge ranges
+fn read_hdf5_lors(
+    input_file: &str, dataset: &str,
+    event_range: Option<std::ops::Range<usize>>,
+    qcut: BoundPair<Chargef32>, ecut: BoundPair<Energyf32>
+) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Error>> {
     let mut cut = 0;
-    let mut dodgy = 0;
-    let mut miss = 0;
-
     // Read LOR data from disk
     let hdf5_lors: Vec<Hdf5Lor> = {
-        read_table::<Hdf5Lor>(&args.input_file, &args.dataset, args.event_range.clone())?
+        read_table::<Hdf5Lor>(input_file, dataset, event_range)?
             .iter().cloned()
             .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
-                let eok = args.ecut.contains(E1) && args.ecut.contains(E2);
-                let qok = args.qcut.contains(q1) && args.qcut.contains(q2);
+                let eok = ecut.contains(E1) && ecut.contains(E2);
+                let qok = qcut.contains(q1) && qcut.contains(q2);
                 if eok && qok { true }
                 else { cut += 1; false }
             })
             .collect()
     };
+    Ok((hdf5_lors, cut))
+}
+
+#[allow(nonstandard_style)]
+pub fn read_lors(args: Args, fov: FOV, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
+    let mut dodgy = 0;
+    let mut miss = 0;
+
+    // Read LORs from file,
+    let (hdf5_lors, cut) = read_hdf5_lors(&args.input_file, &args.dataset,
+                                          args.event_range.clone(),
+                                          args.qcut, args.ecut)?;
 
     // Use LORs to gather statistics about spatial distribution of scatter probability
     fill_scattergram(&mut scattergram, &hdf5_lors);
