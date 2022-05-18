@@ -89,60 +89,55 @@ pub fn read_lors(args: Args, fov: FOV, mut scattergram: Option<Scattergram>) -> 
     let (image, mut weights, mut indices) = projection_buffers(fov);
     let notof = make_gauss_option(None, None);
 
+    let hdf5lor_to_lor: Box<dyn Fn(Hdf5Lor) -> LOR> = if let Some(scattergram) = scattergram.as_ref() {
+        Box::new(|hdf5_lor: Hdf5Lor| {
+            let mut lor: LOR = hdf5_lor.into();
+            lor.additive_correction = scattergram.value(&lor);
+            lor
+        })
+    } else { Box::new(LOR::from) };
+
     // Convert raw data (Hdf5Lors) to LORs used by MLEM
-    let lors: Vec<_> = if let Some(scattergram) = scattergram {
-        // With additive correction weights
-        hdf5_lors
-            .into_iter()
-            .map(|hdf5_lor| {
-                let mut lor: LOR = hdf5_lor.into();
-                lor.additive_correction = scattergram.value(&lor);
-                lor
-            })
-            // Very rarely, a LOR produces indexing problems (probably because
-            // of float inaccuracies) in the system matrix calculation, and
-            // crashes the whole reconstruction. Remove these before we get
-            // started.
-            .filter(|lor| {
-                match lor_fov_hit(lor, fov) {
-                    // LOR missed FOV: don't keep it
-                    None => {
-                        miss += 1;
-                        false
-                    },
-                    // Check check the indices of the active system matrix
-                    // elements. Filter out the LOR if any index is out of
-                    // bounds.
-                    Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+    let lors: Vec<_> = hdf5_lors
+        .into_iter()
+        .map(hdf5lor_to_lor)
+        // Very rarely, a LOR produces indexing problems (probably because of
+        // float inaccuracies) in the system matrix calculation, and crashes the
+        // whole reconstruction. Remove these before we get started.
+        .filter(|lor| {
+            match lor_fov_hit(lor, fov) {
+                // LOR missed FOV: don't keep it
+                None => {
+                    miss += 1;
+                    false
+                },
+                // Check check the indices of the active system matrix
+                // elements. Filter out the LOR if any index is out of
+                // bounds.
+                Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
-                        // Throw away previous LOR's values
-                        weights.clear();
-                        indices.clear();
+                    // Throw away previous LOR's values
+                    weights.clear();
+                    indices.clear();
 
-                        // Find active voxels and their weights
-                        system_matrix_elements(
-                            &mut indices, &mut weights,
-                            next_boundary, voxel_size,
-                            index, delta_index, remaining,
-                            tof_peak, &notof);
+                    // Find active voxels and their weights
+                    system_matrix_elements(
+                        &mut indices, &mut weights,
+                        next_boundary, voxel_size,
+                        index, delta_index, remaining,
+                        tof_peak, &notof);
 
-                        for index in &indices {
-                            if index >= &image.len() {
-                                dodgy += 1;
-                                return false;
-                            }
+                    for index in &indices {
+                        if index >= &image.len() {
+                            dodgy += 1;
+                            return false;
                         }
-                        true
                     }
-
-
+                    true
                 }
-            })
-            .collect()
-    } else {
-        // Without additive correction weights
-        hdf5_lors.into_iter().map(LOR::from).collect()
-    };
+            }
+        })
+        .collect();
 
     let used = lors.len();
     let used_pct = 100 * used / (used + cut);
