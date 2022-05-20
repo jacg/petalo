@@ -132,12 +132,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let scattergram = build_scattergram(args.clone());
 
-    println!("Reading LOR data from disk ...");
-    let measured_lors = io::hdf5::read_lors(io_args.clone(), scattergram)?;
-    report_time("Loaded LOR data from disk");
-
     // Define field of view extent and voxelization
     let fov = FOV::new(args.size, args.nvoxels);
+
+    println!("Reading LOR data from disk ...");
+    let measured_lors = io::hdf5::read_lors(io_args.clone(), fov, scattergram)?;
+    report_time("Loaded LOR data from disk");
 
     let file_pattern = guess_filename(&args);
 

@@ -239,15 +239,6 @@ pub fn mean(data: &[Intensityf32]) -> Option<Intensityf32> {
     data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensityf32)
 }
 
-pub fn sd(data: &[Intensityf32]) -> Option<Intensityf32> {
-    if data.len() < 2 { return None; }
-    let mu = mean(data)?;
-    let sum_of_deltas: Intensityf32 = data.iter()
-        .map(|x| {let d = x-mu; d*d})
-        .sum();
-    Some(sum_of_deltas / data.len() as Intensityf32)
-}
-
 pub fn mu_and_sigma(data: &[Intensityf32]) -> Option<(Intensityf32, Intensityf32)> {
     let mu = mean(data)?;
     let variance = data.iter().cloned()

@@ -187,7 +187,7 @@ impl Image {
     }
 }
 
-fn projection_buffers(fov: FOV) -> (ImageData, Vec<Lengthf32>, Vec<usize>) {
+pub fn projection_buffers(fov: FOV) -> (ImageData, Vec<Lengthf32>, Vec<usize>) {
     // The backprojection (or sensitivity image) being constructed in a
     // given MLEM iteration (or sensitivity image calculation).
     let image = zeros_buffer(fov);

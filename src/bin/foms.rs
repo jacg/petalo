@@ -243,8 +243,7 @@ fn contrast_and_variability(sphere: Sphere,
         }
     }
     // Calculate background variability
-    let bg_mean = fom::mean(&bg_means)?;
-    let bg_sd   = fom::sd  (&bg_means)?;
+    let (bg_mean, bg_sd) = fom::mu_and_sigma(&bg_means)?;
     let bg_variability = 100.0 * bg_sd / bg_mean;
     // Calculate contrast
     let crc = fom::crc(sphere_mean, sphere_activity, bg_mean, bg_activity);
