@@ -73,7 +73,7 @@ fn sphere_foms(
         .collect();
 
     let sphere_rois: Vec<_> = spheres.iter()
-	.map(|Sphere {x,y,r,..}| ROI::Sphere((*x,*y,foreground_z), *r) )
+        .map(|Sphere {x,y,r,..}| ROI::DiscZ((*x,*y,foreground_z), *r) )
         .collect();
 
     // Annotate each voxel value with its 3D position
@@ -231,7 +231,7 @@ fn contrast_and_variability(sphere: Sphere,
 ) -> Option<fom::FOM> {
     // Inspect single foreground ROI
     let Sphere { x, y, r, a: sphere_activity } = sphere;
-    let in_sphere: Vec<_> = fom::in_roi(ROI::Sphere((x, y, foreground_z), r).contains_fn(), voxels)
+    let in_sphere: Vec<_> = fom::in_roi(ROI::DiscZ((x, y, foreground_z), r).contains_fn(), voxels)
         .map(|(_,v)| v)
         .collect();
     let (sphere_mean, sphere_sigma) = fom::mu_and_sigma(&in_sphere)?;
@@ -239,7 +239,7 @@ fn contrast_and_variability(sphere: Sphere,
     let mut bg_means = vec![];
     for (x,y) in background_xys {
         for z in background_zs {
-            bg_means.push(fom::mean_in_region(ROI::Sphere((*x, *y,*z), r), voxels));
+            bg_means.push(fom::mean_in_region(ROI::DiscZ((*x, *y,*z), r), voxels));
         }
     }
     // Calculate background variability
@@ -270,7 +270,7 @@ fn discard_irrelevant_voxels(
 
     // Background ROIs corresponding to biggest sphere
     let bg_rois = background_roi_centres.iter()
-        .map(|&(x,y,z)| ROI::Sphere((x,y,z), max_roi_radius))
+        .map(|&(x,y,z)| ROI::DiscZ((x,y,z), max_roi_radius))
         .collect::<Vec<_>>();
 
     // Individual functions checking whether point lies in a single background ROI
