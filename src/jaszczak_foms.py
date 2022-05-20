@@ -27,7 +27,8 @@ sphere_diameters = 9.5, 12.7, 15.9, 19.1, 25.4, 31.8
 
 def get_foms(image_file_name):
 
-    command = f'cargo run --release --bin foms -- {image_file_name} jaszczak'
+    command = f'cargo run --release --bin foms -- jaszczak {image_file_name}'
+    command = f'target/release/foms -- jaszczak {image_file_name}'
     o = subprocess.run(command, shell=True, capture_output=True)
     crcs = {}
     snrs = {}
@@ -68,7 +69,7 @@ with open(filename, 'w') as outfile:
         iteration = int(re.search(r'.*([0-9]{2}).raw$', str(image_file_name)).group(1))
         foms = get_foms(image_file_name)
         crcs, snrs = foms
-        write(f'{iteration+1:2} ', end='')
+        write(f'{iteration:2} ', end='')
         crcs, variabilities = tuple(zip(*((crc, var) for (r, (crc, var)) in crcs.items())))
         write(''.join(f'{c:6.1f} ' for c in crcs)         , end='         ')
         write(''.join(f'{v:6.1f} ' for v in variabilities), end='         ')

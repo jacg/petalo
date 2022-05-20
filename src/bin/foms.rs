@@ -13,12 +13,14 @@ arg_enum! {
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 #[structopt(name = "nema7_foms", about = "Calculate NEMA7 Figures of Merit")]
 pub struct Cli {
-    /// Image file to analyse
-    pub input_file: String,
 
     /// Which phantom is being analysed.
     #[structopt(possible_values = &Phantom::variants(), case_insensitive = true)]
     phantom: Phantom,
+
+    /// Image file to analyse
+    pub input_file: String,
+
 }
 
 // --------------------------------------------------------------------------------
