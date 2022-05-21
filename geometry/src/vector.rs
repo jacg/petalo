@@ -114,6 +114,7 @@ impl Vector {
         (x*x + y*y + z*z).sqrt()
     }
 
+    #[allow(clippy::collapsible_else_if)]
     pub fn argmin(self) -> (usize, Length) {
         if self.x <= self.y {
             if self.x <= self.z { (0, self.x) }
