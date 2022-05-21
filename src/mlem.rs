@@ -20,6 +20,7 @@ impl Image {
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
                     sensitivity  :     Option<Self>,
+                    n_subsets    :     usize,
     ) -> impl Iterator<Item = Image> + '_ {
 
         // Start off with a uniform image
@@ -27,10 +28,18 @@ impl Image {
 
         let sensitivity = sensitivity.or_else(|| Some(Self::ones(fov))).unwrap();
 
+        let len = measured_lors.len();
+        let set_size = len / n_subsets; // TODO: remainder LORs ignored
+        let mut current_subset = 0;
+
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
         std::iter::from_fn(move || {
-            image.one_iteration(measured_lors, &sensitivity.data, sigma, cutoff);
+            let lo = current_subset * set_size;
+            let hi = lo + set_size;
+            current_subset += 1;
+            if current_subset == n_subsets { current_subset = 0 }
+            image.one_iteration(&measured_lors[lo..hi], &sensitivity.data, sigma, cutoff);
             Some(image.clone()) // TODO see if we can sensibly avoid cloning
         })
     }
@@ -676,7 +685,7 @@ mod tests {
         // Perform MLEM reconstruction, saving images to disk
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
         let _ = pool.install(|| {
-            Image::mlem(fov, &lors, None, None, None)
+            Image::mlem(fov, &lors, None, None, None, 1)
                 .take(10)
                 .inspect(save_each_image_in(format!("/tmp/test-mlem/{name}/")))
                 .for_each(|_| {
