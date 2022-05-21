@@ -308,7 +308,7 @@ impl LOR {
             Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
                 system_matrix_elements(
                     &mut indices, &mut weights,
-                    next_boundary.into(), voxel_size,
+                    next_boundary, voxel_size,
                     index, delta_index, remaining,
                     tof_peak, &tof
                 );

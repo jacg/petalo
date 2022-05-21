@@ -286,6 +286,6 @@ fn discard_irrelevant_voxels(
 
     // Discard voxels which do not lie inside any of the ROIs
     voxels.iter().cloned()
-        .filter(|(p, _)| in_some_roi((*p).into()))
+        .filter(|(p, _)| in_some_roi(*p))
         .collect::<Vec<_>>()
 }

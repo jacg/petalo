@@ -25,6 +25,7 @@ macro_rules! axes {
 
 impl BuildScattergram {
 
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             phi_bins: None,

@@ -1,11 +1,11 @@
 /// The size and granularity of the Field of View (FOV) in which images should
 /// be reconstructed
 
-use crate::{Lengthf32, LengthU, LengthI, Pointf32};
+use crate::{Lengthf32, Pointf32};
 use crate::{Length, Point, Vector, LOR, find_tof_peak, find_entry_point, voxel_size, first_boundaries};
 use crate::index::{BoxDim_u, Index3_u, Index1_u, index1_to_3, index3_to_1};
 use geometry::uom::mm_;
-use geometry::{RatioPoint, in_base_unit};
+use geometry::RatioPoint;
 use crate::guomc::ConstZero;
 
 #[derive(Clone, Copy, Debug)]
@@ -95,16 +95,8 @@ mod test_fov {
     }
 }
 
-// --- Truncate float-based Lengthf32 to usize-based Lengthf32 --------------------------
-#[inline(always)]
-fn uom_floor(value: Length) -> LengthU { in_base_unit!(value.value.floor() as usize) }
-
 #[inline(always)]
 fn floor_f32(x: f32) -> usize { x.floor() as usize }
-
-// --- Convert usize-based Lengthf32 to i32-based Lengthf32 -----------------------------
-#[inline(always)]
-fn uom_signed(value: LengthU) -> LengthI { in_base_unit!(value.value as i32) }
 
 #[inline(always)]
 fn signed_i32(x: usize) -> i32 { x as i32 }

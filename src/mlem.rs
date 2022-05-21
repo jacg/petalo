@@ -649,7 +649,7 @@ mod tests {
         (trues, noise)
     }
 
-    use crate::{lorogram::{BuildScattergram as Sc, Prompt}, io::hdf5::Hdf5Lor};
+    use crate::lorogram::{BuildScattergram as Sc, Prompt};
 
     #[rstest(/**/ name        , correction,
              case("corr-none" , Sc::new()                                        ),
