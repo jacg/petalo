@@ -20,18 +20,31 @@ impl Image {
                     sigma        :     Option<Time>,
                     cutoff       :     Option<Ratio>,
                     sensitivity  :     Option<Self>,
-    ) -> impl Iterator<Item = Image> + '_ {
+                    n_subsets    :     usize,
+    ) -> impl Iterator<Item = (Image, usize, usize)> + '_ {
 
         // Start off with a uniform image
         let mut image = Self::ones(fov);
 
         let sensitivity = sensitivity.or_else(|| Some(Self::ones(fov))).unwrap();
 
+        let len = measured_lors.len();
+        let set_size = len / n_subsets; // TODO: remainder LORs ignored
+        let (mut iteration, mut subset) = (1, 1);
+
         // Return an iterator which generates an infinite sequence of images,
         // each one made by performing one MLEM iteration on the previous one
         std::iter::from_fn(move || {
-            image.one_iteration(measured_lors, &sensitivity.data, sigma, cutoff);
-            Some(image.clone()) // TODO see if we can sensibly avoid cloning
+            let lo = (subset - 1) * set_size;
+            let hi = lo + set_size;
+            let (old_iteration, old_subset) = (iteration, subset);
+            subset += 1;
+            if subset > n_subsets {
+                subset = 1;
+                iteration += 1;
+            }
+            image.one_iteration(&measured_lors[lo..hi], &sensitivity.data, sigma, cutoff);
+            Some((image.clone(), old_iteration, old_subset)) // TODO see if we can sensibly avoid cloning
         })
     }
 
@@ -128,7 +141,7 @@ impl Image {
         // In the serial case, call the function to get one ID value
         let initial_thread_state =  initial_thread_state();
 
-        // Choose between serial parallel iteration
+        // Choose between serial parallel current_iteration
         #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
         #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
 
@@ -189,7 +202,7 @@ impl Image {
 
 pub fn projection_buffers(fov: FOV) -> (ImageData, Vec<Lengthf32>, Vec<usize>) {
     // The backprojection (or sensitivity image) being constructed in a
-    // given MLEM iteration (or sensitivity image calculation).
+    // given MLEM current_iteration (or sensitivity image calculation).
     let image = zeros_buffer(fov);
     // Weights and indices are sparse storage of the slice through the
     // system matrix which corresponds to the current LOR. (Allocating these
@@ -490,16 +503,12 @@ mod tests {
     }
 
     // TODO: this should be reused in bin/mlem:main (report_time complicates it)
-    /// Return a function which saves images in the given directory, maintaining
-    /// a count of images (`NN`) to be used as part of the filename:
-    /// `<directory>/<NN>.raw`
-    fn save_each_image_in(directory: String) -> impl FnMut(&Image) {
+    /// Return a function which saves images in the given directory
+    fn save_each_image_in(directory: String) -> impl FnMut(&(Image, usize, usize)) {
         use std::path::PathBuf;
         std::fs::create_dir_all(PathBuf::from(&directory)).unwrap();
-        let mut count = 0;
-        move |image| {
-            count += 1;
-            let image_path = PathBuf::from(format!("{directory}/{:02}.raw", count));
+        move |(image, iteration, subset)| {
+            let image_path = PathBuf::from(format!("{directory}/{iteration:02}-{subset:02}.raw"));
             crate::io::raw::Image3D::from(image).write_to_file(&image_path).unwrap();
         }
     }
@@ -676,7 +685,7 @@ mod tests {
         // Perform MLEM reconstruction, saving images to disk
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
         let _ = pool.install(|| {
-            Image::mlem(fov, &lors, None, None, None)
+            Image::mlem(fov, &lors, None, None, None, 1)
                 .take(10)
                 .inspect(save_each_image_in(format!("/tmp/test-mlem/{name}/")))
                 .for_each(|_| {

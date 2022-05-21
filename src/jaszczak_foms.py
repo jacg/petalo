@@ -63,13 +63,15 @@ with open(filename, 'w') as outfile:
     write('  ', end='')
     ds_header = ''.join(f'{d:7.1f}' for d in sphere_diameters)
     write(f'{"CRCs":>25}        {"background variabilities":>53}          {"SNRs":>31}', end='\n\n')
-    write(f'  {ds_header}         {ds_header}         {ds_header}')
+    write(f'     {ds_header}         {ds_header}         {ds_header}')
     write()
     for image_file_name in images:
-        iteration = int(re.search(r'.*([0-9]{2}).raw$', str(image_file_name)).group(1))
+        matches = re.search(r'.*([0-9]{2})-([0-9]{2}).raw$', str(image_file_name))
+        iteration = int(matches.group(1))
+        subset    = int(matches.group(2))
         foms = get_foms(image_file_name)
         crcs, snrs = foms
-        write(f'{iteration:2} ', end='')
+        write(f'{iteration:02}-{subset:02} ', end='')
         crcs, variabilities = tuple(zip(*((crc, var) for (r, (crc, var)) in crcs.items())))
         write(''.join(f'{c:6.1f} ' for c in crcs)         , end='         ')
         write(''.join(f'{v:6.1f} ' for v in variabilities), end='         ')

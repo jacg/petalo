@@ -13,6 +13,10 @@ pub struct Cli {
     #[structopt(short, long, default_value = "5")]
     pub iterations: usize,
 
+    /// Number of OSEM subsets to use
+    #[structopt(long, default_value = "1")]
+    pub subsets: usize,
+
     /// Field Of View full-widths in mm
     #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "300 mm,300 mm,300 mm")]
     pub size: (Length, Length, Length),
@@ -155,12 +159,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
 
-    for (n, image) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image))
-        .take(args.iterations)
-        .enumerate() {
-            let n = n+1;
-            report_time(&format!("Iteration {:2}", n));
-            let path = PathBuf::from(format!("{}{:02}.raw", file_pattern, n));
+    for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image, args.subsets))
+        .take(args.iterations * args.subsets) {
+            report_time(&format!("Iteration {iteration:2}-{subset:02}"));
+            let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", file_pattern));
             petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
             report_time("                               Wrote raw bin");
             // TODO: step_by for print every
