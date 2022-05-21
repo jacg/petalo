@@ -79,7 +79,7 @@ impl Image {
         let roi_contains = roi.contains_fn();
         for (index, value) in self.data.iter().copied().enumerate() {
             let p = self.fov.voxel_centre1(index);
-            if roi_contains(p.into()) { out.push(value) }
+            if roi_contains(p) { out.push(value) }
         }
         out
     }
@@ -103,7 +103,7 @@ pub fn mean_in_region(roi: ROI, voxels: &[PointValue]) -> f32 {
 /// Iterator which filters out voxels that lie outside given ROI
 pub fn in_roi(in_roi: InRoiFn, voxels: &[PointValue]) -> impl Iterator<Item = PointValue> + '_ {
     voxels.iter()
-        .filter(move |(p,_)| in_roi((*p).into()))
+          .filter(move |(p,_)| in_roi(*p))
         .copied()
 }
 
