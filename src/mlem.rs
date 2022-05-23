@@ -140,17 +140,14 @@ impl Image {
             .fold(initial_thread_state, project_one_lor);
 
         // -------- extract relevant information (backprojection) ---------------
-        let backprojection = {
-            fold_result
+        let backprojection = fold_result
             // Keep only the backprojection (ignore weights and indices)
             .map(|tuple| tuple.0)
             // Sum the backprojections calculated on each thread
-            .reduce(|| zeros_buffer(self.fov), elementwise_add)
-        };
+            .reduce(|| zeros_buffer(self.fov), elementwise_add);
 
         // -------- Correct for attenuation and detector sensitivity ------------
         apply_sensitivity_image(&mut self.data, &backprojection, sensitivity);
-
     }
 
     pub fn ones(fov: FOV) -> Self {
