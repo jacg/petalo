@@ -63,61 +63,44 @@ impl Image {
     // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(fov: FOV, density: Self, lors: impl Iterator<Item = crate::system_matrix::LOR>, n_lors: usize, stradivarius: f32) -> Self {
+    pub fn sensitivity_image(fov: FOV, density: Self, lors: &[LOR], n_lors: usize, stradivarius: f32) -> Self {
         let a = &fov;
         let b = &density.fov;
         if a.n != b.n || a.half_width != b.half_width {
             panic!("For now, attenuation and output image dimensions must match exactly.")
         }
         // TODO convert from density to attenuation coefficient
-        let attenuation = density;
-        let (mut image, mut weights, mut indices) = projection_buffers(fov);
+        let mut attenuation = density;
+        let attenuation = &mut attenuation;
 
         // TOF should not be used as LOR attenuation is independent of decay point
         let notof = make_gauss_option(None, None);
 
-        'lor: for lor in lors {
-            // Find active voxels (slice of system matrix) WITHOUT TOF
-            // Analyse point where LOR hits FOV
-            match lor_fov_hit(&lor, fov) {
+        // Closure preparing the state needed by `fold`: will be called by
+        // `fold` at the start of every thread that is launched.
+        let initial_thread_state = || {
+            let (backprojection, weights, indices) = projection_buffers(attenuation.fov);
+            (backprojection, weights, indices, &attenuation, &notof)
+        };
 
-                // LOR missed FOV: nothing to be done
-                None => continue,
+        // -------- Project all LORs forwards and backwards ---------------------
+        let fold_result = lors
+            .par_iter()
+            .fold(initial_thread_state, sensitivity_one_lor);
 
-                // Data needed by `system_matrix_elements`
-                Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+        // -------- extract relevant information (backprojection) ---------------
+        let mut backprojection = fold_result
+            // Keep only the backprojection (ignore weights and indices)
+            .map(|tuple| tuple.0)
+            // Sum the backprojections calculated on each thread
+            .reduce(|| zeros_buffer(attenuation.fov), elementwise_add);
 
-                    // Throw away previous LOR's values
-                    weights.clear();
-                    indices.clear();
-
-                    // Find active voxels and their weights
-                    system_matrix_elements(
-                        &mut indices, &mut weights,
-                        next_boundary, voxel_size,
-                        index, delta_index, remaining,
-                        tof_peak, &notof
-                    );
-
-                    // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
-                    for i in &indices {
-                        if *i >= image.len() { continue 'lor; }
-                    }
-
-                    let integral = forward_project(&weights, &indices, &attenuation) / stradivarius;
-                    let attenuation_factor = (-integral).exp();
-                    //println!("{:<8.2e}  ---  {:<8.2e}", integral, attenuation_factor);
-                    // Backprojection of LOR onto image
-                    back_project(&mut image, &weights, &indices, attenuation_factor);
-                }
-            }
-        }
         // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
         let size = n_lors as f32;
-        for e in image.iter_mut() {
+        for e in backprojection.iter_mut() {
             *e /= size
         }
-        Self::new(fov, image)
+        Self::new(fov, backprojection)
     }
 
     fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensityf32], sigma: Option<Time>, cutoff: Option<Ratio>) {
@@ -237,6 +220,55 @@ where
     }
     // Return updated FoldState
     (backprojection, weights, indices, image, tof)
+}
+
+
+fn sensitivity_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
+where
+    G: Fn(Length) -> PerLength
+{
+    let (mut backprojection, mut weights, mut indices, attenuation, tof) = state;
+
+    // Need to return the state from various match arms
+    macro_rules! return_state { () => (return (backprojection, weights, indices, attenuation, tof)); }
+
+    // This should be fed in too (or better still, completely eliminated!)
+    let stradivarius = 170000.0;
+
+    // Find active voxels (slice of system matrix) WITHOUT TOF
+    // Analyse point where LOR hits FOV
+    match lor_fov_hit(&lor, attenuation.fov) {
+
+        // LOR missed FOV: nothing to be done
+        None => return_state!(),
+
+        // Data needed by `system_matrix_elements`
+        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+
+            // Throw away previous LOR's values
+            weights.clear();
+            indices.clear();
+
+            // Find active voxels and their weights
+            system_matrix_elements(
+                &mut indices, &mut weights,
+                next_boundary, voxel_size,
+                index, delta_index, remaining,
+                tof_peak, &tof
+            );
+
+            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
+            for i in &indices {
+                if *i >= backprojection.len() { return_state!(); }
+            }
+
+            let integral = forward_project(&weights, &indices, &attenuation) / stradivarius;
+            let attenuation_factor = (-integral).exp();
+            // Backprojection of LOR onto sensitivity image
+            back_project(&mut backprojection, &weights, &indices, attenuation_factor);
+            return_state!();
+        }
+    }
 }
 
 #[inline]

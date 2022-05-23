@@ -28,6 +28,10 @@ pub struct Cli {
     #[structopt(long)]
     pub rho: Lengthf32,
 
+    /// Maximum number of rayon threads
+    #[structopt(short = "j", long, default_value = "10")]
+    pub num_threads: usize,
+
 }
 
 use structopt::StructOpt;
@@ -45,7 +49,7 @@ use petalo::system_matrix as sm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let Cli{ input, output, detector_length, detector_diameter, n_lors, rho } = Cli::from_args();
+    let Cli{ input, output, detector_length, detector_diameter, n_lors, rho, num_threads } = Cli::from_args();
 
     // Set up progress reporting and timing
     use std::time::Instant;
@@ -70,8 +74,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
     // TODO parallelize
     let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
-    let sensitivity = Image::sensitivity_image(density.fov, density, lors, n_lors, rho);
-    report_time("done");
+    // To simplify initial Rayon parallelization inside sensitivity_image, pass
+    // in a vector, rather than iterator: rayon iter_par over vectors is easier.
+    let lors: Vec<_> = lors.collect();
+
+    report_time("\nGenerated LORs");
+
+
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(num_threads).build().unwrap();
+    let sensitivity = pool.install(|| Image::sensitivity_image(density.fov, density, &lors, n_lors, rho));
+    report_time("done (Calculated sensitivity image)");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
     std::fs::create_dir_all(PathBuf::from(&outfile).parent().unwrap())?; // TODO turn into utility with cleaner interface
