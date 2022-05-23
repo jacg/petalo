@@ -1,7 +1,6 @@
 use std::path::Path;
 use ndarray::azip;
 
-#[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
 use crate::{io, Lengthf32, Index1_u, Intensityf32};
@@ -135,29 +134,12 @@ impl Image {
             (backprojection, weights, indices, &self, &tof)
         };
 
-        // Parallel fold takes a function which will return ID value;
-        // serial fold takes the ID value itself.
-        #[cfg (feature = "serial")]
-        // In the serial case, call the function to get one ID value
-        let initial_thread_state =  initial_thread_state();
-
-        // Choose between serial parallel current_iteration
-        #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
-        #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
-
         // -------- Project all LORs forwards and backwards ---------------------
-
-        let fold_result = iter.fold(initial_thread_state, project_one_lor);
+        let fold_result = measured_lors
+            .par_iter()
+            .fold(initial_thread_state, project_one_lor);
 
         // -------- extract relevant information (backprojection) ---------------
-
-        // In the serial case, there is a single result to unwrap ...
-        #[cfg (feature = "serial")]
-        let backprojection = fold_result.0; // Keep only backprojection
-
-        // ... in the parallel case, the results from each thread must be
-        // combined
-        #[cfg(not(feature = "serial"))]
         let backprojection = {
             fold_result
             // Keep only the backprojection (ignore weights and indices)
@@ -167,7 +149,6 @@ impl Image {
         };
 
         // -------- Correct for attenuation and detector sensitivity ------------
-
         apply_sensitivity_image(&mut self.data, &backprojection, sensitivity);
 
     }
