@@ -72,14 +72,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
-    // TODO parallelize
-    let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
-    // To simplify initial Rayon parallelization inside sensitivity_image, pass
-    // in a vector, rather than iterator: rayon iter_par over vectors is easier.
-    let lors: Vec<_> = lors.collect();
 
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(num_threads).build().unwrap();
+    let lors = pool.install(|| find_potential_lors(n_lors, density.fov, detector_length, detector_diameter));
+    // TODO: Avoid creating a vector of LORs. Try to produce a rayon parallel
+    // iterator in find_potential_lors and pass it for parallel processing to
+    // sensitivity_image
     report_time("\nGenerated LORs");
-
 
     let pool = rayon::ThreadPoolBuilder::new().num_threads(num_threads).build().unwrap();
     let sensitivity = pool.install(|| Image::sensitivity_image(density.fov, density, &lors, n_lors, rho));
@@ -95,18 +94,23 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl Iterator<Item = sm::LOR> {
+fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> Vec<sm::LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
-    let one_useful_random_lor = move || {
+    let one_useful_random_lor = move |_lor_number| {
         loop {
             let p1 = random_point_on_cylinder(l, r);
             let p2 = random_point_on_cylinder(l, r);
             if fov.entry(p1, p2).is_some() {
-                return Some(petalo::system_matrix::LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)))
+                return sm::LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
             }
         }
     };
-    std::iter::from_fn(one_useful_random_lor).take(n_lors)
+
+    use rayon::prelude::*;
+    (0..n_lors)
+        .into_par_iter()
+        .map(one_useful_random_lor)
+        .collect()
 }
 
 
