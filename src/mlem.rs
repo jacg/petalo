@@ -163,8 +163,7 @@ impl Image {
             // Keep only the backprojection (ignore weights and indices)
             .map(|tuple| tuple.0)
             // Sum the backprojections calculated on each thread
-            .reduce(|   | zeros_buffer(self.fov),
-                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
+            .reduce(|| zeros_buffer(self.fov), elementwise_add)
         };
 
         // -------- Correct for attenuation and detector sensitivity ------------
@@ -212,6 +211,10 @@ pub fn projection_buffers(fov: FOV) -> (ImageData, Vec<Lengthf32>, Vec<usize>) {
     let weights = Vec::with_capacity(max_number_of_active_voxels_possible);
     let indices = Vec::with_capacity(max_number_of_active_voxels_possible);
     (image, weights, indices)
+}
+
+fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
+    a.iter().zip(b.iter()).map(|(l,r)| l+r).collect()
 }
 
 // A new empty data store with matching size
