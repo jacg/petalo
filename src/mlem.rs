@@ -63,7 +63,7 @@ impl Image {
     // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(fov: FOV, density: Self, lors: &[LOR], n_lors: usize, stradivarius: f32) -> Self {
+    pub fn sensitivity_image(fov: FOV, density: Self, lors: impl ParallelIterator<Item = LOR>, n_lors: usize, stradivarius: f32) -> Self {
         let a = &fov;
         let b = &density.fov;
         if a.n != b.n || a.half_width != b.half_width {
@@ -85,7 +85,6 @@ impl Image {
 
         // -------- Project all LORs forwards and backwards ---------------------
         let fold_result = lors
-            .par_iter()
             .fold(initial_thread_state, sensitivity_one_lor);
 
         // -------- extract relevant information (backprojection) ---------------
@@ -222,8 +221,7 @@ where
     (backprojection, weights, indices, image, tof)
 }
 
-
-fn sensitivity_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
+fn sensitivity_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: LOR) -> FoldState<'r, 'i, 'g, G>
 where
     G: Fn(Length) -> PerLength
 {

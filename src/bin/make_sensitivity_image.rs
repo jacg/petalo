@@ -82,14 +82,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let pool = rayon::ThreadPoolBuilder::new().num_threads(lor_threads).build().unwrap();
     let lors = pool.install(|| find_potential_lors(n_lors, density.fov, detector_length, detector_diameter));
-    // TODO: Avoid creating a vector of LORs. Try to produce a rayon parallel
-    // iterator in find_potential_lors and pass it for parallel processing to
-    // sensitivity_image
-    report_time("\nGenerated LORs");
-
     let pool = rayon::ThreadPoolBuilder::new().num_threads(image_threads).build().unwrap();
-    let sensitivity = pool.install(|| Image::sensitivity_image(density.fov, density, &lors, n_lors, rho));
-    report_time("done (Calculated sensitivity image)");
+    let sensitivity = pool.install(|| Image::sensitivity_image(density.fov, density, lors, n_lors, rho));
+    report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
     std::fs::create_dir_all(PathBuf::from(&outfile).parent().unwrap())?; // TODO turn into utility with cleaner interface
@@ -101,7 +96,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> Vec<sm::LOR> {
+fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl rayon::iter::ParallelIterator<Item = sm::LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
     let one_useful_random_lor = move |_lor_number| {
         loop {
@@ -117,7 +112,6 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detecto
     (0..n_lors)
         .into_par_iter()
         .map(one_useful_random_lor)
-        .collect()
 }
 
 
