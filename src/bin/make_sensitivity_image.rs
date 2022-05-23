@@ -28,13 +28,9 @@ pub struct Cli {
     #[structopt(long)]
     pub rho: Lengthf32,
 
-    /// Maximum number of rayon threads for LOR generation
-    #[structopt(short = "j", long, default_value = "20")]
-    pub lor_threads: usize,
-
-    /// Maximum number of rayon threads for image construction
-    #[structopt(short = "J", long, default_value = "8")]
-    pub image_threads: usize,
+    /// Maximum number of rayon threads
+    #[structopt(short = "j", long, default_value = "30")]
+    pub n_threads: usize,
 
 }
 
@@ -53,10 +49,7 @@ use petalo::system_matrix as sm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let Cli {
-        input, output, detector_length, detector_diameter, n_lors, rho,
-        lor_threads, image_threads
-    } = Cli::from_args();
+    let Cli { input, output, detector_length, detector_diameter, n_lors, rho, n_threads } = Cli::from_args();
 
     // Set up progress reporting and timing
     use std::time::Instant;
@@ -77,12 +70,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let density = Image::from_raw_file(&input)?;
     report_time(&format!("Read density image {:?}", input));
 
-
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
-
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(lor_threads).build().unwrap();
-    let lors = pool.install(|| find_potential_lors(n_lors, density.fov, detector_length, detector_diameter));
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(image_threads).build().unwrap();
+    let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
     let sensitivity = pool.install(|| Image::sensitivity_image(density.fov, density, lors, n_lors, rho));
     report_time("done");
 
