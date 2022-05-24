@@ -70,8 +70,8 @@ impl Image {
             panic!("For now, attenuation and output image dimensions must match exactly.")
         }
         // TODO convert from density to attenuation coefficient
-        let mut attenuation = density;
-        let attenuation = &mut attenuation;
+        let attenuation = density;
+        let attenuation = &attenuation;
 
         // TOF should not be used as LOR attenuation is independent of decay point
         let notof = make_gauss_option(None, None);
@@ -111,9 +111,10 @@ impl Image {
 
         // Closure preparing the state needed by `fold`: will be called by
         // `fold` at the start of every thread that is launched.
+        let immutable_self = &*self;
         let initial_thread_state = || {
             let (backprojection, weights, indices) = projection_buffers(self.fov);
-            (backprojection, weights, indices, &self, &tof)
+            (backprojection, weights, indices, &immutable_self, &tof)
         };
 
         // -------- Project all LORs forwards and backwards ---------------------
@@ -181,7 +182,7 @@ fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
 fn zeros_buffer(fov: FOV) -> ImageData { let [x,y,z] = fov.n; vec![0.0; x*y*z] }
 
 
-type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1_u> , &'r &'i mut Image, &'g Option<G>);
+type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1_u> , &'r &'i Image, &'g Option<G>);
 
 fn project_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
 where
