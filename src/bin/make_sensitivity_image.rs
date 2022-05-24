@@ -24,9 +24,9 @@ pub struct Cli {
     #[structopt(long, short="n", default_value = "5000000")]
     pub n_lors: usize,
 
-    /// Attenuation fiddle factor
-    #[structopt(long)]
-    pub rho: Lengthf32,
+    /// Conversion from density to attenuation coefficient in cm^2 / g
+    #[structopt(long, default_value = "0.095")]
+    pub rho_to_mu: Lengthf32,
 
     /// Maximum number of rayon threads
     #[structopt(short = "j", long, default_value = "30")]
@@ -42,14 +42,24 @@ use std::path::PathBuf;
 use petalo::{utils::group_digits, fov::FOV, Lengthf32};
 use petalo::image::Image;
 
-use petalo::{Length, Time};
-use geometry::uom::ratio;
+use petalo::{Length, Time, AreaPerMass};
+use geometry::uom::{ratio, kg, mm};
 use petalo::guomc::ConstZero;
 use petalo::system_matrix as sm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let Cli { input, output, detector_length, detector_diameter, n_lors, rho, n_threads } = Cli::from_args();
+    let Cli { input, output, detector_length, detector_diameter, n_lors, rho_to_mu, n_threads } = Cli::from_args();
+
+    // Interpret rho_to_mu as converting from [rho in g/cm^3] to [mu in cm^-1]
+    let rho_to_mu: AreaPerMass = {
+        let g = kg(0.001);
+        let cm = mm(10.0);
+        let rho_unit = g / (cm * cm * cm);
+        let  mu_unit = 1.0 / cm;
+        rho_to_mu * (mu_unit / rho_unit)
+    };
+
 
     // Set up progress reporting and timing
     use std::time::Instant;
@@ -73,7 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
     let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
-    let sensitivity = pool.install(|| Image::sensitivity_image(density.fov, density, lors, n_lors, rho));
+    let sensitivity = pool.install(|| Image::sensitivity_image(density.fov, density, lors, n_lors, rho_to_mu));
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();

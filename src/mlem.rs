@@ -4,11 +4,11 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use crate::{io, Lengthf32, Index1_u, Intensityf32};
-use crate::{Length, PerLength, Ratio, Time};
+use crate::{Length, PerLength, Ratio, Time, AreaPerMass};
 use crate::{fov::{lor_fov_hit, FovHit}, system_matrix::{system_matrix_elements, LOR}};
 use crate::fov::FOV;
 use crate::gauss::make_gauss_option;
-use geometry::uom::ratio_;
+use geometry::uom::{ratio_, mm, kg};
 
 use crate::image::{Image, ImageData};
 
@@ -63,14 +63,24 @@ impl Image {
     // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(fov: FOV, density: Self, lors: impl ParallelIterator<Item = LOR>, n_lors: usize, stradivarius: f32) -> Self {
+    pub fn sensitivity_image(fov: FOV, density: Self, lors: impl ParallelIterator<Item = LOR>, n_lors: usize, rho_to_mu: AreaPerMass) -> Self {
         let a = &fov;
         let b = &density.fov;
         if a.n != b.n || a.half_width != b.half_width {
             panic!("For now, attenuation and output image dimensions must match exactly.")
         }
-        // TODO convert from density to attenuation coefficient
-        let attenuation = density;
+        // Convert from [density in kg/m^3] to [mu in mm^-1]
+        let rho_to_mu: f32 = ratio_({
+            let kg = kg(1.0);
+            let  m = mm(1000.0);
+            let rho_unit = kg / (m * m * m);
+            let  mu_unit = 1.0 / mm(1.0);
+            rho_to_mu / (mu_unit / rho_unit)
+        });
+        let mut attenuation = density;
+        for voxel in &mut attenuation.data {
+            *voxel *= rho_to_mu;
+        }
         let attenuation = &attenuation;
 
         // TOF should not be used as LOR attenuation is independent of decay point
@@ -231,9 +241,6 @@ where
     // Need to return the state from various match arms
     macro_rules! return_state { () => (return (backprojection, weights, indices, attenuation, tof)); }
 
-    // This should be fed in too (or better still, completely eliminated!)
-    let stradivarius = 170000.0;
-
     // Find active voxels (slice of system matrix) WITHOUT TOF
     // Analyse point where LOR hits FOV
     match lor_fov_hit(&lor, attenuation.fov) {
@@ -261,7 +268,7 @@ where
                 if *i >= backprojection.len() { return_state!(); }
             }
 
-            let integral = forward_project(&weights, &indices, &attenuation) / stradivarius;
+            let integral = forward_project(&weights, &indices, &attenuation);
             let attenuation_factor = (-integral).exp();
             // Backprojection of LOR onto sensitivity image
             back_project(&mut backprojection, &weights, &indices, attenuation_factor);

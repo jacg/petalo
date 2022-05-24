@@ -43,3 +43,5 @@ pub use crate::index::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, LengthI, L
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
 pub const C: Velocity = in_base_unit!(299_792_458.0);
+
+pub use geometry::AreaPerMass;
