@@ -2,9 +2,7 @@
 
 use std::error::Error;
 use std::ops::RangeBounds;
-use crate::gauss::make_gauss_option;
 use crate::lorogram::{Scattergram, Prompt};
-use crate::mlem::projection_buffers;
 
 #[derive(Clone)]
 pub struct Args {
@@ -20,7 +18,7 @@ use ndarray::{s, Array1};
 
 use crate::{Chargef32, Energyf32, BoundPair};
 use crate::Point;
-use crate::system_matrix::{LOR, system_matrix_elements};
+use crate::system_matrix::LOR;
 
 use geometry::uom::{mm, ns, ratio};
 
@@ -35,7 +33,6 @@ pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<
     Ok(data)
 }
 
-use crate::fov::{FOV, lor_fov_hit, FovHit};
 
 /// Fill `scattergram`, with spatial distribution of scatters probabilities
 /// gathered from `lors`
@@ -73,7 +70,7 @@ fn read_hdf5_lors(
 }
 
 #[allow(nonstandard_style)]
-pub fn read_lors(args: Args, fov: FOV, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
+pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
     // Read LORs from file,
     let (hdf5_lors, cut) = read_hdf5_lors(&args.input_file, &args.dataset,
                                           args.event_range.clone(),
@@ -81,10 +78,6 @@ pub fn read_lors(args: Args, fov: FOV, mut scattergram: Option<Scattergram>) -> 
 
     // Use LORs to gather statistics about spatial distribution of scatter probability
     fill_scattergram(&mut scattergram, &hdf5_lors);
-
-    // Needed in upcoming LOR-filter closure
-    let (image, mut weights, mut indices) = projection_buffers(fov);
-    let notof = make_gauss_option(None, None);
 
     let hdf5lor_to_lor: Box<dyn Fn(Hdf5Lor) -> LOR> = if let Some(scattergram) = scattergram.as_ref() {
         Box::new(|hdf5_lor: Hdf5Lor| {
