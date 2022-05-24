@@ -74,9 +74,6 @@ fn read_hdf5_lors(
 
 #[allow(nonstandard_style)]
 pub fn read_lors(args: Args, fov: FOV, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
-    let mut dodgy = 0;
-    let mut miss = 0;
-
     // Read LORs from file,
     let (hdf5_lors, cut) = read_hdf5_lors(&args.input_file, &args.dataset,
                                           args.event_range.clone(),
@@ -101,49 +98,13 @@ pub fn read_lors(args: Args, fov: FOV, mut scattergram: Option<Scattergram>) -> 
     let lors: Vec<_> = hdf5_lors
         .into_iter()
         .map(hdf5lor_to_lor)
-        // Very rarely, a LOR produces indexing problems (probably because of
-        // float inaccuracies) in the system matrix calculation, and crashes the
-        // whole reconstruction. Remove these before we get started.
-        .filter(|lor| {
-            match lor_fov_hit(lor, fov) {
-                // LOR missed FOV: don't keep it
-                None => {
-                    miss += 1;
-                    false
-                },
-                // Check check the indices of the active system matrix
-                // elements. Filter out the LOR if any index is out of
-                // bounds.
-                Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-
-                    // Throw away previous LOR's values
-                    weights.clear();
-                    indices.clear();
-
-                    // Find active voxels and their weights
-                    system_matrix_elements(
-                        &mut indices, &mut weights,
-                        next_boundary, voxel_size,
-                        index, delta_index, remaining,
-                        tof_peak, &notof);
-
-                    for index in &indices {
-                        if index >= &image.len() {
-                            dodgy += 1;
-                            return false;
-                        }
-                    }
-                    true
-                }
-            }
-        })
         .collect();
 
     let used = lors.len();
     let used_pct = 100 * used / (used + cut);
     use crate::utils::group_digits as g;
-    println!("Using {} LORs (cut {}    miss FOV {}    dodgy index {}    kept {}%)",
-                 g(used),      g(cut),       g(miss),          g(dodgy), used_pct);
+    println!("Using {} LORs (cut {}    kept {}%)",
+               g(used),      g(cut),   used_pct);
     Ok(lors)
 }
 

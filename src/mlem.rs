@@ -200,11 +200,14 @@ where
 {
     let (mut backprojection, mut weights, mut indices, image, tof) = state;
 
+    // Need to return the state from various match arms
+    macro_rules! return_state { () => (return  (backprojection, weights, indices, image, tof)); }
+
     // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
 
         // LOR missed FOV: nothing to be done
-        None => return (backprojection, weights, indices, image, tof),
+        None => return_state!(),
 
         // Data needed by `system_matrix_elements`
         Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
@@ -221,15 +224,19 @@ where
                 tof_peak, tof
             );
 
+            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
+            for i in &indices {
+                if *i >= backprojection.len() { return_state!(); }
+            }
+
             // Forward projection of current image into this LOR
             let projection = forward_project(&weights, &indices, image) * lor.additive_correction;
 
             // Backprojection of LOR onto image
             back_project(&mut backprojection, &weights, &indices, ratio_(projection));
+            return_state!();
         }
     }
-    // Return updated FoldState
-    (backprojection, weights, indices, image, tof)
 }
 
 fn sensitivity_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: LOR) -> FoldState<'r, 'i, 'g, G>
