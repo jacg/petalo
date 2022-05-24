@@ -139,7 +139,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let fov = FOV::new(args.size, args.nvoxels);
 
     println!("Reading LOR data from disk ...");
-    let measured_lors = io::hdf5::read_lors(io_args, fov, scattergram)?;
+    let measured_lors = io::hdf5::read_lors(io_args, scattergram)?;
     report_time("Loaded LOR data from disk");
 
     let file_pattern = guess_filename(&args);
