@@ -17,6 +17,8 @@ pub struct BuildScattergram {
 
 }
 
+const DEFAULT_NUMBER_OF_BINS: usize = 30;
+
 macro_rules! axes {
     ($($axes:expr),+) => {
         Some(Scattergram::new(&|| Box::new(ndhistogram!($($axes),+; usize))))
@@ -57,19 +59,19 @@ impl BuildScattergram {
 
     pub fn r_max(mut self, r: Length) -> Self {
         self.r_max = Some(r);
-        self.r_bins.get_or_insert(50);
+        self.r_bins.get_or_insert(DEFAULT_NUMBER_OF_BINS);
         self
     }
 
     pub fn z_length(mut self, z: Length) -> Self {
         self.z_length = Some(z);
-        self.z_bins.get_or_insert(50);
+        self.z_bins.get_or_insert(DEFAULT_NUMBER_OF_BINS);
         self
     }
 
     pub fn dz_max(mut self, z: Length) -> Self {
         self.dz_max = Some(z);
-        self.dz_bins.get_or_insert(50);
+        self.dz_bins.get_or_insert(DEFAULT_NUMBER_OF_BINS);
         self
     }
 
