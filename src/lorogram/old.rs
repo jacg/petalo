@@ -6,7 +6,7 @@ use std::f32::consts::PI;
 
 use crate::Lengthf32;
 use crate::{Angle, Length, Point, Time, Ratio};
-use geometry::uom::{mm, mm_, ratio, radian_};
+use geometry::uom::{mm, mm_, ps_, ratio, radian_};
 use crate::guomc::ConstZero;
 
 
@@ -136,6 +136,13 @@ pub fn axis_phi(nbins: usize) -> LorAxC {
     }
 }
 
+pub fn axis_t(nbins: usize, max: Time) -> LorAxU {
+    LorAxU {
+        axis: Uniform::new(nbins, ps_(-max), ps_(max)),
+        map: Box::new(|z| mm_(z_of_midpoint(z))),
+    }
+}
+
 #[cfg(test)]
 mod test_mapped_axes {
     use super::*;
@@ -222,6 +229,18 @@ where
 {
     fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor, *lor)) }
     fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor, *lor)).unwrap_or(&0) }
+}
+
+impl<X, Y, Z, T, U> Lorogram for ndhistogram::HistND<(X, Y, Z, T, U), usize>
+where
+    X: Axis<Coordinate = LOR>,
+    Y: Axis<Coordinate = LOR>,
+    Z: Axis<Coordinate = LOR>,
+    T: Axis<Coordinate = LOR>,
+    U: Axis<Coordinate = LOR>,
+{
+    fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor, *lor, *lor)) }
+    fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor, *lor, *lor)).unwrap_or(&0) }
 }
 
 pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {

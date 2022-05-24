@@ -97,6 +97,14 @@ pub struct Cli {
     #[structopt(long)]
     pub scatter_dz_max: Option<Length>,
 
+    /// Apply scatter corrections with tof-axis using this number of bins
+    #[structopt(long)]
+    pub scatter_tof_bins: Option<usize>,
+
+    /// Apply scatter corrections with tof-axis up to this value
+    #[structopt(long)]
+    pub scatter_tof_max: Option<Time>,
+
 }
 
 // --------------------------------------------------------------------------------
@@ -206,8 +214,10 @@ fn build_scattergram(args: Cli) -> Option<Scattergram> {
     if let Some(n) = args.scatter_r_bins   { builder = builder.  r_bins(n) };
     if let Some(n) = args.scatter_z_bins   { builder = builder.  z_bins(n) };
     if let Some(n) = args.scatter_dz_bins  { builder = builder. dz_bins(n) };
+    if let Some(t) = args.scatter_tof_bins { builder = builder. dt_bins(t) };
     if let Some(r) = args.scatter_r_max    { builder = builder. r_max  (r) };
     if let Some(z) = args.scatter_dz_max   { builder = builder.dz_max  (z) };
+    if let Some(t) = args.scatter_tof_max  { builder = builder.dt_max  (t) };
     if let Some(l) = args.scatter_z_length { builder = builder.z_length(l) };
     builder.build()
 }
