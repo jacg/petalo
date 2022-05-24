@@ -24,9 +24,13 @@ pub struct Cli {
     #[structopt(long, short="n", default_value = "5000000")]
     pub n_lors: usize,
 
-    /// Attenuation fiddle factor
-    #[structopt(long)]
-    pub rho: Lengthf32,
+    /// Conversion from density to attenuation coefficient in cm^2 / g
+    #[structopt(long, default_value = "0.095")]
+    pub rho_to_mu: Lengthf32,
+
+    /// Maximum number of rayon threads
+    #[structopt(short = "j", long, default_value = "30")]
+    pub n_threads: usize,
 
 }
 
@@ -38,14 +42,24 @@ use std::path::PathBuf;
 use petalo::{utils::group_digits, fov::FOV, Lengthf32};
 use petalo::image::Image;
 
-use petalo::{Length, Time};
-use geometry::uom::ratio;
+use petalo::{Length, Time, AreaPerMass};
+use geometry::uom::{ratio, kg, mm};
 use petalo::guomc::ConstZero;
 use petalo::system_matrix as sm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let Cli{ input, output, detector_length, detector_diameter, n_lors, rho } = Cli::from_args();
+    let Cli { input, output, detector_length, detector_diameter, n_lors, rho_to_mu, n_threads } = Cli::from_args();
+
+    // Interpret rho_to_mu as converting from [rho in g/cm^3] to [mu in cm^-1]
+    let rho_to_mu: AreaPerMass = {
+        let g = kg(0.001);
+        let cm = mm(10.0);
+        let rho_unit = g / (cm * cm * cm);
+        let  mu_unit = 1.0 / cm;
+        rho_to_mu * (mu_unit / rho_unit)
+    };
+
 
     // Set up progress reporting and timing
     use std::time::Instant;
@@ -66,11 +80,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let density = Image::from_raw_file(&input)?;
     report_time(&format!("Read density image {:?}", input));
 
-
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
-    // TODO parallelize
     let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
-    let sensitivity = Image::sensitivity_image(density.fov, density, lors, n_lors, rho);
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
+    let sensitivity = pool.install(|| Image::sensitivity_image(density.fov, density, lors, n_lors, rho_to_mu));
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
@@ -83,18 +96,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl Iterator<Item = sm::LOR> {
+fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl rayon::iter::ParallelIterator<Item = sm::LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
-    let one_useful_random_lor = move || {
+    let one_useful_random_lor = move |_lor_number| {
         loop {
             let p1 = random_point_on_cylinder(l, r);
             let p2 = random_point_on_cylinder(l, r);
             if fov.entry(p1, p2).is_some() {
-                return Some(petalo::system_matrix::LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)))
+                return sm::LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
             }
         }
     };
-    std::iter::from_fn(one_useful_random_lor).take(n_lors)
+
+    use rayon::prelude::*;
+    (0..n_lors)
+        .into_par_iter()
+        .map(one_useful_random_lor)
 }
 
 

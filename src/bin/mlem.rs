@@ -57,7 +57,6 @@ pub struct Cli {
     #[structopt(long)]
     use_true: bool,
 
-    #[cfg(not(feature = "serial"))]
     /// Maximum number of rayon threads
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
@@ -152,7 +151,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, args.nvoxels, args.size) };
     if sensitivity_image.is_some() { report_time("Loaded sensitivity image"); }
 
-    #[cfg(not(feature = "serial"))]
     // Set the maximum number of threads used by rayon for parallel iteration
     match rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build_global() {
         Err(e) => println!("{}", e),

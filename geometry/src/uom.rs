@@ -2,7 +2,6 @@
 // geometry::uom. TODO: this is a hack.
 pub use uom as uomcrate;
 
-
 use uom::si::Dimension;
 pub type InvertDimension<D> = uom::si::ISQ<
     <<D as Dimension>::L  as uom::lib::ops::Neg>::Output,
@@ -40,7 +39,10 @@ pub mod mmps {
     use uom::{ISQ, system, si::Quantity};
     ISQ!(uom::si, f32, (millimeter, kilogram, picosecond, ampere, kelvin, mole, candela));
 
-    pub type PerLength = Quantity<super::super::InvertDimension<uom::si::length::Dimension>, super::Units, f32>;
+    use uom::typenum::{P2, N1, Z0};
+    pub type PerLength   = Quantity<super::super::InvertDimension<uom::si::length::Dimension>, super::Units, f32>;
+    pub type AreaPerMass = Quantity<uom::si::ISQ<P2, N1, Z0, Z0, Z0, Z0, Z0>                 , super::Units, f32>;
+
 
     /// The full circle constant (τ) Equal to 2π.
     pub const TWOPI: Angle = Angle {
@@ -64,9 +66,10 @@ pub mod mmps {
 
 //use uom::fmt::DisplayStyle::Abbreviation;
 pub use uom::si::Quantity;
-pub use mmps::f32::{Angle, TWOPI, Length, Time, Velocity, Ratio, PerLength};
+pub use mmps::f32::{Angle, TWOPI, Length, Time, Velocity, Ratio, Mass, PerLength, AreaPerMass};
 use uom::si::{length  ::{nanometer, millimeter, centimeter},
               time    ::{nanosecond, picosecond},
+              mass    ::kilogram,
               velocity:: meter_per_second};
 
 // Making values from float literals seems to be very long-winded, so provide
@@ -78,6 +81,7 @@ pub fn nm (x: f32) -> Length   {  Length::new::      < nanometer>(x) }
 pub fn ns (x: f32) -> Time     {    Time::new::      <nanosecond>(x) }
 pub fn ps (x: f32) -> Time     {    Time::new::      <picosecond>(x) }
 pub fn m_s(x: f32) -> Velocity {Velocity::new::<meter_per_second>(x) }
+pub fn kg (x: f32) -> Mass     {    Mass::new::        <kilogram>(x) }
 
 pub fn ratio (x: f32) -> Ratio  {   Ratio::new::<uom::si::ratio::ratio>(x) }
 pub fn radian(x: f32) -> Angle  {   Angle::new::<uom::si::angle::radian>(x) }
@@ -88,6 +92,7 @@ pub fn turn  (x: f32) -> Angle  {   Angle::new::<uom::si::angle::revolution>(x) 
 pub fn mm_(x: Length) -> f32 { x.get::<millimeter>() }
 pub fn ps_(x: Time  ) -> f32 { x.get::<picosecond>() }
 pub fn ns_(x: Time  ) -> f32 { x.get::<nanosecond>() }
+pub fn kg_(x: Mass  ) -> f32 { x.get::<kilogram>  () }
 
 pub fn ratio_ (x: Ratio) -> f32 { x.get::<uom::si::ratio::ratio>() }
 pub fn radian_(x: Angle) -> f32 { x.get::<uom::si::angle::radian>() }

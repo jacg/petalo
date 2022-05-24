@@ -1,15 +1,14 @@
 use std::path::Path;
 use ndarray::azip;
 
-#[cfg(not(feature = "serial"))]
 use rayon::prelude::*;
 
 use crate::{io, Lengthf32, Index1_u, Intensityf32};
-use crate::{Length, PerLength, Ratio, Time};
+use crate::{Length, PerLength, Ratio, Time, AreaPerMass};
 use crate::{fov::{lor_fov_hit, FovHit}, system_matrix::{system_matrix_elements, LOR}};
 use crate::fov::FOV;
 use crate::gauss::make_gauss_option;
-use geometry::uom::ratio_;
+use geometry::uom::{ratio_, mm, kg};
 
 use crate::image::{Image, ImageData};
 
@@ -64,61 +63,53 @@ impl Image {
     // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(fov: FOV, density: Self, lors: impl Iterator<Item = crate::system_matrix::LOR>, n_lors: usize, stradivarius: f32) -> Self {
+    pub fn sensitivity_image(fov: FOV, density: Self, lors: impl ParallelIterator<Item = LOR>, n_lors: usize, rho_to_mu: AreaPerMass) -> Self {
         let a = &fov;
         let b = &density.fov;
         if a.n != b.n || a.half_width != b.half_width {
             panic!("For now, attenuation and output image dimensions must match exactly.")
         }
-        // TODO convert from density to attenuation coefficient
-        let attenuation = density;
-        let (mut image, mut weights, mut indices) = projection_buffers(fov);
+        // Convert from [density in kg/m^3] to [mu in mm^-1]
+        let rho_to_mu: f32 = ratio_({
+            let kg = kg(1.0);
+            let  m = mm(1000.0);
+            let rho_unit = kg / (m * m * m);
+            let  mu_unit = 1.0 / mm(1.0);
+            rho_to_mu / (mu_unit / rho_unit)
+        });
+        let mut attenuation = density;
+        for voxel in &mut attenuation.data {
+            *voxel *= rho_to_mu;
+        }
+        let attenuation = &attenuation;
 
         // TOF should not be used as LOR attenuation is independent of decay point
         let notof = make_gauss_option(None, None);
 
-        'lor: for lor in lors {
-            // Find active voxels (slice of system matrix) WITHOUT TOF
-            // Analyse point where LOR hits FOV
-            match lor_fov_hit(&lor, fov) {
+        // Closure preparing the state needed by `fold`: will be called by
+        // `fold` at the start of every thread that is launched.
+        let initial_thread_state = || {
+            let (backprojection, weights, indices) = projection_buffers(attenuation.fov);
+            (backprojection, weights, indices, &attenuation, &notof)
+        };
 
-                // LOR missed FOV: nothing to be done
-                None => continue,
+        // -------- Project all LORs forwards and backwards ---------------------
+        let fold_result = lors
+            .fold(initial_thread_state, sensitivity_one_lor);
 
-                // Data needed by `system_matrix_elements`
-                Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+        // -------- extract relevant information (backprojection) ---------------
+        let mut backprojection = fold_result
+            // Keep only the backprojection (ignore weights and indices)
+            .map(|tuple| tuple.0)
+            // Sum the backprojections calculated on each thread
+            .reduce(|| zeros_buffer(attenuation.fov), elementwise_add);
 
-                    // Throw away previous LOR's values
-                    weights.clear();
-                    indices.clear();
-
-                    // Find active voxels and their weights
-                    system_matrix_elements(
-                        &mut indices, &mut weights,
-                        next_boundary, voxel_size,
-                        index, delta_index, remaining,
-                        tof_peak, &notof
-                    );
-
-                    // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
-                    for i in &indices {
-                        if *i >= image.len() { continue 'lor; }
-                    }
-
-                    let integral = forward_project(&weights, &indices, &attenuation) / stradivarius;
-                    let attenuation_factor = (-integral).exp();
-                    //println!("{:<8.2e}  ---  {:<8.2e}", integral, attenuation_factor);
-                    // Backprojection of LOR onto image
-                    back_project(&mut image, &weights, &indices, attenuation_factor);
-                }
-            }
-        }
         // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
         let size = n_lors as f32;
-        for e in image.iter_mut() {
+        for e in backprojection.iter_mut() {
             *e /= size
         }
-        Self::new(fov, image)
+        Self::new(fov, backprojection)
     }
 
     fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensityf32], sigma: Option<Time>, cutoff: Option<Ratio>) {
@@ -130,47 +121,26 @@ impl Image {
 
         // Closure preparing the state needed by `fold`: will be called by
         // `fold` at the start of every thread that is launched.
+        let immutable_self = &*self;
         let initial_thread_state = || {
             let (backprojection, weights, indices) = projection_buffers(self.fov);
-            (backprojection, weights, indices, &self, &tof)
+            (backprojection, weights, indices, &immutable_self, &tof)
         };
 
-        // Parallel fold takes a function which will return ID value;
-        // serial fold takes the ID value itself.
-        #[cfg (feature = "serial")]
-        // In the serial case, call the function to get one ID value
-        let initial_thread_state =  initial_thread_state();
-
-        // Choose between serial parallel current_iteration
-        #[cfg    (feature = "serial") ] let iter = measured_lors.    iter();
-        #[cfg(not(feature = "serial"))] let iter = measured_lors.par_iter();
-
         // -------- Project all LORs forwards and backwards ---------------------
-
-        let fold_result = iter.fold(initial_thread_state, project_one_lor);
+        let fold_result = measured_lors
+            .par_iter()
+            .fold(initial_thread_state, project_one_lor);
 
         // -------- extract relevant information (backprojection) ---------------
-
-        // In the serial case, there is a single result to unwrap ...
-        #[cfg (feature = "serial")]
-        let backprojection = fold_result.0; // Keep only backprojection
-
-        // ... in the parallel case, the results from each thread must be
-        // combined
-        #[cfg(not(feature = "serial"))]
-        let backprojection = {
-            fold_result
+        let backprojection = fold_result
             // Keep only the backprojection (ignore weights and indices)
             .map(|tuple| tuple.0)
             // Sum the backprojections calculated on each thread
-            .reduce(|   | zeros_buffer(self.fov),
-                    |l,r| l.iter().zip(r.iter()).map(|(l,r)| l+r).collect())
-        };
+            .reduce(|| zeros_buffer(self.fov), elementwise_add);
 
         // -------- Correct for attenuation and detector sensitivity ------------
-
         apply_sensitivity_image(&mut self.data, &backprojection, sensitivity);
-
     }
 
     pub fn ones(fov: FOV) -> Self {
@@ -214,11 +184,15 @@ pub fn projection_buffers(fov: FOV) -> (ImageData, Vec<Lengthf32>, Vec<usize>) {
     (image, weights, indices)
 }
 
+fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
+    a.iter().zip(b.iter()).map(|(l,r)| l+r).collect()
+}
+
 // A new empty data store with matching size
 fn zeros_buffer(fov: FOV) -> ImageData { let [x,y,z] = fov.n; vec![0.0; x*y*z] }
 
 
-type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1_u> , &'r &'i mut Image, &'g Option<G>);
+type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1_u> , &'r &'i Image, &'g Option<G>);
 
 fn project_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
 where
@@ -256,6 +230,51 @@ where
     }
     // Return updated FoldState
     (backprojection, weights, indices, image, tof)
+}
+
+fn sensitivity_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: LOR) -> FoldState<'r, 'i, 'g, G>
+where
+    G: Fn(Length) -> PerLength
+{
+    let (mut backprojection, mut weights, mut indices, attenuation, tof) = state;
+
+    // Need to return the state from various match arms
+    macro_rules! return_state { () => (return (backprojection, weights, indices, attenuation, tof)); }
+
+    // Find active voxels (slice of system matrix) WITHOUT TOF
+    // Analyse point where LOR hits FOV
+    match lor_fov_hit(&lor, attenuation.fov) {
+
+        // LOR missed FOV: nothing to be done
+        None => return_state!(),
+
+        // Data needed by `system_matrix_elements`
+        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+
+            // Throw away previous LOR's values
+            weights.clear();
+            indices.clear();
+
+            // Find active voxels and their weights
+            system_matrix_elements(
+                &mut indices, &mut weights,
+                next_boundary, voxel_size,
+                index, delta_index, remaining,
+                tof_peak, &tof
+            );
+
+            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
+            for i in &indices {
+                if *i >= backprojection.len() { return_state!(); }
+            }
+
+            let integral = forward_project(&weights, &indices, &attenuation);
+            let attenuation_factor = (-integral).exp();
+            // Backprojection of LOR onto sensitivity image
+            back_project(&mut backprojection, &weights, &indices, attenuation_factor);
+            return_state!();
+        }
+    }
 }
 
 #[inline]
