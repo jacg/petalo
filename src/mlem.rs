@@ -267,7 +267,7 @@ where
                 &mut indices, &mut weights,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
-                tof_peak, &tof
+                tof_peak, tof
             );
 
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
@@ -275,7 +275,7 @@ where
                 if *i >= backprojection.len() { return_state!(); }
             }
 
-            let integral = forward_project(&weights, &indices, &attenuation);
+            let integral = forward_project(&weights, &indices, attenuation);
             let attenuation_factor = (-integral).exp();
             // Backprojection of LOR onto sensitivity image
             back_project(&mut backprojection, &weights, &indices, attenuation_factor);
