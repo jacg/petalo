@@ -43,7 +43,7 @@ use petalo::{utils::group_digits, fov::FOV, Lengthf32};
 use petalo::image::Image;
 
 use petalo::{Length, Time, AreaPerMass};
-use geometry::uom::{ratio, kg, mm};
+use geometry::units::{ratio, kg, mm};
 use petalo::guomc::ConstZero;
 use petalo::system_matrix as sm;
 

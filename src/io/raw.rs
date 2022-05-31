@@ -3,7 +3,7 @@
 use std::fs::File;
 use std::io::{Write, Read, BufWriter, BufReader};
 
-use geometry::uom::{mm, mm_};
+use geometry::units::{mm, mm_};
 
 pub fn write(data: impl Iterator<Item = f32>, path: &std::path::Path) -> std::io::Result<()> {
     let file = File::create(path)?;

@@ -8,7 +8,7 @@ use crate::{Length, PerLength, Ratio, Time, AreaPerMass};
 use crate::{fov::{lor_fov_hit, FovHit}, system_matrix::{system_matrix_elements, LOR}};
 use crate::fov::FOV;
 use crate::gauss::make_gauss_option;
-use geometry::uom::{ratio_, mm, kg};
+use geometry::units::{ratio_, mm, kg};
 
 use crate::image::{Image, ImageData};
 
@@ -313,7 +313,7 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use geometry::{uom::{mm, mm_, ns, ratio, turn, turn_}, Angle};
+    use geometry::{units::{mm, mm_, ns, ratio, turn, turn_}, Angle};
     use rstest::{rstest, fixture};
     use float_eq::assert_float_eq;
 

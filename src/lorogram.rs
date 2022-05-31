@@ -11,7 +11,7 @@ use std::f32::consts::PI;
 
 use crate::Lengthf32;
 use crate::{Angle, Length, Point, Time, Ratio};
-use geometry::uom::{mm, mm_, ps_, ratio, radian_};
+use geometry::units::{mm, mm_, ps_, ratio, radian_};
 use crate::guomc::ConstZero;
 
 

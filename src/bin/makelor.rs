@@ -5,12 +5,12 @@ use petalo::io;
 use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::Energyf32;
 use petalo::{Length, Time, Point, Ratio};
-use geometry::uom::mmps::f32::Area;
-use geometry::uom::uomcrate::ConstZero;
+use geometry::units::mmps::f32::Area;
+use geometry::units::uomcrate::ConstZero;
 use petalo::utils::group_digits;
 
 // TODO: try to remove the need for these
-use geometry::uom::{mm, mm_, ns, ns_, ratio};
+use geometry::units::{mm, mm_, ns, ns_, ratio};
 // The mair problems seems to be that uom types do not implement various third-party traits, such as:
 // + std::iter::Sum
 // + hdf5:H5Type
@@ -382,7 +382,7 @@ fn vertex_barycentre(vertices: &[&Vertex]) -> Option<Barycentre> {
 mod test_vertex_barycentre {
     use super::*;
     use float_eq::assert_float_eq;
-    use geometry::uom::radian;
+    use geometry::units::radian;
     use std::f32::consts::PI;
 
     /// Create a vertex with interesting x,y, optional pre_KE and dummy values elsewhere

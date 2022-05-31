@@ -1,7 +1,7 @@
 use std::ops::{Index, IndexMut, Mul, Sub};
 use crate::{Length, Ratio};
 
-use crate::uom::{mm, ratio};
+use crate::units::{mm, ratio};
 
 type NcVector = ncollide3d::math::Vector::<f32>;
 
@@ -180,7 +180,7 @@ mod tests {
     use crate::Vector;
     const EPS: f32 = f32::EPSILON;
     use uom::si::length::meter;
-    use crate::uom::{nm, mm, cm, assert_uom_eq};
+    use crate::units::{nm, mm, cm, assert_uom_eq};
     use rstest::rstest;
 
     #[test]

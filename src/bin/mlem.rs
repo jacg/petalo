@@ -119,7 +119,7 @@ use petalo::lorogram::Scattergram;
 use petalo::fov::FOV;
 use petalo::image::Image;
 use petalo::io;
-use geometry::uom::mm_;
+use geometry::units::mm_;
 
 
 fn main() -> Result<(), Box<dyn Error>> {

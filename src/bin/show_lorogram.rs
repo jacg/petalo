@@ -5,7 +5,7 @@ use petalo::io::hdf5::{Hdf5Lor, read_table};
 use petalo::lorogram::{axis_z, axis_dz, axis_phi, axis_r, fill_scattergram, mk_lor};
 use ndhistogram::ndhistogram;
 use std::f32::consts::PI;
-use geometry::uom::{mm, ratio_};
+use geometry::units::{mm, ratio_};
 
 
 #[derive(StructOpt, Debug, Clone)]

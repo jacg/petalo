@@ -1,7 +1,7 @@
 use crate::io::raw;
 use crate::{Intensityf32, Ratiof32};
 use crate::{Length, Point};
-use geometry::uom::ratio_;
+use geometry::units::ratio_;
 use crate::image::{Image, ImageData};
 use crate::fov::FOV;
 
@@ -136,7 +136,7 @@ pub fn centres_of_slices_closest_to(targets: &[Length], half_width: Length, voxe
 mod test_in_roi {
     use super::*;
     use rstest::rstest;
-    use geometry::{uom::mm, in_base_unit};
+    use geometry::{units::mm, in_base_unit};
 
     // Arrange for outer voxels to be centred at +/- 100.0, when n = 10
     const MAGIC: Length = in_base_unit!(10.0 / 9.0 * 200.0);
