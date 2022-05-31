@@ -21,5 +21,5 @@ ncollide3d = "0.32"
 float_eq = "0.7.0"
 
 [dev-dependencies]
-pretty_assertions = "1.0"
-rstest = "0.12"
+pretty_assertions = "1.2.1"
+rstest = "0.13"
