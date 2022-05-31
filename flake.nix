@@ -2,7 +2,7 @@
   description = "Image Reconstruction for PET";
 
   inputs = {
-    nixpkgs         .url = "github:nixos/nixpkgs/nixos-unstable"; # cargo2nix broken in 21.11
+    nixpkgs         .url = "github:nixos/nixpkgs/nixos-22.05";
     utils           .url = "github:numtide/flake-utils";
     rust-overlay = { url = "github:oxalica/rust-overlay"; inputs.nixpkgs    .follows = "nixpkgs";
                                                           inputs.flake-utils.follows = "utils"; };
@@ -30,8 +30,8 @@
                   rust-tcfile  = final.rust-bin.fromRustupToolchainFile ./rust-toolchain;
                   rust-latest  = final.rust-bin.stable .latest      ;
                   rust-beta    = final.rust-bin.beta   .latest      ;
-                  rust-nightly = final.rust-bin.nightly."2022-04-05";
-                  rust-stable  = final.rust-bin.stable ."1.59.0"    ; # nix flake lock --update-input rust-overlay
+                  rust-nightly = final.rust-bin.nightly."2022-05-30";
+                  rust-stable  = final.rust-bin.stable ."1.61.0"    ; # nix flake lock --update-input rust-overlay
                   rust-analyzer-preview-on = date:
                     final.rust-bin.nightly.${date}.default.override
                       { extensions = [ "rust-analyzer-preview" ]; };
@@ -43,7 +43,7 @@
 
                     rustc = rustup.default;
                     cargo = rustup.default;
-                    rust-analyzer-preview = rust-analyzer-preview-on "2022-04-05";
+                    rust-analyzer-preview = rust-analyzer-preview-on "2022-05-30";
                   })
               # ==== Cargo nextest ========================================================
               (final: prev: {
