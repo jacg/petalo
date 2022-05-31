@@ -2,7 +2,7 @@
   description = "Image Reconstruction for PET";
 
   inputs = {
-    nixpkgs         .url = "github:nixos/nixpkgs/nixos-unstable"; # cargo2nix broken in 21.11
+    nixpkgs         .url = "github:nixos/nixpkgs/nixos-22.05";
     utils           .url = "github:numtide/flake-utils";
     rust-overlay = { url = "github:oxalica/rust-overlay"; inputs.nixpkgs    .follows = "nixpkgs";
                                                           inputs.flake-utils.follows = "utils"; };
