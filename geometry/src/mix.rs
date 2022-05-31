@@ -1,7 +1,4 @@
-//! Utilities used in the transition to uom-aware types
-//!
-//! Everything in this module should probably be removed after the transition is
-//! complete.
+//! Conversions between ncollide/uom Points and Vectors
 
 use crate::{Length, Point, Vector, RatioPoint, RatioVec};
 
