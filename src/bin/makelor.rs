@@ -651,7 +651,6 @@ mod test_dbscan {
     use ndarray::{Axis, array};
     use ndarray_rand::rand::SeedableRng;
     use rand_isaac::Isaac64Rng;
-    //use approx::assert_abs_diff_eq;
 
     #[test]
     fn test_appx () {

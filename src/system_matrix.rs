@@ -32,7 +32,6 @@ mod test {
     use super::*;
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
-    use assert_approx_eq::assert_approx_eq;
     use crate::TWOPI;
     use geometry::units::ratio;
 
@@ -86,7 +85,7 @@ mod test {
         let total_length: Lengthf32 = hits.iter()
             .map(|(_index, weight)| weight)
             .sum();
-        assert_approx_eq!(total_length, length);
+        assert_float_eq!(total_length, length, ulps <= 1);
 
         // Check voxels hit
         let voxels: Vec<(usize, usize)> = hits.into_iter()
