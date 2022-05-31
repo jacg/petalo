@@ -6,7 +6,7 @@ use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
 use petalo::Energyf32;
 use petalo::{Length, Time, Point, Ratio};
 use geometry::units::mmps::f32::Area;
-use geometry::units::uomcrate::ConstZero;
+use geometry::uom::ConstZero;
 use petalo::utils::group_digits;
 
 // TODO: try to remove the need for these

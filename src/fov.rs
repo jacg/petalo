@@ -6,7 +6,7 @@ use crate::{Length, Point, Vector, LOR, find_tof_peak, find_entry_point, voxel_s
 use crate::index::{BoxDim_u, Index3_u, Index1_u, index1_to_3, index3_to_1};
 use geometry::units::mm_;
 use geometry::RatioPoint;
-use crate::guomc::ConstZero;
+use geometry::uom::ConstZero;
 
 #[derive(Clone, Copy, Debug)]
 pub struct FOV {

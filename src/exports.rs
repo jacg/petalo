@@ -2,9 +2,8 @@ pub use crate::system_matrix::{LOR, find_tof_peak, find_entry_point, voxel_size,
 
 use ncollide3d as nc;
 
-pub use geometry::units::uomcrate as guomc;
-pub use guomc::si::Quantity;
-pub use guomc::typenum::{Z0, N1};
+pub use geometry::uom::si::Quantity;
+pub use geometry::uom::typenum::{Z0, N1};
 use geometry::in_base_unit;
 
 pub type Lengthf32  = f32;

@@ -1,7 +1,6 @@
 use crate::{Angle, Length, PerLength, Ratio, Time, TWOPI, C};
 
-use geometry::units::uomcrate as guomc;
-use guomc::ConstZero; // num_traits::Zero;
+use geometry::uom::ConstZero; // num_traits::Zero;
 use geometry::units::{mm, ratio_};
 
 // How would you make this generic over Length -> T ?

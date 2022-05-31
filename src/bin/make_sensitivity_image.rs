@@ -44,7 +44,7 @@ use petalo::image::Image;
 
 use petalo::{Length, Time, AreaPerMass};
 use geometry::units::{ratio, kg, mm};
-use petalo::guomc::ConstZero;
+use geometry::uom::ConstZero;
 use petalo::system_matrix as sm;
 
 fn main() -> Result<(), Box<dyn Error>> {

@@ -7,8 +7,8 @@ pub type BoxDim = [LengthU; 3];
 
 pub type Index3Weightf32 = (Index3_u, Weightf32);
 
-pub type LengthI = geometry::units::uomcrate::si::i32  ::Length;
-pub type LengthU = geometry::units::uomcrate::si::usize::Length;
+pub type LengthI = geometry::uom::si::i32  ::Length;
+pub type LengthU = geometry::uom::si::usize::Length;
 
 
 // --------------------------------------------------------------------------------

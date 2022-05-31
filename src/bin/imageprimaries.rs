@@ -38,7 +38,7 @@ use petalo::fov::FOV;
 use petalo::image::Image;
 use petalo::io::hdf5::{read_table, Primary};
 type L = Lengthf32;
-use geometry::units::uomcrate::si::length::millimeter;
+use geometry::uom::si::length::millimeter;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();

@@ -210,7 +210,7 @@ pub fn system_matrix_elements(
     }
 }
 
-use crate::guomc::ConstZero;
+use geometry::uom::ConstZero;
 
 const EPS: Ratio = in_base_unit!(1e-5);
 
@@ -248,7 +248,7 @@ pub fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Leng
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
 pub fn first_boundaries(entry_point: RatioPoint, voxel_size: Vector) -> Vector {
-    use geometry::units::uomcrate::si::ratio::ratio;
+    use geometry::uom::si::ratio::ratio;
     // How far have we penetrated into this voxel, along any axis
     let frac_done: RatioVec = entry_point - entry_point.map(|x| x.floor::<ratio>());
     // Distances remaining to the nearest boundaries
