@@ -47,7 +47,6 @@ tempfile = "3.3.0"
 rand_isaac = "0.3.0"
 ndarray-rand = "0.14.0"
 rand_core = "0.6.3"
-approx = "0.5.1"
 
 [build-dependencies]
 bindgen = "0.59.2"
