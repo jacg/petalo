@@ -1,7 +1,3 @@
-// Make uom crate reachable from our root crate, without clashing with our
-// geometry::uom. TODO: this is a hack.
-pub use uom as uomcrate;
-
 use uom::si::Dimension;
 pub type InvertDimension<D> = uom::si::ISQ<
     <<D as Dimension>::L  as uom::lib::ops::Neg>::Output,

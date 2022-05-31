@@ -20,7 +20,7 @@ use crate::{Chargef32, Energyf32, BoundPair};
 use crate::Point;
 use crate::system_matrix::LOR;
 
-use geometry::uom::{mm, ns, ratio};
+use geometry::units::{mm, ns, ratio};
 
 pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<std::ops::Range<usize>>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;

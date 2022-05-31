@@ -4,9 +4,9 @@
 use crate::{Lengthf32, Pointf32};
 use crate::{Length, Point, Vector, LOR, find_tof_peak, find_entry_point, voxel_size, first_boundaries};
 use crate::index::{BoxDim_u, Index3_u, Index1_u, index1_to_3, index3_to_1};
-use geometry::uom::mm_;
+use geometry::units::mm_;
 use geometry::RatioPoint;
-use crate::guomc::ConstZero;
+use geometry::uom::ConstZero;
 
 #[derive(Clone, Copy, Debug)]
 pub struct FOV {
@@ -74,7 +74,7 @@ impl FOV {
 mod test_fov {
     use super::*;
     use rstest::rstest;
-    use geometry::uom::mm;
+    use geometry::units::mm;
     use float_eq::assert_float_eq;
 
     #[rstest(/**/ index,   expected_position,

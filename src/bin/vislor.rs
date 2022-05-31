@@ -9,7 +9,7 @@ use petalo::visualize::{lor_weights, Shape};
 use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, parse_bounds, CutoffOption};
 use petalo::io;
 
-use geometry::uom::mm;
+use geometry::units::mm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 

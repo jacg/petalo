@@ -19,7 +19,7 @@ use crate::{Length, PerLength, Time, C,
             Point, Vector, Ratio, RatioPoint, RatioVec};
 use crate::fov::FOV;
 
-use geometry::uom::{mm, mm_, ns_, ratio_};
+use geometry::units::{mm, mm_, ns_, ratio_};
 use crate::gauss::make_gauss_option;
 use crate::index::index1_to_3;
 
@@ -34,7 +34,7 @@ mod test {
     use rstest::rstest;
     use assert_approx_eq::assert_approx_eq;
     use crate::TWOPI;
-    use geometry::uom::ratio;
+    use geometry::units::ratio;
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
@@ -210,7 +210,7 @@ pub fn system_matrix_elements(
     }
 }
 
-use crate::guomc::ConstZero;
+use geometry::uom::ConstZero;
 
 const EPS: Ratio = in_base_unit!(1e-5);
 
@@ -248,7 +248,7 @@ pub fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Leng
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
 pub fn first_boundaries(entry_point: RatioPoint, voxel_size: Vector) -> Vector {
-    use geometry::uom::uomcrate::si::ratio::ratio;
+    use geometry::uom::si::ratio::ratio;
     // How far have we penetrated into this voxel, along any axis
     let frac_done: RatioVec = entry_point - entry_point.map(|x| x.floor::<ratio>());
     // Distances remaining to the nearest boundaries

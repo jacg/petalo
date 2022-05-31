@@ -1,13 +1,18 @@
+pub mod axis;
+
+mod build_scattergram;
+pub use build_scattergram::*;
+
 use ndhistogram::{axis::{Axis, Uniform}, Histogram};
-use super::axis::Cyclic;
+use axis::Cyclic;
 use crate::io::hdf5::Hdf5Lor;
 use crate::system_matrix::LOR;
 use std::f32::consts::PI;
 
 use crate::Lengthf32;
 use crate::{Angle, Length, Point, Time, Ratio};
-use geometry::uom::{mm, mm_, ps_, ratio, radian_};
-use crate::guomc::ConstZero;
+use geometry::units::{mm, mm_, ps_, ratio, radian_};
+use geometry::uom::ConstZero;
 
 
 /// Distinguish between true, scatter and random prompt signals

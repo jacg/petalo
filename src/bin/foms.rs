@@ -31,7 +31,7 @@ use petalo::{Length};
 use petalo::image::Image;
 use petalo::fom;
 use petalo::fom::{Sphere, ROI, centres_of_slices_closest_to};
-use geometry::uom::{mm, mm_};
+use geometry::units::{mm, mm_};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();

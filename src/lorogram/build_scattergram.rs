@@ -1,7 +1,7 @@
 use crate::{Length, Time};
 use crate::lorogram::{Scattergram, axis_r, axis_phi, axis_z, axis_dz, axis_t};
 use ndhistogram::ndhistogram;
-use geometry::uom::{mm, ps};
+use geometry::units::{mm, ps};
 
 
 pub struct BuildScattergram {
