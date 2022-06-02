@@ -13,7 +13,7 @@ of options. For casual users, I recommend the first two.
 1. Ephemeral installation with `nix shell`
 
    ```shell
-   nix shell github:jacg/petalo/flakes  # (TODO remove `flakes` once merged into `master`)
+   nix shell github:jacg/petalo
    ```
 
    This will place you in a shell in which (the most recent version of) all the
@@ -31,7 +31,7 @@ of options. For casual users, I recommend the first two.
 2. Ad-hoc installation with `nix build`
 
    ```shell
-   nix build github:jacg/petalo/flakes
+   nix build github:jacg/petalo
    ```
 
    This will create a link called `result` in the working directory, which
@@ -46,7 +46,7 @@ of options. For casual users, I recommend the first two.
    therefore **NOT RECOMMENDED**!
 
    ```shell
-   nix profile install github:jacg/petalo/flakes
+   nix profile install github:jacg/petalo
    ```
 
    All the tools should now be available in your `PATH`: try `mlem --help`.
@@ -64,7 +64,7 @@ You can obtain the source code by cloning the repository directly via git. But
 Nix flakes provide an alternative:
 
 ``` shell
-nix flake clone github:jacg/petalo/flakes --dest petalorust
+nix flake clone github:jacg/petalo --dest petalorust
 ```
 
 ## Development tools
@@ -96,7 +96,7 @@ want to use the environment in a different directory, you can always ask for it
 explicitly with either of these commands
 
 + `nix develop <path-to-your-clone-of-the-project>`
-+ `nix develop github:jacg/petalo/flakes`
++ `nix develop github:jacg/petalo
 
 `direnv` also automatically switches the environment to match the currently
 checked-out version of the project.
