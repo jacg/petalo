@@ -664,7 +664,7 @@ mod tests {
         //     for lor in &trues { hdf5lors.push(mklor(lor, Prompt::True   )); }
         //     for lor in &noise { hdf5lors.push(mklor(lor, Prompt::Scatter)); }
         // }
-        // let filename = std::path::PathBuf::from("/tmp/test-mlem/lors.h5");
+        // let filename = std::path::PathBuf::from("test-mlem-images/lors.h5");
         // std::fs::create_dir_all(filename.parent().unwrap()).unwrap();
         // hdf5::File::create(filename).unwrap()
         //     .create_group("reco_info").unwrap()
@@ -713,7 +713,7 @@ mod tests {
         let _ = pool.install(|| {
             Image::mlem(fov, &lors, None, None, None, 1)
                 .take(10)
-                .inspect(save_each_image_in(format!("/tmp/test-mlem/{name}/")))
+                .inspect(save_each_image_in(format!("test-mlem-images/{name}/")))
                 .for_each(|_| {
                 });
         });
