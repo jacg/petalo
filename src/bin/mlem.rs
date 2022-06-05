@@ -193,12 +193,16 @@ type NVoxels = (usize , usize , usize );
 
 /// Panic if the image size does not match the specified values
 fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) {
+    use float_eq::float_eq;
     let size = image.fov.half_width;
     let (idx, idy, idz) = (size[0]*2.0, size[1]*2.0, size[2]*2.0);
     let [inx, iny, inz] = image.fov.n;
     let (enx, eny, enz) = nvoxels;
     let (edx, edy, edz) = fov_size;
-    if ! ((enx, eny, enz) == (inx, iny, inz) && (edx, edy, edz) == (idx, idy, idz)) {
+    // Unwrap uom, to make float_eq! work
+    let ids = [mm_(idx), mm_(idy), mm_(idz)];
+    let eds = [mm_(edx), mm_(edy), mm_(edz)];
+    if ! ((enx, eny, enz) == (inx, iny, inz) && float_eq!(eds, ids, ulps_all <= 1)) {
         // TODO enable use of density images with different
         // pixelizations as long as they cover the whole FOV.
         println!("Mismatch sensitivity image and output image size:");
