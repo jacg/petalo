@@ -83,7 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
     let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
-    let sensitivity = pool.install(|| Image::sensitivity_image(density.fov, density, lors, n_lors, rho_to_mu));
+    let sensitivity = pool.install(|| Image::sensitivity_image(density, lors, n_lors, rho_to_mu));
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();

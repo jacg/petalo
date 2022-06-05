@@ -63,12 +63,7 @@ impl Image {
     // TODO turn this into a method?
     /// Create sensitivity image by backprojecting LORs. In theory this should
     /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(fov: FOV, density: Self, lors: impl ParallelIterator<Item = LOR>, n_lors: usize, rho_to_mu: AreaPerMass) -> Self {
-        let a = &fov;
-        let b = &density.fov;
-        if a.n != b.n || a.half_width != b.half_width {
-            panic!("For now, attenuation and output image dimensions must match exactly.")
-        }
+    pub fn sensitivity_image(density: Self, lors: impl ParallelIterator<Item = LOR>, n_lors: usize, rho_to_mu: AreaPerMass) -> Self {
         // Convert from [density in kg/m^3] to [mu in mm^-1]
         let rho_to_mu: f32 = ratio_({
             let kg = kg(1.0);
@@ -109,7 +104,7 @@ impl Image {
         for e in backprojection.iter_mut() {
             *e /= size
         }
-        Self::new(fov, backprojection)
+        Self::new(attenuation.fov, backprojection)
     }
 
     fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensityf32], sigma: Option<Time>, cutoff: Option<Ratio>) {
