@@ -134,6 +134,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let                      Cli{ input_file, dataset, event_range, use_true, ecut, qcut, .. } = args.clone();
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, ecut, qcut };
 
+    // Check that output directory is writable. Do this *before* expensive
+    // setup, so it fails early
+    let file_pattern = guess_filename(&args);
+    // If the directory where results will be written does not exist yet, make it
+    create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
+
     // Define field of view extent and voxelization
     let fov = FOV::new(args.size, args.nvoxels);
 
@@ -143,11 +149,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     progress.startln("Loading LORs from file");
     let measured_lors = io::hdf5::read_lors(io_args, scattergram)?;
     progress.done_with_message("Loaded LORs from file");
-
-    let file_pattern = guess_filename(&args);
-
-    // If the directory where results will be written does not exist yet, make it
-    create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
 
     let sensitivity_image: Option<Image> = args.sensitivity_image.as_ref().map(|path| Image::from_raw_file(path)).transpose()?;
     if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, args.nvoxels, args.size) };
