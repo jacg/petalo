@@ -7,11 +7,11 @@ use ndhistogram::{axis::{Axis, Uniform}, Histogram};
 use axis::Cyclic;
 use crate::io::hdf5::Hdf5Lor;
 use crate::system_matrix::LOR;
-use std::f32::consts::PI;
+use std::f32::consts::TAU;
 
 use crate::Lengthf32;
 use crate::{Angle, Length, Point, Time, Ratio};
-use geometry::units::{mm, mm_, ps_, ratio, radian_};
+use geometry::units::{mm, mm_, ps_, ratio, radian_, turn};
 use geometry::uom::ConstZero;
 
 
@@ -106,9 +106,17 @@ fn distance_from_z_axis(LOR{ p1, p2, .. }: &LOR) -> Length {
 }
 
 fn phi(LOR{ p1, p2, .. }: &LOR) -> Angle {
+    // TODO this repeats the work done in distance_from_z_axis. Can this be
+    // optimized out, once we settle on a less flexible scattergram?
     let dx = p2.x - p1.x;
     let dy = p2.y - p1.y;
-    phi_of_x_y(dx, dy)
+    let x1 = p1.x;
+    let y1 = p1.y;
+    let r = (dx * y1 - dy * x1) / (dx*dx + dy*dy).sqrt();
+    let phi = phi_of_x_y(dx, dy);
+    if r < mm(0.0) { phi + turn(0.5) }
+    else           { phi             }
+
 }
 
 fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
@@ -136,7 +144,7 @@ pub fn axis_r(nbins: usize, max: Length) -> LorAxU {
 
 pub fn axis_phi(nbins: usize) -> LorAxC {
     LorAxC {
-        axis: Cyclic::new(nbins, 0.0, PI),
+        axis: Cyclic::new(nbins, 0.0, TAU),
         map: Box::new(|x| radian_(phi(x))),
     }
 }
