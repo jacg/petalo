@@ -146,13 +146,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let scattergram = build_scattergram(args.clone());
     progress.done_with_message("Startup");
 
-    progress.startln("Loading LORs from file");
-    let measured_lors = io::hdf5::read_lors(io_args, scattergram)?;
-    progress.done_with_message("Loaded LORs from file");
-
     let sensitivity_image: Option<Image> = args.sensitivity_image.as_ref().map(|path| Image::from_raw_file(path)).transpose()?;
     if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, args.nvoxels, args.size) };
     if sensitivity_image.is_some() { progress.done_with_message("Loaded sensitivity image"); }
+
+    progress.startln("Loading LORs from file");
+    let measured_lors = io::hdf5::read_lors(io_args, scattergram)?;
+    progress.done_with_message("Loaded LORs from file");
 
     // Set the maximum number of threads used by rayon for parallel iteration
     match rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build_global() {
