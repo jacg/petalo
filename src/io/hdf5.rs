@@ -71,13 +71,22 @@ fn read_hdf5_lors(
 
 #[allow(nonstandard_style)]
 pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
+
+    let mut progress = crate::utils::timing::Progress::new();
+
     // Read LORs from file,
+    progress.start("   Reading LORs");
+    std::thread::sleep(std::time::Duration::from_secs(5));
     let (hdf5_lors, cut) = read_hdf5_lors(&args.input_file, &args.dataset,
                                           args.event_range.clone(),
                                           args.qcut, args.ecut)?;
+    progress.done();
 
     // Use LORs to gather statistics about spatial distribution of scatter probability
+    progress.start("   Filling scattergram");
     fill_scattergram(&mut scattergram, &hdf5_lors);
+    progress.done();
+    progress.start("   Converting HDF5 LORs into MLEM LORs");
 
     let hdf5lor_to_lor: Box<dyn Fn(Hdf5Lor) -> LOR> = if let Some(scattergram) = scattergram.as_ref() {
         Box::new(|hdf5_lor: Hdf5Lor| {
@@ -92,12 +101,13 @@ pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec
         .into_iter()
         .map(hdf5lor_to_lor)
         .collect();
+    progress.done();
 
     let used = lors.len();
     let used_pct = 100 * used / (used + cut);
     use crate::utils::group_digits as g;
-    println!("Using {} LORs (cut {}    kept {}%)",
-               g(used),      g(cut),   used_pct);
+    println!("   Using {} LORs (cut {}    kept {}%)",
+                  g(used),      g(cut),   used_pct);
     Ok(lors)
 }
 
