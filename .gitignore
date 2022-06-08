@@ -14,3 +14,4 @@ oprofile_data
 flamegraphs
 *.raw
 /data
+/src/rustpetalo_python_utils.egg-info/
