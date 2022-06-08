@@ -86,3 +86,49 @@ pub fn group_digits<F: num_format::ToFormattedString>(n: F) -> String {
     use num_format::{Locale};
     n.to_formatted_string(&Locale::en)
 }
+
+
+pub mod timing {
+
+    use super::group_digits;
+    use std::time::Instant;
+    use std::io::Write;
+
+    pub struct Progress {
+        previous: Instant,
+    }
+
+    impl Progress {
+
+        pub fn new() -> Self { Self { previous: Instant::now() } }
+
+        /// Print message, append ellipsis, flush stdout, stay on same line, start timer.
+        pub fn start(&mut self, message: &str) {
+            print!("{message} ... ");
+            std::io::stdout().flush().unwrap();
+            self.start_timer();
+        }
+
+        /// Print message, go to next line, start timer
+        pub fn startln(&mut self, message: &str) {
+            self.start(message);
+            println!();
+            self.start_timer();
+        }
+
+        // Print time elapsed since last start or done
+        pub fn done(&mut self) {
+            println!("{} ms", group_digits(self.previous.elapsed().as_millis()));
+            self.start_timer();
+        }
+
+        // Print message followed by time elapsed since last start or done
+        pub fn done_with_message(&mut self, message: &str) {
+            println!("{message}: {} ms",
+                     group_digits(self.previous.elapsed().as_millis()));
+            self.start_timer();
+        }
+
+        fn start_timer(&mut self) { self.previous = Instant::now() }
+    }
+}

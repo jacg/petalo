@@ -1,8 +1,8 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::{utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption,
-                     group_digits}, lorogram::BuildScattergram};
+use petalo::{utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption},
+             lorogram::BuildScattergram};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -119,6 +119,7 @@ use petalo::lorogram::Scattergram;
 use petalo::fov::FOV;
 use petalo::image::Image;
 use petalo::io;
+use petalo::utils::timing::Progress;
 use geometry::units::mm_;
 
 
@@ -127,28 +128,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
 
     // Set up progress reporting and timing
-    use std::time::Instant;
-    let mut now = Instant::now();
-
-    let mut report_time = |message: &str| {
-        println!("{}: {} ms", message, group_digits(now.elapsed().as_millis()));
-        now = Instant::now();
-    };
-
-    report_time("Startup");
+    let mut progress = Progress::new();
 
     // Read event data from disk into memory
     let                      Cli{ input_file, dataset, event_range, use_true, ecut, qcut, .. } = args.clone();
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, ecut, qcut };
 
-    let scattergram = build_scattergram(args.clone());
-
     // Define field of view extent and voxelization
     let fov = FOV::new(args.size, args.nvoxels);
 
-    println!("Reading LOR data from disk ...");
+    let scattergram = build_scattergram(args.clone());
+    progress.done_with_message("Startup");
+
+    progress.startln("Loading LORs from file");
     let measured_lors = io::hdf5::read_lors(io_args, scattergram)?;
-    report_time("Loaded LOR data from disk");
+    progress.done_with_message("Loaded LORs from file");
 
     let file_pattern = guess_filename(&args);
 
@@ -157,7 +151,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let sensitivity_image: Option<Image> = args.sensitivity_image.as_ref().map(|path| Image::from_raw_file(path)).transpose()?;
     if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, args.nvoxels, args.size) };
-    if sensitivity_image.is_some() { report_time("Loaded sensitivity image"); }
+    if sensitivity_image.is_some() { progress.done_with_message("Loaded sensitivity image"); }
 
     // Set the maximum number of threads used by rayon for parallel iteration
     match rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build_global() {
@@ -167,10 +161,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image, args.subsets))
         .take(args.iterations * args.subsets) {
-            report_time(&format!("Iteration {iteration:2}-{subset:02}"));
+            progress.done_with_message(&format!("Iteration {iteration:2}-{subset:02}"));
             let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", file_pattern));
             petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
-            report_time("                               Wrote raw bin");
+            progress.done_with_message("                               Wrote raw bin");
             // TODO: step_by for print every
         }
     Ok(())
