@@ -147,7 +147,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let scattergram = build_scattergram(args.clone());
     progress.done_with_message("Startup");
 
-    let sensitivity_image: Option<Image> = args.sensitivity_image.as_ref().map(|path| Image::from_raw_file(path)).transpose()?;
+    let sensitivity_image: Option<Image> = {
+        let path: Option<&PathBuf> = args.sensitivity_image.as_ref();
+        path.map(|path| Image::from_raw_file(path))
+           .transpose()
+           .expect(&format!("Cannot read sensitivity image {:?}", path.unwrap()))
+    };
     if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, args.nvoxels, args.size) };
     if sensitivity_image.is_some() { progress.done_with_message("Loaded sensitivity image"); }
 
