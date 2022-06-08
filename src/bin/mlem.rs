@@ -138,7 +138,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // setup, so it fails early
     let file_pattern = guess_filename(&args);
     // If the directory where results will be written does not exist yet, make it
-    create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())?;
+    create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())
+        .expect(&format!("Cannot write in output directory `{file_pattern}`"));
 
     // Define field of view extent and voxelization
     let fov = FOV::new(args.size, args.nvoxels);
