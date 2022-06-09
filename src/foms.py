@@ -143,44 +143,4 @@ def main():
 if __name__=='__main__':
    main()
 
-#TODO add ability to read foms from generated fom files
-
-            
-    
-
-"""
-def plot(sphere_diameters, iterations, runs):  
-    fs = {}
-
-    run_numbers_to_use = (20,)
-
-    for run_number in run_numbers_to_use:
-        for it in iterations:
-            run_spec = runs[run_number]
-            img_spec = run_spec + (it,)
-            print(img_spec)
-            print(get_foms(*img_spec))
-            fs[img_spec] = get_foms(*img_spec)
-
-    for d in sphere_diameters:
-        plt.figure()
-        count = 0 
-        for run_number in run_numbers_to_use:
-            run_spec = runs[run_number]
-            img_spec = run_spec + (it,)
-            y = [fs[img_spec].crcs[d].crc for i in iterations]
-            e = [fs[img_spec].crcs[d].var for i in iterations]
-            x = [1 + n - count/10 for n in iterations]
-            #x = iterations
-            #plt.errorbar(x, y, yerr=e, label=f'TOF={t} {c}', capsize=3)
-            plt.errorbar(x, y, yerr=e, label=f'TOF=t c', capsize=3)
-            count += 1
-        plt.legend()
-        plt.ylim(top=120)
-        plt.title(f'CRC vs iteration for {d}mm sphere')
-        plt.savefig(f'crcs-{d}mm.png')
-
-    plt.show()
-"""
-
 exit(0)
