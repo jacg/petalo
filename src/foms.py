@@ -66,6 +66,9 @@ def write_command(filename, images, commandStart, sphere_diameters,cli_args):
             for line in infile:
                 print (line.rstrip())
         return
+
+    subprocess.run("cargo build --release --bin foms", shell=True, capture_output=False)
+
     with open(filename, 'w') as outfile:
         write(outfile,cli_args, '  ', end='')
         ds_header = ''.join(f'{d:7.1f}' for d in sphere_diameters)
