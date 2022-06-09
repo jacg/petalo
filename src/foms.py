@@ -3,12 +3,10 @@
 """Calculate FOMs for jaszczak and nema7 image files in a directory
 
 Usage:
-    foms.py <jaszczak> <DIR> [options]
-    foms.py <nema7> <DIR> [options]
+    foms.py <phantom> <DIR> [options]
 
 Arguments:
-    jaszczak    #specifies to work with a jaszczak type phantom
-    nema7       #specifies to work with a nema7 type phantom
+    phantom     #choose phantom: nema7 or jaszczak
     DIR         #directory containing *.raw image files of the specified phantom
 
 options:
@@ -29,8 +27,10 @@ CRC  = namedtuple('crc', 'crc, var')
 NFOMS = namedtuple('foms', 'crcs, aocs')
 JFOMS = namedtuple('foms', 'crcs, snrs')
 
-nema7_sphere_diameters = 10.0, 13.0, 17.0, 22.0, 28.0, 37.0
-jaszczak_sphere_diameters = 9.5, 12.7, 15.9, 19.1, 25.4, 31.8
+sphere_diameters = dict(
+    jaszczak = ( 9.5, 12.7, 15.9, 19.1, 25.4, 31.8),
+    nema7    = (10.0, 13.0, 17.0, 22.0, 28.0, 37.0),
+)
 
 def get_foms(command):
 
@@ -130,20 +130,15 @@ def main():
     filename = f'{directory}/foms'
     images = sorted(Path(directory).glob('*.raw'))
 
-    if bool(cli_args['<jaszczak>']):
-        commandStart = 'target/release/foms -- jaszczak '
-        write_command(filename, images, commandStart, jaszczak_sphere_diameters,
-                      cli_args)
-        plot_from_fom(filename, jaszczak_sphere_diameters, cli_args)
+    known_phantoms = ('jaszczak', 'nema7')
+    phantom = cli_args['<phantom>']
+    if phantom not in known_phantoms:
+        sys.exit(f"You must specify a known phantom type: (jaszczak/nema7), not {phantom}")
 
-    elif bool(cli_args['<nema7>']):
-        commandStart = 'target/release/foms -- nema7 '
-        write_command(filename, images, commandStart, nema7_sphere_diameters,
-                      cli_args)
-        plot_from_fom(filename, nema7_sphere_diameters, cli_args)
+    command = f'target/release/foms {phantom} '
+    write_command(filename, images, command, sphere_diameters[phantom], cli_args)
+    plot_from_fom(filename,                  sphere_diameters[phantom], cli_args)
 
-    else:
-        print("You must specify a known phantom type: (jaszczak/nema7)")
 
 if __name__=='__main__':
    main()
