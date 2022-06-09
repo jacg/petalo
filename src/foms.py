@@ -76,7 +76,7 @@ def write_command(filename, images, commandStart, sphere_diameters,cli_args):
             matches = re.search(r'.*([0-9]{2})-([0-9]{2}).raw$', str(image_file_name))
             iteration = int(matches.group(1))
             subset    = int(matches.group(2))
-            foms = get_foms(commandStart + str(image_file_name))
+            foms = get_foms(f'{commandStart} {image_file_name}')
             crcs, snrs = foms
             write(outfile,cli_args, f'{iteration:02}-{subset:02} ', end='')
             crcs, variabilities = tuple(zip(*((crc, var) for (r, (crc, var)) in crcs.items())))
@@ -135,7 +135,7 @@ def main():
     if phantom not in known_phantoms:
         sys.exit(f"You must specify a known phantom type: (jaszczak/nema7), not {phantom}")
 
-    command = f'target/release/foms {phantom} '
+    command = f'target/release/foms {phantom}'
     write_command(filename, images, command, sphere_diameters[phantom], cli_args)
     plot_from_fom(filename,                  sphere_diameters[phantom], cli_args)
 
