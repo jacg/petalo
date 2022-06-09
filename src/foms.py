@@ -140,5 +140,3 @@ def main():
     plot_from_fom(filename,                  sphere_diameters[phantom], cli_args)
 
 main()
-
-exit(0)
