@@ -65,6 +65,8 @@ def write_command(filename, images, commandStart, sphere_diameters,cli_args):
         with open(filename, 'r') as infile:
             for line in infile:
                 print (line.rstrip())
+        print("\nThese figures were retrieved from the cache file.")
+        print(f"To recalculate the figures delete the cache file: {filename}")
         return
 
     subprocess.run("cargo build --release --bin foms", shell=True, capture_output=False)
