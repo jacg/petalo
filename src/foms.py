@@ -60,6 +60,11 @@ def write(outfile, cli_args, *args, **kwds):
         print(*args, **kwds, file=sys.stdout)
 
 def write_command(filename, images, commandStart, sphere_diameters,cli_args):
+    if Path(filename).is_file():
+        with open(filename, 'r') as infile:
+            for line in infile:
+                print (line.rstrip())
+        return
     with open(filename, 'w') as outfile:
         write(outfile,cli_args, '  ', end='')
         ds_header = ''.join(f'{d:7.1f}' for d in sphere_diameters)
