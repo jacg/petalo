@@ -119,7 +119,7 @@ def plot_from_fom(dir, sphere_diameters, cli_args):
         plt.plot(x,y,linewidth=2.0)
         plt.errorbar(x,y,yerr=e,label=f'TOF=t c',capsize=3)
         plt.legend()
-        plt.ylim(top=120)
+        plt.ylim(top=120, bottom=0)
         plt.title(f'CRC vs iteration for {d}mm sphere')
         plt.savefig(f'{cli_args["<DIR>"]}/crcs-{d}mm.png')
 
