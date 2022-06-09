@@ -139,8 +139,6 @@ def main():
     write_command(filename, images, command, sphere_diameters[phantom], cli_args)
     plot_from_fom(filename,                  sphere_diameters[phantom], cli_args)
 
-
-if __name__=='__main__':
-   main()
+main()
 
 exit(0)
