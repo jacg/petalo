@@ -51,11 +51,6 @@ def get_foms(command):
             aocs = tuple(map(float, nocommas.split()))
 
     return JFOMS(crcs=crcs, snrs=snrs)
-    
-from contextlib import contextmanager
-@contextmanager
-def dummy(*args, **kwds):
-    yield
 
 def write(outfile, cli_args, *args, **kwds):
     if bool(cli_args['--hide-output']): 
