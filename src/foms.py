@@ -20,9 +20,10 @@ import sys
 import re
 from pathlib import Path
 import subprocess
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from matplotlib import pyplot as plt
 from docopt import docopt
+from itertools import islice
 
 CRC  = namedtuple('crc', 'crc, var')
 NFOMS = namedtuple('foms', 'crcs, aocs')
@@ -82,31 +83,35 @@ def write_command(filename, images, commandStart, sphere_diameters,cli_args):
             write(outfile,cli_args, ''.join(f'{c:6.1f} ' for c in crcs)         , end='         ')
             write(outfile,cli_args, ''.join(f'{v:6.1f} ' for v in variabilities), end='         ')
             write(outfile,cli_args, ''.join(f'{r:6.1f} ' for r in snrs.values())) # look broken in the Rust implementation of foms
-    
 def plot_from_fom(dir, sphere_diameters, cli_args):
-    count = 0
-    isData = False
-    data = dict()
-    for d in sphere_diameters:
-        data[d] = [] #initialize lists for each diameter key
+
+    iterations = []
+    subsets    = []
+    crcs = defaultdict(list)
+    bgvs = defaultdict(list)
+    snrs = defaultdict(list)
+
     with open(dir, encoding='utf-8') as f:
-        Lines = f.readlines()
-        for line in Lines:
-            if count == 4:
-                isData = True
-            if not isData:
-                count += 1
-                continue
-            #remove first element from a line and convert the remaining elements to floats
-            parsedLine = list(map(float, line.split()[1:]))
-            for i in range(len(sphere_diameters)):
-                data[sphere_diameters[i]].append((float(count-4), parsedLine[i],
-                                                  parsedLine[i+len(sphere_diameters)]))
-            count += 1
+        for line in islice(f, 4, None):
+
+            iteration_subset, *values = line.split()
+            iteration, subset = map(int, iteration_subset.split('-'))
+            crcs_ = map(float, values[  : 6])
+            bgvs_ = map(float, values[ 6:12])
+            snrs_ = map(float, values[12:  ])
+
+            iterations.append(iteration)
+            subsets   .append(subset)
+
+            for d, crc, bgv, snr in zip(sphere_diameters, crcs_, bgvs_, snrs_):
+                crcs[d].append(crc)
+                bgvs[d].append(bgv)
+                snrs[d].append(snr)
+
     for d in sphere_diameters:
-        x = [data[d][i][0] for i in range(len(data[d]))]
-        y = [data[d][i][1] for i in range(len(data[d]))]
-        e = [data[d][i][2] for i in range(len(data[d]))]
+        y = crcs[d]
+        e = bgvs[d]
+        x = tuple(range(len(y)))
         plt.figure()
         plt.plot(x,y,linewidth=2.0)
         plt.errorbar(x,y,yerr=e,label=f'TOF=t c',capsize=3)
