@@ -61,7 +61,8 @@ def write(outfile, cli_args, *args, **kwds):
         print(*args, **kwds, file=outfile)
         print(*args, **kwds, file=sys.stdout)
 
-def write_command(filename, images, commandStart, sphere_diameters,cli_args):
+def write_command(directory, images, commandStart, sphere_diameters,cli_args):
+    filename = f'{directory}/foms'
     if Path(filename).is_file():
         with open(filename, 'r') as infile:
             for line in infile:
@@ -91,13 +92,15 @@ def write_command(filename, images, commandStart, sphere_diameters,cli_args):
             write(outfile,cli_args, ''.join(f'{r:6.1f} ' for r in snrs.values())) # look broken in the Rust implementation of foms
 def plot_from_fom(directory, sphere_diameters, cli_args):
 
+    cache_file = f'{directory}/foms'
+
     iterations = []
     subsets    = []
     crcs = defaultdict(list)
     bgvs = defaultdict(list)
     snrs = defaultdict(list)
 
-    with open(directory, encoding='utf-8') as f:
+    with open(cache_file, encoding='utf-8') as f:
         for line in islice(f, 4, None):
 
             iteration_subset, *values = line.split()
@@ -142,16 +145,26 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
     ax_crc.legend()
 
     plt.title(f'CRCs and SNRs vs iteration')
+    title = get_plot_title(directory)
+    if title:
+        plt.suptitle(title.strip())
+
     plt.savefig(f'{cli_args["<DIR>"]}/foms.png', dpi=100)
 
     if cli_args['--show-plot']:
         plt.show()
 
+
+def get_plot_title(directory):
+    path = Path(f'{directory}/title')
+    if path.is_file():
+        return path.read_text()
+
+
 def main():
     cli_args = docopt(__doc__)
     directory = cli_args['<DIR>']
     print(f'Calculating FOMs for images in {directory}')
-    filename = f'{directory}/foms'
     images = sorted(Path(directory).glob('*.raw'))
 
     known_phantoms = ('jaszczak', 'nema7')
@@ -160,7 +173,7 @@ def main():
         sys.exit(f"You must specify a known phantom type: (jaszczak/nema7), not {phantom}")
 
     command = f'target/release/foms {phantom}'
-    write_command(filename, images, command, sphere_diameters[phantom], cli_args)
-    plot_from_fom(filename,                  sphere_diameters[phantom], cli_args)
+    write_command(directory, images, command, sphere_diameters[phantom], cli_args)
+    plot_from_fom(directory,                  sphere_diameters[phantom], cli_args)
 
 main()
