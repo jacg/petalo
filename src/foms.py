@@ -109,25 +109,32 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
             subsets   .append(subset)
 
             for d, crc, bgv, snr in zip(sphere_diameters, crcs_, bgvs_, snrs_):
-                crcs[d].append(crc)
-                bgvs[d].append(bgv)
-                snrs[d].append(snr)
+                crcs[d].append(crc / 100)
+                bgvs[d].append(bgv / 100)
+                snrs[d].append(snr / 100)
 
-    plt.figure(figsize=(16,12))
-    plt.plot([], [], color='black', linestyle='-' , label='CRC ')
-    plt.plot([], [], color='black', linestyle='--', label='SNR/10')
+    fig, ax_crc = plt.subplots(figsize=(16, 12))
+    ax_crc.plot()
+    ax_snr = ax_crc.twinx()
+
+    # Show which linestyle corresponds to which FOM, in legend.
+    ax_crc.plot([], [], color='black', linestyle='-' , label='CRC')
+    ax_crc.plot([], [], color='black', linestyle='--', label='SNR')
+
     colors = 'blue orange purple green cyan red'.split()
     for d, color in reversed(tuple(zip(sphere_diameters, colors))):
-        c =                crcs[d]
-        s = [s/10 for s in snrs[d]]
-        b =                bgvs[d]
+        c = crcs[d]
+        s = snrs[d]
+        b = bgvs[d]
         x = tuple(range(len(c)))
-        plt.plot(x, c, color=color, linestyle='-' , marker=' ', linewidth=2.0, label=f'{d}mm')
-        plt.plot(x, s, color=color, linestyle='--', marker=' ', linewidth=2.0, label=None)
+        ax_crc.plot(x, c, color=color, linestyle='-' , marker=' ', linewidth=2.0, label=f'{d}mm')
+        ax_snr.plot(x, s, color=color, linestyle='--', marker=' ', linewidth=2.0, label=None)
         #plt.errorbar(x,y,yerr=e,label=f'{d}mm',capsize=3)
-    plt.legend()
-    plt.ylim(top=100, bottom=0)
-    plt.title(f'FOMs vs iteration')
+    ax_crc.set_ylim(bottom=0, top= 1); ax_crc.set_ylabel('CRC')
+    ax_snr.set_ylim(bottom=0, top=10); ax_snr.set_ylabel('SNR')
+    ax_crc.legend()
+
+    plt.title(f'CRCs and SNRs vs iteration')
     plt.savefig(f'{cli_args["<DIR>"]}/foms.png', dpi=100)
 
     if cli_args['--show-plot']:
