@@ -22,6 +22,7 @@ from collections import namedtuple, defaultdict
 from matplotlib import pyplot as plt
 from docopt import docopt
 from itertools import islice
+import numpy as np
 
 CRC  = namedtuple('crc', 'crc, var')
 NFOMS = namedtuple('foms', 'crcs, aocs')
@@ -119,6 +120,9 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
     fig, ax_crc = plt.subplots(figsize=(16, 12))
     ax_crc.plot()
     ax_snr = ax_crc.twinx()
+    ax_crc.grid(axis='y')
+    ax_crc.set_yticks(np.linspace(0, 1,11))
+    ax_snr.set_yticks(np.linspace(0,10,11))
 
     # Show which linestyle corresponds to which FOM, in legend.
     ax_crc.plot([], [], color='black', linestyle='-' , label='CRC')
