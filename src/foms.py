@@ -113,6 +113,9 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
                 bgvs[d].append(bgv / 100)
                 snrs[d].append(snr / 100)
 
+    plt.rc('font'  ,     size=20)
+    plt.rc('legend', fontsize=10)
+
     fig, ax_crc = plt.subplots(figsize=(16, 12))
     ax_crc.plot()
     ax_snr = ax_crc.twinx()
