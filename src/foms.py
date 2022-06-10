@@ -113,17 +113,22 @@ def plot_from_fom(dir, sphere_diameters, cli_args):
                 bgvs[d].append(bgv)
                 snrs[d].append(snr)
 
-    for d in sphere_diameters:
-        y = crcs[d]
-        e = bgvs[d]
-        x = tuple(range(len(y)))
-        plt.plot(x, y, linewidth=2.0, label=f'{d}mm')
-        #plt.figure()
+    plt.figure(figsize=(16,12))
+    plt.plot([], [], color='black', linestyle='-' , label='CRC ')
+    plt.plot([], [], color='black', linestyle='--', label='SNR/10')
+    colors = 'blue orange purple green cyan red'.split()
+    for d, color in reversed(tuple(zip(sphere_diameters, colors))):
+        c =                crcs[d]
+        s = [s/10 for s in snrs[d]]
+        b =                bgvs[d]
+        x = tuple(range(len(c)))
+        plt.plot(x, c, color=color, linestyle='-' , marker=' ', linewidth=2.0, label=f'{d}mm')
+        plt.plot(x, s, color=color, linestyle='--', marker=' ', linewidth=2.0, label=None)
         #plt.errorbar(x,y,yerr=e,label=f'{d}mm',capsize=3)
     plt.legend()
     plt.ylim(top=100, bottom=0)
-    plt.title(f'CRC vs iteration')
-    plt.savefig(f'{cli_args["<DIR>"]}/crcs.png')
+    plt.title(f'FOMs vs iteration')
+    plt.savefig(f'{cli_args["<DIR>"]}/foms.png', dpi=100)
 
     if cli_args['--show-plot']:
         plt.show()
