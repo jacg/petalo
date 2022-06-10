@@ -88,7 +88,7 @@ def write_command(filename, images, commandStart, sphere_diameters,cli_args):
             write(outfile,cli_args, ''.join(f'{c:6.1f} ' for c in crcs)         , end='         ')
             write(outfile,cli_args, ''.join(f'{v:6.1f} ' for v in variabilities), end='         ')
             write(outfile,cli_args, ''.join(f'{r:6.1f} ' for r in snrs.values())) # look broken in the Rust implementation of foms
-def plot_from_fom(dir, sphere_diameters, cli_args):
+def plot_from_fom(directory, sphere_diameters, cli_args):
 
     iterations = []
     subsets    = []
@@ -96,7 +96,7 @@ def plot_from_fom(dir, sphere_diameters, cli_args):
     bgvs = defaultdict(list)
     snrs = defaultdict(list)
 
-    with open(dir, encoding='utf-8') as f:
+    with open(directory, encoding='utf-8') as f:
         for line in islice(f, 4, None):
 
             iteration_subset, *values = line.split()
