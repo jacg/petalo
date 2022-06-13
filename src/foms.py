@@ -131,6 +131,8 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
     ax_crc.plot([], [], color='black', linestyle='-' , label='CRC')
     ax_crc.plot([], [], color='black', linestyle='--', label='SNR')
 
+    n_subsets    = max(subsets)
+    n_iterations = max(iterations)
     colors = 'blue orange purple green cyan red'.split()
     for d, color in reversed(tuple(zip(sphere_diameters, colors))):
         c = crcs[d]
@@ -143,6 +145,13 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
     ax_crc.set_ylim(bottom=0, top= 1); ax_crc.set_ylabel('CRC')
     ax_snr.set_ylim(bottom=0, top=10); ax_snr.set_ylabel('SNR')
     ax_crc.legend()
+
+    # Vertical lines separating OSEM iterations
+    if n_subsets > 1:
+        for n, (i, s) in enumerate(zip(iterations, subsets)):
+            if n == 0: continue
+            if s == 1:
+                ax_crc.plot([n, n], [0,1], color='gray', linewidth=0.5)
 
     plt.title(f'CRCs and SNRs vs iteration')
     title = get_plot_title(directory)
