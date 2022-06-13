@@ -149,7 +149,7 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
     if title:
         plt.suptitle(title.strip())
 
-    plt.savefig(f'{cli_args["<DIR>"]}/foms.png', dpi=100)
+    plt.savefig(f'{cli_args["<DIR>"]}/foms.png', dpi=80)
 
     if cli_args['--show-plot']:
         plt.show()
