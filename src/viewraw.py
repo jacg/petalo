@@ -135,8 +135,8 @@ class view:
         pixel_size = self.images[self.image_number].pixel_size
         pos = (p + 0.5) * pixel_size[nax] - half_size[nax]
         dx,dy,dz = pixel_size
-        slice_half_width = (1 + 2 * self.integrate) * pixel_size[nax]
-        poslabel =  f'{pos:6.1f} ± {slice_half_width:5.1f} mm'
+        slice_width = (1 + 2 * self.integrate) * pixel_size[nax]
+        poslabel =  f'{pos:6.1f} ± {slice_width:4.1f}/2 mm'
         self.ax.set_title(f'''{self.axis} = {poslabel}        voxel size = {dx:.2} x {dy:.2} x {dz:.2} mm
         {self.pruned_files[self.image_number]}''')
         self.ax.set_xlabel(xl)
