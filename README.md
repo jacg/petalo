@@ -2,8 +2,19 @@
 [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
 The following instructions assume that you have installed
-[Nix](https://nixos.org/) and enabled the modern nix interface which includes
-the `nix` command and flakes.
+[Nix](https://nixos.org/) and enabled the [modern nix
+interface](https://nixos.wiki/wiki/Nix_command) which includes the `nix` command
+and flakes. In short, after installing Nix, you should add the line
+
+``` conf
+experimental-features = nix-command flakes
+```
+
+to one of
+
++ `/etc/nix/nix.conf`
++ `~/.config/nix/nix.conf`
+
 
 # For users
 
