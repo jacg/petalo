@@ -11,40 +11,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
-        py: [38, 39]
+        os: [ubuntu-20.04, macos-11]
+        py: [310] # [310, 311] Python version injection currently missing from flake
         allow-fail: [false]
-        include:
 
-          # Python 3.10 is universally broken
-          - os: ubuntu-latest
-            py: 310
-            allow-fail: true
+        # include:
 
-          - os: macos-10.15
-            py: 310
-            allow-fail: true
+        #   # Uncomment when upcoming Python broken
+        #   - os: ubuntu-20.04
+        #     py: 311
+        #     allow-fail: true
 
-          - os: macos-11
-            py: 310
-            allow-fail: true
-
-          # MacOS seems broken on nixos-21.11. Maybe need to use nixpkgs-darwin?
-          - os: macos-11
-            py: 38
-            allow-fail: true
-
-          - os: macos-11
-            py: 39
-            allow-fail: true
-
-          - os: macos-10.15
-            py: 38
-            allow-fail: true
-
-          - os: macos-10.15
-            py: 39
-            allow-fail: true
+        #   - os: macos-11
+        #     py: 311
+        #     allow-fail: true
 
     steps:
       - uses: actions/checkout@v2.4.0
