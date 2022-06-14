@@ -131,12 +131,25 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
     ax_crc.plot([], [], color='black', linestyle='-' , label='CRC')
     ax_crc.plot([], [], color='black', linestyle='--', label='SNR')
 
+    n_subsets    = max(subsets)
+    n_iterations = max(iterations)
     colors = 'blue orange purple green cyan red'.split()
     for d, color in reversed(tuple(zip(sphere_diameters, colors))):
         c = crcs[d]
         s = snrs[d]
         b = bgvs[d]
         x = tuple(range(len(c)))
+
+        # Label axes differently for OSEM vs MLEM
+        if all(subset == 1 for subset in subsets):
+            # MLEM: Plain iteration numbers
+            x = tuple(range(len(c)))
+            ax_crc.set_xlabel('iteration')
+        else:
+            # OSEM: iteration_number:subset_number
+            x = [f'{i}:{s}' for i,s in zip(iterations, subsets)]
+            ax_crc.set_xlabel('iteration : subset')
+
         ax_crc.plot(x, c, color=color, linestyle='-' , marker=' ', linewidth=2.0, label=f'{d}mm')
         ax_snr.plot(x, s, color=color, linestyle='--', marker=' ', linewidth=2.0, label=None)
         #plt.errorbar(x,y,yerr=e,label=f'{d}mm',capsize=3)
@@ -144,12 +157,25 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
     ax_snr.set_ylim(bottom=0, top=10); ax_snr.set_ylabel('SNR')
     ax_crc.legend()
 
-    plt.title(f'CRCs and SNRs vs iteration')
-    title = get_plot_title(directory)
-    if title:
-        plt.suptitle(title.strip())
+    # Vertical lines separating OSEM iterations
+    if n_subsets > 1:
+        # OSEM (not MLEM)
+        for n, (i, s) in enumerate(zip(iterations, subsets)):
+            if n == 0: continue
+            if s == 1:
+                ax_crc.plot([n, n], [0,1], color='gray', linewidth=0.5)
+        ax_crc.set_xticks(tuple(n-1 for n in range(0, len(x)+1, 5)))
+        title = 'CRCs and SNRs vs iteration:subset'
+    else:
+        # MLEM (not OSEM)
+        title = 'CRCs and SNRs vs iteration'
+    plt.title(title)
 
-    plt.savefig(f'{cli_args["<DIR>"]}/foms.png', dpi=100)
+    suptitle = get_plot_title(directory)
+    if suptitle:
+        plt.suptitle(suptitle.strip())
+
+    plt.savefig(f'{cli_args["<DIR>"]}/foms.png', dpi=80)
 
     if cli_args['--show-plot']:
         plt.show()
