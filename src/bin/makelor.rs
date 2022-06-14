@@ -510,8 +510,6 @@ pub struct Qtot {
 fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
     let mut vec = vec![];
     vec.extend_from_slice(array.as_slice().unwrap());
-    // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
-    // joined.extend_from_slice(data.into_slice());
     vec
 }
 
