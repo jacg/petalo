@@ -133,14 +133,34 @@
             drv = packages.${name};
           };
 
+          # TODO: adding and removing items from the following list seems to
+          # have no effect on what ends up in the build's `bin` directory.
+          # Regardless of what is added or removed, we always end up with the
+          # following (although with different hashes):
+          #
+          # result
+          # ├── bin
+          # │  ├── foms -> /nix/store/9vay8qps8xwslqymmlrv7657nwxf4km8-rust_petalo-0.1.0/bin/foms
+          # │  ├── imageprimaries -> /nix/store/9vay8qps8xwslqymmlrv7657nwxf4km8-rust_petalo-0.1.0/bin/imageprimaries
+          # │  ├── joinlorhdf -> /nix/store/9vay8qps8xwslqymmlrv7657nwxf4km8-rust_petalo-0.1.0/bin/joinlorhdf
+          # │  ├── make_sensitivity_image -> /nix/store/9vay8qps8xwslqymmlrv7657nwxf4km8-rust_petalo-0.1.0/bin/make_sensitivity_image
+          # │  ├── makelor -> /nix/store/9vay8qps8xwslqymmlrv7657nwxf4km8-rust_petalo-0.1.0/bin/makelor
+          # │  ├── mlem -> /nix/store/9vay8qps8xwslqymmlrv7657nwxf4km8-rust_petalo-0.1.0/bin/mlem
+          # │  ├── show_lorogram -> /nix/store/9vay8qps8xwslqymmlrv7657nwxf4km8-rust_petalo-0.1.0/bin/show_lorogram
+          # │  ├── viewraw.py -> /nix/store/q2zbc0vrpikc1i79isv4ai4a6cffwcmh-petalo-python-TODO-version/bin/viewraw.py
+          # │  ├── vislor -> /nix/store/9vay8qps8xwslqymmlrv7657nwxf4km8-rust_petalo-0.1.0/bin/vislor
+          # │  └── xenon_thickness_from_h5.py -> /nix/store/q2zbc0vrpikc1i79isv4ai4a6cffwcmh-petalo-python-TODO-version/bin/xenon_thickness_from_h5.py
+          # └── lib -> /nix/store/q2zbc0vrpikc1i79isv4ai4a6cffwcmh-petalo-python-TODO-version/lib
+
           apps.mlem                   = utils.lib.mkApp { drv = packages."${name}-all"; name = "mlem"                  ; };
           apps.makelor                = utils.lib.mkApp { drv = packages."${name}-all"; name = "makelor"               ; };
           apps.foms                   = utils.lib.mkApp { drv = packages."${name}-all"; name = "foms"                  ; };
+          apps.foms-all               = utils.lib.mkApp { drv = packages."${name}-all"; name = "foms.py"               ; };
           apps.imageprimaries         = utils.lib.mkApp { drv = packages."${name}-all"; name = "imageprimaries"        ; };
           apps.joinlorhdf             = utils.lib.mkApp { drv = packages."${name}-all"; name = "joinlorhdf"            ; };
           apps.vislor                 = utils.lib.mkApp { drv = packages."${name}-all"; name = "vislor"                ; }; # TODO X11 missing at runtime
           apps.make_sensitivity_image = utils.lib.mkApp { drv = packages."${name}-all"; name = "make_sensitivity_image"; };
-          apps.viewraw                = utils.lib.mkApp { drv = packages."${name}-all"; name = "viewraw.py"; };
+          apps.viewraw                = utils.lib.mkApp { drv = packages."${name}-all"; name = "viewraw.py"            ; };
 
           # ========== nix develop ========================================================
           devShell = pkgs.mkShell {
