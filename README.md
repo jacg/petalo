@@ -2,10 +2,25 @@
 [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
 The following instructions assume that you have installed
-[Nix](https://nixos.org/) and enabled the modern nix interface which includes
-the `nix` command and flakes.
+[Nix](https://nixos.org/) and enabled the [modern nix
+interface](https://nixos.wiki/wiki/Nix_command) which includes the `nix` command
+and flakes. In short, after installing Nix, you should add the line
+
+``` conf
+experimental-features = nix-command flakes
+```
+
+to one of
+
++ `/etc/nix/nix.conf`
++ `~/.config/nix/nix.conf`
+
 
 # For users
+
+The instructions in this section are useful in cases where you want to run the
+software, but don't intend to modify it. If you want to modify the software, see
+the [For developers](#for-developers) section.
 
 To install the tools provided in this repository, as a user, you have a number
 of options. For casual users, I recommend the first two.
@@ -17,7 +32,11 @@ of options. For casual users, I recommend the first two.
    ```
 
    This will place you in a shell in which (the most recent version of) all the
-   tools are available. In this shell, try `mlem --help`
+   tools are available. In this shell, try `mlem --help`. If the installation
+   succeeded, this last command should show you the help for the main image
+   reconstruction program.
+
+   See [Available tools](#available-tools) for a list of the provided utilities.
 
    As soon as you exit the shell, the tools 'disappear'.
 
@@ -111,3 +130,31 @@ install Nix, than to attempt to run this software without it.
 Running `just` should compile and test all components, including Rust, Python and Julia.
 
 TODO: Python and Julia not yet enabled in the flake
+
+# Available tools
+
+   + `mlem`: Reconstruction of images via Maximum Likelihood Expectation
+     Maximization (MLEM) or Ordered Subsets Expectation Maximization (OSEM).
+
+     This includes the ability to correct for scatter and attenuation.
+
+   + `makelor`: Reconstruction of coincidence lines of response (LORs) from
+     Monte Carlo simulations of detectors.
+
+   + `make_sensitivity_image`: Generate sensitivity image (for use in `mlem`
+     attenuation correction) from a density map of the field of view (FOV).
+
+   + `viewraw.py`: Interactively view 2D slices through 3D reconstructed images
+     produced by `mlem`.
+
+   + `foms`: Calculate Figures of Merit (FOMs) for reconstructed images of
+     Jaszczak or NEMA7 phantoms.
+
+   + TODO: This on is currently missing! `foms.py`: Calculate and plot FOMs for
+     a sequence of reconstructed images produced by `mlem`.
+
+   + `imageprimaries`: Create a 3D image of the distribution of primary vertices
+     (back-to-back gamma production points) in a MC simulation. Can be viewed
+     with `viewraw.py`.
+
+   + `vislor`: Visualize the interaction of an individual LOR with the FOV.
