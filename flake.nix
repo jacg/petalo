@@ -136,11 +136,12 @@
           apps.mlem                   = utils.lib.mkApp { drv = packages."${name}-all"; name = "mlem"                  ; };
           apps.makelor                = utils.lib.mkApp { drv = packages."${name}-all"; name = "makelor"               ; };
           apps.foms                   = utils.lib.mkApp { drv = packages."${name}-all"; name = "foms"                  ; };
+          apps.foms-all               = utils.lib.mkApp { drv = packages."${name}-all"; name = "foms.py"               ; };
           apps.imageprimaries         = utils.lib.mkApp { drv = packages."${name}-all"; name = "imageprimaries"        ; };
           apps.joinlorhdf             = utils.lib.mkApp { drv = packages."${name}-all"; name = "joinlorhdf"            ; };
           apps.vislor                 = utils.lib.mkApp { drv = packages."${name}-all"; name = "vislor"                ; }; # TODO X11 missing at runtime
           apps.make_sensitivity_image = utils.lib.mkApp { drv = packages."${name}-all"; name = "make_sensitivity_image"; };
-          apps.viewraw                = utils.lib.mkApp { drv = packages."${name}-all"; name = "viewraw.py"; };
+          apps.viewraw                = utils.lib.mkApp { drv = packages."${name}-all"; name = "viewraw.py"            ; };
 
           # ========== nix develop ========================================================
           devShell = pkgs.mkShell {
