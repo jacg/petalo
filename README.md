@@ -150,8 +150,8 @@ TODO: Python and Julia not yet enabled in the flake
    + `foms`: Calculate Figures of Merit (FOMs) for reconstructed images of
      Jaszczak or NEMA7 phantoms.
 
-   + `foms.py`: Calculate and plot FOMs for a sequence of reconstructed images
-     produced by `mlem`.
+   + TODO: This on is currently missing! `foms.py`: Calculate and plot FOMs for
+     a sequence of reconstructed images produced by `mlem`.
 
    + `imageprimaries`: Create a 3D image of the distribution of primary vertices
      (back-to-back gamma production points) in a MC simulation. Can be viewed
