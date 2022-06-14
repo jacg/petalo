@@ -53,7 +53,7 @@ jobs:
           result/bin/makelor -h
           result/bin/vislor -h
           result/bin/viewraw.py -h
-          result/bin/foms.py -h
+          # result/bin/foms.py -h    TODO
 
       - name: Nix shell
         run: |
@@ -65,7 +65,7 @@ jobs:
           nix shell -c makelor -h
           nix shell -c vislor -h
           nix shell -c viewraw.py -h
-          nix shell -c foms.py -h
+          # nix shell -c foms.py -h    TODO
 
       - name: Test Pure Rust in development environment
         run: nix develop -c just test-rust-pure --color=always
