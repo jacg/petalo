@@ -7,6 +7,10 @@ the `nix` command and flakes.
 
 # For users
 
+The instructions in this section are useful in cases where you want to run the
+software, but don't intend to modify it. If you want to modify the software, see
+the [For developers](#for-developers) section.
+
 To install the tools provided in this repository, as a user, you have a number
 of options. For casual users, I recommend the first two.
 
