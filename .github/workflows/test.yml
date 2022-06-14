@@ -29,23 +29,6 @@ jobs:
             py: 311
             allow-fail: true
 
-          # MacOS seems broken on nixos-21.11. Maybe need to use nixpkgs-darwin?
-          - os: macos-11
-            py: 38
-            allow-fail: true
-
-          - os: macos-11
-            py: 39
-            allow-fail: true
-
-          - os: macos-10.15
-            py: 38
-            allow-fail: true
-
-          - os: macos-10.15
-            py: 39
-            allow-fail: true
-
     steps:
       - uses: actions/checkout@v2.4.0
       - uses: cachix/install-nix-action@v16
