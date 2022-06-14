@@ -36,10 +36,8 @@ fn main() -> hdf5::Result<()> {
     for filename in args.inputs {
         println!("Reading data from {}", filename);
         let path = format!("{}/{}", args.group, args.dataset);
-        let mut data = io::hdf5::read_table::<Data>(&filename, &path, None)?;
-        joined.extend_from_slice(data.as_slice_mut().unwrap());
-        // TODO ndarray 0.14 -> 0.15: breaks our code in hdf5
-        // joined.extend_from_slice(data.into_slice());
+        let data = io::hdf5::read_table::<Data>(&filename, &path, None)?;
+        joined.extend_from_slice(data.as_slice().unwrap());
     }
 
     // --- write combined data to single file ----------------------------------------
