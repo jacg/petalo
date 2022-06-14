@@ -64,7 +64,7 @@
           darwin-frameworks = pkgs.darwin.apple_sdk.frameworks;
 
           # ----- Python -------------------------------------------------------------------
-          python-version = "python39";
+          python-version = "python310";
 
           my-python-packages = pypkgs: [
             pypkgs.numpy
