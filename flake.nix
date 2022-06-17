@@ -56,7 +56,7 @@
           libPath = pkgs.lib.makeLibraryPath [
             pkgs.libGL
             pkgs.libxkbcommon
-            pkgs.wayland
+            (linux pkgs.wayland)
             pkgs.xorg.libX11
             pkgs.xorg.libXcursor
             pkgs.xorg.libXi
