@@ -35,3 +35,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("{config:?}");
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_file() {
+        let config = read_config_file("mlem-config.toml".into());
+        assert_eq!(config.iterations, 4);
+        assert_eq!(config.subsets, 20);
+    }
+}
