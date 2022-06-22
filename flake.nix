@@ -52,6 +52,17 @@
             ];
           };
 
+          # X11 support
+          libPath = pkgs.lib.makeLibraryPath [
+            pkgs.libGL
+            pkgs.libxkbcommon
+            (linux pkgs.wayland)
+            pkgs.xorg.libX11
+            pkgs.xorg.libXcursor
+            pkgs.xorg.libXi
+            pkgs.xorg.libXrandr
+          ];
+
           # ----- Conditional inclusion ----------------------------------------------------
           nothing = pkgs.coreutils;
           linux      = drvn: if pkgs.stdenv.isLinux  then drvn else nothing;
@@ -174,6 +185,7 @@
             ];
             RUST_SRC_PATH = "${pkgs.rustup.rust-src}/lib/rustlib/src/rust/library";
             HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
+            LD_LIBRARY_PATH = libPath;
           };
         }
       );
