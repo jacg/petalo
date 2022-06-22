@@ -2,3 +2,7 @@
 
 iterations = 4
 subsets = 20
+
+tof = "200 ps"
+
+nvoxels = [10, 20, 30]
