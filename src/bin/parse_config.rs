@@ -23,19 +23,15 @@ pub struct Config {
 
 }
 
-
+fn read_config_file(path: PathBuf) -> Config {
+    let config: String = fs::read_to_string(&path)
+        .expect(&format!("Couldn't read config file `{:?}`", path));
+    toml::from_str(&config).unwrap()
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
-
     let args = Cli::from_args();
-
-
-    let config: String = fs::read_to_string(&args.config_file)
-        .expect(&format!("Couldn't read config file `{:?}`", args.config_file));
-
-    let config: Config = toml::from_str(&config)?;
-
+    let config = read_config_file(args.config_file);
     println!("{config:?}");
-
     Ok(())
 }
