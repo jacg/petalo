@@ -86,24 +86,31 @@ mod tests {
 
     macro_rules! check {
         ($type:ident($text:expr).$field:ident = $expected:expr) => {
-            let r: $type = parse::<$type>($text);
-            println!("DESERIALIZED: {r:?}");
-            assert_eq!(r.$field, $expected);
+            let config: $type = parse::<$type>($text);
+            println!("DESERIALIZED: {config:?}");
+            assert_eq!(config.$field, $expected);
         };
+        ($type:ident($text:expr): $(.$field:ident = $expected:expr);+$(;)?) => {
+            let config: $type = parse::<$type>($text);
+            println!("DESERIALIZED: {config:?}");
+            $(assert_eq!(config.$field, $expected);)*
+        }
     }
     // ----- Test deserializing of individual aspects of the Config type ----------------
     #[test]
     fn config_iterations() {
         let mlem = "iterations = 50";
-        check!(Config(mlem).iterations = 50);
-        check!(Config(mlem).subsets    =  1);
+        check!(Config(mlem):
+               .iterations = 50;
+               .subsets     = 1);
 
         let osem = r#"
              iterations = 4
              subsets = 20
            "#;
-        check!(Config(osem).iterations =  4);
-        check!(Config(osem).subsets    = 20);
+        check!(Config(osem):
+               .iterations =  4;
+               .subsets    = 20);
     }
     // -----------------------------------------------------------------------------------
     // The tests that follow should be read in order: they tell the story of why
