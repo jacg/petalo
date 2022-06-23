@@ -27,6 +27,7 @@ where
 
 /// Toy configuration structure for MLEM. Just experimenting for now.
 #[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
 
     /// Number of MLEM or OSEM iterations to perform
@@ -110,6 +111,13 @@ mod tests {
                .iterations =  4;
                .subsets    = 20);
     }
+    // ----- Make sure that unknown fields are not accepted -----------------------------
+    #[test]
+    #[should_panic]
+    fn config_reject_unknown_field() {
+        parse("unknown_field = 666")
+    }
+
     // -----------------------------------------------------------------------------------
     // The tests that follow should be read in order: they tell the story of why
     // and how we need to jump through a number of hoops in order to parse uom
