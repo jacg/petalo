@@ -81,10 +81,18 @@ mod tests {
     }
 
     // ----- Some helpers to make the tests more concise ---------------------------------
+    //  ---  Parse string as TOML  -------------------------
     fn parse<'d, D: Deserialize<'d>>(input: &'d str) -> D {
         toml::from_str(input).unwrap()
     }
-
+    // //  ---  Parse string as TOML, with explicit error reporting -------------------------
+    fn parse_carefully<'d, D: Deserialize<'d>>(input: &'d str) -> Result<D, toml::de::Error> {
+        toml::from_str(input)
+    }
+    fn parse_config<'d>(input: &'d str) -> Result<Config, toml::de::Error> {
+        parse_carefully(input)
+    }
+    //  ---  Macro for concise assertions about vlues of parsed fields -------------------
     macro_rules! check {
         ($type:ident($text:expr).$field:ident = $expected:expr) => {
             let config: $type = parse::<$type>($text);
