@@ -108,16 +108,16 @@ mod tests {
     // ----- Test deserializing of individual aspects of the Config type ----------------
     #[test]
     fn config_iterations() {
-        check!(Config("iterations = 50"):
+        check!{Config("iterations = 50"):
                .iterations = 50;
-               .subsets     = 1);
+               .subsets     = 1}
 
-        check!(Config(r#"
+        check!{Config(r#"
                  iterations = 4
                  subsets = 20
                "#):
                .iterations =  4;
-               .subsets    = 20);
+               .subsets    = 20}
     }
     // ----- Make sure that unknown fields are not accepted -----------------------------
     #[test]
