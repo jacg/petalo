@@ -33,17 +33,22 @@ pub struct Config {
     pub iterations: usize,
 
     /// Number of OSEM subsets per iteration
+    #[serde(default = "default_subsets")]
     pub subsets: usize,
 
+    #[serde(default)]
     #[serde(deserialize_with = "deserialize_uom")]
     pub tof: Option<Time>,
 
+    #[serde(default)]
     #[serde(deserialize_with = "deserialize_uom")]
     pub wtf: Option<Length>,
 
-    pub nvoxels: (usize, usize, usize),
+    //pub nvoxels: (usize, usize, usize),
 
 }
+
+fn default_subsets() -> usize { 1 }
 
 fn read_config_file(path: PathBuf) -> Config {
     let config: String = fs::read_to_string(&path)
@@ -64,6 +69,7 @@ mod tests {
 
     use geometry::units::{mm, ps};
 
+    // ----- Test an example on-disk config file -----------------------------------------
     #[test]
     fn test_config_file() {
         let config = read_config_file("mlem-config.toml".into());
@@ -84,6 +90,20 @@ mod tests {
             println!("DESERIALIZED: {r:?}");
             assert_eq!(r.$field, $expected);
         };
+    }
+    // ----- Test deserializing of individual aspects of the Config type ----------------
+    #[test]
+    fn config_iterations() {
+        let mlem = "iterations = 50";
+        check!(Config(mlem).iterations = 50);
+        check!(Config(mlem).subsets    =  1);
+
+        let osem = r#"
+             iterations = 4
+             subsets = 20
+           "#;
+        check!(Config(osem).iterations =  4);
+        check!(Config(osem).subsets    = 20);
     }
     // -----------------------------------------------------------------------------------
     // The tests that follow should be read in order: they tell the story of why
