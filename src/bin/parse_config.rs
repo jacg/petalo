@@ -11,14 +11,16 @@ struct Cli {
 }
 
 
-use petalo::Time;
+use petalo::{Length, Time};
 
-fn hmm<'d, D>(deserializer: D) -> Result<Option<Time>, D::Error>
+fn deserialize_uom<'d, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
-    D: Deserializer<'d>
+    D: Deserializer<'d>,
+    T: std::str::FromStr,
+    <T as std::str::FromStr>::Err: std::fmt::Display,
 {
     Option::<&str>::deserialize(deserializer)?
-        .map(str::parse::<Time>)
+        .map(str::parse::<T>)
         .transpose()
         .map_err(de::Error::custom)
 }
@@ -33,9 +35,11 @@ pub struct Config {
     /// Number of OSEM subsets per iteration
     pub subsets: usize,
 
-    /// TODO: f32 -> Time
-    #[serde(deserialize_with = "hmm")]
+    #[serde(deserialize_with = "deserialize_uom")]
     pub tof: Option<Time>,
+
+    #[serde(deserialize_with = "deserialize_uom")]
+    pub wtf: Option<Length>,
 
     pub nvoxels: (usize, usize, usize),
 
@@ -58,14 +62,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 mod tests {
     use super::*;
 
-    use geometry::units::ps;
+    use geometry::units::{mm, ps};
 
     #[test]
     fn test_config_file() {
         let config = read_config_file("mlem-config.toml".into());
         assert_eq!(config.iterations, 4);
         assert_eq!(config.subsets, 20);
-        assert_eq!(config.tof, Some(ps(200.0)))
+        assert_eq!(config.tof, Some(ps(200.0)));
+        assert_eq!(config.wtf, Some(mm(666.0)));
     }
 
     // ----- Some helpers to make the tests more concise ---------------------------------
@@ -75,7 +80,9 @@ mod tests {
 
     macro_rules! check {
         ($type:ident($text:expr).$field:ident = $expected:expr) => {
-            assert_eq!(parse::<$type>($text).$field, $expected);
+            let r: $type = parse::<$type>($text);
+            println!("DESERIALIZED: {r:?}");
+            assert_eq!(r.$field, $expected);
         };
     }
     // -----------------------------------------------------------------------------------
@@ -153,14 +160,14 @@ mod tests {
         #[derive(Deserialize, Debug)]
         struct X {
             #[serde(default)]
-            #[serde(deserialize_with = "bbb")]
+            #[serde(deserialize_with = "parse_uom_time")]
             a: Option<Time>
         }
         check!(X(r#"a = "2 ps""#).a = Some(ps(2.   )));
         check!(X(r#"a = "2 ns""#).a = Some(ps(2000.)));
         check!(X(r#"          "#).a = None           );
 
-        fn bbb<'d, D: Deserializer<'d>>(deserializer: D) -> Result<Option<Time>, D::Error> {
+        fn parse_uom_time<'d, D: Deserializer<'d>>(deserializer: D) -> Result<Option<Time>, D::Error> {
             Option::<&str>::deserialize(deserializer)?
                 .map(str::parse::<Time>)
                 .transpose()
@@ -177,6 +184,24 @@ mod tests {
         let t: Time = "2 ns".parse()?;
         assert_eq!(t, ps(2000.));
         Ok(())
+    }
+
+    // `parse_uom_time` used above, works only for `Time`. We need a generic
+    // version, which is implemented outside of the test module and tested here
+    #[test]
+    fn toml_with_units_generic_deserialize() {
+        #[derive(Deserialize, Debug)]
+        struct X {
+            #[serde(default)]
+            #[serde(deserialize_with = "deserialize_uom")]
+            t: Option<Time>,
+            #[serde(default)]
+            #[serde(deserialize_with = "deserialize_uom")]
+            l: Option<Length>,
+        }
+        check!(X(r#"t = "2 ps""#).t = Some(ps(2.)));
+        check!(X(r#"l = "3 mm""#).l = Some(mm(3.)));
+        check!(X(r#"          "#).t = None        );
     }
 
 }
