@@ -99,16 +99,14 @@ mod tests {
     // ----- Test deserializing of individual aspects of the Config type ----------------
     #[test]
     fn config_iterations() {
-        let mlem = "iterations = 50";
-        check!(Config(mlem):
+        check!(Config("iterations = 50"):
                .iterations = 50;
                .subsets     = 1);
 
-        let osem = r#"
-             iterations = 4
-             subsets = 20
-           "#;
-        check!(Config(osem):
+        check!(Config(r#"
+                 iterations = 4
+                 subsets = 20
+               "#):
                .iterations =  4;
                .subsets    = 20);
     }
