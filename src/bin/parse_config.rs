@@ -99,7 +99,7 @@ mod tests {
             println!("DESERIALIZED: {config:?}");
             assert_eq!(config.$field, $expected);
         };
-        ($type:ident($text:expr): $(.$field:ident = $expected:expr);+$(;)?) => {
+        ($type:ident($text:expr) fields: $($field:ident = $expected:expr);+$(;)?) => {
             let config: $type = parse::<$type>($text);
             println!("DESERIALIZED: {config:?}");
             $(assert_eq!(config.$field, $expected);)*
@@ -108,16 +108,18 @@ mod tests {
     // ----- Test deserializing of individual aspects of the Config type ----------------
     #[test]
     fn config_iterations() {
-        check!{Config("iterations = 50"):
-               .iterations = 50;
-               .subsets     = 1}
+        check!{Config("iterations = 50") fields:
+               iterations = 50;
+               subsets     = 1
+        }
 
         check!{Config(r#"
                  iterations = 4
                  subsets = 20
-               "#):
-               .iterations =  4;
-               .subsets    = 20}
+               "#) fields:
+               iterations =  4;
+               subsets    = 20
+        }
     }
     // ----- Make sure that unknown fields are not accepted -----------------------------
     #[test]
