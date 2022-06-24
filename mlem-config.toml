@@ -7,3 +7,4 @@ tof = "200 ps"
 wtf = "666 mm"
 
 nvoxels = [10, 20, 30]
+fov_size = ["100 mm", "200 mm", "3 cm"]

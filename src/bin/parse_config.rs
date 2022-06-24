@@ -26,6 +26,45 @@ where
         .map_err(de::Error::custom)
 }
 
+fn deserialize_uom_3d_opt<'d, D, T>(deserializer: D) -> Result<Option<(T, T, T)>, D::Error>
+where
+    D: Deserializer<'d>,
+    T: FromStr,
+    <T as FromStr>::Err: std::fmt::Display,
+{
+    let a: Option::<(&str, &str, &str)> = Option::<(&str, &str, &str)>::deserialize(deserializer)?;
+    let b: Option<Result<(T,T,T),_>> = a.map(|(x,y,z)| tr_tup_res((x.parse(), y.parse(), z.parse())));
+    let c: Result<Option<(T,T,T)>, _> = b.transpose();
+    let d: Result<Option<(T,T,T)>, _> = c.map_err(de::Error::custom);
+    d
+}
+
+fn deserialize_uom_3d<'d, D, T>(deserializer: D) -> Result<(T, T, T), D::Error>
+where
+    D: Deserializer<'d>,
+    T: FromStr,
+    <T as FromStr>::Err: std::fmt::Display,
+{
+    let a: Option::<(&str, &str, &str)> = Option::<(&str, &str, &str)>::deserialize(deserializer)?;
+    let b: Option<Result<(T,T,T),_>> = a.map(|(x,y,z)| tr_tup_res((x.parse(), y.parse(), z.parse())));
+    let c:        Result<(T,T,T),_>  = b.unwrap();
+    let d:        Result<(T,T,T), _> = c.map_err(de::Error::custom);
+    d
+}
+
+
+/// Transpose 3-tuple of `Result`
+///
+/// `Ok` if all elements `Ok`; if any element is an `Err` return the first one.
+///
+/// # Examples
+/// `(Ok(a),  Ok(b),  Ok(c)) -> Ok((a, b, c))`
+/// `(Ok(a), Err(b),  Ok(c)) -> Err(b)`
+/// `(Ok(a), Err(b), Err(c)) -> Err(b)`
+fn tr_tup_res<O, E>((x,y,z): (Result<O, E>, Result<O, E>, Result<O, E>)) -> Result<(O, O, O), E> {
+    Ok((x?, y?, z?))
+}
+
 /// Toy configuration structure for MLEM. Just experimenting for now.
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
@@ -49,6 +88,14 @@ pub struct Config {
 
     #[serde(default = "mandatory")]
     pub nvoxels: (usize, usize, usize),
+
+    #[serde(default = "mandatory")]
+    #[serde(deserialize_with = "deserialize_uom_3d")]
+    pub fov_size: (Length, Length, Length),
+
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_uom_3d_opt")]
+    pub xxx: Option<(Length, Length, Length)>,
 
 }
 
