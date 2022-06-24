@@ -126,7 +126,7 @@ fn mandatory<T: Default>() -> T { T::default() }
 mod tests {
     use super::*;
 
-    use geometry::units::{mm, ps};
+    use geometry::units::{cm, mm, ps};
 
     // ----- Test an example on-disk config file -----------------------------------------
     #[test]
@@ -185,6 +185,19 @@ mod tests {
     fn config_reject_unknown_field() {
         parse("unknown_field = 666")
     }
+    // ----- Test FOV parameters ---------------------------------------------------------
+    #[test]
+    fn config_fov() {
+        check!{Config(r#"
+                     nvoxels = [10, 20, 30]
+                     fov_size = ["123 mm", "456 mm", "78 cm"]
+               "#)
+        fields:
+               nvoxels  = (    10   ,    20    ,    30   );
+               fov_size = (mm(123.0), mm(456.0), cm(78.0));
+        }
+    }
+
 
     // -----------------------------------------------------------------------------------
     // The tests that follow should be read in order: they tell the story of why
