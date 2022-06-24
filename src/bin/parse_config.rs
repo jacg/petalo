@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, de};
 use structopt::StructOpt;
@@ -16,8 +17,8 @@ use petalo::{Length, Time};
 fn deserialize_uom<'d, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
     D: Deserializer<'d>,
-    T: std::str::FromStr,
-    <T as std::str::FromStr>::Err: std::fmt::Display,
+    T: FromStr,
+    <T as FromStr>::Err: std::fmt::Display,
 {
     Option::<&str>::deserialize(deserializer)?
         .map(str::parse::<T>)
