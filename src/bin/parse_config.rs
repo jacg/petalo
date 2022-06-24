@@ -32,11 +32,10 @@ where
     T: FromStr,
     <T as FromStr>::Err: std::fmt::Display,
 {
-    let a: Option::<(&str, &str, &str)> = Option::<(&str, &str, &str)>::deserialize(deserializer)?;
-    let b: Option<Result<(T,T,T),_>> = a.map(|(x,y,z)| tr_tup_res((x.parse(), y.parse(), z.parse())));
-    let c: Result<Option<(T,T,T)>, _> = b.transpose();
-    let d: Result<Option<(T,T,T)>, _> = c.map_err(de::Error::custom);
-    d
+    Option::<(&str, &str, &str)>::deserialize(deserializer)?
+        .map(|(x,y,z)| tr_tup_res((x.parse(), y.parse(), z.parse())))
+        .transpose()
+        .map_err(de::Error::custom)
 }
 
 fn deserialize_uom_3d<'d, D, T>(deserializer: D) -> Result<(T, T, T), D::Error>
@@ -45,11 +44,10 @@ where
     T: FromStr,
     <T as FromStr>::Err: std::fmt::Display,
 {
-    let a: Option::<(&str, &str, &str)> = Option::<(&str, &str, &str)>::deserialize(deserializer)?;
-    let b: Option<Result<(T,T,T),_>> = a.map(|(x,y,z)| tr_tup_res((x.parse(), y.parse(), z.parse())));
-    let c:        Result<(T,T,T),_>  = b.unwrap();
-    let d:        Result<(T,T,T), _> = c.map_err(de::Error::custom);
-    d
+    Option::<(&str, &str, &str)>::deserialize(deserializer)?
+        .map(|(x,y,z)| tr_tup_res((x.parse(), y.parse(), z.parse())))
+        .unwrap()
+        .map_err(de::Error::custom)
 }
 
 
