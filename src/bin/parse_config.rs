@@ -63,7 +63,6 @@ fn tr_tup_res<O, E>((x,y,z): (Result<O, E>, Result<O, E>, Result<O, E>)) -> Resu
     Ok((x?, y?, z?))
 }
 
-/// Toy configuration structure for MLEM. Just experimenting for now.
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
@@ -90,10 +89,6 @@ pub struct Config {
     #[serde(default = "mandatory")]
     #[serde(deserialize_with = "deserialize_uom_3d")]
     pub fov_size: (Length, Length, Length),
-
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_uom_3d_opt")]
-    pub xxx: Option<(Length, Length, Length)>,
 
 }
 
@@ -135,7 +130,6 @@ mod tests {
         assert_eq!(config.iterations, 4);
         assert_eq!(config.subsets, 20);
         assert_eq!(config.tof, Some(ps(200.0)));
-        assert_eq!(config.wtf, Some(mm(666.0)));
     }
 
     // ----- Some helpers to make the tests more concise ---------------------------------
