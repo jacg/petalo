@@ -31,6 +31,7 @@ where
 pub struct Config {
 
     /// Number of MLEM or OSEM iterations to perform
+    #[serde(default = "mandatory")]
     pub iterations: usize,
 
     /// Number of OSEM subsets per iteration
@@ -45,7 +46,8 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_uom")]
     pub wtf: Option<Length>,
 
-    //pub nvoxels: (usize, usize, usize),
+    #[serde(default = "mandatory")]
+    pub nvoxels: (usize, usize, usize),
 
 }
 
@@ -63,6 +65,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{config:?}");
     Ok(())
 }
+
+
+
+// Hack to allow mandatory fields to be missing during testing.
+#[cfg(not(test))]
+fn mandatory<T>() -> T { panic!("MISSING MANDATORY FIELD. TODO: which one?") }
+#[cfg(test)]
+fn mandatory<T: Default>() -> T { T::default() }
+
+
 
 #[cfg(test)]
 mod tests {
