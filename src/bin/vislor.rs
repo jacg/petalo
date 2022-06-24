@@ -26,8 +26,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // exclusive.
     let lor = if let Some(input_file) = args.clone().input_file {
         let event_range = args.event..args.event+1;
-        let                      Cli{ dataset, use_true, .. } = args.clone();
-        let io_args = io::hdf5::Args{ dataset, use_true, input_file,
+        let                      Cli{ dataset, .. } = args.clone();
+        let io_args = io::hdf5::Args{ dataset, input_file,
                                       ecut: parse_bounds("..").unwrap(), qcut: parse_bounds("..").unwrap(),
                                       event_range: Some(event_range) };
         petalo::io::hdf5::read_lors(io_args, None)?[0]
@@ -82,9 +82,5 @@ pub struct Cli {
     /// LOR to visualize: 't1 t2   x1 y1 z1   x2 y2 z2' (t: ps, xyz: mm)
     #[structopt(short, long, parse(try_from_str = parse_lor), default_value = "0 300  -100 20 -90  100 60 10")]
     lor: LOR,
-
-    /// Use true rather than reco LOR data from file
-    #[structopt(long)]
-    use_true: bool,
 
 }

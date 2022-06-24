@@ -9,7 +9,6 @@ pub struct Args {
     pub input_file: String,
     pub dataset: String,
     pub event_range: Option<std::ops::Range<usize>>,
-    pub use_true: bool,
     pub ecut: BoundPair<Energyf32>,
     pub qcut: BoundPair<crate::Chargef32>,
 }

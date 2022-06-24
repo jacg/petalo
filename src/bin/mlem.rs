@@ -53,10 +53,6 @@ pub struct Cli {
     #[structopt(long)]
     pub sensitivity_image: Option<PathBuf>,
 
-    /// Use true rather than reco LOR data
-    #[structopt(long)]
-    use_true: bool,
-
     /// Maximum number of rayon threads
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
@@ -131,8 +127,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut progress = Progress::new();
 
     // Read event data from disk into memory
-    let                      Cli{ input_file, dataset, event_range, use_true, ecut, qcut, .. } = args.clone();
-    let io_args = io::hdf5::Args{ input_file, dataset, event_range, use_true, ecut, qcut };
+    let                      Cli{ input_file, dataset, event_range, ecut, qcut, .. } = args.clone();
+    let io_args = io::hdf5::Args{ input_file, dataset, event_range, ecut, qcut };
 
     // Check that output directory is writable. Do this *before* expensive
     // setup, so it fails early
