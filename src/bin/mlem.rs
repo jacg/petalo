@@ -2,12 +2,16 @@
 use structopt::StructOpt;
 
 use petalo::{utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption},
-             lorogram::BuildScattergram};
+             lorogram::BuildScattergram,
+             config};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 #[structopt(name = "mlem", about = "Maximum Likelyhood Expectation Maximization")]
 pub struct Cli {
+
+    /// MLEM config file
+    pub config_file: PathBuf,
 
     /// Number of MLEM iterations to perform
     #[structopt(short, long, default_value = "5")]
@@ -16,14 +20,6 @@ pub struct Cli {
     /// Number of OSEM subsets to use
     #[structopt(long, default_value = "1")]
     pub subsets: usize,
-
-    /// Field Of View full-widths in mm
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "300 mm,300 mm,300 mm")]
-    pub size: (Length, Length, Length),
-
-    /// Field Of View size in number of voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
-    pub nvoxels: (usize, usize, usize),
 
     /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
     #[structopt(short, long)]
@@ -122,6 +118,7 @@ use geometry::units::mm_;
 fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
+    let config = config::mlem::read_config_file(args.config_file.clone());
 
     // Set up progress reporting and timing
     let mut progress = Progress::new();
@@ -132,13 +129,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Check that output directory is writable. Do this *before* expensive
     // setup, so it fails early
-    let file_pattern = guess_filename(&args);
+    let file_pattern = guess_filename(&args, &config);
     // If the directory where results will be written does not exist yet, make it
     create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())
         .expect(&format!("Cannot write in output directory `{file_pattern}`"));
 
     // Define field of view extent and voxelization
-    let fov = FOV::new(args.size, args.nvoxels);
+    let fov = FOV::new(config.fov_size, config.nvoxels);
 
     let scattergram = build_scattergram(args.clone());
     progress.done_with_message("Startup");
@@ -149,7 +146,7 @@ fn main() -> Result<(), Box<dyn Error>> {
            .transpose()
            .expect(&format!("Cannot read sensitivity image {:?}", path.unwrap()))
     };
-    if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, args.nvoxels, args.size) };
+    if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, config.nvoxels, config.fov_size) };
     if sensitivity_image.is_some() { progress.done_with_message("Loaded sensitivity image"); }
 
     progress.startln("Loading LORs from file");
@@ -173,11 +170,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn guess_filename(args: &Cli) -> String {
+fn guess_filename(args: &Cli, config: &config::mlem::Config) -> String {
     if let Some(pattern) = &args.out_files {
         pattern.to_string()
     } else {
-        let (nx, ny, nz) = args.nvoxels;
+        let (nx, ny, nz) = config.nvoxels;
         let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0?}", x));
         format!("data/out/mlem/{nx}_{ny}_{nz}_tof_{tof}",
                 nx=nx, ny=ny, nz=nz, tof=tof)
