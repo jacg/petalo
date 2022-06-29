@@ -26,6 +26,18 @@ where
         .map_err(de::Error::custom)
 }
 
+fn deserialize_uom<'d, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'d>,
+    T: FromStr,
+    <T as FromStr>::Err: std::fmt::Display,
+{
+    Option::<&str>::deserialize(deserializer)?
+        .map(str::parse::<T>)
+        .unwrap()
+        .map_err(de::Error::custom)
+}
+
 fn deserialize_uom_3d_opt<'d, D, T>(deserializer: D) -> Result<Option<(T, T, T)>, D::Error>
 where
     D: Deserializer<'d>,
