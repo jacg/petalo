@@ -13,14 +13,6 @@ pub struct Cli {
     /// MLEM config file
     pub config_file: PathBuf,
 
-    /// Number of MLEM iterations to perform
-    #[structopt(short, long, default_value = "5")]
-    pub iterations: usize,
-
-    /// Number of OSEM subsets to use
-    #[structopt(long, default_value = "1")]
-    pub subsets: usize,
-
     /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
     #[structopt(short, long)]
     pub tof: Option<Time>,
@@ -159,8 +151,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
 
-    for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image, args.subsets))
-        .take(args.iterations * args.subsets) {
+    for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image, config.subsets))
+        .take(config.iterations * config.subsets) {
             progress.done_with_message(&format!("Iteration {iteration:2}-{subset:02}"));
             let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", file_pattern));
             petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
