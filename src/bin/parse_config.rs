@@ -90,6 +90,19 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_uom_3d")]
     pub fov_size: (Length, Length, Length),
 
+    pub scatter: Option<Scatter>,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct Scatter {
+    pub phi: Bins,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct Bins {
+    pub bins: usize,
 }
 
 fn default_subsets() -> usize { 1 }
@@ -130,6 +143,7 @@ mod tests {
         assert_eq!(config.iterations, 4);
         assert_eq!(config.subsets, 20);
         assert_eq!(config.tof, Some(ps(200.0)));
+        assert_eq!(config.scatter.unwrap().phi.bins, 30);
     }
 
     // ----- Some helpers to make the tests more concise ---------------------------------
@@ -191,8 +205,17 @@ mod tests {
                fov_size = (mm(123.0), mm(456.0), cm(78.0));
         }
     }
+    // ----- Test Scattergram parameters ------------------------------------------------
+    #[test]
+    fn config_scattergram() {
+        let c: Config = parse(r#"
+                 [scatter]
+                 phi.bins = 12
+              "#);
+        let scatter = c.scatter.unwrap();
+        assert_eq!(scatter.phi.bins, 12);
 
-
+    }
     // -----------------------------------------------------------------------------------
     // The tests that follow should be read in order: they tell the story of why
     // and how we need to jump through a number of hoops in order to parse uom
