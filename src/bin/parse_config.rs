@@ -109,8 +109,9 @@ pub struct Config {
 #[serde(deny_unknown_fields)]
 pub struct Scatter {
     pub phi: Bins,
-    pub   r: BinsMax,
-    pub  dz: BinsMax,
+    pub   r: BinsMax<Length>,
+    pub  dz: BinsMax<Length>,
+    pub  dt: BinsMax<Time>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -121,10 +122,14 @@ pub struct Bins {
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
-pub struct BinsMax {
+pub struct BinsMax<T>
+where
+    T : FromStr,
+    <T as FromStr>::Err: std::fmt::Display,
+{
     pub bins: usize,
     #[serde(deserialize_with = "deserialize_uom")]
-    pub max: Length,
+    pub max: T,
 }
 
 fn default_subsets() -> usize { 1 }
@@ -174,6 +179,9 @@ mod tests {
 
         assert_eq!(scatter. dz.bins,    33   );
         assert_eq!(scatter. dz.max , mm(34.0));
+
+        assert_eq!(scatter. dt.bins,    35   );
+        assert_eq!(scatter. dt.max , ps(36.0));
     }
 
     // ----- Some helpers to make the tests more concise ---------------------------------
@@ -243,14 +251,17 @@ mod tests {
                  phi.bins = 12
                  r  .bins = 34
                  dz .bins = 99
+                 dt .bins = 98
 
                  r  .max = "56 mm"
                  dz .max = "78 mm"
+                 dt .max = "90 ps"
               "#);
         let scatter = c.scatter.unwrap();
         assert_eq!(scatter.phi.bins,    12   );
         assert_eq!(scatter.  r.bins,    34   );
         assert_eq!(scatter. dz.bins,    99   );
+        assert_eq!(scatter. dt.bins,    98   );
         assert_eq!(scatter.  r.max , mm(56.0));
         assert_eq!(scatter. dz.max , mm(78.0));
     }

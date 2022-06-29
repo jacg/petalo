@@ -32,5 +32,5 @@ r.max  = "32 mm"
 dz.bins = 33
 dz.max  = "34 mm"
 
-# dt.bins = 30
-# dt.max = "500 ps"
+dt.bins = 35
+dt.max = "36 ps"
