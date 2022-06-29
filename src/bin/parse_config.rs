@@ -109,12 +109,21 @@ pub struct Config {
 #[serde(deny_unknown_fields)]
 pub struct Scatter {
     pub phi: Bins,
+    pub   r: BinsMax,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Bins {
     pub bins: usize,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct BinsMax {
+    pub bins: usize,
+    #[serde(deserialize_with = "deserialize_uom")]
+    pub max: Length,
 }
 
 fn default_subsets() -> usize { 1 }
@@ -155,7 +164,11 @@ mod tests {
         assert_eq!(config.iterations, 4);
         assert_eq!(config.subsets, 20);
         assert_eq!(config.tof, Some(ps(200.0)));
-        assert_eq!(config.scatter.unwrap().phi.bins, 30);
+
+        let scatter = config.scatter.unwrap();
+        assert_eq!(scatter.phi.bins,    30   );
+        assert_eq!(scatter.  r.bins,    31   );
+        assert_eq!(scatter.  r.max , mm(32.0));
     }
 
     // ----- Some helpers to make the tests more concise ---------------------------------
@@ -223,10 +236,13 @@ mod tests {
         let c: Config = parse(r#"
                  [scatter]
                  phi.bins = 12
+                 r  .bins = 34
+                 r  .max = "56 mm"
               "#);
         let scatter = c.scatter.unwrap();
-        assert_eq!(scatter.phi.bins, 12);
-
+        assert_eq!(scatter.phi.bins,    12   );
+        assert_eq!(scatter.  r.bins,    34   );
+        assert_eq!(scatter.  r.max , mm(56.0));
     }
     // -----------------------------------------------------------------------------------
     // The tests that follow should be read in order: they tell the story of why

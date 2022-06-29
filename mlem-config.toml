@@ -23,8 +23,8 @@ fov_size = ["100 mm", "200 mm", "3 cm"]
 
 phi.bins = 30
 
-# r.bins = 30
-# r.max  = "30 mm"
+r.bins = 31
+r.max  = "32 mm"
 
 # z.bins = 30
 # z.length = "1 m"
