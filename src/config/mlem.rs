@@ -86,10 +86,6 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_uom_opt")]
     pub tof: Option<Time>,
 
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_uom_opt")]
-    pub wtf: Option<Length>,
-
     #[serde(default = "mandatory")]
     pub nvoxels: (usize, usize, usize),
 
