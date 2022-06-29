@@ -112,6 +112,7 @@ pub struct Scatter {
     pub   r: BinsMax<Length>,
     pub  dz: BinsMax<Length>,
     pub  dt: BinsMax<Time>,
+    pub   z: BinsLength,
 }
 
 #[derive(Deserialize, Debug)]
@@ -130,6 +131,14 @@ where
     pub bins: usize,
     #[serde(deserialize_with = "deserialize_uom")]
     pub max: T,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct BinsLength {
+    pub bins: usize,
+    #[serde(deserialize_with = "deserialize_uom")]
+    pub length: Length,
 }
 
 fn default_subsets() -> usize { 1 }
@@ -182,6 +191,9 @@ mod tests {
 
         assert_eq!(scatter. dt.bins,    35   );
         assert_eq!(scatter. dt.max , ps(36.0));
+
+        assert_eq!(scatter. z.bins,      37   );
+        assert_eq!(scatter. z.length, cm(38.0));
     }
 
     // ----- Some helpers to make the tests more concise ---------------------------------
@@ -252,10 +264,12 @@ mod tests {
                  r  .bins = 34
                  dz .bins = 99
                  dt .bins = 98
+                 z  .bins = 97
 
-                 r  .max = "56 mm"
-                 dz .max = "78 mm"
-                 dt .max = "90 ps"
+                 r  .max  = "56 mm"
+                 dz .max  = "78 mm"
+                 dt .max  = "90 ps"
+                 z.length = "38 cm"
               "#);
         let scatter = c.scatter.unwrap();
         assert_eq!(scatter.phi.bins,    12   );
