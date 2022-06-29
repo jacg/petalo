@@ -13,14 +13,6 @@ pub struct Cli {
     /// MLEM config file
     pub config_file: PathBuf,
 
-    /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
-    #[structopt(short, long)]
-    pub tof: Option<Time>,
-
-    /// TOF cutoff (✕ sigma). to disable: `-k no` [Rust version only]
-    #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
-    pub cutoff: CutoffOption<Ratio>,
-
     /// Override automatic generation of image output file name
     #[structopt(short, long)]
     pub out_files: Option<String>,
@@ -151,7 +143,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
 
-    for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image, config.subsets))
+    for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, config.tof, config.cutoff, sensitivity_image, config.subsets))
         .take(config.iterations * config.subsets) {
             progress.done_with_message(&format!("Iteration {iteration:2}-{subset:02}"));
             let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", file_pattern));
@@ -167,7 +159,7 @@ fn guess_filename(args: &Cli, config: &config::mlem::Config) -> String {
         pattern.to_string()
     } else {
         let (nx, ny, nz) = config.nvoxels;
-        let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0?}", x));
+        let tof = config.tof.map_or(String::from("OFF"), |x| format!("{:.0?}", x));
         format!("data/out/mlem/{nx}_{ny}_{nz}_tof_{tof}",
                 nx=nx, ny=ny, nz=nz, tof=tof)
     }

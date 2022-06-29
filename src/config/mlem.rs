@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Deserializer, de};
 
 
-use crate::{Length, Time};
+use crate::{Length, Ratio, Time};
 
 fn deserialize_uom_opt<'d, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
@@ -85,6 +85,10 @@ pub struct Config {
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_uom_opt")]
     pub tof: Option<Time>,
+
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_uom_opt")]
+    pub cutoff: Option<Ratio>,
 
     #[serde(default = "mandatory")]
     pub nvoxels: (usize, usize, usize),
