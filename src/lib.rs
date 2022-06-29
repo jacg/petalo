@@ -12,3 +12,4 @@ pub mod lorogram;
 pub mod image;
 pub mod index;
 pub mod fov;
+pub mod config;
