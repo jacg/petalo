@@ -110,6 +110,7 @@ pub struct Config {
 pub struct Scatter {
     pub phi: Bins,
     pub   r: BinsMax,
+    pub  dz: BinsMax,
 }
 
 #[derive(Deserialize, Debug)]
@@ -167,8 +168,12 @@ mod tests {
 
         let scatter = config.scatter.unwrap();
         assert_eq!(scatter.phi.bins,    30   );
+
         assert_eq!(scatter.  r.bins,    31   );
         assert_eq!(scatter.  r.max , mm(32.0));
+
+        assert_eq!(scatter. dz.bins,    33   );
+        assert_eq!(scatter. dz.max , mm(34.0));
     }
 
     // ----- Some helpers to make the tests more concise ---------------------------------
@@ -237,12 +242,17 @@ mod tests {
                  [scatter]
                  phi.bins = 12
                  r  .bins = 34
+                 dz .bins = 99
+
                  r  .max = "56 mm"
+                 dz .max = "78 mm"
               "#);
         let scatter = c.scatter.unwrap();
         assert_eq!(scatter.phi.bins,    12   );
         assert_eq!(scatter.  r.bins,    34   );
+        assert_eq!(scatter. dz.bins,    99   );
         assert_eq!(scatter.  r.max , mm(56.0));
+        assert_eq!(scatter. dz.max , mm(78.0));
     }
     // -----------------------------------------------------------------------------------
     // The tests that follow should be read in order: they tell the story of why

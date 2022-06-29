@@ -29,8 +29,8 @@ r.max  = "32 mm"
 # z.bins = 30
 # z.length = "1 m"
 
-# dz.bins = 30
-# dz.max  = "215 mm"
+dz.bins = 33
+dz.max  = "34 mm"
 
 # dt.bins = 30
 # dt.max = "500 ps"
