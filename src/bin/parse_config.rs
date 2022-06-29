@@ -14,7 +14,7 @@ struct Cli {
 
 use petalo::{Length, Time};
 
-fn deserialize_uom<'d, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+fn deserialize_uom_opt<'d, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
     D: Deserializer<'d>,
     T: FromStr,
@@ -76,11 +76,11 @@ pub struct Config {
     pub subsets: usize,
 
     #[serde(default)]
-    #[serde(deserialize_with = "deserialize_uom")]
+    #[serde(deserialize_with = "deserialize_uom_opt")]
     pub tof: Option<Time>,
 
     #[serde(default)]
-    #[serde(deserialize_with = "deserialize_uom")]
+    #[serde(deserialize_with = "deserialize_uom_opt")]
     pub wtf: Option<Length>,
 
     #[serde(default = "mandatory")]
@@ -324,10 +324,10 @@ mod tests {
         #[derive(Deserialize, Debug)]
         struct X {
             #[serde(default)]
-            #[serde(deserialize_with = "deserialize_uom")]
+            #[serde(deserialize_with = "deserialize_uom_opt")]
             t: Option<Time>,
             #[serde(default)]
-            #[serde(deserialize_with = "deserialize_uom")]
+            #[serde(deserialize_with = "deserialize_uom_opt")]
             l: Option<Length>,
         }
         check!(X(r#"t = "2 ps""#).t = Some(ps(2.)));
