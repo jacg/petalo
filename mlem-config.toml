@@ -17,13 +17,20 @@ tof = "200 ps"
 nvoxels = [10, 20, 30]
 fov_size = ["100 mm", "200 mm", "3 cm"]
 
-# scatter.phi.bins
-# scatter.  z.bins
-# scatter. dz.bins
-# scatter.  r.bins
-# scatter. dt.bins
-#
-# scatter. z.length
-# scatter. r.max
-# scatter.dt.max
-# scatter.dz.max
+
+
+[scatter]
+
+phi.bins = 30
+
+# r.bins = 30
+# r.max  = "30 mm"
+
+# z.bins = 30
+# z.length = "1 m"
+
+# dz.bins = 30
+# dz.max  = "215 mm"
+
+# dt.bins = 30
+# dt.max = "500 ps"
