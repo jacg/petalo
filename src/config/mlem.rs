@@ -103,11 +103,11 @@ pub struct Config {
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Scatter {
-    pub phi: Bins,
-    pub   r: BinsMax<Length>,
-    pub  dz: BinsMax<Length>,
-    pub  dt: BinsMax<Time>,
-    pub   z: BinsLength,
+    pub phi: Option<Bins>,
+    pub   r: Option<BinsMax<Length>>,
+    pub  dz: Option<BinsMax<Length>>,
+    pub  dt: Option<BinsMax<Time>>,
+    pub   z: Option<BinsLength>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -169,19 +169,25 @@ mod tests {
         assert_eq!(config.tof, Some(ps(200.0)));
 
         let scatter = config.scatter.unwrap();
-        assert_eq!(scatter.phi.bins,    30   );
+        let phi = scatter.phi.unwrap();
+        let r   = scatter.r  .unwrap();
+        let dz  = scatter.dz .unwrap();
+        let dt  = scatter.dt .unwrap();
+        let  z  = scatter. z .unwrap();
 
-        assert_eq!(scatter.  r.bins,    31   );
-        assert_eq!(scatter.  r.max , mm(32.0));
+        assert_eq!(phi.bins,    30   );
 
-        assert_eq!(scatter. dz.bins,    33   );
-        assert_eq!(scatter. dz.max , mm(34.0));
+        assert_eq!(  r.bins,    31   );
+        assert_eq!(  r.max , mm(32.0));
 
-        assert_eq!(scatter. dt.bins,    35   );
-        assert_eq!(scatter. dt.max , ps(36.0));
+        assert_eq!( dz.bins,    33   );
+        assert_eq!( dz.max , mm(34.0));
 
-        assert_eq!(scatter. z.bins,      37   );
-        assert_eq!(scatter. z.length, cm(38.0));
+        assert_eq!( dt.bins,    35   );
+        assert_eq!( dt.max , ps(36.0));
+
+        assert_eq!(  z.bins,      37   );
+        assert_eq!(  z.length, cm(38.0));
     }
 
     // ----- Some helpers to make the tests more concise ---------------------------------
@@ -260,12 +266,26 @@ mod tests {
                  z.length = "38 cm"
               "#);
         let scatter = c.scatter.unwrap();
-        assert_eq!(scatter.phi.bins,    12   );
-        assert_eq!(scatter.  r.bins,    34   );
-        assert_eq!(scatter. dz.bins,    99   );
-        assert_eq!(scatter. dt.bins,    98   );
-        assert_eq!(scatter.  r.max , mm(56.0));
-        assert_eq!(scatter. dz.max , mm(78.0));
+
+        let phi = scatter.phi.unwrap();
+        let r   = scatter.r  .unwrap();
+        let dz  = scatter.dz .unwrap();
+        let dt  = scatter.dt .unwrap();
+        let  z  = scatter. z .unwrap();
+
+        assert_eq!(phi.bins  ,    12   );
+
+        assert_eq!(  r.bins  ,    34   );
+        assert_eq!(  r.max   , mm(56.0));
+
+        assert_eq!( dz.bins  ,    99   );
+        assert_eq!( dz.max   , mm(78.0));
+
+        assert_eq!( dt.bins  ,    98   );
+        assert_eq!( dt.max   , ps(90.0));
+
+        assert_eq!(  z.bins  ,    97   );
+        assert_eq!(  z.length, cm(38.0));
     }
     // -----------------------------------------------------------------------------------
     // The tests that follow should be read in order: they tell the story of why
