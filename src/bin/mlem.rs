@@ -45,42 +45,6 @@ pub struct Cli {
     #[structopt(short, long, parse(try_from_str = parse_bounds::<Chargef32>), default_value = "..")]
     pub qcut: BoundPair<Chargef32>,
 
-    /// Apply scatter corrections with   r-axis up to this value
-    #[structopt(long)]
-    pub scatter_r_max: Option<Length>,
-
-    /// Apply scatter corrections with   r-axis using this number of bins
-    #[structopt(long)]
-    pub scatter_r_bins: Option<usize>,
-
-    /// Apply scatter corrections with phi-axis using this number of bins
-    #[structopt(long)]
-    pub scatter_phi_bins: Option<usize>,
-
-    /// Apply scatter corrections with   z-axis using this number of bins
-    #[structopt(long)]
-    pub scatter_z_bins: Option<usize>,
-
-    /// Apply scatter corrections with   z-axis: full-length of z-axis
-    #[structopt(long)]
-    pub scatter_z_length: Option<Length>,
-
-    /// Apply scatter corrections with  dz-axis using this number of bins
-    #[structopt(long)]
-    pub scatter_dz_bins: Option<usize>,
-
-    /// Apply scatter corrections with  dz-axis up to this value
-    #[structopt(long)]
-    pub scatter_dz_max: Option<Length>,
-
-    /// Apply scatter corrections with tof-axis using this number of bins
-    #[structopt(long)]
-    pub scatter_tof_bins: Option<usize>,
-
-    /// Apply scatter corrections with tof-axis up to this value
-    #[structopt(long)]
-    pub scatter_tof_max: Option<Time>,
-
 }
 
 // --------------------------------------------------------------------------------
@@ -121,7 +85,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Define field of view extent and voxelization
     let fov = FOV::new(config.fov_size, config.nvoxels);
 
-    let scattergram = build_scattergram(args.clone());
+    let scattergram = build_scattergram(&config.scatter);
     progress.done_with_message("Startup");
 
     let sensitivity_image: Option<Image> = {
@@ -190,16 +154,33 @@ fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) 
     }
 }
 
-fn build_scattergram(args: Cli) -> Option<Scattergram> {
-    let mut builder = BuildScattergram::new();
-    if let Some(n) = args.scatter_phi_bins { builder = builder.phi_bins(n) };
-    if let Some(n) = args.scatter_r_bins   { builder = builder.  r_bins(n) };
-    if let Some(n) = args.scatter_z_bins   { builder = builder.  z_bins(n) };
-    if let Some(n) = args.scatter_dz_bins  { builder = builder. dz_bins(n) };
-    if let Some(t) = args.scatter_tof_bins { builder = builder. dt_bins(t) };
-    if let Some(r) = args.scatter_r_max    { builder = builder. r_max  (r) };
-    if let Some(z) = args.scatter_dz_max   { builder = builder.dz_max  (z) };
-    if let Some(t) = args.scatter_tof_max  { builder = builder.dt_max  (t) };
-    if let Some(l) = args.scatter_z_length { builder = builder.z_length(l) };
-    builder.build()
+// TODO: Make builder use config::mlem::Scatter directly
+fn build_scattergram(scatter: &Option<config::mlem::Scatter>) -> Option<Scattergram> {
+    use petalo::config::mlem::{Bins, BinsMax, BinsLength};
+    if let Some(scatter) = scatter.as_ref() {
+        let mut builder = BuildScattergram::new();
+
+        if let Some(Bins { bins }) = scatter.phi {
+            builder = builder.phi_bins(bins);
+        }
+        if let Some(BinsMax { bins, max }) = scatter.r {
+            builder = builder.r_bins(bins);
+            builder = builder.r_max (max );
+        }
+        if let Some(BinsMax { bins, max }) = scatter.dz {
+            builder = builder.dz_bins(bins);
+            builder = builder.dz_max (max );
+        }
+        if let Some(BinsMax { bins, max }) = scatter.dt {
+            builder = builder.dt_bins(bins);
+            builder = builder.dt_max (max );
+        }
+        if let Some(BinsLength { bins, length }) = scatter.z {
+            builder = builder.z_bins  (bins);
+            builder = builder.z_length(length);
+        }
+        builder.build()
+    } else {
+        None
+    }
 }
