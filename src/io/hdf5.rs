@@ -10,7 +10,7 @@ pub struct Args {
     pub dataset: String,
     pub event_range: Option<std::ops::Range<usize>>,
     pub ecut: BoundPair<Energyf32>,
-    pub qcut: BoundPair<crate::Chargef32>,
+    pub qcut: BoundPair<Chargef32>,
 }
 
 use ndarray::{s, Array1};
