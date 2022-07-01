@@ -1,7 +1,5 @@
 # TODO move me to a test data directory
 
-input_file = "data/some-lors.h5"
-dataset    = "reco_info/lors"
 # event_range
 # sensitivity_image
 # num_threads # this one should stay on the CLI
@@ -17,6 +15,10 @@ tof = "200 ps"
 nvoxels = [10, 20, 30]
 fov_size = ["100 mm", "200 mm", "3 cm"]
 
+
+[input]
+file    = "data/some-lors.h5"
+dataset = "reco_info/lors"
 
 
 [scatter]

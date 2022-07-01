@@ -64,8 +64,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut progress = Progress::new();
 
     // Read event data from disk into memory
-    let input_file = config.input_file.clone();
-    let dataset    = config.dataset.clone();
+    let input = config.input.clone();
+    let input_file = input.file;
+    let dataset    = input.dataset;
     let                      Cli{                      event_range, ecut, qcut, .. } = args.clone();
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, ecut, qcut };
 

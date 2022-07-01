@@ -74,13 +74,9 @@ fn tr_tup_res<O, E>((x,y,z): (Result<O, E>, Result<O, E>, Result<O, E>)) -> Resu
 #[serde(deny_unknown_fields)]
 pub struct Config {
 
-    /// HDF5 file containing reconstructed LORs from which to reconstruct image
+    /// Specification of data to be used to reconstruct image
     #[serde(default = "mandatory")]
-    pub input_file: PathBuf,
-
-    /// The dataset location inside the input file
-    #[serde(default = "mandatory")]
-    pub dataset: String,
+    pub input: Input,
 
     /// Number of MLEM or OSEM iterations to perform
     #[serde(default = "mandatory")]
@@ -106,6 +102,20 @@ pub struct Config {
     pub fov_size: (Length, Length, Length),
 
     pub scatter: Option<Scatter>,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(deny_unknown_fields)]
+pub struct Input {
+
+    /// HDF5 file containing reconstructed LORs from which to reconstruct image
+    #[serde(default = "mandatory")]
+    pub file: PathBuf,
+
+    /// The dataset location inside the input file
+    #[serde(default = "mandatory")]
+    pub dataset: String,
+
 }
 
 #[derive(Deserialize, Debug)]
@@ -173,8 +183,8 @@ mod tests {
     fn test_config_file() {
         let config = read_config_file("mlem-config.toml".into());
 
-        assert_eq!(config.input_file, PathBuf::from_str("data/some-lors.h5").unwrap());
-        assert_eq!(config.dataset   , String ::from    ("reco_info/lors"));
+        assert_eq!(config.input.file   , PathBuf::from_str("data/some-lors.h5").unwrap());
+        assert_eq!(config.input.dataset, String ::from    ("reco_info/lors"));
 
         assert_eq!(config.iterations, 4);
         assert_eq!(config.subsets, 20);
@@ -237,13 +247,13 @@ mod tests {
     // ----- LORs -----------------------------------------------------------------------
     #[test]
     fn config_input_file() {
-        check!{Config(r#"
-                   input_file = "some/file.h5"
-                   dataset    = "some/dataset"
-              "#) fields:
-               input_file = PathBuf::from_str("some/file.h5").unwrap();
-               dataset    = String ::from    ("some/dataset");
-        }
+        let input = parse::<Config>(r#"
+            [input]
+            file    = "some/file.h5"
+            dataset = "some/dataset"
+        "#).input;
+        assert_eq!(input.file   , PathBuf::from_str("some/file.h5").unwrap());
+        assert_eq!(input.dataset, String ::from    ("some/dataset"));
     }
     // ----- iterations -----------------------------------------------------------------
     #[test]
