@@ -89,7 +89,7 @@ pub struct Config {
     /// Time of Flight (TOF) parameters
     pub tof: Option<Tof>,
 
-    pub scatter: Option<Scatter>,
+    pub scatter_correction: Option<Scatter>,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -223,7 +223,7 @@ mod tests {
         assert_eq!(tof.sigma, ps(200.0));
         assert_eq!(tof.cutoff, ratio(3.0));
 
-        let scatter = config.scatter.unwrap();
+        let scatter = config.scatter_correction.unwrap();
         let phi = scatter.phi.unwrap();
         let r   = scatter.r  .unwrap();
         let dz  = scatter.dz .unwrap();
@@ -348,7 +348,7 @@ mod tests {
     #[test]
     fn config_scattergram() {
         let c: Config = parse(r#"
-                 [scatter]
+                 [scatter_correction]
                  phi.bins = 12
                  r  .bins = 34
                  dz .bins = 99
@@ -360,7 +360,7 @@ mod tests {
                  dt .max  = "90 ps"
                  z.length = "38 cm"
               "#);
-        let scatter = c.scatter.unwrap();
+        let scatter = c.scatter_correction.unwrap();
 
         let phi = scatter.phi.unwrap();
         let r   = scatter.r  .unwrap();

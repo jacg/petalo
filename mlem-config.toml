@@ -26,7 +26,7 @@ sigma = "200 ps"
 cutoff = 3
 
 
-[scatter]
+[scatter_correction]
 
 phi.bins = 30
 

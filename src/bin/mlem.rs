@@ -79,7 +79,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Define field of view extent and voxelization
     let fov = FOV::new(config.fov.size, config.fov.nvoxels);
 
-    let scattergram = build_scattergram(&config.scatter);
+    let scattergram = build_scattergram(&config.scatter_correction);
     progress.done_with_message("Startup");
 
     let sensitivity_image: Option<Image> = {
