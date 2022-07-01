@@ -17,10 +17,6 @@ pub struct Cli {
     #[structopt(short, long)]
     pub out_files: Option<String>,
 
-    /// The dataset location inside the input file
-    #[structopt(short, long, default_value = "reco_info/lors")]
-    pub dataset: String,
-
     /// Which rows of the input file should be loaded
     #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
     pub event_range: Option<std::ops::Range<usize>>,
@@ -69,7 +65,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Read event data from disk into memory
     let input_file = config.input_file.clone();
-    let                      Cli{             dataset, event_range, ecut, qcut, .. } = args.clone();
+    let dataset    = config.dataset.clone();
+    let                      Cli{                      event_range, ecut, qcut, .. } = args.clone();
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, ecut, qcut };
 
     // Check that output directory is writable. Do this *before* expensive

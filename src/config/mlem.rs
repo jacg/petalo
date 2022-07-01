@@ -78,6 +78,10 @@ pub struct Config {
     #[serde(default = "mandatory")]
     pub input_file: PathBuf,
 
+    /// The dataset location inside the input file
+    #[serde(default = "mandatory")]
+    pub dataset: String,
+
     /// Number of MLEM or OSEM iterations to perform
     #[serde(default = "mandatory")]
     pub iterations: usize,
@@ -170,6 +174,7 @@ mod tests {
         let config = read_config_file("mlem-config.toml".into());
 
         assert_eq!(config.input_file, PathBuf::from_str("data/some-lors.h5").unwrap());
+        assert_eq!(config.dataset   , String ::from    ("reco_info/lors"));
 
         assert_eq!(config.iterations, 4);
         assert_eq!(config.subsets, 20);
@@ -232,8 +237,12 @@ mod tests {
     // ----- LORs -----------------------------------------------------------------------
     #[test]
     fn config_input_file() {
-        check!{Config(r#"input_file = "some/file.h5""#) fields:
+        check!{Config(r#"
+                   input_file = "some/file.h5"
+                   dataset    = "some/dataset"
+              "#) fields:
                input_file = PathBuf::from_str("some/file.h5").unwrap();
+               dataset    = String ::from    ("some/dataset");
         }
     }
     // ----- iterations -----------------------------------------------------------------
