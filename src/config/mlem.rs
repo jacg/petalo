@@ -82,6 +82,10 @@ pub struct Config {
     #[serde(default = "mandatory")]
     pub iterations: Iterations,
 
+    /// Field of view (FOV) size: number of voxels and physical dimensions
+    #[serde(default = "mandatory")]
+    pub fov: Fov,
+
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_uom_opt")]
     pub tof: Option<Time>,
@@ -89,13 +93,6 @@ pub struct Config {
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_uom_opt")]
     pub cutoff: Option<Ratio>,
-
-    #[serde(default = "mandatory")]
-    pub nvoxels: (usize, usize, usize),
-
-    #[serde(default = "mandatory")]
-    #[serde(deserialize_with = "deserialize_uom_3d")]
-    pub fov_size: (Length, Length, Length),
 
     pub scatter: Option<Scatter>,
 }
@@ -125,6 +122,19 @@ pub struct Iterations {
     /// Number of OSEM subsets to use. For MLEM, `subsets` = 1
     #[serde(default = "mandatory")]
     pub subsets: usize,
+
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(deny_unknown_fields)]
+pub struct Fov {
+
+    #[serde(default = "mandatory")]
+    pub nvoxels: (usize, usize, usize),
+
+    #[serde(default = "mandatory")]
+    #[serde(deserialize_with = "deserialize_uom_3d")]
+    pub size: (Length, Length, Length),
 
 }
 
@@ -285,14 +295,14 @@ mod tests {
     // ----- Test FOV parameters ---------------------------------------------------------
     #[test]
     fn config_fov() {
-        check!{Config(r#"
-                     nvoxels = [10, 20, 30]
-                     fov_size = ["123 mm", "456 mm", "78 cm"]
-               "#)
-        fields:
-               nvoxels  = (    10   ,    20    ,    30   );
-               fov_size = (mm(123.0), mm(456.0), cm(78.0));
-        }
+        let fov = parse::<Config>(r#"
+                     [fov]
+                     nvoxels = [  10    ,   20    ,  30    ]
+                     size    = ["123 mm", "456 mm", "78 cm"]
+               "#).fov;
+        assert_eq!(fov.nvoxels, (    10   ,    20    ,    30   ));
+        assert_eq!(fov.size   , (mm(123.0), mm(456.0), cm(78.0)));
+
     }
     // ----- Test Scattergram parameters ------------------------------------------------
     #[test]

@@ -78,7 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .expect(&format!("Cannot write in output directory `{file_pattern}`"));
 
     // Define field of view extent and voxelization
-    let fov = FOV::new(config.fov_size, config.nvoxels);
+    let fov = FOV::new(config.fov.size, config.fov.nvoxels);
 
     let scattergram = build_scattergram(&config.scatter);
     progress.done_with_message("Startup");
@@ -89,7 +89,7 @@ fn main() -> Result<(), Box<dyn Error>> {
            .transpose()
            .expect(&format!("Cannot read sensitivity image {:?}", path.unwrap()))
     };
-    if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, config.nvoxels, config.fov_size) };
+    if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, config.fov.nvoxels, config.fov.size) };
     if sensitivity_image.is_some() { progress.done_with_message("Loaded sensitivity image"); }
 
     progress.startln("Loading LORs from file");
@@ -117,7 +117,7 @@ fn guess_filename(args: &Cli, config: &config::mlem::Config) -> String {
     if let Some(pattern) = &args.out_files {
         pattern.to_string()
     } else {
-        let (nx, ny, nz) = config.nvoxels;
+        let (nx, ny, nz) = config.fov.nvoxels;
         let tof = config.tof.map_or(String::from("OFF"), |x| format!("{:.0?}", x));
         format!("data/out/mlem/{nx}_{ny}_{nz}_tof_{tof}",
                 nx=nx, ny=ny, nz=nz, tof=tof)
