@@ -37,7 +37,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     println!("{}", lor);
-    lor_weights(lor, fov, args.shape, args.cutoff, args.tof);
+    let tof = args.tof.map(|sigma| petalo::config::mlem::Tof { sigma, cutoff: args.cutoff.unwrap() });
+    lor_weights(lor, fov, args.shape, tof);
     Ok(())
 }
 

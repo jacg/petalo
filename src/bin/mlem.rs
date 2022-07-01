@@ -101,7 +101,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
 
-    for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, config.tof, config.cutoff, sensitivity_image, config.iterations.subsets))
+    for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, config.tof, sensitivity_image, config.iterations.subsets))
         .take(config.iterations.number * config.iterations.subsets) {
             progress.done_with_message(&format!("Iteration {iteration:2}-{subset:02}"));
             let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", args.output_directory));

@@ -6,9 +6,6 @@
 # ecut
 # qcut
 
-tof = "200 ps"
-# cutoff
-
 [input]
 file    = "data/some-lors.h5"
 dataset = "reco_info/lors"
@@ -22,6 +19,11 @@ subsets = 20
 [fov]
 nvoxels = [  10    ,   20    , 30    ]
 size    = ["100 mm", "200 mm", "3 cm"]
+
+
+[tof]
+sigma = "200 ps"
+cutoff = 3
 
 
 [scatter]

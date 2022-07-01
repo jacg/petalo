@@ -86,13 +86,8 @@ pub struct Config {
     #[serde(default = "mandatory")]
     pub fov: Fov,
 
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_uom_opt")]
-    pub tof: Option<Time>,
-
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_uom_opt")]
-    pub cutoff: Option<Ratio>,
+    /// Time of Flight (TOF) parameters
+    pub tof: Option<Tof>,
 
     pub scatter: Option<Scatter>,
 }
@@ -137,6 +132,21 @@ pub struct Fov {
     pub size: (Length, Length, Length),
 
 }
+
+#[derive(Deserialize, Debug, Clone, Copy, Default)]
+#[serde(deny_unknown_fields)]
+pub struct Tof {
+
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_uom")]
+    pub sigma: Time,
+
+    #[serde(default = "three")]
+    pub cutoff: Ratio,
+
+}
+
+fn three() -> Ratio { geometry::units::ratio(3.0) }
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
@@ -196,7 +206,7 @@ fn mandatory<T: Default>() -> T { T::default() }
 mod tests {
     use super::*;
 
-    use geometry::units::{cm, mm, ps};
+    use geometry::units::{cm, mm, ps, ratio};
 
     // ----- Test an example on-disk config file -----------------------------------------
     #[test]
@@ -208,7 +218,10 @@ mod tests {
 
         assert_eq!(config.iterations.number ,  4);
         assert_eq!(config.iterations.subsets, 20);
-        assert_eq!(config.tof, Some(ps(200.0)));
+
+        let tof = config.tof.unwrap();
+        assert_eq!(tof.sigma, ps(200.0));
+        assert_eq!(tof.cutoff, ratio(3.0));
 
         let scatter = config.scatter.unwrap();
         let phi = scatter.phi.unwrap();
@@ -303,6 +316,33 @@ mod tests {
         assert_eq!(fov.nvoxels, (    10   ,    20    ,    30   ));
         assert_eq!(fov.size   , (mm(123.0), mm(456.0), cm(78.0)));
 
+    }
+    // ----- Test TOF parameters ---------------------------------------------------------
+    #[test]
+    fn config_tof() {
+        let tof = parse::<Config>(r#"
+                     [tof]
+                     sigma = "200 ps"
+                     cutoff = 3
+               "#).tof.unwrap();
+        assert_eq!(tof.sigma , ps(200.0));
+        assert_eq!(tof.cutoff, ratio(3.0));
+    }
+
+    #[test]
+    fn config_tof_missing() {
+        let tof = parse::<Config>("").tof;
+        assert!(tof.is_none());
+    }
+
+    #[test]
+    fn config_tof_cutoff_default() {
+        let tof = parse::<Config>(r#"
+                     [tof]
+                     sigma = "123.4 ps"
+               "#).tof.unwrap();
+        assert_eq!(tof.sigma , ps(123.4));
+        assert_eq!(tof.cutoff, ratio(3.0));
     }
     // ----- Test Scattergram parameters ------------------------------------------------
     #[test]

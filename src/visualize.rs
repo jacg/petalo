@@ -9,6 +9,7 @@ use crate::Vectorf32;
 use crate::{Time, Ratio};
 use crate::system_matrix::LOR;
 use crate::fov::FOV;
+use crate::config::mlem::Tof;
 
 use geometry::units::{mm_, ps_};
 
@@ -110,9 +111,9 @@ impl Scene {
         }
     }
 
-    pub fn place_voxels(&mut self, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Time>) {
+    pub fn place_voxels(&mut self, shape: Shape, tof: Option<Tof>) {
 
-        let active_voxels = self.lor.active_voxels(&self.fov, cutoff, sigma);
+        let active_voxels = self.lor.active_voxels(&self.fov, tof);
 
         let &max_weight = active_voxels
             .iter()
@@ -195,9 +196,9 @@ impl Scene {
     }
 }
 
-pub fn lor_weights(lor: LOR, fov: FOV, shape: Shape, cutoff: Option<Ratio>, sigma: Option<Time>) {
+pub fn lor_weights(lor: LOR, fov: FOV, shape: Shape, tof: Option<Tof>) {
     let mut scene = Scene::new(lor, fov);
-    scene.place_voxels(shape, cutoff, sigma);
+    scene.place_voxels(shape, tof);
     scene.main_loop();
 }
 

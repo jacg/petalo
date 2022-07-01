@@ -22,6 +22,7 @@ use crate::fov::FOV;
 use geometry::units::{mm, mm_, ns_, ratio_};
 use crate::gauss::make_gauss_option;
 use crate::index::index1_to_3;
+use crate::config::mlem::Tof;
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -76,7 +77,7 @@ mod test {
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weightf32> = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None, None);
+        let hits: Vec<Index3Weightf32> = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None);
 
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -129,7 +130,7 @@ mod test {
             println!("\nTo visualize this case, run:\n{}\n", command);
 
             let summed: Lengthf32 = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
-                .active_voxels(&fov, None, None)
+                .active_voxels(&fov, None)
                 .into_iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
                 .map(|(_index, weight)| weight)
@@ -297,9 +298,9 @@ impl LOR {
         Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
-    pub fn active_voxels(&self, fov: &FOV, cutoff: Option<Ratio>, sigma: Option<Time>) -> Vec<Index3Weightf32> {
+    pub fn active_voxels(&self, fov: &FOV, tof: Option<Tof>) -> Vec<Index3Weightf32> {
         use crate::fov::{lor_fov_hit, FovHit};
-        let tof = make_gauss_option(sigma, cutoff);
+        let tof = make_gauss_option(tof);
         let mut weights = vec![];
         let mut indices = vec![];
         match lor_fov_hit(self, *fov) {
