@@ -17,10 +17,6 @@ pub struct Cli {
     #[structopt(short, long)]
     pub out_files: Option<String>,
 
-    /// LORs to read in
-    #[structopt(short = "f", long, default_value = "MC.h5")]
-    pub input_file: PathBuf,
-
     /// The dataset location inside the input file
     #[structopt(short, long, default_value = "reco_info/lors")]
     pub dataset: String,
@@ -72,7 +68,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut progress = Progress::new();
 
     // Read event data from disk into memory
-    let                      Cli{ input_file, dataset, event_range, ecut, qcut, .. } = args.clone();
+    let input_file = config.input_file.clone();
+    let                      Cli{             dataset, event_range, ecut, qcut, .. } = args.clone();
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, ecut, qcut };
 
     // Check that output directory is writable. Do this *before* expensive

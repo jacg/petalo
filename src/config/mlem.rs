@@ -74,6 +74,10 @@ fn tr_tup_res<O, E>((x,y,z): (Result<O, E>, Result<O, E>, Result<O, E>)) -> Resu
 #[serde(deny_unknown_fields)]
 pub struct Config {
 
+    /// HDF5 file containing reconstructed LORs from which to reconstruct image
+    #[serde(default = "mandatory")]
+    pub input_file: PathBuf,
+
     /// Number of MLEM or OSEM iterations to perform
     #[serde(default = "mandatory")]
     pub iterations: usize,
@@ -164,6 +168,9 @@ mod tests {
     #[test]
     fn test_config_file() {
         let config = read_config_file("mlem-config.toml".into());
+
+        assert_eq!(config.input_file, PathBuf::from_str("data/some-lors.h5").unwrap());
+
         assert_eq!(config.iterations, 4);
         assert_eq!(config.subsets, 20);
         assert_eq!(config.tof, Some(ps(200.0)));
@@ -216,6 +223,20 @@ mod tests {
         }
     }
     // ----- Test deserializing of individual aspects of the Config type ----------------
+    // ----- Make sure that unknown fields are not accepted -----------------------------
+    #[test]
+    #[should_panic]
+    fn config_reject_unknown_field() {
+        parse("unknown_field = 666")
+    }
+    // ----- LORs -----------------------------------------------------------------------
+    #[test]
+    fn config_input_file() {
+        check!{Config(r#"input_file = "some/file.h5""#) fields:
+               input_file = PathBuf::from_str("some/file.h5").unwrap();
+        }
+    }
+    // ----- iterations -----------------------------------------------------------------
     #[test]
     fn config_iterations() {
         check!{Config("iterations = 50") fields:
@@ -230,12 +251,6 @@ mod tests {
                iterations =  4;
                subsets    = 20
         }
-    }
-    // ----- Make sure that unknown fields are not accepted -----------------------------
-    #[test]
-    #[should_panic]
-    fn config_reject_unknown_field() {
-        parse("unknown_field = 666")
     }
     // ----- Test FOV parameters ---------------------------------------------------------
     #[test]

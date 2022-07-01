@@ -1,6 +1,6 @@
 # TODO move me to a test data directory
 
-# input_file
+input_file = "data/some-lors.h5"
 # dataset
 # event_range
 # sensitivity_image
