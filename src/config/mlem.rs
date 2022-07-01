@@ -33,7 +33,7 @@ where
         .map_err(de::Error::custom)
 }
 
-fn deserialize_uom_3d_opt<'d, D, T>(deserializer: D) -> Result<Option<(T, T, T)>, D::Error>
+fn _deserialize_uom_3d_opt<'d, D, T>(deserializer: D) -> Result<Option<(T, T, T)>, D::Error>
 where
     D: Deserializer<'d>,
     T: FromStr,

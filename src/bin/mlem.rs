@@ -1,7 +1,7 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::{utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption},
+use petalo::{utils::{parse_range, parse_bounds},
              lorogram::BuildScattergram,
              config};
 
@@ -54,7 +54,7 @@ use std::path::PathBuf;
 use std::fs::create_dir_all;
 
 use petalo::{Energyf32, Chargef32, BoundPair};
-use petalo::{Length, Time, Ratio};
+use petalo::Length;
 use petalo::lorogram::Scattergram;
 use petalo::fov::FOV;
 use petalo::image::Image;
