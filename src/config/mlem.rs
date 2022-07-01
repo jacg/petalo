@@ -78,13 +78,9 @@ pub struct Config {
     #[serde(default = "mandatory")]
     pub input: Input,
 
-    /// Number of MLEM or OSEM iterations to perform
+    /// Number of MLEM/OSEM iterations/subsets to use in reconstruction
     #[serde(default = "mandatory")]
-    pub iterations: usize,
-
-    /// Number of OSEM subsets per iteration
-    #[serde(default = "default_subsets")]
-    pub subsets: usize,
+    pub iterations: Iterations,
 
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_uom_opt")]
@@ -115,6 +111,20 @@ pub struct Input {
     /// The dataset location inside the input file
     #[serde(default = "mandatory")]
     pub dataset: String,
+
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(deny_unknown_fields)]
+pub struct Iterations {
+
+    /// Number of MLEM or OSEM iterations to perform
+    #[serde(default = "mandatory")]
+    pub number: usize,
+
+    /// Number of OSEM subsets to use. For MLEM, `subsets` = 1
+    #[serde(default = "mandatory")]
+    pub subsets: usize,
 
 }
 
@@ -186,8 +196,8 @@ mod tests {
         assert_eq!(config.input.file   , PathBuf::from_str("data/some-lors.h5").unwrap());
         assert_eq!(config.input.dataset, String ::from    ("reco_info/lors"));
 
-        assert_eq!(config.iterations, 4);
-        assert_eq!(config.subsets, 20);
+        assert_eq!(config.iterations.number ,  4);
+        assert_eq!(config.iterations.subsets, 20);
         assert_eq!(config.tof, Some(ps(200.0)));
 
         let scatter = config.scatter.unwrap();
@@ -258,18 +268,19 @@ mod tests {
     // ----- iterations -----------------------------------------------------------------
     #[test]
     fn config_iterations() {
-        check!{Config("iterations = 50") fields:
-               iterations = 50;
-               subsets     = 1
-        }
+        let iterations = parse::<Config>(r#"
+             [iterations]
+             number = 50
+             subsets = 1
+        "#).iterations;
 
-        check!{Config(r#"
-                 iterations = 4
-                 subsets = 20
-               "#) fields:
-               iterations =  4;
-               subsets    = 20
-        }
+        assert_eq!(iterations.number, 50);
+        assert_eq!(iterations.subsets, 1);
+
+        let iterations = parse::<Config>(r#"iterations = { number = 4, subsets = 20 }"#).iterations;
+
+        assert_eq!(iterations.number,   4);
+        assert_eq!(iterations.subsets, 20);
     }
     // ----- Test FOV parameters ---------------------------------------------------------
     #[test]

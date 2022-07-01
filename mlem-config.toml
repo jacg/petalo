@@ -6,19 +6,20 @@
 # ecut
 # qcut
 
-iterations = 4
-subsets = 20
-
 tof = "200 ps"
 # cutoff
 
 nvoxels = [10, 20, 30]
 fov_size = ["100 mm", "200 mm", "3 cm"]
 
-
 [input]
 file    = "data/some-lors.h5"
 dataset = "reco_info/lors"
+
+
+[iterations]
+number  = 4
+subsets = 20
 
 
 [scatter]
