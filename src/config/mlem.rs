@@ -89,6 +89,9 @@ pub struct Config {
     /// Time of Flight (TOF) parameters
     pub tof: Option<Tof>,
 
+    /// Sensitivity image to use in scatter correction
+    pub attenuation_correction: Option<AttenuationCorrection>,
+
     pub scatter_correction: Option<Scatter>,
 }
 
@@ -147,6 +150,15 @@ pub struct Tof {
 }
 
 fn three() -> Ratio { geometry::units::ratio(3.0) }
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(deny_unknown_fields)]
+pub struct AttenuationCorrection {
+
+    #[serde(default)]
+    pub sensitivity_image: PathBuf,
+
+}
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
@@ -345,6 +357,21 @@ mod tests {
         assert_eq!(tof.cutoff, ratio(3.0));
     }
     // ----- Test Scattergram parameters ------------------------------------------------
+    #[test]
+    fn config_attenuation_correction_yes() {
+        let corr = parse::<Config>(r#"
+                      [attenuation_correction]
+                      sensitivity_image = "some/sensitivity_image.raw"
+               "#).attenuation_correction.unwrap();
+        assert_eq!(corr.sensitivity_image, PathBuf::from_str("some/sensitivity_image.raw").unwrap());
+    }
+
+    #[test]
+    fn config_attenuation_correction_no() {
+        let corr = parse::<Config>("").attenuation_correction;
+        assert!(corr.is_none());
+    }
+    // ----- Test attenuation correction parameters -------------------------------------
     #[test]
     fn config_scattergram() {
         let c: Config = parse(r#"

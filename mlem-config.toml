@@ -1,7 +1,6 @@
 # TODO move me to a test data directory
 
 # event_range
-# sensitivity_image
 # num_threads # this one should stay on the CLI
 # ecut
 # qcut
@@ -24,6 +23,10 @@ size    = ["100 mm", "200 mm", "3 cm"]
 [tof]
 sigma = "200 ps"
 cutoff = 3
+
+
+[attenuation_correction]
+sensitivity_image = "some/image.raw"
 
 
 [scatter_correction]

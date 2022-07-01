@@ -21,10 +21,6 @@ pub struct Cli {
     #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
     pub event_range: Option<std::ops::Range<usize>>,
 
-    /// Sensitivity image to be used for corrections
-    #[structopt(long)]
-    pub sensitivity_image: Option<PathBuf>,
-
     /// Maximum number of rayon threads
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
@@ -83,10 +79,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     progress.done_with_message("Startup");
 
     let sensitivity_image: Option<Image> = {
-        let path: Option<&PathBuf> = args.sensitivity_image.as_ref();
-        path.map(|path| Image::from_raw_file(path))
+        let path = config.attenuation_correction.map(|ac| ac.sensitivity_image);
+        let path = path.as_ref();
+        path.map(|path| Image::from_raw_file(&path))
            .transpose()
-           .expect(&format!("Cannot read sensitivity image {:?}", path.unwrap()))
+           .expect(&format!("Cannot read sensitivity image {:?}", path.unwrap().display()))
     };
     if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, config.fov.nvoxels, config.fov.size) };
     if sensitivity_image.is_some() { progress.done_with_message("Loaded sensitivity image"); }
