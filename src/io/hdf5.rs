@@ -1,12 +1,13 @@
 /// Read LORs from HDF5 tables
 
 use std::error::Error;
+use std::path::{Path, PathBuf};
 use std::ops::RangeBounds;
 use crate::lorogram::{Scattergram, Prompt};
 
 #[derive(Clone)]
 pub struct Args {
-    pub input_file: String,
+    pub input_file: PathBuf,
     pub dataset: String,
     pub event_range: Option<std::ops::Range<usize>>,
     pub ecut: BoundPair<Energyf32>,
@@ -21,7 +22,7 @@ use crate::system_matrix::LOR;
 
 use geometry::units::{mm, ns, ratio};
 
-pub fn read_table<T: hdf5::H5Type>(filename: &str, dataset: &str, range: Option<std::ops::Range<usize>>) -> hdf5::Result<Array1<T>> {
+pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, range: Option<std::ops::Range<usize>>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;
     let table = file.dataset(dataset)?;
     let data = if let Some(range) = range {
@@ -48,14 +49,14 @@ fn fill_scattergram(scattergram: &mut Option<Scattergram>, lors: &[Hdf5Lor]) {
 /// Read HDF5 LORs from file, potentially filtering according to event, energy
 /// and charge ranges
 fn read_hdf5_lors(
-    input_file: &str, dataset: &str,
+    input_file: &Path, dataset: &str,
     event_range: Option<std::ops::Range<usize>>,
     qcut: BoundPair<Chargef32>, ecut: BoundPair<Energyf32>
 ) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Error>> {
     let mut cut = 0;
     // Read LOR data from disk
     let hdf5_lors: Vec<Hdf5Lor> = {
-        read_table::<Hdf5Lor>(input_file, dataset, event_range)?
+        read_table::<Hdf5Lor>(&input_file, dataset, event_range)?
             .iter().cloned()
             .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
                 let eok = ecut.contains(E1) && ecut.contains(E2);

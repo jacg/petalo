@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 use petalo::Lengthf32;
@@ -61,7 +62,7 @@ pub struct Cli {
 
     /// LORs to read in
     #[structopt(short = "f", long)]
-    pub input_file: Option<String>,
+    pub input_file: Option<PathBuf>,
 
     /// The dataset location inside the input file
     #[structopt(short, long, default_value = "reco_info/lors")]

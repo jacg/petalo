@@ -19,7 +19,7 @@ pub struct Cli {
 
     /// LORs to read in
     #[structopt(short = "f", long, default_value = "MC.h5")]
-    pub input_file: String, // TODO replace String with PathBuf here and wherever else appropriate
+    pub input_file: PathBuf,
 
     /// The dataset location inside the input file
     #[structopt(short, long, default_value = "reco_info/lors")]
