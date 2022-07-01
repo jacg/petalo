@@ -15,7 +15,7 @@ pub struct Cli {
 
     /// Override automatic generation of image output file name
     #[structopt(short, long)]
-    pub out_files: Option<String>,
+    pub output_directory: String,
 
     /// Which rows of the input file should be loaded
     #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
@@ -72,10 +72,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Check that output directory is writable. Do this *before* expensive
     // setup, so it fails early
-    let file_pattern = guess_filename(&args, &config);
     // If the directory where results will be written does not exist yet, make it
-    create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())
-        .expect(&format!("Cannot write in output directory `{file_pattern}`"));
+    create_dir_all(PathBuf::from(format!("{:02}00.raw", args.output_directory)).parent().unwrap())
+        .expect(&format!("Cannot write in output directory `{}`", args.output_directory));
 
     // Define field of view extent and voxelization
     let fov = FOV::new(config.fov.size, config.fov.nvoxels);
@@ -105,23 +104,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, config.tof, config.cutoff, sensitivity_image, config.iterations.subsets))
         .take(config.iterations.number * config.iterations.subsets) {
             progress.done_with_message(&format!("Iteration {iteration:2}-{subset:02}"));
-            let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", file_pattern));
+            let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", args.output_directory));
             petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
             progress.done_with_message("                               Wrote raw bin");
             // TODO: step_by for print every
         }
     Ok(())
-}
-
-fn guess_filename(args: &Cli, config: &config::mlem::Config) -> String {
-    if let Some(pattern) = &args.out_files {
-        pattern.to_string()
-    } else {
-        let (nx, ny, nz) = config.fov.nvoxels;
-        let tof = config.tof.map_or(String::from("OFF"), |x| format!("{:.0?}", x));
-        format!("data/out/mlem/{nx}_{ny}_{nz}_tof_{tof}",
-                nx=nx, ny=ny, nz=nz, tof=tof)
-    }
 }
 
 
