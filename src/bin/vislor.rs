@@ -7,7 +7,7 @@ use petalo::{Time, Ratio};
 use petalo::{system_matrix::LOR, fov::FOV};
 use petalo::visualize::{lor_weights, Shape};
 
-use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, parse_bounds, CutoffOption};
+use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, CutoffOption};
 use petalo::io;
 
 use petalo::config::mlem::Bounds;

@@ -9,6 +9,7 @@ use serde::{Deserialize, Deserializer, de};
 
 use crate::{Length, Ratio, Time};
 
+#[cfg(test)]
 fn deserialize_uom_opt<'d, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
     D: Deserializer<'d>,
@@ -217,8 +218,6 @@ pub struct BinsLength {
     #[serde(deserialize_with = "deserialize_uom")]
     pub length: Length,
 }
-
-fn default_subsets() -> usize { 1 }
 
 pub fn read_config_file(path: PathBuf) -> Config {
     let config: String = fs::read_to_string(&path)

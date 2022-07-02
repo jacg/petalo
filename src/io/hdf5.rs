@@ -2,7 +2,6 @@
 
 use std::error::Error;
 use std::path::{Path, PathBuf};
-use std::ops::RangeBounds;
 use crate::lorogram::{Scattergram, Prompt};
 use crate::config::mlem::Bounds;
 
@@ -17,7 +16,6 @@ pub struct Args {
 
 use ndarray::{s, Array1};
 
-use crate::{Chargef32, Energyf32, BoundPair};
 use crate::Point;
 use crate::system_matrix::LOR;
 
