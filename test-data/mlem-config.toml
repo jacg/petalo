@@ -1,7 +1,3 @@
-# TODO move me to a test data directory
-
-# num_threads # this one should stay on the CLI
-
 [input]
 file    = "data/some-lors.h5"
 dataset = "reco_info/lors"

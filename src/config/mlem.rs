@@ -252,7 +252,7 @@ mod tests {
     // ----- Test an example on-disk config file -----------------------------------------
     #[test]
     fn test_config_file() {
-        let config = read_config_file("mlem-config.toml".into());
+        let config = read_config_file("test-data/mlem-config.toml".into());
 
         assert_eq!(config.input.file   , PathBuf::from_str("data/some-lors.h5").unwrap());
         assert_eq!(config.input.dataset, String ::from    ("reco_info/lors"));
