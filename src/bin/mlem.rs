@@ -1,3 +1,4 @@
+use petalo::config::mlem::AttenuationCorrection as AC;
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
@@ -55,14 +56,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let scattergram = build_scattergram(&config.scatter_correction);
     progress.done_with_message("Startup");
 
-    let sensitivity_image: Option<Image> = {
-        let path = config.attenuation_correction.as_ref().map(|ac| &ac.sensitivity_image);
-        path.map(|path| Image::from_raw_file(&path))
-           .transpose()
-           .expect(&format!("Cannot read sensitivity image {:?}", path.unwrap().display()))
-    };
-    if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, config.fov.nvoxels, config.fov.size) };
-    if sensitivity_image.is_some() { progress.done_with_message("Loaded sensitivity image"); }
+    let sensitivity_image =
+        if let Some(AC { sensitivity_image: path }) = config.attenuation_correction.as_ref() {
+            let image = Image::from_raw_file(&path)
+                .expect(&format!("Cannot read sensitivity image {:?}", path.display()));
+            assert_image_sizes_match(&image, config.fov.nvoxels, config.fov.size);
+            progress.done_with_message("Loaded sensitivity image");
+            Some(image)
+        } else { None };
 
     progress.startln("Loading LORs from file");
     let measured_lors = io::hdf5::read_lors(&config, scattergram)?;
