@@ -3,34 +3,38 @@
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use crate::lorogram::{Scattergram, Prompt};
-use crate::config::mlem::Bounds;
+use crate::config::mlem::{Bounds, Config};
 
 #[derive(Clone)]
 pub struct Args {
     pub input_file: PathBuf,
     pub dataset: String,
     pub event_range: Option<std::ops::Range<usize>>,
-    pub ecut: Bounds,
-    pub qcut: Bounds,
+    pub ecut: Bounds<Energyf32>,
+    pub qcut: Bounds<Chargef32>,
 }
 
 use ndarray::{s, Array1};
 
-use crate::Point;
+use crate::{Point, Energyf32, Chargef32};
 use crate::system_matrix::LOR;
 
 use geometry::units::{mm, ns, ratio};
 
-pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, range: Option<std::ops::Range<usize>>) -> hdf5::Result<Array1<T>> {
+
+pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, events: Bounds<usize>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;
     let table = file.dataset(dataset)?;
-    let data = if let Some(range) = range {
-        table.read_slice_1d::<T,_>(s![range])?
-    } else {
-        table.read_slice_1d::<T,_>(s![..])?
-    };
+    let Bounds { min, max } = events;
+    let data = match (min, max) {
+        (None    , None    ) => table.read_slice_1d::<T,_>(s![  ..  ])?,
+        (Some(lo), None    ) => table.read_slice_1d::<T,_>(s![lo..  ])?,
+        (None    , Some(hi)) => table.read_slice_1d::<T,_>(s![  ..hi])?,
+        (Some(lo), Some(hi)) => table.read_slice_1d::<T,_>(s![lo..hi])?,
+     };
     Ok(data)
 }
+
 
 
 /// Fill `scattergram`, with spatial distribution of scatters probabilities
@@ -47,19 +51,16 @@ fn fill_scattergram(scattergram: &mut Option<Scattergram>, lors: &[Hdf5Lor]) {
 
 /// Read HDF5 LORs from file, potentially filtering according to event, energy
 /// and charge ranges
-fn read_hdf5_lors(
-    input_file: &Path, dataset: &str,
-    event_range: Option<std::ops::Range<usize>>,
-    qcut: Bounds, ecut: Bounds
-) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Error>> {
+fn read_hdf5_lors(config: &Config) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Error>> {
     let mut cut = 0;
+    let input = &config.input;
     // Read LOR data from disk
     let hdf5_lors: Vec<Hdf5Lor> = {
-        read_table::<Hdf5Lor>(&input_file, dataset, event_range)?
+        read_table::<Hdf5Lor>(&input.file, &input.dataset, input.events.clone())?
             .iter().cloned()
             .filter(|&Hdf5Lor{E1, E2, q1, q2, ..}| {
-                let eok = ecut.contains(E1) && ecut.contains(E2);
-                let qok = qcut.contains(q1) && qcut.contains(q2);
+                let eok = input.energy.contains(E1) && input.energy.contains(E2);
+                let qok = input.charge.contains(q1) && input.charge.contains(q2);
                 if eok && qok { true }
                 else { cut += 1; false }
             })
@@ -69,16 +70,14 @@ fn read_hdf5_lors(
 }
 
 #[allow(nonstandard_style)]
-pub fn read_lors(args: Args, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
+pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
 
     let mut progress = crate::utils::timing::Progress::new();
 
     // Read LORs from file,
     progress.start("   Reading LORs");
     std::thread::sleep(std::time::Duration::from_secs(5));
-    let (hdf5_lors, cut) = read_hdf5_lors(&args.input_file, &args.dataset,
-                                          args.event_range.clone(),
-                                          args.qcut, args.ecut)?;
+    let (hdf5_lors, cut) = read_hdf5_lors(config)?;
     progress.done();
 
     // Use LORs to gather statistics about spatial distribution of scatter probability

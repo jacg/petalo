@@ -1,6 +1,5 @@
 # TODO move me to a test data directory
 
-# event_range
 # num_threads # this one should stay on the CLI
 
 [input]
@@ -12,6 +11,9 @@ energy.max = 600
 
 charge.min = 123
 charge.max = 456
+
+events.min = 100_000
+events.max = 200_000
 
 
 [iterations]

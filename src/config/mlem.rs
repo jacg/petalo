@@ -71,7 +71,7 @@ fn tr_tup_res<O, E>((x,y,z): (Result<O, E>, Result<O, E>, Result<O, E>)) -> Resu
     Ok((x?, y?, z?))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
 
@@ -109,26 +109,34 @@ pub struct Input {
     pub dataset: String,
 
     #[serde(default)]
-    pub energy: Bounds,
+    pub energy: Bounds<f32>,
 
     #[serde(default)]
-    pub charge: Bounds,
+    pub charge: Bounds<f32>,
+
+    #[serde(default)]
+    pub events: Bounds<usize>,
 
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
 #[serde(deny_unknown_fields)]
-pub struct Bounds {
+pub struct Bounds<T> {
 
-    pub min: Option<f32>, // TODO use uom units
-    pub max: Option<f32>,
+    pub min: Option<T>, // TODO use uom units
+    pub max: Option<T>,
 
 }
 
-impl Bounds {
-    pub fn contains(&self, e: f32) -> bool {
+impl<T> Bounds<T> {
+    pub fn new(min: Option<T>, max: Option<T>) -> Self { Self { min, max } }
+    pub fn none() -> Self { Self::new(None, None) }
+}
+
+impl<T: PartialOrd + Copy> Bounds<T> {
+    pub fn contains(&self, e: T) -> bool {
         (self.min.is_none() || self.min.unwrap() <= e) &&
-        (self.max.is_none() || self.max.unwrap() >= e)
+        (self.max.is_none() || self.max.unwrap() >  e)
     }
 }
 
@@ -322,6 +330,10 @@ mod tests {
         assert_eq!(input.dataset, String ::from    ("some/dataset"));
         assert_eq!(input.energy.min, None);
         assert_eq!(input.energy.max, None);
+        assert_eq!(input.charge.min, None);
+        assert_eq!(input.charge.max, None);
+        assert_eq!(input.events.min, None);
+        assert_eq!(input.events.max, None);
     }
 
     #[test]
@@ -330,21 +342,27 @@ mod tests {
             [input]
             energy.min = 123
             charge.min = 444
+            events.min = 100_000
         "#).input;
         assert_eq!(input.energy.min, Some(123.0));
         assert_eq!(input.energy.max, None);
         assert_eq!(input.charge.min, Some(444.0));
         assert_eq!(input.charge.max, None);
+        assert_eq!(input.events.min, Some(100_000));
+        assert_eq!(input.events.max, None);
 
         let input = parse::<Config>(r#"
             [input]
             energy.max = 456
             charge.max = 999
+            events.max = 123
         "#).input;
         assert_eq!(input.energy.min, None);
         assert_eq!(input.energy.max, Some(456.0));
         assert_eq!(input.charge.min, None);
         assert_eq!(input.charge.max, Some(999.0));
+        assert_eq!(input.events.min, None);
+        assert_eq!(input.events.max, Some(123));
 
         let input = parse::<Config>(r#"
             [input]
@@ -352,11 +370,15 @@ mod tests {
             energy.max = 600
             charge.min = 111
             charge.max = 222
+            events.min = 100_000_000
+            events.max = 200_000_000
         "#).input;
         assert_eq!(input.energy.min, Some(434.0));
         assert_eq!(input.energy.max, Some(600.0));
         assert_eq!(input.charge.min, Some(111.0));
         assert_eq!(input.charge.max, Some(222.0));
+        assert_eq!(input.events.min, Some(100_000_000));
+        assert_eq!(input.events.max, Some(200_000_000));
     }
     // ----- iterations -----------------------------------------------------------------
     #[test]

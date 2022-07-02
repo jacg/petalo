@@ -45,7 +45,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // --- Process input files -------------------------------------------------------
     let Cli{ input_files, nvoxels, out_file, .. } = args.clone();
     let mut all_events: Vec<Primary> = vec![];
-    let event_range = None;
     let dataset = "MC/primaries";
     let mut failed_files = vec![];
     // --- Progress bar --------------------------------------------------------------
@@ -58,7 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for file in input_files {
         progress.set_message(format!("Processing file {}", file));
         // TODO: replace this loop with a chain of iterators
-        if let Ok(events) = read_table::<Primary>(&file, dataset, event_range.clone()) {
+        if let Ok(events) = read_table::<Primary>(&file, dataset, petalo::config::mlem::Bounds::none()) {
             for event in events.iter() {
                 all_events.push(event.clone());
             }

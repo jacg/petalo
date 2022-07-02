@@ -1,9 +1,7 @@
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::{utils::{parse_range},
-             lorogram::BuildScattergram,
-             config};
+use petalo::{lorogram::BuildScattergram, config};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -16,10 +14,6 @@ pub struct Cli {
     /// Override automatic generation of image output file name
     #[structopt(short, long)]
     pub output_directory: String,
-
-    /// Which rows of the input file should be loaded
-    #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
-    pub event_range: Option<std::ops::Range<usize>>,
 
     /// Maximum number of rayon threads
     #[structopt(short = "j", long, default_value = "4")]
@@ -50,15 +44,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Set up progress reporting and timing
     let mut progress = Progress::new();
 
-    // Read event data from disk into memory
-    let input = config.input.clone();
-    let input_file = input.file;
-    let dataset    = input.dataset;
-    let ecut = config.input.energy;
-    let qcut = config.input.charge;
-    let                      Cli{                      event_range,         .. } = args.clone();
-    let io_args = io::hdf5::Args{ input_file, dataset, event_range, ecut, qcut };
-
     // Check that output directory is writable. Do this *before* expensive
     // setup, so it fails early
     // If the directory where results will be written does not exist yet, make it
@@ -72,8 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     progress.done_with_message("Startup");
 
     let sensitivity_image: Option<Image> = {
-        let path = config.attenuation_correction.map(|ac| ac.sensitivity_image);
-        let path = path.as_ref();
+        let path = config.attenuation_correction.as_ref().map(|ac| &ac.sensitivity_image);
         path.map(|path| Image::from_raw_file(&path))
            .transpose()
            .expect(&format!("Cannot read sensitivity image {:?}", path.unwrap().display()))
@@ -82,7 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if sensitivity_image.is_some() { progress.done_with_message("Loaded sensitivity image"); }
 
     progress.startln("Loading LORs from file");
-    let measured_lors = io::hdf5::read_lors(io_args, scattergram)?;
+    let measured_lors = io::hdf5::read_lors(&config, scattergram)?;
     progress.done_with_message("Loaded LORs from file");
 
     // Set the maximum number of threads used by rayon for parallel iteration

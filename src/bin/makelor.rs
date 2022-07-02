@@ -9,6 +9,7 @@ use petalo::{Length, Time, Point, Ratio};
 use geometry::units::mmps::f32::Area;
 use geometry::uom::ConstZero;
 use petalo::utils::group_digits;
+use petalo::config::mlem::Bounds;
 
 // TODO: try to remove the need for these
 use geometry::units::{mm, mm_, ns, ns_, ratio};
@@ -518,18 +519,18 @@ fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
 
 fn read_sensor_map(filename: &Path) -> hdf5::Result<SensorMap> {
     // TODO: refactor and hide in a function
-    let array = io::hdf5::read_table::<SensorXYZ>(&filename, "MC/sensor_xyz"  , None)?;
+    let array = io::hdf5::read_table::<SensorXYZ>(&filename, "MC/sensor_xyz", Bounds::none())?;
     Ok(make_sensor_position_map(array_to_vec(array)))
 }
 
 fn read_vertices(filename: &Path) -> hdf5::Result<Vec<Vertex>> {
-    Ok(array_to_vec(io::hdf5::read_table::<Vertex>(&filename, "MC/vertices", None)?))
+    Ok(array_to_vec(io::hdf5::read_table::<Vertex>(&filename, "MC/vertices", Bounds::none())?))
 }
 
 fn read_qts(infile: &Path) -> hdf5::Result<Vec<QT>> {
     // Read charges and waveforms
-    let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", None)?;
-    let ts = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , None)?;
+    let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", Bounds::none())?;
+    let ts = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , Bounds::none())?;
     Ok(combine_tables(qs, ts))
 }
 
@@ -565,6 +566,8 @@ fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
 #[cfg(test)]
 mod test_nested_compound_hdf5 {
 
+    use super::*;
+
     #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
     #[repr(C)]
     pub struct Inner {
@@ -598,7 +601,7 @@ mod test_nested_compound_hdf5 {
                 .create("nested")?;
         }
         // read
-        let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", None)?;
+        let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", Bounds::none())?;
         let read_data = super::array_to_vec(read_data);
         assert_eq!(test_data, read_data);
         println!("Test table written to {}", file_path);
