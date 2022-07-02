@@ -25,10 +25,6 @@ pub struct Cli {
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
 
-    /// Ignore events with detected charge/pes outside this range
-    #[structopt(short, long, parse(try_from_str = parse_bounds::<Chargef32>), default_value = "..")]
-    pub qcut: BoundPair<Chargef32>,
-
 }
 
 // --------------------------------------------------------------------------------
@@ -60,7 +56,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input_file = input.file;
     let dataset    = input.dataset;
     let ecut = config.input.energy;
-    let                      Cli{                      event_range      , qcut, .. } = args.clone();
+    let qcut = config.input.charge;
+    let                      Cli{                      event_range,         .. } = args.clone();
     let io_args = io::hdf5::Args{ input_file, dataset, event_range, ecut, qcut };
 
     // Check that output directory is writable. Do this *before* expensive

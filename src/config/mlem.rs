@@ -108,20 +108,23 @@ pub struct Input {
     pub dataset: String,
 
     #[serde(default)]
-    pub energy: Energy,
+    pub energy: Bounds,
+
+    #[serde(default)]
+    pub charge: Bounds,
 
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
 #[serde(deny_unknown_fields)]
-pub struct Energy {
+pub struct Bounds {
 
-    pub min: Option<f32>, // TODO use uom keV
+    pub min: Option<f32>, // TODO use uom units
     pub max: Option<f32>,
 
 }
 
-impl Energy {
+impl Bounds {
     pub fn contains(&self, e: f32) -> bool {
         (self.min.is_none() || self.min.unwrap() <= e) &&
         (self.max.is_none() || self.max.unwrap() >= e)
@@ -327,24 +330,34 @@ mod tests {
         let input = parse::<Config>(r#"
             [input]
             energy.min = 123
+            charge.min = 444
         "#).input;
         assert_eq!(input.energy.min, Some(123.0));
         assert_eq!(input.energy.max, None);
+        assert_eq!(input.charge.min, Some(444.0));
+        assert_eq!(input.charge.max, None);
 
         let input = parse::<Config>(r#"
             [input]
             energy.max = 456
+            charge.max = 999
         "#).input;
         assert_eq!(input.energy.min, None);
         assert_eq!(input.energy.max, Some(456.0));
+        assert_eq!(input.charge.min, None);
+        assert_eq!(input.charge.max, Some(999.0));
 
         let input = parse::<Config>(r#"
             [input]
             energy.min = 434
             energy.max = 600
+            charge.min = 111
+            charge.max = 222
         "#).input;
         assert_eq!(input.energy.min, Some(434.0));
         assert_eq!(input.energy.max, Some(600.0));
+        assert_eq!(input.charge.min, Some(111.0));
+        assert_eq!(input.charge.max, Some(222.0));
     }
     // ----- iterations -----------------------------------------------------------------
     #[test]

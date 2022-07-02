@@ -6,9 +6,12 @@
 [input]
 file    = "data/some-lors.h5"
 dataset = "reco_info/lors"
+
 energy.min = 434  # TODO "434 keV"
 energy.max = 600
-# qcut
+
+charge.min = 123
+charge.max = 456
 
 
 [iterations]

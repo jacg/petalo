@@ -4,15 +4,15 @@ use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::ops::RangeBounds;
 use crate::lorogram::{Scattergram, Prompt};
-use crate::config::mlem::Energy as Ecut;
+use crate::config::mlem::Bounds;
 
 #[derive(Clone)]
 pub struct Args {
     pub input_file: PathBuf,
     pub dataset: String,
     pub event_range: Option<std::ops::Range<usize>>,
-    pub ecut: Ecut,
-    pub qcut: BoundPair<Chargef32>,
+    pub ecut: Bounds,
+    pub qcut: Bounds,
 }
 
 use ndarray::{s, Array1};
@@ -52,16 +52,16 @@ fn fill_scattergram(scattergram: &mut Option<Scattergram>, lors: &[Hdf5Lor]) {
 fn read_hdf5_lors(
     input_file: &Path, dataset: &str,
     event_range: Option<std::ops::Range<usize>>,
-    qcut: BoundPair<Chargef32>, ecut: Ecut
+    qcut: Bounds, ecut: Bounds
 ) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Error>> {
     let mut cut = 0;
     // Read LOR data from disk
     let hdf5_lors: Vec<Hdf5Lor> = {
         read_table::<Hdf5Lor>(&input_file, dataset, event_range)?
             .iter().cloned()
-            .filter(|Hdf5Lor{E1, E2, q1, q2, ..}| {
-                let eok = ecut.contains(*E1) && ecut.contains(*E2);
-                let qok = qcut.contains( q1) && qcut.contains( q2);
+            .filter(|&Hdf5Lor{E1, E2, q1, q2, ..}| {
+                let eok = ecut.contains(E1) && ecut.contains(E2);
+                let qok = qcut.contains(q1) && qcut.contains(q2);
                 if eok && qok { true }
                 else { cut += 1; false }
             })
