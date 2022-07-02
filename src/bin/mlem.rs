@@ -11,8 +11,7 @@ pub struct Cli {
     /// MLEM config file
     pub config_file: PathBuf,
 
-    /// Override automatic generation of image output file name
-    #[structopt(short, long)]
+    /// Directory in which results should be written
     pub output_directory: String,
 
     /// Maximum number of rayon threads
