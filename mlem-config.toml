@@ -2,12 +2,13 @@
 
 # event_range
 # num_threads # this one should stay on the CLI
-# ecut
-# qcut
 
 [input]
 file    = "data/some-lors.h5"
 dataset = "reco_info/lors"
+energy.min = 434  # TODO "434 keV"
+energy.max = 600
+# qcut
 
 
 [iterations]

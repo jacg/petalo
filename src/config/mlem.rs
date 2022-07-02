@@ -107,6 +107,25 @@ pub struct Input {
     #[serde(default = "mandatory")]
     pub dataset: String,
 
+    #[serde(default)]
+    pub energy: Energy,
+
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(deny_unknown_fields)]
+pub struct Energy {
+
+    pub min: Option<f32>, // TODO use uom keV
+    pub max: Option<f32>,
+
+}
+
+impl Energy {
+    pub fn contains(&self, e: f32) -> bool {
+        (self.min.is_none() || self.min.unwrap() <= e) &&
+        (self.max.is_none() || self.max.unwrap() >= e)
+    }
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -299,6 +318,33 @@ mod tests {
         "#).input;
         assert_eq!(input.file   , PathBuf::from_str("some/file.h5").unwrap());
         assert_eq!(input.dataset, String ::from    ("some/dataset"));
+        assert_eq!(input.energy.min, None);
+        assert_eq!(input.energy.max, None);
+    }
+
+    #[test]
+    fn config_input_file_energy_cut() {
+        let input = parse::<Config>(r#"
+            [input]
+            energy.min = 123
+        "#).input;
+        assert_eq!(input.energy.min, Some(123.0));
+        assert_eq!(input.energy.max, None);
+
+        let input = parse::<Config>(r#"
+            [input]
+            energy.max = 456
+        "#).input;
+        assert_eq!(input.energy.min, None);
+        assert_eq!(input.energy.max, Some(456.0));
+
+        let input = parse::<Config>(r#"
+            [input]
+            energy.min = 434
+            energy.max = 600
+        "#).input;
+        assert_eq!(input.energy.min, Some(434.0));
+        assert_eq!(input.energy.max, Some(600.0));
     }
     // ----- iterations -----------------------------------------------------------------
     #[test]
