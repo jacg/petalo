@@ -13,7 +13,7 @@ pub struct Cli {
     pub config_file: PathBuf,
 
     /// Directory in which results should be written
-    pub output_directory: String,
+    pub output_directory: PathBuf,
 
     /// Maximum number of rayon threads
     #[structopt(short = "j", long, default_value = "4")]
@@ -47,8 +47,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Check that output directory is writable. Do this *before* expensive
     // setup, so it fails early
     // If the directory where results will be written does not exist yet, make it
-    create_dir_all(PathBuf::from(format!("{:02}00.raw", args.output_directory)).parent().unwrap())
-        .expect(&format!("Cannot write in output directory `{}`", args.output_directory));
+    create_dir_all(&args.output_directory)
+        .expect(&format!("Cannot write in output directory `{}`", args.output_directory.display()));
 
     // Define field of view extent and voxelization
     let fov = FOV::new(config.fov.size, config.fov.nvoxels);
@@ -78,7 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, config.tof, sensitivity_image, config.iterations.subsets))
         .take(config.iterations.number * config.iterations.subsets) {
             progress.done_with_message(&format!("Iteration {iteration:2}-{subset:02}"));
-            let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", args.output_directory));
+            let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", args.output_directory.display()));
             petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
             progress.done_with_message("                               Wrote raw bin");
             // TODO: step_by for print every
