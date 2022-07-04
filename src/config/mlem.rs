@@ -1,6 +1,6 @@
 //! Configuration file parser for MLEM
 
-use std::fs;
+use std::{fs, fmt::{Display, Debug}};
 use std::str::FromStr;
 use std::path::PathBuf;
 
@@ -608,4 +608,101 @@ mod tests {
         check!(X(r#"          "#).t = None        );
     }
 
+}
+
+
+// TODO: consider making the representation readable by the config file parser
+impl Display for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("\n[input]\n{}"                  , self.input))?;
+        f.write_fmt(format_args!("\n[iterations]\n{}"             , self.iterations))?;
+        f.write_fmt(format_args!("\n[fov]\n{}"                    , self.fov))?;
+
+        f.write_str("\n\n[tof]\n")?;
+        if let Some(Tof { sigma, cutoff }) = &self.tof {
+            f.write_fmt(format_args!("sigma = {sigma:?}\n"))?;
+            f.write_fmt(format_args!("cutoff = {cutoff:?}"))?;
+        } else {
+            f.write_str("OFF")?;
+        }
+
+        f.write_str("\n\n[attenuation_correction]\n")?;
+        if let Some(AttenuationCorrection { sensitivity_image }) = &self.attenuation_correction {
+            f.write_fmt(format_args!("{}" , sensitivity_image.display()))?;
+        } else {
+            f.write_str("OFF")?;
+        }
+
+        f.write_str("\n\n[scatter_correction]\n")?;
+        if let Some(scatter) = &self.scatter_correction {
+            f.write_fmt(format_args!("{}" , scatter))?;
+        } else {
+            f.write_str("OFF")?;
+        }
+        f.write_str("\n")
+    }
+}
+
+impl Display for Input {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("file    = {}\n", self.file.display()))?;
+        f.write_fmt(format_args!("dataset = {}\n", self.dataset))?;
+        f.write_fmt(format_args!("energy  : {}\n", self.energy))?;
+        f.write_fmt(format_args!("charge  : {}\n", self.charge))?;
+        f.write_fmt(format_args!("events  : {}\n", self.events))?;
+        Ok(())
+    }
+}
+
+impl<T: Display + Copy> Display for Bounds<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let x = match (self.min, self.max) {
+            (None     , None     ) => format!("ALL"),
+            (None     , Some(max)) => format!("< {max}"),
+            (Some(min), None     ) => format!(">= {min}"),
+            (Some(min), Some(max)) => format!("[{min}, {max})"),
+         };
+        f.write_str(&x)
+    }
+}
+
+impl Display for Iterations {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("number = {}\nsubsets = {}\n", self.number, self.subsets))
+    }
+}
+
+impl Display for Fov {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("nvoxels = {:?}\nsize = {:?}", self.nvoxels, self.size))
+    }
+}
+
+impl Display for Scatter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(Bins{bins}) =  self.phi { f.write_str(&format!("phi.bins = {bins}\n"))? };
+        if let Some(r)          = &self.r   { f.write_str(&format!(  "phi.r  = {r}\n"   ))? };
+        if let Some(z)          = &self.z   { f.write_str(&format!(  "phi.z  = {z}\n"   ))? };
+        if let Some(dz)         = &self.dz  { f.write_str(&format!(  "phi.dz = {dz}\n"  ))? };
+        if let Some(dt)         = &self.dt  { f.write_str(&format!(  "phi.dt = {dt}\n"  ))? };
+        Ok(())
+    }
+}
+
+impl<T> Display for BinsMax<T>
+where
+    T: Copy + Debug + FromStr,
+    <T as FromStr>::Err: std::fmt::Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let BinsMax{ bins, max } = self;
+        f.write_fmt(format_args!("{{bins = {bins}, max = {max:?}}}"))
+    }
+}
+
+impl Display for BinsLength {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let BinsLength{ bins, length } = self;
+        f.write_fmt(format_args!("{{bins = {bins}, max = {length:?}}}"))
+    }
 }

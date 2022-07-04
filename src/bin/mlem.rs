@@ -54,6 +54,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         &args.config_file,
         args.output_directory.join("mlem-config.toml")
     )?;
+    // Show configuration being run
+    println!("Configuration:\n{config}");
 
     // Define field of view extent and voxelization
     let fov = FOV::new(config.fov.size, config.fov.nvoxels);
