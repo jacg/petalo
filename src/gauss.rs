@@ -1,4 +1,5 @@
-use crate::{Angle, Length, PerLength, Ratio, Time, TWOPI, C};
+use crate::{Angle, Length, PerLength, Ratio, TWOPI, C};
+use crate::config::mlem::Tof;
 
 use geometry::uom::ConstZero; // num_traits::Zero;
 use geometry::units::{mm, ratio_};
@@ -20,6 +21,6 @@ fn make_gauss(sigma: Length, cutoff: Option<Ratio>) -> impl Fn(Length) -> PerLen
     }
 }
 
-pub fn make_gauss_option(sigma: Option<Time>, cutoff: Option<Ratio>) -> Option<impl Fn(Length) -> PerLength> {
-    sigma.map(|sigma| make_gauss(sigma * C, cutoff))
+pub fn make_gauss_option(tof: Option<Tof>) -> Option<impl Fn(Length) -> PerLength> {
+    tof.map(|tof| make_gauss(tof.sigma * C, Some(tof.cutoff)))
 }

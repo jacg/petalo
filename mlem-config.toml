@@ -1,0 +1,81 @@
+# Example config file for `mlem` executable
+
+# A file like this one must be passed as the first argument to `mlem`
+#
+# TODO: generate output filename from metadata
+
+# ================================================================================
+# Mandatory section: describes which LORs should be used during the reconstruction
+#
+# NB, tilde expansion in filenames is not supported. TODO: consider whether it should be
+#
+[input]
+file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-H20body-steel-dz1m-LXe30mm-noQrz-Ecut409-first-vertex-860Mlors.h5"
+dataset = "reco_info/lors"
+
+# Optional: event filtering by energy
+#
+# energy.min = 434  # TODO "434 keV"
+# energy.max = 600
+
+# Optional: event filtering by charge
+#
+# charge.min = 123
+# charge.max = 456
+
+# Optional: event selection by position in input file
+#
+# events.min = 100_000_000  #      inclusive  lower limit
+# events.max = 200_000_000  # NB: *exclusive* upper limit
+
+
+# ================================================================================
+# Mandatory section: MLEM/OSEM iterations/subsets
+#
+[iterations]
+number  = 4
+subsets = 20
+
+
+# ================================================================================
+# Mandatory section: Size of the Field of View (FOV)
+#
+[fov]
+nvoxels = [ 100      ,  100      ,    92        ]
+size    = ["234.4 mm", "234.4 mm",  "215.648 mm"]
+
+
+# ================================================================================
+# Optional section: Enable use of Time of Flight (TOF) information
+#
+[tof]
+sigma = "200 ps"
+cutoff = 3       # Ignore voxels whose centre lies more than `cutoff` sigmas from TOF peak
+
+
+# ================================================================================
+# Optional section: Enable annetuation correction
+#
+# NB: tilde-expansion in filename not supported!
+#
+[attenuation_correction]
+sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-100x100x92-2.344-mm-cubed-voxels/10-9-lors-0.095-cm2-per-g.raw"
+
+# ================================================================================
+# Optional section: Enable scatter correction
+#
+[scatter_correction]
+
+phi.bins =   40
+
+r.bins  =    40
+r.max   =  "120 mm"
+
+dz.bins =    40
+dz.max  = "1000 mm"
+
+dt.bins =    10
+dt.max  =    "1 ns"
+
+z.bins   =   30
+z.length = "220 mm"

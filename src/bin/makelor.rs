@@ -1,3 +1,4 @@
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -8,6 +9,7 @@ use petalo::{Length, Time, Point, Ratio};
 use geometry::units::mmps::f32::Area;
 use geometry::uom::ConstZero;
 use petalo::utils::group_digits;
+use petalo::config::mlem::Bounds;
 
 // TODO: try to remove the need for these
 use geometry::units::{mm, mm_, ns, ns_, ratio};
@@ -22,11 +24,11 @@ use geometry::units::{mm, mm_, ns, ns_, ratio};
 #[structopt(name = "makelor", about = "Create LORs from MC data")]
 pub struct Cli {
     /// HDF5 input files with waveform and charge tables
-    pub infiles: Vec<String>,
+    pub infiles: Vec<PathBuf>,
 
     /// HDF5 output file for LORs found in input file
     #[structopt(short, long)]
-    pub out: String,
+    pub out: PathBuf,
 
     #[structopt(subcommand)]
     reco: Reco,
@@ -77,10 +79,10 @@ fn main() -> hdf5::Result<()> {
     // Before starting the potentially long computation, make sure that we can
     // write the result to the requested destination. If the directory where
     // results will be written does not exist yet, make it. Panic if that's impossible.
-    std::fs::create_dir_all(std::path::PathBuf::from(&args.out).parent().unwrap())
-        .unwrap_or_else(|e| panic!("\n\nCan't write to \n\n   {}\n\n because \n\n   {e}\n\n", args.out));
+    std::fs::create_dir_all(PathBuf::from(&args.out).parent().unwrap())
+        .unwrap_or_else(|e| panic!("\n\nCan't write to \n\n   {}\n\n because \n\n   {e}\n\n", args.out.display()));
     // --- Progress bar --------------------------------------------------------------
-    let files_pb = ProgressBar::new(args.infiles.len() as u64).with_message(args.infiles[0].clone());
+    let files_pb = ProgressBar::new(args.infiles.len() as u64).with_message(args.infiles[0].display().to_string());
     files_pb.set_style(ProgressStyle::default_bar()
                        .template("Processing file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
         );
@@ -91,31 +93,31 @@ fn main() -> hdf5::Result<()> {
     let mut n_events = 0;
     let mut failed_files = vec![];
 
-    type FilenameToLorsFunction = Box<dyn Fn(&String) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>>;
+    type FilenameToLorsFunction = Box<dyn Fn(&PathBuf) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>>;
     let makelors: FilenameToLorsFunction = match args.reco {
         Reco::FirstVertex => Box::new(
-            |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
-                let vertices = read_vertices(infile)?;
+            |infile: &PathBuf| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+                let vertices = read_vertices(&infile)?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 Ok((lors_from(&events, lor_from_first_vertices), events.len()))
             }),
 
         Reco::BaryVertex => Box::new(
-            |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
-                let vertices = read_vertices(infile)?;
+            |infile: &PathBuf| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+                let vertices = read_vertices(&infile)?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 Ok((lors_from(&events, lor_from_barycentre_of_vertices), events.len()))
             }),
 
         Reco::Half{q} => Box::new(
-            move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+            move |infile: &PathBuf| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
                 let qts = read_qts(infile)?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
                 Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
             }),
 
         Reco::Dbscan { q, min_count, max_distance } => Box::new(
-            move |infile: &String| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+            move |infile: &PathBuf| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
                 let qts = read_qts(infile)?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
                 Ok((lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
@@ -126,7 +128,7 @@ fn main() -> hdf5::Result<()> {
     for infile in args.infiles {
         // TODO message doesn't appear until end of iteration
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
-                                     infile.clone(), group_digits(lors.len()), group_digits(n_events),
+                                     infile.display(), group_digits(lors.len()), group_digits(n_events),
                                      if n_events > 0 {100 * lors.len() / n_events} else {0}));
         if let Ok((new_lors, envlen)) = makelors(&infile) {
             n_events += envlen;
@@ -139,7 +141,7 @@ fn main() -> hdf5::Result<()> {
     println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
              100 * lors.len() / n_events);
     // --- write lors to hdf5 --------------------------------------------------------
-    println!("Writing LORs to {}", args.out);
+    println!("Writing LORs to {}", args.out.display());
     hdf5::File::create(args.out)?
         .create_group("reco_info")? // TODO rethink all the HDF% group names
         .new_dataset_builder()
@@ -149,7 +151,7 @@ fn main() -> hdf5::Result<()> {
     if !failed_files.is_empty() {
         println!("Warning: failed to read the following files:");
         for file in failed_files.iter() {
-            println!("  {}", file);
+            println!("  {}", file.display());
         }
         let n = failed_files.len();
         let plural = if n == 1 { "" } else { "s" };
@@ -515,20 +517,20 @@ fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
 
 
 
-fn read_sensor_map(filename: &str) -> hdf5::Result<SensorMap> {
+fn read_sensor_map(filename: &Path) -> hdf5::Result<SensorMap> {
     // TODO: refactor and hide in a function
-    let array = io::hdf5::read_table::<SensorXYZ>(filename, "MC/sensor_xyz"  , None)?;
+    let array = io::hdf5::read_table::<SensorXYZ>(&filename, "MC/sensor_xyz", Bounds::none())?;
     Ok(make_sensor_position_map(array_to_vec(array)))
 }
 
-fn read_vertices(filename: &str) -> hdf5::Result<Vec<Vertex>> {
-    Ok(array_to_vec(io::hdf5::read_table::<Vertex>(filename, "MC/vertices", None)?))
+fn read_vertices(filename: &Path) -> hdf5::Result<Vec<Vertex>> {
+    Ok(array_to_vec(io::hdf5::read_table::<Vertex>(&filename, "MC/vertices", Bounds::none())?))
 }
 
-fn read_qts(infile: &str) -> hdf5::Result<Vec<QT>> {
+fn read_qts(infile: &Path) -> hdf5::Result<Vec<QT>> {
     // Read charges and waveforms
-    let qs = io::hdf5::read_table::<Qtot     >(infile, "MC/total_charge", None)?;
-    let ts = io::hdf5::read_table::<Waveform >(infile, "MC/waveform"    , None)?;
+    let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", Bounds::none())?;
+    let ts = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , Bounds::none())?;
     Ok(combine_tables(qs, ts))
 }
 
@@ -564,6 +566,8 @@ fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
 #[cfg(test)]
 mod test_nested_compound_hdf5 {
 
+    use super::*;
+
     #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
     #[repr(C)]
     pub struct Inner {
@@ -597,7 +601,7 @@ mod test_nested_compound_hdf5 {
                 .create("nested")?;
         }
         // read
-        let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", None)?;
+        let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", Bounds::none())?;
         let read_data = super::array_to_vec(read_data);
         assert_eq!(test_data, read_data);
         println!("Test table written to {}", file_path);

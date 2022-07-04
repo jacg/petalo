@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 use petalo::Lengthf32;
@@ -6,8 +7,10 @@ use petalo::{Time, Ratio};
 use petalo::{system_matrix::LOR, fov::FOV};
 use petalo::visualize::{lor_weights, Shape};
 
-use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, parse_bounds, CutoffOption};
+use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, CutoffOption};
 use petalo::io;
+
+use petalo::config::mlem::{Config, Bounds, Input};
 
 use geometry::units::mm;
 
@@ -24,19 +27,21 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // TODO: reading LOR from file overrides CLI lor: make them mutually
     // exclusive.
-    let lor = if let Some(input_file) = args.clone().input_file {
-        let event_range = args.event..args.event+1;
+    let lor = if let Some(file) = args.clone().input_file {
+        let events = Bounds::<usize> {min: Some(args.event), max: Some(args.event+1)};
         let                      Cli{ dataset, .. } = args.clone();
-        let io_args = io::hdf5::Args{ dataset, input_file,
-                                      ecut: parse_bounds("..").unwrap(), qcut: parse_bounds("..").unwrap(),
-                                      event_range: Some(event_range) };
-        petalo::io::hdf5::read_lors(io_args, None)?[0]
+        let config = Config {
+            input: Input { dataset, file, events, ..Default::default()},
+            ..Default::default()
+        };
+        io::hdf5::read_lors(&config, None)?[0]
     } else {
         args.lor
     };
 
     println!("{}", lor);
-    lor_weights(lor, fov, args.shape, args.cutoff, args.tof);
+    let tof = args.tof.map(|sigma| petalo::config::mlem::Tof { sigma, cutoff: args.cutoff.unwrap() });
+    lor_weights(lor, fov, args.shape, tof);
     Ok(())
 }
 
@@ -61,7 +66,7 @@ pub struct Cli {
 
     /// LORs to read in
     #[structopt(short = "f", long)]
-    pub input_file: Option<String>,
+    pub input_file: Option<PathBuf>,
 
     /// The dataset location inside the input file
     #[structopt(short, long, default_value = "reco_info/lors")]

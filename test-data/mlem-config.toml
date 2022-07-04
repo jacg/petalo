@@ -1,0 +1,48 @@
+[input]
+file    = "data/some-lors.h5"
+dataset = "reco_info/lors"
+
+energy.min = 434  # TODO "434 keV"
+energy.max = 600
+
+charge.min = 123
+charge.max = 456
+
+events.min = 100_000
+events.max = 200_000
+
+
+[iterations]
+number  = 4
+subsets = 20
+
+
+[fov]
+nvoxels = [  10    ,   20    , 30    ]
+size    = ["100 mm", "200 mm", "3 cm"]
+
+
+[tof]
+sigma = "200 ps"
+cutoff = 3
+
+
+[attenuation_correction]
+sensitivity_image = "some/image.raw"
+
+
+[scatter_correction]
+
+phi.bins = 30
+
+r.bins = 31
+r.max  = "32 mm"
+
+dz.bins = 33
+dz.max  = "34 mm"
+
+dt.bins = 35
+dt.max = "36 ps"
+
+z.bins = 37
+z.length = "38 cm"

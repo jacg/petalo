@@ -1,105 +1,23 @@
+use petalo::config::mlem::AttenuationCorrection as AC;
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::{utils::{parse_triplet, parse_range, parse_bounds, parse_maybe_cutoff, CutoffOption},
-             lorogram::BuildScattergram};
+use petalo::{lorogram::BuildScattergram, config};
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 #[structopt(name = "mlem", about = "Maximum Likelyhood Expectation Maximization")]
 pub struct Cli {
 
-    /// Number of MLEM iterations to perform
-    #[structopt(short, long, default_value = "5")]
-    pub iterations: usize,
+    /// MLEM config file
+    pub config_file: PathBuf,
 
-    /// Number of OSEM subsets to use
-    #[structopt(long, default_value = "1")]
-    pub subsets: usize,
-
-    /// Field Of View full-widths in mm
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>), default_value = "300 mm,300 mm,300 mm")]
-    pub size: (Length, Length, Length),
-
-    /// Field Of View size in number of voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
-    pub nvoxels: (usize, usize, usize),
-
-    /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
-    #[structopt(short, long)]
-    pub tof: Option<Time>,
-
-    /// TOF cutoff (✕ sigma). to disable: `-k no` [Rust version only]
-    #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
-    pub cutoff: CutoffOption<Ratio>,
-
-    /// Override automatic generation of image output file name
-    #[structopt(short, long)]
-    pub out_files: Option<String>,
-
-    /// LORs to read in
-    #[structopt(short = "f", long, default_value = "MC.h5")]
-    pub input_file: String, // TODO replace String with PathBuf here and wherever else appropriate
-
-    /// The dataset location inside the input file
-    #[structopt(short, long, default_value = "reco_info/lors")]
-    pub dataset: String,
-
-    /// Which rows of the input file should be loaded
-    #[structopt(short, long, parse(try_from_str = parse_range::<usize>))]
-    pub event_range: Option<std::ops::Range<usize>>,
-
-    /// Sensitivity image to be used for corrections
-    #[structopt(long)]
-    pub sensitivity_image: Option<PathBuf>,
+    /// Directory in which results should be written
+    pub output_directory: PathBuf,
 
     /// Maximum number of rayon threads
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
-
-    /// Ignore events with gamma energy/keV outside this range
-    #[structopt(short = "E", long, parse(try_from_str = parse_bounds::<Energyf32>), default_value = "..")]
-    pub ecut: BoundPair<Energyf32>,
-
-    /// Ignore events with detected charge/pes outside this range
-    #[structopt(short, long, parse(try_from_str = parse_bounds::<Chargef32>), default_value = "..")]
-    pub qcut: BoundPair<Chargef32>,
-
-    /// Apply scatter corrections with   r-axis up to this value
-    #[structopt(long)]
-    pub scatter_r_max: Option<Length>,
-
-    /// Apply scatter corrections with   r-axis using this number of bins
-    #[structopt(long)]
-    pub scatter_r_bins: Option<usize>,
-
-    /// Apply scatter corrections with phi-axis using this number of bins
-    #[structopt(long)]
-    pub scatter_phi_bins: Option<usize>,
-
-    /// Apply scatter corrections with   z-axis using this number of bins
-    #[structopt(long)]
-    pub scatter_z_bins: Option<usize>,
-
-    /// Apply scatter corrections with   z-axis: full-length of z-axis
-    #[structopt(long)]
-    pub scatter_z_length: Option<Length>,
-
-    /// Apply scatter corrections with  dz-axis using this number of bins
-    #[structopt(long)]
-    pub scatter_dz_bins: Option<usize>,
-
-    /// Apply scatter corrections with  dz-axis up to this value
-    #[structopt(long)]
-    pub scatter_dz_max: Option<Length>,
-
-    /// Apply scatter corrections with tof-axis using this number of bins
-    #[structopt(long)]
-    pub scatter_tof_bins: Option<usize>,
-
-    /// Apply scatter corrections with tof-axis up to this value
-    #[structopt(long)]
-    pub scatter_tof_max: Option<Time>,
 
 }
 
@@ -109,8 +27,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::{Energyf32, Chargef32, BoundPair};
-use petalo::{Length, Time, Ratio};
+use petalo::Length;
 use petalo::lorogram::Scattergram;
 use petalo::fov::FOV;
 use petalo::image::Image;
@@ -122,38 +39,41 @@ use geometry::units::mm_;
 fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
+    let config = config::mlem::read_config_file(args.config_file.clone());
 
     // Set up progress reporting and timing
     let mut progress = Progress::new();
 
-    // Read event data from disk into memory
-    let                      Cli{ input_file, dataset, event_range, ecut, qcut, .. } = args.clone();
-    let io_args = io::hdf5::Args{ input_file, dataset, event_range, ecut, qcut };
-
     // Check that output directory is writable. Do this *before* expensive
     // setup, so it fails early
-    let file_pattern = guess_filename(&args);
     // If the directory where results will be written does not exist yet, make it
-    create_dir_all(PathBuf::from(format!("{:02}00.raw", file_pattern)).parent().unwrap())
-        .expect(&format!("Cannot write in output directory `{file_pattern}`"));
+    create_dir_all(&args.output_directory)
+        .expect(&format!("Cannot write in output directory `{}`", args.output_directory.display()));
+    // Copy config file to output directory, in order to preserve metadata
+    std::fs::copy(
+        &args.config_file,
+        args.output_directory.join("mlem-config.toml")
+    )?;
+    // Show configuration being run
+    println!("Configuration:\n{config}");
 
     // Define field of view extent and voxelization
-    let fov = FOV::new(args.size, args.nvoxels);
+    let fov = FOV::new(config.fov.size, config.fov.nvoxels);
 
-    let scattergram = build_scattergram(args.clone());
+    let scattergram = build_scattergram(&config.scatter_correction);
     progress.done_with_message("Startup");
 
-    let sensitivity_image: Option<Image> = {
-        let path: Option<&PathBuf> = args.sensitivity_image.as_ref();
-        path.map(|path| Image::from_raw_file(path))
-           .transpose()
-           .expect(&format!("Cannot read sensitivity image {:?}", path.unwrap()))
-    };
-    if let Some(i) = sensitivity_image.as_ref() { assert_image_sizes_match(i, args.nvoxels, args.size) };
-    if sensitivity_image.is_some() { progress.done_with_message("Loaded sensitivity image"); }
+    let sensitivity_image =
+        if let Some(AC { sensitivity_image: path }) = config.attenuation_correction.as_ref() {
+            let image = Image::from_raw_file(&path)
+                .expect(&format!("Cannot read sensitivity image {:?}", path.display()));
+            assert_image_sizes_match(&image, config.fov.nvoxels, config.fov.size);
+            progress.done_with_message("Loaded sensitivity image");
+            Some(image)
+        } else { None };
 
     progress.startln("Loading LORs from file");
-    let measured_lors = io::hdf5::read_lors(io_args, scattergram)?;
+    let measured_lors = io::hdf5::read_lors(&config, scattergram)?;
     progress.done_with_message("Loaded LORs from file");
 
     // Set the maximum number of threads used by rayon for parallel iteration
@@ -162,26 +82,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(_)  => println!("Using up to {} threads.", args.num_threads),
     }
 
-    for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, args.tof, args.cutoff, sensitivity_image, args.subsets))
-        .take(args.iterations * args.subsets) {
+    for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, config.tof, sensitivity_image, config.iterations.subsets))
+        .take(config.iterations.number * config.iterations.subsets) {
             progress.done_with_message(&format!("Iteration {iteration:2}-{subset:02}"));
-            let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", file_pattern));
+            let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", args.output_directory.display()));
             petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
             progress.done_with_message("                               Wrote raw bin");
             // TODO: step_by for print every
         }
     Ok(())
-}
-
-fn guess_filename(args: &Cli) -> String {
-    if let Some(pattern) = &args.out_files {
-        pattern.to_string()
-    } else {
-        let (nx, ny, nz) = args.nvoxels;
-        let tof = args.tof.map_or(String::from("OFF"), |x| format!("{:.0?}", x));
-        format!("data/out/mlem/{nx}_{ny}_{nz}_tof_{tof}",
-                nx=nx, ny=ny, nz=nz, tof=tof)
-    }
 }
 
 
@@ -209,16 +118,33 @@ fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) 
     }
 }
 
-fn build_scattergram(args: Cli) -> Option<Scattergram> {
-    let mut builder = BuildScattergram::new();
-    if let Some(n) = args.scatter_phi_bins { builder = builder.phi_bins(n) };
-    if let Some(n) = args.scatter_r_bins   { builder = builder.  r_bins(n) };
-    if let Some(n) = args.scatter_z_bins   { builder = builder.  z_bins(n) };
-    if let Some(n) = args.scatter_dz_bins  { builder = builder. dz_bins(n) };
-    if let Some(t) = args.scatter_tof_bins { builder = builder. dt_bins(t) };
-    if let Some(r) = args.scatter_r_max    { builder = builder. r_max  (r) };
-    if let Some(z) = args.scatter_dz_max   { builder = builder.dz_max  (z) };
-    if let Some(t) = args.scatter_tof_max  { builder = builder.dt_max  (t) };
-    if let Some(l) = args.scatter_z_length { builder = builder.z_length(l) };
-    builder.build()
+// TODO: Make builder use config::mlem::Scatter directly
+fn build_scattergram(scatter: &Option<config::mlem::Scatter>) -> Option<Scattergram> {
+    use petalo::config::mlem::{Bins, BinsMax, BinsLength};
+    if let Some(scatter) = scatter.as_ref() {
+        let mut builder = BuildScattergram::new();
+
+        if let Some(Bins { bins }) = scatter.phi {
+            builder = builder.phi_bins(bins);
+        }
+        if let Some(BinsMax { bins, max }) = scatter.r {
+            builder = builder.r_bins(bins);
+            builder = builder.r_max (max );
+        }
+        if let Some(BinsMax { bins, max }) = scatter.dz {
+            builder = builder.dz_bins(bins);
+            builder = builder.dz_max (max );
+        }
+        if let Some(BinsMax { bins, max }) = scatter.dt {
+            builder = builder.dt_bins(bins);
+            builder = builder.dt_max (max );
+        }
+        if let Some(BinsLength { bins, length }) = scatter.z {
+            builder = builder.z_bins  (bins);
+            builder = builder.z_length(length);
+        }
+        builder.build()
+    } else {
+        None
+    }
 }

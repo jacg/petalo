@@ -4,10 +4,12 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use crate::{io, Lengthf32, Index1_u, Intensityf32};
-use crate::{Length, PerLength, Ratio, Time, AreaPerMass};
+use crate::{Length, PerLength, AreaPerMass};
 use crate::{fov::{lor_fov_hit, FovHit}, system_matrix::{system_matrix_elements, LOR}};
 use crate::fov::FOV;
 use crate::gauss::make_gauss_option;
+use crate::config::mlem::Tof;
+
 use geometry::units::{ratio_, mm, kg};
 
 use crate::image::{Image, ImageData};
@@ -16,8 +18,7 @@ impl Image {
 
     pub fn mlem<'a>(fov: FOV,
                     measured_lors: &'a [LOR],
-                    sigma        :     Option<Time>,
-                    cutoff       :     Option<Ratio>,
+                    tof          :     Option<Tof>,
                     sensitivity  :     Option<Self>,
                     n_subsets    :     usize,
     ) -> impl Iterator<Item = (Image, usize, usize)> + '_ {
@@ -42,7 +43,7 @@ impl Image {
                 subset = 1;
                 iteration += 1;
             }
-            image.one_iteration(&measured_lors[lo..hi], &sensitivity.data, sigma, cutoff);
+            image.one_iteration(&measured_lors[lo..hi], &sensitivity.data, tof);
             Some((image.clone(), old_iteration, old_subset)) // TODO see if we can sensibly avoid cloning
         })
     }
@@ -79,7 +80,7 @@ impl Image {
         let attenuation = &attenuation;
 
         // TOF should not be used as LOR attenuation is independent of decay point
-        let notof = make_gauss_option(None, None);
+        let notof = make_gauss_option(None);
 
         // Closure preparing the state needed by `fold`: will be called by
         // `fold` at the start of every thread that is launched.
@@ -107,12 +108,12 @@ impl Image {
         Self::new(attenuation.fov, backprojection)
     }
 
-    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensityf32], sigma: Option<Time>, cutoff: Option<Ratio>) {
+    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensityf32], tof: Option<Tof>) {
 
         // -------- Prepare state required by serial/parallel fold --------------
 
         // TOF adjustment to apply to the weights
-        let tof: Option<_> = make_gauss_option(sigma, cutoff);
+        let tof: Option<_> = make_gauss_option(tof);
 
         // Closure preparing the state needed by `fold`: will be called by
         // `fold` at the start of every thread that is launched.
@@ -308,7 +309,7 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use geometry::{units::{mm, mm_, ns, ratio, turn, turn_}, Angle};
+    use geometry::{units::{mm, mm_, ns, ratio, turn, turn_}, Angle, Ratio};
     use rstest::{rstest, fixture};
     use float_eq::assert_float_eq;
 
@@ -706,7 +707,7 @@ mod tests {
         // Perform MLEM reconstruction, saving images to disk
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
         let _ = pool.install(|| {
-            Image::mlem(fov, &lors, None, None, None, 1)
+            Image::mlem(fov, &lors, None, None, 1)
                 .take(10)
                 .inspect(save_each_image_in(format!("test-mlem-images/{name}/")))
                 .for_each(|_| {

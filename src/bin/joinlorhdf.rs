@@ -1,6 +1,8 @@
 use structopt::StructOpt;
 use petalo::io;
 use petalo::io::hdf5::Hdf5Lor;
+use petalo::config::mlem::Bounds;
+
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -36,7 +38,7 @@ fn main() -> hdf5::Result<()> {
     for filename in args.inputs {
         println!("Reading data from {}", filename);
         let path = format!("{}/{}", args.group, args.dataset);
-        let data = io::hdf5::read_table::<Data>(&filename, &path, None)?;
+        let data = io::hdf5::read_table::<Data>(&filename, &path, Bounds::none())?;
         joined.extend_from_slice(data.as_slice().unwrap());
     }
 

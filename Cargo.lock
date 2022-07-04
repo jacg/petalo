@@ -2335,6 +2335,7 @@ dependencies = [
  "serde",
  "structopt",
  "tempfile",
+ "toml",
  "uom",
 ]
 
