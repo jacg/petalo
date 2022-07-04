@@ -49,6 +49,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     // If the directory where results will be written does not exist yet, make it
     create_dir_all(&args.output_directory)
         .expect(&format!("Cannot write in output directory `{}`", args.output_directory.display()));
+    // Copy config file to output directory, in order to preserve metadata
+    std::fs::copy(
+        &args.config_file,
+        args.output_directory.join("mlem-config.toml")
+    )?;
 
     // Define field of view extent and voxelization
     let fov = FOV::new(config.fov.size, config.fov.nvoxels);
