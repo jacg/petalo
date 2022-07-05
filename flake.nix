@@ -22,7 +22,7 @@
             inherit system;
             overlays = [
               # ===== Specification of the rust toolchain to be used ====================
-              rust-overlay.overlay (final: prev:
+              rust-overlay.overlays.default (final: prev:
                 let
                   # If you have a rust-toolchain file for rustup, choose `rustup =
                   # rust-tcfile` further down to get the customized toolchain
