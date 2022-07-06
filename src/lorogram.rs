@@ -16,8 +16,8 @@ use geometry::uom::ConstZero;
 pub enum Prompt { True, Scatter, Random }
 
 pub struct Scattergram {
-    trues  : Box<dyn Lorogram>,
-    scatters:Box<dyn Lorogram>,
+    trues  : Box<dyn Lorogram + Sync>,
+    scatters:Box<dyn Lorogram + Sync>,
 }
 
 // TODO: consider adding a frozen version of the scattergram. This one needs two
@@ -27,7 +27,7 @@ pub struct Scattergram {
 // computing the ratios repeatedly on the fly is a waste of time.
 impl Scattergram {
 
-    pub fn new(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>)) -> Self {
+    pub fn new(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram + Sync>)) -> Self {
         let trues    = make_empty_lorogram();
         let scatters = make_empty_lorogram();
         Self { trues, scatters }
@@ -68,7 +68,7 @@ where
     A: Axis,
 {
     axis: A,
-    map: Box<dyn Fn(&T) -> A::Coordinate>,
+    map: Box<dyn Fn(&T) -> A::Coordinate + Sync>,
 }
 
 impl<T,A> Axis for MappedAxis<T,A>
@@ -258,7 +258,7 @@ where
     fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor, *lor, *lor)).unwrap_or(&0) }
 }
 
-pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
+pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram + Sync>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
     let mut sgram = Scattergram::new(make_empty_lorogram);
     for h5lor @Hdf5Lor { x1, x2, E1, E2, .. } in lors {
         if x1.is_nan() || x2.is_nan() { continue }

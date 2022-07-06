@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use crate::lorogram::{Scattergram, Prompt};
 use crate::config::mlem::{Bounds, Config};
 
+use rayon::prelude::*;
+
 #[derive(Clone)]
 pub struct Args {
     pub input_file: PathBuf,
@@ -85,7 +87,7 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Resul
     progress.done();
     progress.start("   Converting HDF5 LORs into MLEM LORs");
 
-    let hdf5lor_to_lor: Box<dyn Fn(Hdf5Lor) -> LOR> = if let Some(scattergram) = scattergram.as_ref() {
+    let hdf5lor_to_lor: Box<dyn Fn(Hdf5Lor) -> LOR + Sync> = if let Some(scattergram) = scattergram.as_ref() {
         Box::new(|hdf5_lor: Hdf5Lor| {
             let mut lor: LOR = hdf5_lor.into();
             lor.additive_correction = scattergram.value(&lor);
@@ -95,8 +97,8 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Resul
 
     // Convert raw data (Hdf5Lors) to LORs used by MLEM
     let lors: Vec<_> = hdf5_lors
-        .into_iter()
-        .map(hdf5lor_to_lor)
+        .into_par_iter()
+        .map(&hdf5lor_to_lor)
         .collect();
     progress.done();
 
