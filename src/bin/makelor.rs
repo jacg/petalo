@@ -6,7 +6,7 @@ use units::{Length, Time, Ratio, todo::Energyf32};
 use petalo::Point;
 use petalo::io;
 use petalo::io::hdf5::Hdf5Lor;
-use petalo::io::mcreaders::{MCQT, MCSensorXYZ, MCVertex};
+use petalo::io::mcreaders::{MCQT, SensorMap, MCVertex};
 use petalo::Energyf32;
 use petalo::{Length, Time, Point, Ratio};
 use geometry::units::mmps::f32::Area;
@@ -95,7 +95,7 @@ fn main() -> hdf5::Result<()> {
         );
     files_pb.tick();
     // --- Process input files -------------------------------------------------------
-    let xyzs = read_sensor_map(&args.infiles[0])?;
+    let xyzs = io::mcreaders::read_sensor_map(&args.infiles[0])?;
     let mut lors: Vec<Hdf5Lor> = vec![];
     let mut n_events = 0;
     let mut failed_files = vec![];
@@ -324,8 +324,6 @@ fn find_sensor_with_highest_charge(sensors: &[MCQT]) -> Option<u32> {
     sensors.iter().max_by_key(|e| e.q).map(|e| e.sensor_id)
 }
 
-type SensorMap = std::collections::HashMap<u32, (Length, Length, Length)>;
-
 fn group_into_clusters(hits: &[MCQT], xyzs: &SensorMap) -> Option<(Vec::<MCQT>, Vec::<MCQT>)> {
     let sensor_with_highest_charge = find_sensor_with_highest_charge(hits)?;
     let mut a = Vec::<MCQT>::new();
@@ -483,22 +481,11 @@ mod test_vertex_barycentre {
     }
 }
 
-fn read_sensor_map(filename: &Path) -> hdf5::Result<SensorMap> {
-    let sensor_xyz = io::mcreaders::read_sensor_xyz(&filename);
-    Ok(make_sensor_position_map(sensor_xyz.unwrap()))
-}
-
 fn group_by<T>(group_by: impl FnMut(&T) -> u32, qts: impl IntoIterator<Item = T>) -> Vec<Vec<T>> {
     qts.into_iter()
         .group_by(group_by)
         .into_iter()
         .map(|(_, group)| group.collect())
-        .collect()
-}
-
-fn make_sensor_position_map(xyzs: Vec<MCSensorXYZ>) -> SensorMap {
-    xyzs.iter().cloned()
-        .map(|MCSensorXYZ{sensor_id, x, y, z}| (sensor_id, (mm(x), mm(y), mm(z))))
         .collect()
 }
 
