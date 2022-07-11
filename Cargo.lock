@@ -2312,6 +2312,7 @@ dependencies = [
  "proptest",
  "rand",
  "rand_core",
+ "rand_distr",
  "rand_isaac",
  "rayon",
  "rstest",
