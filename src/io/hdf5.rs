@@ -48,6 +48,8 @@ fn fill_scattergram(scattergram: &mut Option<Scattergram>, lors: &[Hdf5Lor]) {
             let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
             scattergram.fill(prompt, &LOR::from(h5lor));
         }
+
+
     }
 }
 
