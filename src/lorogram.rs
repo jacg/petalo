@@ -1,10 +1,7 @@
-pub mod axis;
-
 mod build_scattergram;
 pub use build_scattergram::*;
 
-use ndhistogram::{axis::{Axis, Uniform}, Histogram};
-use axis::Cyclic;
+use ndhistogram::{axis::{Axis, Uniform, UniformCyclic as Cyclic}, Histogram};
 use crate::io::hdf5::Hdf5Lor;
 use crate::system_matrix::LOR;
 use std::f32::consts::TAU;
