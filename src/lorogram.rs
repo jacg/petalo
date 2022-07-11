@@ -35,23 +35,23 @@ impl Scattergram {
         bins_dt : usize, max_dt: Time
     ) -> Self {
         let max_z = len_z / 2.0;
-        let trues = ndhistogram!(
+        let trues = Lorogram(ndhistogram!(
             axis_phi(bins_phi),
             axis_z (bins_z , -max_z, max_z),
             axis_dz(bins_dz,  len_dz),
             axis_r (bins_r ,  max_r),
             axis_t (bins_dt,  max_dt);
             usize
-        );
+        ));
         // TODO: Can we clone `trues`?
-        let scatters = ndhistogram!(
+        let scatters = Lorogram(ndhistogram!(
             axis_phi(bins_phi),
             axis_z (bins_z , -max_z, max_z),
             axis_dz(bins_dz,  len_z),
             axis_r (bins_r ,  max_r),
             axis_t (bins_dt,  max_dt);
             usize
-        );
+        ));
         Self { trues, scatters }
     }
 
@@ -114,7 +114,13 @@ where
     }
 }
 // --------------------------------------------------------------------------------
-type Lorogram = ndhistogram::HistND<(LorAxC, LorAxU, LorAxU, LorAxU, LorAxU), usize>;
+struct Lorogram(ndhistogram::HistND<(LorAxC, LorAxU, LorAxU, LorAxU, LorAxU), usize>);
+
+impl Lorogram {
+    pub fn fi11 (&mut self, lor: &LOR)          {  self.0.fill (&(*lor, *lor, *lor, *lor, *lor))               }
+    pub fn ualue(&    self, lor: &LOR) -> usize { *self.0.value(&(*lor, *lor, *lor, *lor, *lor)).unwrap_or(&0) }
+}
+
 
 pub type LorAxU = MappedAxis<LOR, Uniform<Lengthf32>>;
 pub type LorAxC = MappedAxis<LOR, Cyclic <Lengthf32>>;
