@@ -57,8 +57,8 @@ impl Scattergram {
 
     pub fn fill(&mut self, kind: Prompt, lor: &LOR) {
         match kind {
-            Prompt::True    => self.trues.   fi11(lor),
-            Prompt::Scatter => self.scatters.fi11(lor),
+            Prompt::True    => self.trues.   fill(lor),
+            Prompt::Scatter => self.scatters.fill(lor),
             Prompt::Random  => panic!("Not expecting any random events yet."),
         }
     }
@@ -67,21 +67,21 @@ impl Scattergram {
     ///
     /// `(scatters + trues) / trues`
     pub fn value(&self, lor: &LOR) -> Ratio {
-        let trues = self.trues.ualue(lor);
+        let trues = self.trues.value(lor);
         ratio(if trues > 0 {
-            let scatters: f32 = self.scatters.ualue(lor) as f32;
+            let scatters: f32 = self.scatters.value(lor) as f32;
             let trues = trues as f32;
             (scatters + trues) / trues
         } else { f32::MAX })
     }
 
     pub fn triplet(&self, lor: &LOR) -> (Ratio, f32, f32) {
-        let trues = self.trues.ualue(lor);
+        let trues = self.trues.value(lor);
         if trues > 0 {
-            let scatters: f32 = self.scatters.ualue(lor) as f32;
+            let scatters: f32 = self.scatters.value(lor) as f32;
             let trues = trues as f32;
             (ratio((scatters + trues) / trues), trues, scatters)
-        } else { (ratio(1.0), 0.0, self.scatters.ualue(lor) as f32) }
+        } else { (ratio(1.0), 0.0, self.scatters.value(lor) as f32) }
     }
 }
 // --------------------------------------------------------------------------------
@@ -117,8 +117,8 @@ where
 struct Lorogram(ndhistogram::HistND<(LorAxC, LorAxU, LorAxU, LorAxU, LorAxU), usize>);
 
 impl Lorogram {
-    pub fn fi11 (&mut self, lor: &LOR)          {  self.0.fill (&(*lor, *lor, *lor, *lor, *lor))               }
-    pub fn ualue(&    self, lor: &LOR) -> usize { *self.0.value(&(*lor, *lor, *lor, *lor, *lor)).unwrap_or(&0) }
+    pub fn fill (&mut self, lor: &LOR)          {  self.0.fill (&(*lor, *lor, *lor, *lor, *lor))               }
+    pub fn value(&    self, lor: &LOR) -> usize { *self.0.value(&(*lor, *lor, *lor, *lor, *lor)).unwrap_or(&0) }
 }
 
 
@@ -188,105 +188,6 @@ pub fn axis_t(nbins: usize, max: Time) -> LorAxU {
     }
 }
 
-#[cfg(test)]
-mod test_mapped_axes {
-    use super::*;
-    use ndhistogram::ndhistogram;
-
-    #[test]
-    fn uniform() {
-        let nbins = 10;
-        let axis = axis_phi(nbins);
-        assert_eq!(axis.num_bins(), nbins);
-        let mut h = ndhistogram!(axis; usize);
-        let x = 150.0;
-        let y = 234.5;
-        let (dummy1, dummy2, dummy3, dummy4) = (111.1, 222.2, 333.3, 444.4);
-        let (a, b) = (30.0, 40.0); // scaling factors
-        Exrogram::fi11         (&mut h, &mk_lor(((a*x, a*y, dummy1), (-a*x, -a*y, dummy2))));
-        let n = Exrogram::ualue(&    h, &mk_lor(((b*x, b*y, dummy3), (-b*x, -b*y, dummy4))));
-        assert_eq!(n, 1);
-    }
-
-    #[test]
-    fn two_dimensions() {
-        let nbins_z = 10;
-        let nbins_dz = 10;
-        let l = 1000.0;
-        let max_dz = l;
-        let mut h = ndhistogram!(
-            axis_z (nbins_z , mm(-l/2.0), mm(l/2.0)),
-            axis_dz(nbins_dz, mm(max_dz));
-            usize
-        );
-        let (z, delta) = (123.4, 543.2);
-        // Irrelevant values
-        let (i1, i2, i3, i4, i5, i6, i7, i8) = (10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0);
-
-        let l1 = mk_lor(((i1, i2, z-delta), (i3, i4, z+delta)));
-        let l2 = mk_lor(((i5, i6, z+delta), (i7, i8, z-delta)));
-        Exrogram::fi11         (&mut h, &l1);
-        let n = Exrogram::ualue(&    h, &l2);
-
-        assert_eq!(n, 1);
-    }
-
-}
-// --------------------------------------------------------------------------------
-pub trait Exrogram {
-    fn fi11 (&mut self, lor: &LOR);
-    fn ualue(&    self, lor: &LOR) -> usize;
-}
-
-impl<X> Exrogram for ndhistogram::Hist1D<X, usize>
-where
-    X: Axis<Coordinate = LOR>,
-{
-    fn fi11 (&mut self, lor: &LOR)          {  Histogram::fill (self, lor) }
-    fn ualue(&    self, lor: &LOR) -> usize { *Histogram::value(self, lor).unwrap_or(&0) }
-}
-
-impl<X, Y> Exrogram for ndhistogram::Hist2D<X, Y, usize>
-where
-    X: Axis<Coordinate = LOR>,
-    Y: Axis<Coordinate = LOR>,
-{
-    fn fi11 (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor)) }
-    fn ualue(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor)).unwrap_or(&0) }
-}
-
-impl<X, Y, Z> Exrogram for ndhistogram::Hist3D<X, Y, Z, usize>
-where
-    X: Axis<Coordinate = LOR>,
-    Y: Axis<Coordinate = LOR>,
-    Z: Axis<Coordinate = LOR>,
-{
-    fn fi11 (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor)) }
-    fn ualue(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor)).unwrap_or(&0) }
-}
-
-impl<X, Y, Z, T> Exrogram for ndhistogram::HistND<(X, Y, Z, T), usize>
-where
-    X: Axis<Coordinate = LOR>,
-    Y: Axis<Coordinate = LOR>,
-    Z: Axis<Coordinate = LOR>,
-    T: Axis<Coordinate = LOR>,
-{
-    fn fi11 (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor, *lor)) }
-    fn ualue(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor, *lor)).unwrap_or(&0) }
-}
-
-impl<X, Y, Z, T, U> Exrogram for ndhistogram::HistND<(X, Y, Z, T, U), usize>
-where
-    X: Axis<Coordinate = LOR>,
-    Y: Axis<Coordinate = LOR>,
-    Z: Axis<Coordinate = LOR>,
-    T: Axis<Coordinate = LOR>,
-    U: Axis<Coordinate = LOR>,
-{
-    fn fi11 (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor, *lor, *lor)) }
-    fn ualue(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor, *lor, *lor)).unwrap_or(&0) }
-}
 
 pub fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
     let (x1, y1, z1, x2, y2, z2) = (mm(x1), mm(y1), mm(z1), mm(x2), mm(y2), mm(z2));
