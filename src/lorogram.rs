@@ -7,9 +7,8 @@ use crate::system_matrix::LOR;
 use std::f32::consts::TAU;
 
 use crate::Lengthf32;
-use crate::{Angle, Length, Point, Time, Ratio};
+use crate::{Angle, Length, Time, Ratio};
 use geometry::units::{mm, mm_, ps_, ratio, radian_, turn};
-use geometry::uom::ConstZero;
 
 
 /// Distinguish between true, scatter and random prompt signals
@@ -180,9 +179,6 @@ impl Lorogram {
 }
 
 
-pub type LorAxU = MappedAxis<LOR, Uniform<Lengthf32>>;
-pub type LorAxC = MappedAxis<LOR, Cyclic <Lengthf32>>;
-
 fn z_of_midpoint(LOR {p1, p2, ..}: &LOR) -> Length { (p1.z + p2.z) / 2.0 }
 
 fn delta_z(LOR{p1, p2, ..}: &LOR) -> Length { (p1.z - p2.z).abs() }
@@ -210,9 +206,3 @@ fn phi(LOR{ p1, p2, .. }: &LOR) -> Angle {
 }
 
 fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
-
-
-pub fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
-    let (x1, y1, z1, x2, y2, z2) = (mm(x1), mm(y1), mm(z1), mm(x2), mm(y2), mm(z2));
-    LOR { p1: Point::new(x1,y1,z1), p2: Point::new(x2,y2,z2), dt: Time::ZERO, additive_correction: ratio(1.0) }
-}
