@@ -41,7 +41,7 @@ pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, ev
 
 /// Fill `scattergram`, with spatial distribution of scatters probabilities
 /// gathered from `lors`
-fn fill_scattergram(scattergram: Scattergram, lors: &[Hdf5Lor]) -> Scattergram {
+fn fill_scattergram(scattergram: Scattergram, lors: &[Hdf5Lor], nthreads: usize) -> Scattergram {
     let empty_scattergram = || scattergram.clone();
     let add_scattergrams = |a: Scattergram, b: Scattergram| (&a + &b).unwrap();
     let lor_into_scattergram = |mut scattergram: Scattergram, h5lor @&Hdf5Lor { x1, x2, E1, E2, .. }| {
@@ -52,6 +52,7 @@ fn fill_scattergram(scattergram: Scattergram, lors: &[Hdf5Lor]) -> Scattergram {
     };
 
     lors.par_iter()
+        .with_min_len(lors.len() / nthreads)
         .fold  (empty_scattergram, lor_into_scattergram)
         .reduce(empty_scattergram, add_scattergrams)
 
@@ -91,7 +92,7 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
     if let Some(sgram) = scattergram {
         progress.start("   Filling scattergram");
         let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build()?;
-        scattergram = pool.install(|| Some(fill_scattergram(sgram, &hdf5_lors)));
+        scattergram = pool.install(|| Some(fill_scattergram(sgram, &hdf5_lors, n_threads)));
         progress.done();
     }
     progress.start("   Converting HDF5 LORs into MLEM LORs");
