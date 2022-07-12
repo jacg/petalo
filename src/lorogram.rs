@@ -20,6 +20,11 @@ pub struct Scattergram {
     scatters:Box<dyn Lorogram>,
 }
 
+// TODO: consider adding a frozen version of the scattergram. This one needs two
+// (trues, scatters) (or three (randoms)) histograms in order to accumulate
+// data, but once all data have been collected, we only want the ratios of the
+// bin values, so keeping multiple separate histograms is a waste of memory, and
+// computing the ratios repeatedly on the fly is a waste of time.
 impl Scattergram {
 
     pub fn new(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram>)) -> Self {
