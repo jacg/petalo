@@ -76,7 +76,6 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Resul
 
     // Read LORs from file,
     progress.start("   Reading LORs");
-    std::thread::sleep(std::time::Duration::from_secs(5));
     let (hdf5_lors, cut) = read_hdf5_lors(config)?;
     progress.done();
 
