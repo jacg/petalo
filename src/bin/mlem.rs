@@ -76,20 +76,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let measured_lors = io::hdf5::read_lors(&config, scattergram)?;
     progress.done_with_message("Loaded LORs from file");
 
-    // Set the maximum number of threads used by rayon for parallel iteration
-    match rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build_global() {
-        Err(e) => println!("{}", e),
-        Ok(_)  => println!("Using up to {} threads.", args.num_threads),
-    }
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build()?;
+    println!("MLEM: Using up to {} threads.", args.num_threads);
+    pool.install(|| {
+        for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, config.tof, sensitivity_image, config.iterations.subsets))
+            .take(config.iterations.number * config.iterations.subsets) {
+                progress.done_with_message(&format!("Iteration {iteration:2}-{subset:02}"));
+                let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", args.output_directory.display()));
+                petalo::io::raw::Image3D::from(&image).write_to_file(&path).unwrap();
+                progress.done_with_message("                               Wrote raw bin");
+                // TODO: step_by for print every
+            }
+    });
 
-    for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, config.tof, sensitivity_image, config.iterations.subsets))
-        .take(config.iterations.number * config.iterations.subsets) {
-            progress.done_with_message(&format!("Iteration {iteration:2}-{subset:02}"));
-            let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", args.output_directory.display()));
-            petalo::io::raw::Image3D::from(&image).write_to_file(&path)?;
-            progress.done_with_message("                               Wrote raw bin");
-            // TODO: step_by for print every
-        }
     Ok(())
 }
 
