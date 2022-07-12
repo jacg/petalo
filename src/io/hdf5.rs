@@ -72,7 +72,7 @@ fn read_hdf5_lors(config: &Config) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Erro
 }
 
 #[allow(nonstandard_style)]
-pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
+pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, lor_threads: usize) -> Result<Vec<LOR>, Box<dyn Error>> {
 
     let mut progress = crate::utils::timing::Progress::new();
 
@@ -96,10 +96,13 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Resul
     } else { Box::new(LOR::from) };
 
     // Convert raw data (Hdf5Lors) to LORs used by MLEM
-    let lors: Vec<_> = hdf5_lors
-        .into_par_iter()
-        .map(&hdf5lor_to_lor)
-        .collect();
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(lor_threads).build()?;
+    let lors: Vec<_> = pool.install(|| {
+        hdf5_lors
+            .into_par_iter()
+            .map(&hdf5lor_to_lor)
+            .collect()
+    });
     progress.done();
 
     let used = lors.len();
