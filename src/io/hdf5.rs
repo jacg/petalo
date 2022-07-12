@@ -43,13 +43,12 @@ pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, ev
 /// gathered from `lors`
 fn fill_scattergram(scattergram: &mut Option<Scattergram>, lors: &[Hdf5Lor]) {
     if let Some(ref mut scattergram) = scattergram.as_mut() {
-        for h5lor @&Hdf5Lor { x1, x2, E1, E2, .. } in lors {
-            if x1.is_nan() || x2.is_nan() { continue }
-            let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
-            scattergram.fill(prompt, &LOR::from(h5lor));
-        }
-
-
+        lors.iter()
+            .for_each(|h5lor @&Hdf5Lor { x1, x2, E1, E2, .. }| {
+                if x1.is_nan() || x2.is_nan() { return }
+                let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
+                scattergram.fill(prompt, &LOR::from(h5lor));
+            });
     }
 }
 
