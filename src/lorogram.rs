@@ -37,19 +37,19 @@ impl Scattergram {
         let max_z = len_z / 2.0;
         let trues = Lorogram(ndhistogram!(
             LorAxisPhi::new(bins_phi),
-            LorAxisZ::new(bins_z, -max_z, max_z),
-            LorAxisDz::new(bins_dz, len_dz),
-            LorAxisR::new(bins_r, max_r),
-            LorAxisT::new(bins_dt, max_dt);
+            LorAxisZ  ::new(bins_z, -max_z, max_z),
+            LorAxisDz ::new(bins_dz, len_dz),
+            LorAxisR  ::new(bins_r,  max_r ),
+            LorAxisT  ::new(bins_dt, max_dt);
             usize
         ));
         // TODO: Can we clone `trues`?
         let scatters = Lorogram(ndhistogram!(
             LorAxisPhi::new(bins_phi),
-            LorAxisZ::new(bins_z, -max_z, max_z),
-            LorAxisDz::new(bins_dz, len_dz),
-            LorAxisR::new(bins_r, max_r),
-            LorAxisT::new(bins_dt, max_dt);
+            LorAxisZ  ::new(bins_z, -max_z, max_z),
+            LorAxisDz ::new(bins_dz, len_dz),
+            LorAxisR  ::new(bins_r,  max_r ),
+            LorAxisT  ::new(bins_dt, max_dt);
             usize
         ));
         Self { trues, scatters }
