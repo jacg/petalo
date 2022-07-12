@@ -43,14 +43,7 @@ impl Scattergram {
             usize
         ));
         // TODO: Can we clone `trues`?
-        let scatters = Lorogram(ndhistogram!(
-            LorAxisPhi::new(bins_phi),
-            LorAxisZ  ::new(bins_z, -max_z, max_z),
-            LorAxisDz ::new(bins_dz, len_dz),
-            LorAxisR  ::new(bins_r,  max_r ),
-            LorAxisT  ::new(bins_dt, max_dt);
-            usize
-        ));
+        let scatters = trues.clone();
         Self { trues, scatters }
     }
 
@@ -118,6 +111,7 @@ macro_rules! lor_axis {
         fn new($($parameter:tt: $type:ty),*) { axis::new( $($new_arg:expr),* )}
         index: $coord:ident -> $index:expr
     }) => {
+        #[derive(Clone)]
         pub struct $name {
             axis: $axis_kind<Lengthf32>,
         }
@@ -171,6 +165,7 @@ lor_axis!{
     }
 }
 // ================================================================================
+#[derive(Clone)]
 struct Lorogram(ndhistogram::HistND<(LorAxisPhi, LorAxisZ, LorAxisDz, LorAxisR, LorAxisT), usize>);
 
 impl Lorogram {
