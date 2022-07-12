@@ -114,84 +114,62 @@ where
     }
 }
 // --------------------------------------------------------------------------------
-pub struct LorAxisPhi {
-    axis: Cyclic<Lengthf32>,
+macro_rules! lor_axis {
+    ($name:ident<$axis_kind:ident> {
+        fn new($($parameter:tt: $type:ty),*) { axis::new( $($new_arg:expr),* )}
+        index: $coord:ident -> $index:expr
+    }) => {
+        pub struct $name {
+            axis: $axis_kind<Lengthf32>,
+        }
+        impl $name {
+            fn new($($parameter: $type),*) -> Self {
+                Self { axis: $axis_kind::new($($new_arg),*) }
+            }
+        }
+        impl Axis for $name {
+            type Coordinate = LOR;
+            type BinInterval = <Uniform<Lengthf32> as Axis>::BinInterval;
+            fn index(&self, $coord: &LOR) -> Option<usize> { self.axis.index(&$index) }
+            fn num_bins(&self) -> usize { self.axis.num_bins() }
+            fn bin(&self, index: usize) -> Option<Self::BinInterval> { self.axis.bin(index) }
+        }
+    };
 }
-impl LorAxisPhi {
-    fn new(nbins: usize) -> Self {
-        Self { axis: Cyclic::new(nbins, 0.0, TAU), }
+
+lor_axis!{
+    LorAxisPhi<Cyclic> {
+        fn new(nbins: usize) { axis::new(nbins, 0.0, TAU) }
+        index: lor -> radian_(phi(lor))
     }
 }
-impl Axis for LorAxisPhi {
-    type Coordinate = LOR;
-    type BinInterval = <Uniform<Lengthf32> as Axis>::BinInterval;
-    fn index(&self, lor: &LOR) -> Option<usize> { self.axis.index(&radian_(phi(lor))) }
-    fn num_bins(&self) -> usize { self.axis.num_bins() }
-    fn bin(&self, index: usize) -> Option<Self::BinInterval> { self.axis.bin(index) }
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pub struct LorAxisZ {
-    axis: Uniform<Lengthf32>,
-}
-impl LorAxisZ {
-    fn new(nbins: usize, min: Length, max: Length) -> Self {
-        Self { axis: Uniform::new(nbins, mm_(min), mm_(max)), }
+
+lor_axis!{
+    LorAxisZ<Uniform> {
+        fn new(nbins: usize, min: Length, max: Length) { axis::new(nbins, mm_(min), mm_(max)) }
+        index: lor -> mm_(z_of_midpoint(lor))
     }
 }
-impl Axis for LorAxisZ {
-    type Coordinate = LOR;
-    type BinInterval = <Uniform<Lengthf32> as Axis>::BinInterval;
-    fn index(&self, lor: &LOR) -> Option<usize> { self.axis.index(&mm_(z_of_midpoint(lor))) }
-    fn num_bins(&self) -> usize { self.axis.num_bins() }
-    fn bin(&self, index: usize) -> Option<Self::BinInterval> { self.axis.bin(index) }
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pub struct LorAxisDz {
-    axis: Uniform<Lengthf32>,
-}
-impl LorAxisDz {
-    fn new(nbins: usize, len: Length) -> Self {
-        Self { axis: Uniform::new(nbins, 0.0, mm_(len)), }
+
+lor_axis!{
+    LorAxisDz<Uniform> {
+        fn new(nbins: usize, len: Length) { axis::new(nbins, 0.0, mm_(len)) }
+        index: lor -> mm_(delta_z(lor))
     }
 }
-impl Axis for LorAxisDz {
-    type Coordinate = LOR;
-    type BinInterval = <Uniform<Lengthf32> as Axis>::BinInterval;
-    fn index(&self, lor: &LOR) -> Option<usize> { self.axis.index(&mm_(delta_z(lor))) }
-    fn num_bins(&self) -> usize { self.axis.num_bins() }
-    fn bin(&self, index: usize) -> Option<Self::BinInterval> { self.axis.bin(index) }
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pub struct LorAxisR {
-    axis: Uniform<Lengthf32>,
-}
-impl LorAxisR {
-    fn new(nbins: usize, len: Length) -> Self {
-        Self { axis: Uniform::new(nbins, 0.0, mm_(len)), }
+
+lor_axis!{
+    LorAxisR<Uniform> {
+        fn new(nbins: usize, len: Length) { axis::new(nbins, 0.0, mm_(len)) }
+        index: lor -> mm_(distance_from_z_axis(lor))
     }
 }
-impl Axis for LorAxisR {
-    type Coordinate = LOR;
-    type BinInterval = <Uniform<Lengthf32> as Axis>::BinInterval;
-    fn index(&self, lor: &LOR) -> Option<usize> { self.axis.index(&mm_(distance_from_z_axis(lor))) }
-    fn num_bins(&self) -> usize { self.axis.num_bins() }
-    fn bin(&self, index: usize) -> Option<Self::BinInterval> { self.axis.bin(index) }
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pub struct LorAxisT {
-    axis: Uniform<Lengthf32>,
-}
-impl LorAxisT {
-    fn new(nbins: usize, max: Time) -> Self {
-        Self { axis: Uniform::new(nbins, ps_(-max), ps_(max)), }
+
+lor_axis!{
+    LorAxisT<Uniform> {
+        fn new(nbins: usize, max: Time) { axis::new(nbins, ps_(-max), ps_(max)) }
+        index: lor -> mm_(distance_from_z_axis(lor))
     }
-}
-impl Axis for LorAxisT {
-    type Coordinate = LOR;
-    type BinInterval = <Uniform<Lengthf32> as Axis>::BinInterval;
-    fn index(&self, lor: &LOR) -> Option<usize> { self.axis.index(&mm_(distance_from_z_axis(lor))) }
-    fn num_bins(&self) -> usize { self.axis.num_bins() }
-    fn bin(&self, index: usize) -> Option<Self::BinInterval> { self.axis.bin(index) }
 }
 // ================================================================================
 struct Lorogram(ndhistogram::HistND<(LorAxisPhi, LorAxisZ, LorAxisDz, LorAxisR, LorAxisT), usize>);
