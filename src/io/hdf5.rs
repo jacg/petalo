@@ -42,8 +42,8 @@ pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, ev
 /// Fill `scattergram`, with spatial distribution of scatters probabilities
 /// gathered from `lors`
 fn fill_scattergram(scattergram: Scattergram, lors: &[Hdf5Lor]) -> Scattergram {
-    let empty_scattergram = || {println!("Cloning"); scattergram.clone()};
-    let add_scattergrams = |a: Scattergram, b: Scattergram| { println!("Reducing"); (&a + &b).unwrap()};
+    let empty_scattergram = || scattergram.clone();
+    let add_scattergrams = |a: Scattergram, b: Scattergram| (&a + &b).unwrap();
     let lor_into_scattergram = |mut scattergram: Scattergram, h5lor @&Hdf5Lor { x1, x2, E1, E2, .. }| {
         if x1.is_nan() || x2.is_nan() { return scattergram }
         let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
