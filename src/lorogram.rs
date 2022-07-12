@@ -38,7 +38,7 @@ impl Scattergram {
         let trues = Lorogram(ndhistogram!(
             LorAxisPhi::new(bins_phi),
             LorAxisZ::new(bins_z, -max_z, max_z),
-            axis_dz(bins_dz,  len_dz),
+            LorAxisDz::new(bins_dz, len_dz),
             axis_r (bins_r ,  max_r),
             axis_t (bins_dt,  max_dt);
             usize
@@ -47,7 +47,7 @@ impl Scattergram {
         let scatters = Lorogram(ndhistogram!(
             LorAxisPhi::new(bins_phi),
             LorAxisZ::new(bins_z, -max_z, max_z),
-            axis_dz(bins_dz,  len_z),
+            LorAxisDz::new(bins_dz, len_dz),
             axis_r (bins_r ,  max_r),
             axis_t (bins_dt,  max_dt);
             usize
@@ -145,8 +145,24 @@ impl Axis for LorAxisZ {
     fn num_bins(&self) -> usize { self.axis.num_bins() }
     fn bin(&self, index: usize) -> Option<Self::BinInterval> { self.axis.bin(index) }
 }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pub struct LorAxisDz {
+    axis: Uniform<Lengthf32>,
+}
+impl LorAxisDz {
+    fn new(nbins: usize, len: Length) -> Self {
+        Self { axis: Uniform::new(nbins, 0.0, mm_(len)), }
+    }
+}
+impl Axis for LorAxisDz {
+    type Coordinate = LOR;
+    type BinInterval = <Uniform<Lengthf32> as Axis>::BinInterval;
+    fn index(&self, lor: &LOR) -> Option<usize> { self.axis.index(&mm_(delta_z(lor))) }
+    fn num_bins(&self) -> usize { self.axis.num_bins() }
+    fn bin(&self, index: usize) -> Option<Self::BinInterval> { self.axis.bin(index) }
+}
 // ================================================================================
-struct Lorogram(ndhistogram::HistND<(LorAxisPhi, LorAxisZ, LorAxU, LorAxU, LorAxU), usize>);
+struct Lorogram(ndhistogram::HistND<(LorAxisPhi, LorAxisZ, LorAxisDz, LorAxU, LorAxU), usize>);
 
 impl Lorogram {
     pub fn fill (&mut self, lor: &LOR)          {  self.0.fill (&(*lor, *lor, *lor, *lor, *lor))               }
@@ -184,13 +200,6 @@ fn phi(LOR{ p1, p2, .. }: &LOR) -> Angle {
 }
 
 fn phi_of_x_y(x: Length, y: Length) -> Angle { y.atan2(x) }
-
-pub fn axis_dz(nbins: usize, max: Length) -> LorAxU {
-    LorAxU {
-        axis: Uniform::new(nbins, 0.0, mm_(max)),
-        map: Box::new(|x| mm_(delta_z(x))),
-    }
-}
 
 pub fn axis_r(nbins: usize, max: Length) -> LorAxU {
     LorAxU {
