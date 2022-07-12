@@ -16,6 +16,7 @@ use geometry::units::{mm, mm_, ps_, ratio, radian_, turn};
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }
 
+#[derive(Clone)]
 pub struct Scattergram {
     trues   : Lorogram,
     scatters: Lorogram,

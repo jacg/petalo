@@ -41,15 +41,20 @@ pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, ev
 
 /// Fill `scattergram`, with spatial distribution of scatters probabilities
 /// gathered from `lors`
-fn fill_scattergram(scattergram: &mut Option<Scattergram>, lors: &[Hdf5Lor]) {
-    if let Some(ref mut scattergram) = scattergram.as_mut() {
-        lors.iter()
-            .for_each(|h5lor @&Hdf5Lor { x1, x2, E1, E2, .. }| {
-                if x1.is_nan() || x2.is_nan() { return }
-                let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
-                scattergram.fill(prompt, &LOR::from(h5lor));
-            });
-    }
+fn fill_scattergram(scattergram: Scattergram, lors: &[Hdf5Lor]) -> Scattergram {
+    let empty_scattergram = || {println!("Cloning"); scattergram.clone()};
+    let add_scattergrams = |a: Scattergram, b: Scattergram| { println!("Reducing"); (&a + &b).unwrap()};
+    let lor_into_scattergram = |mut scattergram: Scattergram, h5lor @&Hdf5Lor { x1, x2, E1, E2, .. }| {
+        if x1.is_nan() || x2.is_nan() { return scattergram }
+        let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
+        scattergram.fill(prompt, &LOR::from(h5lor));
+        scattergram
+    };
+
+    lors.par_iter()
+        .fold  (empty_scattergram, lor_into_scattergram)
+        .reduce(empty_scattergram, add_scattergrams)
+
 }
 
 /// Read HDF5 LORs from file, potentially filtering according to event, energy
@@ -73,7 +78,7 @@ fn read_hdf5_lors(config: &Config) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Erro
 }
 
 #[allow(nonstandard_style)]
-pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
+pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_threads: usize) -> Result<Vec<LOR>, Box<dyn Error>> {
 
     let mut progress = crate::utils::timing::Progress::new();
 
@@ -83,9 +88,12 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Resul
     progress.done_with_message(&format!("loaded {}", g(hdf5_lors.len())));
 
     // Use LORs to gather statistics about spatial distribution of scatter probability
-    progress.start("   Filling scattergram");
-    fill_scattergram(&mut scattergram, &hdf5_lors);
-    progress.done();
+    if let Some(sgram) = scattergram {
+        progress.start("   Filling scattergram");
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build()?;
+        scattergram = pool.install(|| Some(fill_scattergram(sgram, &hdf5_lors)));
+        progress.done();
+    }
     progress.start("   Converting HDF5 LORs into MLEM LORs");
 
     let hdf5lor_to_lor: Box<dyn Fn(Hdf5Lor) -> LOR + Sync> = if let Some(scattergram) = scattergram.as_ref() {

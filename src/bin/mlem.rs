@@ -15,9 +15,14 @@ pub struct Cli {
     /// Directory in which results should be written
     pub output_directory: PathBuf,
 
-    /// Maximum number of rayon threads
+    /// Maximum number of rayon threads used by MLEM
     #[structopt(short = "j", long, default_value = "4")]
     pub num_threads: usize,
+
+    // TODO: if we keep this, we need to come up with good names
+    /// Maximum number of rayon threads used to fill scattergram
+    #[structopt(short = "k", long, default_value = "4")]
+    pub scattergram_threads: usize,
 
 }
 
@@ -74,7 +79,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         } else { None };
 
     progress.startln("Loading LORs from file");
-    let measured_lors = io::hdf5::read_lors(&config, scattergram)?;
+    let measured_lors = io::hdf5::read_lors(&config, scattergram, args.scattergram_threads)?;
     progress.done_with_message("Loaded LORs from file");
 
     let pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build()?;
