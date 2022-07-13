@@ -1,8 +1,8 @@
 mod build_scattergram;
 pub use build_scattergram::*;
 
-use ndhistogram::{axis::{Axis, Uniform, UniformCyclic as Cyclic}, Histogram};
-use crate::io::hdf5::Hdf5Lor;
+use ndhistogram::{axis::{Axis, Uniform, UniformCyclic as Cyclic}, Histogram, ndhistogram};
+
 use crate::system_matrix::LOR;
 use std::f32::consts::TAU;
 
@@ -16,8 +16,8 @@ use geometry::uom::ConstZero;
 pub enum Prompt { True, Scatter, Random }
 
 pub struct Scattergram {
-    trues  : Box<dyn Lorogram + Sync>,
-    scatters:Box<dyn Lorogram + Sync>,
+    trues   : Lorogram,
+    scatters: Lorogram,
 }
 
 // TODO: consider adding a frozen version of the scattergram. This one needs two
@@ -27,9 +27,31 @@ pub struct Scattergram {
 // computing the ratios repeatedly on the fly is a waste of time.
 impl Scattergram {
 
-    pub fn new(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram + Sync>)) -> Self {
-        let trues    = make_empty_lorogram();
-        let scatters = make_empty_lorogram();
+    pub fn new(
+        bins_phi: usize,
+        bins_z  : usize, len_z : Length,
+        bins_dz : usize, len_dz: Length,
+        bins_r  : usize, max_r : Length,
+        bins_dt : usize, max_dt: Time
+    ) -> Self {
+        let max_z = len_z / 2.0;
+        let trues = Lorogram(ndhistogram!(
+            axis_phi(bins_phi),
+            axis_z (bins_z , -max_z, max_z),
+            axis_dz(bins_dz,  len_dz),
+            axis_r (bins_r ,  max_r),
+            axis_t (bins_dt,  max_dt);
+            usize
+        ));
+        // TODO: Can we clone `trues`?
+        let scatters = Lorogram(ndhistogram!(
+            axis_phi(bins_phi),
+            axis_z (bins_z , -max_z, max_z),
+            axis_dz(bins_dz,  len_z),
+            axis_r (bins_r ,  max_r),
+            axis_t (bins_dt,  max_dt);
+            usize
+        ));
         Self { trues, scatters }
     }
 
@@ -92,6 +114,14 @@ where
     }
 }
 // --------------------------------------------------------------------------------
+struct Lorogram(ndhistogram::HistND<(LorAxC, LorAxU, LorAxU, LorAxU, LorAxU), usize>);
+
+impl Lorogram {
+    pub fn fill (&mut self, lor: &LOR)          {  self.0.fill (&(*lor, *lor, *lor, *lor, *lor))               }
+    pub fn value(&    self, lor: &LOR) -> usize { *self.0.value(&(*lor, *lor, *lor, *lor, *lor)).unwrap_or(&0) }
+}
+
+
 pub type LorAxU = MappedAxis<LOR, Uniform<Lengthf32>>;
 pub type LorAxC = MappedAxis<LOR, Cyclic <Lengthf32>>;
 
@@ -158,115 +188,6 @@ pub fn axis_t(nbins: usize, max: Time) -> LorAxU {
     }
 }
 
-#[cfg(test)]
-mod test_mapped_axes {
-    use super::*;
-    use ndhistogram::ndhistogram;
-
-    #[test]
-    fn uniform() {
-        let nbins = 10;
-        let axis = axis_phi(nbins);
-        assert_eq!(axis.num_bins(), nbins);
-        let mut h = ndhistogram!(axis; usize);
-        let x = 150.0;
-        let y = 234.5;
-        let (dummy1, dummy2, dummy3, dummy4) = (111.1, 222.2, 333.3, 444.4);
-        let (a, b) = (30.0, 40.0); // scaling factors
-        Lorogram::fill         (&mut h, &mk_lor(((a*x, a*y, dummy1), (-a*x, -a*y, dummy2))));
-        let n = Lorogram::value(&    h, &mk_lor(((b*x, b*y, dummy3), (-b*x, -b*y, dummy4))));
-        assert_eq!(n, 1);
-    }
-
-    #[test]
-    fn two_dimensions() {
-        let nbins_z = 10;
-        let nbins_dz = 10;
-        let l = 1000.0;
-        let max_dz = l;
-        let mut h = ndhistogram!(
-            axis_z (nbins_z , mm(-l/2.0), mm(l/2.0)),
-            axis_dz(nbins_dz, mm(max_dz));
-            usize
-        );
-        let (z, delta) = (123.4, 543.2);
-        // Irrelevant values
-        let (i1, i2, i3, i4, i5, i6, i7, i8) = (10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0);
-
-        let l1 = mk_lor(((i1, i2, z-delta), (i3, i4, z+delta)));
-        let l2 = mk_lor(((i5, i6, z+delta), (i7, i8, z-delta)));
-        Lorogram::fill         (&mut h, &l1);
-        let n = Lorogram::value(&    h, &l2);
-
-        assert_eq!(n, 1);
-    }
-
-}
-// --------------------------------------------------------------------------------
-pub trait Lorogram {
-    fn fill (&mut self, lor: &LOR);
-    fn value(&    self, lor: &LOR) -> usize;
-}
-
-impl<X> Lorogram for ndhistogram::Hist1D<X, usize>
-where
-    X: Axis<Coordinate = LOR>,
-{
-    fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, lor) }
-    fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, lor).unwrap_or(&0) }
-}
-
-impl<X, Y> Lorogram for ndhistogram::Hist2D<X, Y, usize>
-where
-    X: Axis<Coordinate = LOR>,
-    Y: Axis<Coordinate = LOR>,
-{
-    fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor)) }
-    fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor)).unwrap_or(&0) }
-}
-
-impl<X, Y, Z> Lorogram for ndhistogram::Hist3D<X, Y, Z, usize>
-where
-    X: Axis<Coordinate = LOR>,
-    Y: Axis<Coordinate = LOR>,
-    Z: Axis<Coordinate = LOR>,
-{
-    fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor)) }
-    fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor)).unwrap_or(&0) }
-}
-
-impl<X, Y, Z, T> Lorogram for ndhistogram::HistND<(X, Y, Z, T), usize>
-where
-    X: Axis<Coordinate = LOR>,
-    Y: Axis<Coordinate = LOR>,
-    Z: Axis<Coordinate = LOR>,
-    T: Axis<Coordinate = LOR>,
-{
-    fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor, *lor)) }
-    fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor, *lor)).unwrap_or(&0) }
-}
-
-impl<X, Y, Z, T, U> Lorogram for ndhistogram::HistND<(X, Y, Z, T, U), usize>
-where
-    X: Axis<Coordinate = LOR>,
-    Y: Axis<Coordinate = LOR>,
-    Z: Axis<Coordinate = LOR>,
-    T: Axis<Coordinate = LOR>,
-    U: Axis<Coordinate = LOR>,
-{
-    fn fill (&mut self, lor: &LOR)          {  Histogram::fill (self, &(*lor, *lor, *lor, *lor, *lor)) }
-    fn value(&    self, lor: &LOR) -> usize { *Histogram::value(self, &(*lor, *lor, *lor, *lor, *lor)).unwrap_or(&0) }
-}
-
-pub fn fill_scattergram(make_empty_lorogram: &(dyn Fn() -> Box<dyn Lorogram + Sync>), lors: ndarray::Array1<Hdf5Lor>) ->  Scattergram {
-    let mut sgram = Scattergram::new(make_empty_lorogram);
-    for h5lor @Hdf5Lor { x1, x2, E1, E2, .. } in lors {
-        if x1.is_nan() || x2.is_nan() { continue }
-        let prompt = if E1.min(E2) < 511.0 { Prompt::Scatter } else { Prompt::True };
-        sgram.fill(prompt, &LOR::from(h5lor));
-    }
-    sgram
-}
 
 pub fn mk_lor(((x1,y1,z1), (x2,y2,z2)): ((f32, f32, f32), (f32, f32, f32))) -> LOR {
     let (x1, y1, z1, x2, y2, z2) = (mm(x1), mm(y1), mm(z1), mm(x2), mm(y2), mm(z2));
