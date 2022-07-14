@@ -1,7 +1,9 @@
 mod build_scattergram;
 pub use build_scattergram::*;
 
-use ndhistogram::{axis::{Axis, Uniform, UniformCyclic as Cyclic}, Histogram, ndhistogram};
+use ndhistogram::{axis::{Axis, Uniform, UniformCyclic as Cyclic},
+                  Histogram, ndhistogram,
+                  error::BinaryOperationError};
 
 use crate::system_matrix::LOR;
 use std::f32::consts::TAU;
@@ -14,6 +16,7 @@ use geometry::units::{mm, mm_, ps_, ratio, radian_, turn};
 /// Distinguish between true, scatter and random prompt signals
 pub enum Prompt { True, Scatter, Random }
 
+#[derive(Clone)]
 pub struct Scattergram {
     trues   : Lorogram,
     scatters: Lorogram,
@@ -43,14 +46,7 @@ impl Scattergram {
             usize
         ));
         // TODO: Can we clone `trues`?
-        let scatters = Lorogram(ndhistogram!(
-            LorAxisPhi::new(bins_phi),
-            LorAxisZ  ::new(bins_z, -max_z, max_z),
-            LorAxisDz ::new(bins_dz, len_dz),
-            LorAxisR  ::new(bins_r,  max_r ),
-            LorAxisT  ::new(bins_dt, max_dt);
-            usize
-        ));
+        let scatters = trues.clone();
         Self { trues, scatters }
     }
 
@@ -83,6 +79,17 @@ impl Scattergram {
         } else { (ratio(1.0), 0.0, self.scatters.value(lor) as f32) }
     }
 }
+
+impl std::ops::Add<&Scattergram> for &Scattergram {
+    type Output = Result<Scattergram, BinaryOperationError>;
+
+    fn add(self, other: &Scattergram) -> Self::Output {
+        let scatters = (&self.scatters + &other.scatters)?;
+        let trues    = (&self.trues    + &other.trues   )?;
+        Ok(Scattergram { trues, scatters })
+    }
+}
+
 // --------------------------------------------------------------------------------
 pub struct MappedAxis<T,A>
 where
@@ -118,6 +125,7 @@ macro_rules! lor_axis {
         fn new($($parameter:tt: $type:ty),*) { axis::new( $($new_arg:expr),* )}
         index: $coord:ident -> $index:expr
     }) => {
+        #[derive(Clone, PartialEq)]
         pub struct $name {
             axis: $axis_kind<Lengthf32>,
         }
@@ -171,11 +179,20 @@ lor_axis!{
     }
 }
 // ================================================================================
+#[derive(Clone)]
 struct Lorogram(ndhistogram::HistND<(LorAxisPhi, LorAxisZ, LorAxisDz, LorAxisR, LorAxisT), usize>);
 
 impl Lorogram {
     pub fn fill (&mut self, lor: &LOR)          {  self.0.fill (&(*lor, *lor, *lor, *lor, *lor))               }
     pub fn value(&    self, lor: &LOR) -> usize { *self.0.value(&(*lor, *lor, *lor, *lor, *lor)).unwrap_or(&0) }
+}
+
+impl std::ops::Add<&Lorogram> for &Lorogram {
+    type Output = Result<Lorogram, BinaryOperationError>;
+
+    fn add(self, other: &Lorogram) -> Self::Output {
+        (&self.0 + &other.0).map(Lorogram)
+    }
 }
 
 
