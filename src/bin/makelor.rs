@@ -93,34 +93,34 @@ fn main() -> hdf5::Result<()> {
     let mut n_events = 0;
     let mut failed_files = vec![];
 
-    type FilenameToLorsFunction = Box<dyn Fn(&PathBuf) -> hdf5::Result<(Vec<Hdf5Lor>, usize)>>;
+    type FilenameToLorsFunction = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch>>;
     let makelors: FilenameToLorsFunction = match args.reco {
         Reco::FirstVertex => Box::new(
-            |infile: &PathBuf| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+            |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let vertices = read_vertices(&infile)?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
-                Ok((lors_from(&events, lor_from_first_vertices), events.len()))
+                Ok(LorBatch::new(lors_from(&events, lor_from_first_vertices), events.len()))
             }),
 
         Reco::BaryVertex => Box::new(
-            |infile: &PathBuf| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+            |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let vertices = read_vertices(&infile)?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
-                Ok((lors_from(&events, lor_from_barycentre_of_vertices), events.len()))
+                Ok(LorBatch::new(lors_from(&events, lor_from_barycentre_of_vertices), events.len()))
             }),
 
         Reco::Half{q} => Box::new(
-            move |infile: &PathBuf| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+            move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let qts = read_qts(infile)?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
-                Ok((lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
+                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
             }),
 
         Reco::Dbscan { q, min_count, max_distance } => Box::new(
-            move |infile: &PathBuf| -> hdf5::Result<(Vec<Hdf5Lor>, usize)> {
+            move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let qts = read_qts(infile)?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
-                Ok((lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
+                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
             }),
     };
 
@@ -130,9 +130,9 @@ fn main() -> hdf5::Result<()> {
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
                                      infile.display(), group_digits(lors.len()), group_digits(n_events),
                                      if n_events > 0 {100 * lors.len() / n_events} else {0}));
-        if let Ok((new_lors, envlen)) = makelors(&infile) {
-            n_events += envlen;
-            lors.extend_from_slice(&new_lors);
+        if let Ok(batch_of_new_lors) = makelors(&infile) {
+            n_events += batch_of_new_lors.n_events_processed;
+            lors.extend_from_slice(&batch_of_new_lors.lors);
         } else { failed_files.push(infile); }
         files_pb.inc(1);
 
@@ -159,6 +159,17 @@ fn main() -> hdf5::Result<()> {
     }
     Ok(())
 }
+
+struct LorBatch {
+    lors: Vec<Hdf5Lor>,
+    n_events_processed: usize,
+}
+impl LorBatch {
+    pub fn new(lors: Vec<Hdf5Lor>, n_events_processed: usize) -> Self {
+        Self { lors, n_events_processed }
+    }
+}
+
 
 fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<Hdf5Lor>) -> Vec<Hdf5Lor> {
     events.iter()
