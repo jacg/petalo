@@ -77,7 +77,7 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Resul
     // Read LORs from file,
     progress.start("   Reading LORs");
     let (hdf5_lors, cut) = read_hdf5_lors(config)?;
-    progress.done();
+    progress.done_with_message(&format!("loaded {}", g(hdf5_lors.len())));
 
     // Use LORs to gather statistics about spatial distribution of scatter probability
     progress.start("   Filling scattergram");
