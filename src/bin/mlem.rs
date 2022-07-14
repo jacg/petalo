@@ -17,12 +17,12 @@ pub struct Cli {
 
     /// Maximum number of rayon threads used by MLEM
     #[structopt(short = "j", long, default_value = "4")]
-    pub num_threads: usize,
+    pub mlem_threads: usize,
 
     // TODO: if we keep this, we need to come up with good names
-    /// Maximum number of rayon threads used to fill scattergram
-    #[structopt(short = "k", long, default_value = "4")]
-    pub scattergram_threads: usize,
+    /// Rayon threads for filling scattergram [default: mlem-threads]
+    #[structopt(short = "k", long)]
+    pub scattergram_threads: Option<usize>,
 
 }
 
@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
     let config = config::mlem::read_config_file(args.config_file.clone());
-    unsafe { petalo::mlem::N_MLEM_THREADS = args.num_threads; }
+    unsafe { petalo::mlem::N_MLEM_THREADS = args.mlem_threads; }
 
     // Set up progress reporting and timing
     let mut progress = Progress::new();
@@ -79,11 +79,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         } else { None };
 
     progress.startln("Loading LORs from file");
-    let measured_lors = io::hdf5::read_lors(&config, scattergram, args.scattergram_threads)?;
+    let scattergram_threads = args.scattergram_threads.unwrap_or(args.mlem_threads);
+    let measured_lors = io::hdf5::read_lors(&config, scattergram, scattergram_threads)?;
     progress.done_with_message("Loaded LORs from file");
 
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(args.num_threads).build()?;
-    println!("MLEM: Using up to {} threads.", args.num_threads);
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(args.mlem_threads).build()?;
+    println!("MLEM: Using up to {} threads.", args.mlem_threads);
     pool.install(|| {
         for (image, iteration, subset) in (Image::mlem(fov, &measured_lors, config.tof, sensitivity_image, config.iterations.subsets))
             .take(config.iterations.number * config.iterations.subsets) {
