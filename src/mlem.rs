@@ -130,13 +130,15 @@ impl Image {
             // SAFETY: modified only once, at the beginning of bin/mlem.rs::main()
             N_MLEM_THREADS
         };
+        let job_size = measured_lors.len() / n_mlem_threads;
         let fold_result = measured_lors
             .par_iter()
             // Rayon is too eager in spawning small jobs, each of which requires
             // the construction and subsequent combination of expensive
             // accumulators (whole `Image`s). So here we try to limit it to one
             // job per thread.
-            .with_min_len(measured_lors.len() / n_mlem_threads)
+            .with_min_len(job_size)
+            .with_max_len(job_size)
             .fold(initial_thread_state, project_one_lor);
 
         // -------- extract relevant information (backprojection) ---------------
