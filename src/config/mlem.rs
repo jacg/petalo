@@ -656,11 +656,12 @@ impl Display for Input {
 
 impl<T: Display + Copy> Display for Bounds<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use crate::utils::group_digits as g;
         let x = match (self.min, self.max) {
             (None     , None     ) => format!("ALL"),
-            (None     , Some(max)) => format!("< {max}"),
-            (Some(min), None     ) => format!(">= {min}"),
-            (Some(min), Some(max)) => format!("[{min}, {max})"),
+            (None     , Some(max)) => format!("< {}", g(max)),
+            (Some(min), None     ) => format!(">= {}", g(min)),
+            (Some(min), Some(max)) => format!("[{}, {})", g(min), g(max)),
          };
         f.write_str(&x)
     }
