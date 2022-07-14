@@ -51,6 +51,9 @@ fn fill_scattergram(scattergram: Scattergram, lors: &[Hdf5Lor], nthreads: usize)
         scattergram
     };
 
+    // TODO: this can be accelerated by using `AddAssign` instead of `Add` in
+    // the implementation of Scattergam and Lorogram combination, although
+    // `AddAssign` is not implemented in ndhistogram ... yet.
     lors.par_iter()
         .with_min_len(lors.len() / nthreads)
         .fold  (empty_scattergram, lor_into_scattergram)
