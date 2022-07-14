@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             input: Input { dataset, file, events, ..Default::default()},
             ..Default::default()
         };
-        io::hdf5::read_lors(&config, None)?[0]
+        io::hdf5::read_lors(&config, None, 1)?[0]
     } else {
         args.lor
     };

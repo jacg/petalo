@@ -1,8 +1,6 @@
 use crate::{Length, Time};
-use crate::lorogram::{Scattergram, axis_r, axis_phi, axis_z, axis_dz, axis_t};
-use ndhistogram::ndhistogram;
+use crate::lorogram::Scattergram;
 use geometry::units::{mm, ps};
-
 
 pub struct BuildScattergram {
     phi_bins: Option<usize>,
@@ -17,12 +15,6 @@ pub struct BuildScattergram {
 }
 
 const DEFAULT_NUMBER_OF_BINS: usize = 30;
-
-macro_rules! axes {
-    ($($axes:expr),+) => {
-        Some(Scattergram::new(&|| Box::new(ndhistogram!($($axes),+; usize))))
-    };
-}
 
 impl BuildScattergram {
 
@@ -93,41 +85,44 @@ impl BuildScattergram {
         let z   = self.  z_bins.map(|n_bins| (n_bins, self.z_length.unwrap()));
         let dz  = self. dz_bins.map(|n_bins| (n_bins, self.dz_max  .unwrap()));
         let dt  = self. dt_bins.map(|n_bins| (n_bins, self.dt_max  .unwrap()));
+        // TODO: tepmorary hack for default values
+        let  l  = mm(66666666.6);
+        let  t  = ps(66666666.6);
         use Option::Some as S;
-        let zax = |z_bins, z_length: Length| axis_z(z_bins, -z_length / 2.0, z_length / 2.0);
+        let new = Scattergram::new;
         match (dt, r, z, phi, dz) {
             (None       , None       , None       , None, None      ) => None,
-            (None       , None       , None       , None, S((db,dm))) => axes!(                                                       axis_dz(db,dm)),
-            (None       , None       , None       , S(p), None      ) => axes!(                                          axis_phi(p)                ),
-            (None       , None       , None       , S(p), S((db,dm))) => axes!(                                          axis_phi(p), axis_dz(db,dm)),
-            (None       , None       , S((zb, zl)), None, None      ) => axes!(                              zax(zb,zl)                             ),
-            (None       , None       , S((zb, zl)), None, S((db,dm))) => axes!(                              zax(zb,zl)             , axis_dz(db,dm)),
-            (None       , None       , S((zb, zl)), S(p), None      ) => axes!(                              zax(zb,zl), axis_phi(p)                ),
-            (None       , None       , S((zb, zl)), S(p), S((db,dm))) => axes!(                              zax(zb,zl), axis_phi(p), axis_dz(db,dm)),
-            (None       , S((rb, rm)), None       , None, None      ) => axes!(               axis_r(rb,rm)                                         ),
-            (None       , S((rb, rm)), None       , None, S((db,dm))) => axes!(               axis_r(rb,rm)                         , axis_dz(db,dm)),
-            (None       , S((rb, rm)), None       , S(p), None      ) => axes!(               axis_r(rb,rm),             axis_phi(p)                ),
-            (None       , S((rb, rm)), None       , S(p), S((db,dm))) => axes!(               axis_r(rb,rm),             axis_phi(p), axis_dz(db,dm)),
-            (None       , S((rb, rm)), S((zb, zl)), None, None      ) => axes!(               axis_r(rb,rm), zax(zb,zl)                             ),
-            (None       , S((rb, rm)), S((zb, zl)), None, S((db,dm))) => axes!(               axis_r(rb,rm), zax(zb,zl)             , axis_dz(db,dm)),
-            (None       , S((rb, rm)), S((zb, zl)), S(p), None      ) => axes!(               axis_r(rb,rm), zax(zb,zl), axis_phi(p)                ),
-            (None       , S((rb, rm)), S((zb, zl)), S(p), S((db,dm))) => axes!(               axis_r(rb,rm), zax(zb,zl), axis_phi(p), axis_dz(db,dm)),
-            (S((tb, tm)), None       , None       , None, None      ) => axes!(axis_t(tb,tm)                                                        ),
-            (S((tb, tm)), None       , None       , None, S((db,dm))) => axes!(axis_t(tb,tm),                                         axis_dz(db,dm)),
-            (S((tb, tm)), None       , None       , S(p), None      ) => axes!(axis_t(tb,tm),                            axis_phi(p)                ),
-            (S((tb, tm)), None       , None       , S(p), S((db,dm))) => axes!(axis_t(tb,tm),                            axis_phi(p), axis_dz(db,dm)),
-            (S((tb, tm)), None       , S((zb, zl)), None, None      ) => axes!(axis_t(tb,tm),                zax(zb,zl)                             ),
-            (S((tb, tm)), None       , S((zb, zl)), None, S((db,dm))) => axes!(axis_t(tb,tm),                zax(zb,zl)             , axis_dz(db,dm)),
-            (S((tb, tm)), None       , S((zb, zl)), S(p), None      ) => axes!(axis_t(tb,tm),                zax(zb,zl), axis_phi(p)                ),
-            (S((tb, tm)), None       , S((zb, zl)), S(p), S((db,dm))) => axes!(axis_t(tb,tm),                zax(zb,zl), axis_phi(p), axis_dz(db,dm)),
-            (S((tb, tm)), S((rb, rm)), None       , None, None      ) => axes!(axis_t(tb,tm), axis_r(rb,rm)                                         ),
-            (S((tb, tm)), S((rb, rm)), None       , None, S((db,dm))) => axes!(axis_t(tb,tm), axis_r(rb,rm)                         , axis_dz(db,dm)),
-            (S((tb, tm)), S((rb, rm)), None       , S(p), None      ) => axes!(axis_t(tb,tm), axis_r(rb,rm),             axis_phi(p)                ),
-            (S((tb, tm)), S((rb, rm)), None       , S(p), S((db,dm))) => axes!(axis_t(tb,tm), axis_r(rb,rm),             axis_phi(p), axis_dz(db,dm)),
-            (S((tb, tm)), S((rb, rm)), S((zb, zl)), None, None      ) => axes!(axis_t(tb,tm), axis_r(rb,rm), zax(zb,zl)                             ),
-            (S((tb, tm)), S((rb, rm)), S((zb, zl)), None, S((db,dm))) => axes!(axis_t(tb,tm), axis_r(rb,rm), zax(zb,zl)             , axis_dz(db,dm)),
-            (S((tb, tm)), S((rb, rm)), S((zb, zl)), S(p), None      ) => axes!(axis_t(tb,tm), axis_r(rb,rm), zax(zb,zl), axis_phi(p)                ),
-            (S((tb, tm)), S((rb, rm)), S((zb, zl)), S(p), S((db,dm))) => axes!(axis_t(tb,tm), axis_r(rb,rm), zax(zb,zl), axis_phi(p), axis_dz(db,dm)),
+            (None       , None       , None       , None, S((db,dm))) => Some(new(1,  1,  l, db, dm,  1,  l,  1,  t)),
+            (None       , None       , None       , S(p), None      ) => Some(new(p,  1,  l,  1,  l,  1,  l,  1,  t)),
+            (None       , None       , None       , S(p), S((db,dm))) => Some(new(p,  1,  l, db, dm,  1,  l,  1,  t)),
+            (None       , None       , S((zb, zl)), None, None      ) => Some(new(1, zb, zl,  1,  l,  1,  l,  1,  t)),
+            (None       , None       , S((zb, zl)), None, S((db,dm))) => Some(new(1, zb, zl, db, dm,  1,  l,  1,  t)),
+            (None       , None       , S((zb, zl)), S(p), None      ) => Some(new(p, zb, zl,  1,  l,  1,  l,  1,  t)),
+            (None       , None       , S((zb, zl)), S(p), S((db,dm))) => Some(new(p, zb, zl, db, dm,  1,  l,  1,  t)),
+            (None       , S((rb, rm)), None       , None, None      ) => Some(new(1,  1,  l,  1,  l, rb, rm,  1,  t)),
+            (None       , S((rb, rm)), None       , None, S((db,dm))) => Some(new(1,  1,  l, db, dm, rb, rm,  1,  t)),
+            (None       , S((rb, rm)), None       , S(p), None      ) => Some(new(p,  1,  l,  1,  l, rb, rm,  1,  t)),
+            (None       , S((rb, rm)), None       , S(p), S((db,dm))) => Some(new(p,  1,  l, db, dm, rb, rm,  1,  t)),
+            (None       , S((rb, rm)), S((zb, zl)), None, None      ) => Some(new(1, zb, zl,  1,  l, rb, rm,  1,  t)),
+            (None       , S((rb, rm)), S((zb, zl)), None, S((db,dm))) => Some(new(1, zb, zl, db, dm, rb, rm,  1,  t)),
+            (None       , S((rb, rm)), S((zb, zl)), S(p), None      ) => Some(new(p, zb, zl,  1,  l, rb, rm,  1,  t)),
+            (None       , S((rb, rm)), S((zb, zl)), S(p), S((db,dm))) => Some(new(p, zb, zl, db, dm, rb, rm,  1,  t)),
+            (S((tb, tm)), None       , None       , None, None      ) => Some(new(1,  1,  l,  1,  l,  1,  l, tb, tm)),
+            (S((tb, tm)), None       , None       , None, S((db,dm))) => Some(new(1,  1,  l, db, dm,  1,  l, tb, tm)),
+            (S((tb, tm)), None       , None       , S(p), None      ) => Some(new(p,  1,  l,  1,  l,  1,  l, tb, tm)),
+            (S((tb, tm)), None       , None       , S(p), S((db,dm))) => Some(new(p,  1,  l, db, dm,  1,  l, tb, tm)),
+            (S((tb, tm)), None       , S((zb, zl)), None, None      ) => Some(new(1, zb, zl,  1,  l,  1,  l, tb, tm)),
+            (S((tb, tm)), None       , S((zb, zl)), None, S((db,dm))) => Some(new(1, zb, zl, db, dm,  1,  l, tb, tm)),
+            (S((tb, tm)), None       , S((zb, zl)), S(p), None      ) => Some(new(p, zb, zl,  1,  l,  1,  l, tb, tm)),
+            (S((tb, tm)), None       , S((zb, zl)), S(p), S((db,dm))) => Some(new(p, zb, zl, db, dm,  1,  l, tb, tm)),
+            (S((tb, tm)), S((rb, rm)), None       , None, None      ) => Some(new(1,  1,  l,  1,  l, rb, rm, tb, tm)),
+            (S((tb, tm)), S((rb, rm)), None       , None, S((db,dm))) => Some(new(1,  1,  l, db, dm, rb, rm, tb, tm)),
+            (S((tb, tm)), S((rb, rm)), None       , S(p), None      ) => Some(new(p,  1,  l,  1,  l, rb, rm, tb, tm)),
+            (S((tb, tm)), S((rb, rm)), None       , S(p), S((db,dm))) => Some(new(p,  1,  l, db, dm, rb, rm, tb, tm)),
+            (S((tb, tm)), S((rb, rm)), S((zb, zl)), None, None      ) => Some(new(1, zb, zl,  1,  l, rb, rm, tb, tm)),
+            (S((tb, tm)), S((rb, rm)), S((zb, zl)), None, S((db,dm))) => Some(new(1, zb, zl, db, dm, rb, rm, tb, tm)),
+            (S((tb, tm)), S((rb, rm)), S((zb, zl)), S(p), None      ) => Some(new(p, zb, zl,  1,  l, rb, rm, tb, tm)),
+            (S((tb, tm)), S((rb, rm)), S((zb, zl)), S(p), S((db,dm))) => Some(new(p, zb, zl, db, dm, rb, rm, tb, tm)),
         }
 
     }

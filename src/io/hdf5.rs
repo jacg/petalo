@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use crate::lorogram::{Scattergram, Prompt};
 use crate::config::mlem::{Bounds, Config};
 
+use rayon::prelude::*;
+
 #[derive(Clone)]
 pub struct Args {
     pub input_file: PathBuf,
@@ -39,14 +41,24 @@ pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, ev
 
 /// Fill `scattergram`, with spatial distribution of scatters probabilities
 /// gathered from `lors`
-fn fill_scattergram(scattergram: &mut Option<Scattergram>, lors: &[Hdf5Lor]) {
-    if let Some(ref mut scattergram) = scattergram.as_mut() {
-        for h5lor @&Hdf5Lor { x1, x2, E1, E2, .. } in lors {
-            if x1.is_nan() || x2.is_nan() { continue }
-            let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
-            scattergram.fill(prompt, &LOR::from(h5lor));
-        }
-    }
+fn fill_scattergram(scattergram: Scattergram, lors: &[Hdf5Lor], nthreads: usize) -> Scattergram {
+    let empty_scattergram = || scattergram.clone();
+    let add_scattergrams = |a: Scattergram, b: Scattergram| (&a + &b).unwrap();
+    let lor_into_scattergram = |mut scattergram: Scattergram, h5lor @&Hdf5Lor { x1, x2, E1, E2, .. }| {
+        if x1.is_nan() || x2.is_nan() { return scattergram }
+        let prompt = if E1.min(E2) < 510.0 { Prompt::Scatter } else { Prompt::True };
+        scattergram.fill(prompt, &LOR::from(h5lor));
+        scattergram
+    };
+
+    // TODO: this can be accelerated by using `AddAssign` instead of `Add` in
+    // the implementation of Scattergam and Lorogram combination, although
+    // `AddAssign` is not implemented in ndhistogram ... yet.
+    lors.par_iter()
+        .with_min_len(lors.len() / nthreads)
+        .fold  (empty_scattergram, lor_into_scattergram)
+        .reduce(empty_scattergram, add_scattergrams)
+
 }
 
 /// Read HDF5 LORs from file, potentially filtering according to event, energy
@@ -70,7 +82,7 @@ fn read_hdf5_lors(config: &Config) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Erro
 }
 
 #[allow(nonstandard_style)]
-pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Result<Vec<LOR>, Box<dyn Error>> {
+pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_threads: usize) -> Result<Vec<LOR>, Box<dyn Error>> {
 
     let mut progress = crate::utils::timing::Progress::new();
 
@@ -80,12 +92,15 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Resul
     progress.done_with_message(&format!("loaded {}", g(hdf5_lors.len())));
 
     // Use LORs to gather statistics about spatial distribution of scatter probability
-    progress.start("   Filling scattergram");
-    fill_scattergram(&mut scattergram, &hdf5_lors);
-    progress.done();
+    if let Some(sgram) = scattergram {
+        progress.start("   Filling scattergram");
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build()?;
+        scattergram = pool.install(|| Some(fill_scattergram(sgram, &hdf5_lors, n_threads)));
+        progress.done();
+    }
     progress.start("   Converting HDF5 LORs into MLEM LORs");
 
-    let hdf5lor_to_lor: Box<dyn Fn(Hdf5Lor) -> LOR> = if let Some(scattergram) = scattergram.as_ref() {
+    let hdf5lor_to_lor: Box<dyn Fn(Hdf5Lor) -> LOR + Sync> = if let Some(scattergram) = scattergram.as_ref() {
         Box::new(|hdf5_lor: Hdf5Lor| {
             let mut lor: LOR = hdf5_lor.into();
             lor.additive_correction = scattergram.value(&lor);
@@ -95,8 +110,11 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>) -> Resul
 
     // Convert raw data (Hdf5Lors) to LORs used by MLEM
     let lors: Vec<_> = hdf5_lors
-        .into_iter()
-        .map(hdf5lor_to_lor)
+        // This seems to scale pretty perfectly with number of threads, so we
+        // let Rayon dynamically pick the actual number of threads, so we don't
+        // run this in a local thread pool.
+        .into_par_iter()
+        .map(&hdf5lor_to_lor)
         .collect();
     progress.done();
 
