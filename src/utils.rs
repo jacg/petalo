@@ -82,9 +82,9 @@ pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<Ratio>, std::num::Pars
 }
 
 /// Group numeric digits to facilitate reading long numbers
-pub fn group_digits<F: num_format::ToFormattedString>(n: F) -> String {
-    use num_format::{Locale};
-    n.to_formatted_string(&Locale::en)
+pub fn group_digits<F: std::fmt::Display>(n: F) -> String {
+    use numsep::{separate, Locale};
+    separate(n, Locale::English)
 }
 
 
