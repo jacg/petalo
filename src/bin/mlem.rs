@@ -40,6 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Cli::from_args();
     let config = config::mlem::read_config_file(args.config_file.clone());
+    unsafe { petalo::mlem::N_MLEM_THREADS = args.num_threads; }
 
     // Set up progress reporting and timing
     let mut progress = Progress::new();
