@@ -661,7 +661,7 @@ impl<T: Display + Copy> Display for Bounds<T> {
             (None     , None     ) => format!("ALL"),
             (None     , Some(max)) => format!("< {}", g(max)),
             (Some(min), None     ) => format!(">= {}", g(min)),
-            (Some(min), Some(max)) => format!("[{}, {})", g(min), g(max)),
+            (Some(min), Some(max)) => format!("[ {},    {} )", g(min), g(max)),
          };
         f.write_str(&x)
     }
