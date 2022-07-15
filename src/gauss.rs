@@ -2,7 +2,7 @@ use crate::{Angle, Length, PerLength, Ratio, TWOPI, C};
 use crate::config::mlem::Tof;
 
 use geometry::uom::ConstZero; // num_traits::Zero;
-use geometry::units::{mm, ratio_};
+use geometry::units::mm;
 
 // How would you make this generic over Length -> T ?
 fn make_gauss(sigma: Length, cutoff: Option<Ratio>) -> impl Fn(Length) -> PerLength {
@@ -14,7 +14,7 @@ fn make_gauss(sigma: Length, cutoff: Option<Ratio>) -> impl Fn(Length) -> PerLen
         if dx.abs() < cutoff {
             let y: Ratio = dx / sigma;
             let z: Ratio = y * y;
-            peak_height * ratio_(-0.5 * z).exp()
+            peak_height * (-0.5 * z).exp()
         } else {
             PerLength::ZERO
         }

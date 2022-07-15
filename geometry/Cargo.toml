@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-uom = { version = "0.32.0", default-features = false, features = [
+uom = { version = "0.33.0", default-features = false, features = [
         # "autoconvert", # automatic base unit conversion.
         "usize", #"u8", "u16", "u32", "u64", "u128", # Unsigned integer storage types.
         "isize", #"i8", "i16", "i32", "i64", "i128", # Signed integer storage types.
