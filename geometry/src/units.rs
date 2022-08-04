@@ -94,6 +94,10 @@ pub fn ratio_ (x: Ratio) -> f32 { x.get::<uom::si::ratio::ratio>() }
 pub fn radian_(x: Angle) -> f32 { x.get::<uom::si::angle::radian>() }
 pub fn turn_  (x: Angle) -> f32 { x.get::<uom::si::angle::revolution>() }
 
+pub fn mm_ps (x: f32) -> Velocity { m_s (x * 1e+9) }
+pub fn mm_ps_(x: Velocity) -> f32 { m_s_(x * 1e-9) }
+pub fn m_s_  (x: Velocity) -> f32 { x.get::<meter_per_second>() }
+
 #[macro_export]
 macro_rules! in_base_unit {
   ($value:expr) => {
