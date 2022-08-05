@@ -41,6 +41,21 @@ pub use crate::index::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, LengthI, L
 
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 
-pub const C: Velocity = in_base_unit!(299_792_458.0);
-
 pub use geometry::AreaPerMass;
+
+
+pub const C: Velocity = in_base_unit!(0.299_792_458);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use geometry::units::{m_s_, mm_ps_};
+    use float_eq::assert_float_eq;
+
+    #[test]
+    fn test_speed_of_light() {
+        println!("C visual check: {:?}", C);
+        assert_float_eq!(  m_s_(C),   299_792_458.0, ulps <= 1);
+        assert_float_eq!(mm_ps_(C), 0.299_792_458  , ulps <= 1);
+    }
+}
