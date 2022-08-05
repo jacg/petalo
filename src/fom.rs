@@ -1,6 +1,7 @@
 use crate::io::raw;
 use crate::{Intensityf32, Ratiof32};
 use crate::{Length, Point};
+use geometry::Quantity;
 use geometry::units::ratio_;
 use crate::image::{Image, ImageData};
 use crate::fov::FOV;
@@ -249,8 +250,21 @@ pub fn mu_and_sigma(data: &[Intensityf32]) -> Option<(Intensityf32, Intensityf32
 
 }
 
+pub fn uom_mean<D, U>(data: &[Quantity<D, U, f32>]) -> Option<Quantity<D, U, f32>>
+where
+    D: uom::si::Dimension  + ?Sized,
+    U: uom::si::Units<f32> + ?Sized,
+    Quantity<D, U, f32>: std::ops::Div<f32, Output = Quantity<D, U, f32>>,
+    Quantity<D, U, f32>: std::ops::Add<     Output = Quantity<D, U, f32>>,
+
+{
+    data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as f32)
+}
+
 #[cfg(test)]
 mod test_mean {
+    use geometry::units::{mm, ns};
+
     use super::*;
 
     #[test]
@@ -262,6 +276,21 @@ mod test_mean {
         assert_eq!(it, Some(2.5));
 
         let it = mean(&vec![]);
+        assert_eq!(it, None);
+    }
+
+    #[test]
+    fn test_uom_mean() {
+        let to_mm = |data: &[f32]| data.iter().map(|&d| mm(d)).collect::<Vec<_>>();
+        let to_ns = |data: &[f32]| data.iter().map(|&d| ns(d)).collect::<Vec<_>>();
+
+        let it = uom_mean(&to_mm(&[1.0, 1.0, 1.0]));
+        assert_eq!(it, Some(mm(1.0)));
+
+        let it = uom_mean(&to_ns(&[1.0, 2.0, 3.0, 4.0]));
+        assert_eq!(it, Some(ns(2.5)));
+
+        let it = uom_mean(&to_mm(&[]));
         assert_eq!(it, None);
     }
 
