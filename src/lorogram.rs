@@ -80,13 +80,11 @@ impl Scattergram {
     }
 }
 
-impl std::ops::Add<&Scattergram> for &Scattergram {
-    type Output = Result<Scattergram, BinaryOperationError>;
 
-    fn add(self, other: &Scattergram) -> Self::Output {
-        let scatters = (&self.scatters + &other.scatters)?;
-        let trues    = (&self.trues    + &other.trues   )?;
-        Ok(Scattergram { trues, scatters })
+impl std::ops::AddAssign<&Scattergram> for Scattergram {
+    fn add_assign(&mut self, rhs: &Self) {
+        self.trues    += &rhs.trues;
+        self.scatters += &rhs.scatters;
     }
 }
 
@@ -187,11 +185,9 @@ impl Lorogram {
     pub fn value(&    self, lor: &LOR) -> usize { *self.0.value(&(*lor, *lor, *lor, *lor, *lor)).unwrap_or(&0) }
 }
 
-impl std::ops::Add<&Lorogram> for &Lorogram {
-    type Output = Result<Lorogram, BinaryOperationError>;
-
-    fn add(self, other: &Lorogram) -> Self::Output {
-        (&self.0 + &other.0).map(Lorogram)
+impl std::ops::AddAssign<&Lorogram> for Lorogram {
+    fn add_assign(&mut self, rhs: &Lorogram) {
+        self.0 += &rhs.0;
     }
 }
 
