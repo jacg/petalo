@@ -235,6 +235,40 @@ mod test_in_roi {
     }
 }
 
+pub fn pythagoras<D, U>(a: Quantity<D, U, f32>, b: Quantity<D, U, f32>) -> Quantity<D, U, f32>
+where
+    D: uom::si::Dimension  + ?Sized,
+    U: uom::si::Units<f32> + ?Sized,
+{
+    let a = a.value;
+    let b = b.value;
+    let c = (a*a + b*b).sqrt();
+    Quantity::<D, U, f32> {
+         dimension: uom::lib::marker::PhantomData,
+         units: uom::lib::marker::PhantomData,
+         value: c,
+     }
+}
+
+#[cfg(test)]
+mod test_pythagoras {
+    use super::*;
+    use geometry::{units::{cm, mm, nm, ps}, assert_uom_eq};
+    use uom::si::{length::millimeter, time::second};
+
+    #[test]
+    fn test_pythagoras() {
+        assert_uom_eq!(millimeter, pythagoras(mm(3.0), mm( 4.0)), mm( 5.0), ulps <= 1);
+        assert_uom_eq!(millimeter, pythagoras(nm(3.0), nm( 4.0)), nm( 5.0), ulps <= 1);
+        assert_uom_eq!(millimeter, pythagoras(cm(3.0), cm( 4.0)), cm( 5.0), ulps <= 1);
+        assert_uom_eq!(second    , pythagoras(ps(3.0), ps( 4.0)), ps( 5.0), ulps <= 1);
+        assert_uom_eq!(millimeter, pythagoras(mm(5.0), mm(12.0)), mm(13.0), ulps <= 1);
+        assert_uom_eq!(millimeter, pythagoras(nm(5.0), nm(12.0)), nm(13.0), ulps <= 1);
+        assert_uom_eq!(millimeter, pythagoras(cm(5.0), cm(12.0)), cm(13.0), ulps <= 1);
+        assert_uom_eq!(second    , pythagoras(ps(5.0), ps(12.0)), ps(13.0), ulps <= 1);
+    }
+}
+
 // TODO stop reinventing this wheel
 pub fn mean(data: &[Intensityf32]) -> Option<Intensityf32> {
     data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensityf32)
