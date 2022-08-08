@@ -281,7 +281,6 @@ pub fn mu_and_sigma(data: &[Intensityf32]) -> Option<(Intensityf32, Intensityf32
         .map(|x| x*x)
         .sum::<Intensityf32>() / data.len() as Intensityf32;
     Some((mu, variance.sqrt()))
-
 }
 
 pub fn uom_mean<D, U>(data: &[Quantity<D, U, f32>]) -> Option<Quantity<D, U, f32>>
@@ -295,9 +294,31 @@ where
     data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as f32)
 }
 
+pub fn uom_mu_and_sigma<D, U>(data: &[Quantity<D, U, f32>]) -> Option<(Quantity<D, U, f32>, Quantity<D, U, f32>)>
+where
+    D: uom::si::Dimension + ?Sized,
+    U: uom::si::Units<f32> + ?Sized,
+    Quantity<D, U, f32>: std::ops::Div<f32, Output = Quantity<D, U, f32>>,
+    Quantity<D, U, f32>: std::ops::Add<     Output = Quantity<D, U, f32>>,
+{
+    let uom_mu = uom_mean(data)?;
+    let     mu = uom_mu.value;
+    let variance = data.iter().cloned()
+        .map(|q| q.value)
+        .map(|x| x-mu)
+        .map(|x| x*x)
+        .sum::<Intensityf32>() / data.len() as Intensityf32;
+    let uom_sigma = Quantity::<D, U, f32> {
+        dimension: uom::lib::marker::PhantomData,
+        units: uom::lib::marker::PhantomData,
+        value: variance.sqrt(),
+    };
+    Some((uom_mu, uom_sigma))
+}
+
 #[cfg(test)]
 mod test_mean {
-    use geometry::units::{mm, ns};
+    use geometry::units::{mm, ns, Time};
 
     use super::*;
 
@@ -339,6 +360,21 @@ mod test_mean {
         if let Some((mu, sigma)) = mu_and_sigma(&vec![5.0, 6.0, 7.0, 8.0, 9.0]) {
             assert_eq!(mu,    7.0);
             assert_eq!(sigma, 2.0_f32.sqrt());
+        };
+
+        assert!(mu_and_sigma(&vec![]) == None);
+    }
+
+    #[test]
+    fn test_uom_mu_and_sigma() {
+        if let Some((mu, sigma)) = uom_mu_and_sigma(&to_mm(&[1.0, 1.0, 1.0])) {
+            assert_eq!(mu,    mm(1.0));
+            assert_eq!(sigma, mm(0.0));
+        };
+
+        if let Some((mu, sigma)) = uom_mu_and_sigma(&to_ns(&[5.0, 6.0, 7.0, 8.0, 9.0])) {
+            assert_eq!(mu,    ns(7.0));
+            assert_eq!(sigma, ns(2.0_f32.sqrt()));
         };
 
         assert!(mu_and_sigma(&vec![]) == None);
