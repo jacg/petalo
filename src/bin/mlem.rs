@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let sensitivity_image =
         if let Some(AC { sensitivity_image: path }) = config.attenuation_correction.as_ref() {
-            let image = Image::from_raw_file(&path)
+            let image = Image::from_raw_file(path)
                 .expect(&format!("Cannot read sensitivity image {:?}", path.display()));
             assert_image_sizes_match(&image, config.fov.nvoxels, config.fov.size);
             progress.done_with_message("Loaded sensitivity image");
