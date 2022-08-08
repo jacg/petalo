@@ -2,8 +2,7 @@ mod build_scattergram;
 pub use build_scattergram::*;
 
 use ndhistogram::{axis::{Axis, Uniform, UniformCyclic as Cyclic},
-                  Histogram, ndhistogram,
-                  error::BinaryOperationError};
+                  Histogram, ndhistogram};
 
 use crate::system_matrix::LOR;
 use std::f32::consts::TAU;
