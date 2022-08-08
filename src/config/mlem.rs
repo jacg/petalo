@@ -654,6 +654,7 @@ impl Display for Input {
     }
 }
 
+#[allow(clippy::useless_format)]
 impl<T: Display + Copy> Display for Bounds<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use crate::utils::group_digits as g;
