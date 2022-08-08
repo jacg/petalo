@@ -44,7 +44,9 @@ pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
 pub use geometry::AreaPerMass;
 
 
+#[allow(clippy::excessive_precision)]
 pub const C: Velocity = in_base_unit!(0.299_792_458);
+// `f32` will truncate this to        0.299_792_47
 
 #[cfg(test)]
 mod tests {
