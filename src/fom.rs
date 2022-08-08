@@ -318,7 +318,8 @@ where
 
 #[cfg(test)]
 mod test_mean {
-    use geometry::units::{mm, ns, Time};
+    use geometry::{units::{mm, ns, Time}, assert_uom_eq};
+    use uom::si::time::second;
 
     use super::*;
 
@@ -373,10 +374,9 @@ mod test_mean {
         };
 
         if let Some((mu, sigma)) = uom_mu_and_sigma(&to_ns(&[5.0, 6.0, 7.0, 8.0, 9.0])) {
-            assert_eq!(mu,    ns(7.0));
-            assert_eq!(sigma, ns(2.0_f32.sqrt()));
+            assert_uom_eq!(second, mu,    ns(7.0)           , ulps <= 1);
+            assert_uom_eq!(second, sigma, ns(2.0_f32.sqrt()), ulps <= 1);
         };
-
         assert!(mu_and_sigma(&vec![]) == None);
     }
 }
