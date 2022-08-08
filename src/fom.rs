@@ -313,10 +313,11 @@ mod test_mean {
         assert_eq!(it, None);
     }
 
+    fn to_mm(data: &[f32]) -> Vec<Length> { data.iter().map(|&d| mm(d)).collect() }
+    fn to_ns(data: &[f32]) -> Vec<Time  > { data.iter().map(|&d| ns(d)).collect() }
+
     #[test]
     fn test_uom_mean() {
-        let to_mm = |data: &[f32]| data.iter().map(|&d| mm(d)).collect::<Vec<_>>();
-        let to_ns = |data: &[f32]| data.iter().map(|&d| ns(d)).collect::<Vec<_>>();
 
         let it = uom_mean(&to_mm(&[1.0, 1.0, 1.0]));
         assert_eq!(it, Some(mm(1.0)));
