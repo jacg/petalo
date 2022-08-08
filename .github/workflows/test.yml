@@ -70,6 +70,9 @@ jobs:
       - name: Test Pure Rust in development environment
         run: nix develop -c just test-rust-pure --color=always
 
+      - name: Run slow Rust tests in development environment
+        run: nix develop -c cargo nextest run --run-ignored ignored-only --color=always
+
       - name: Test Pure Python in development environment
         run: nix develop -c just test-python-pure --color=yes
 
