@@ -1,6 +1,7 @@
 use crate::io::raw;
 use crate::{Intensityf32, Ratiof32};
 use crate::{Length, Point};
+use geometry::Quantity;
 use geometry::units::ratio_;
 use crate::image::{Image, ImageData};
 use crate::fov::FOV;
@@ -234,6 +235,40 @@ mod test_in_roi {
     }
 }
 
+pub fn pythagoras<D, U>(a: Quantity<D, U, f32>, b: Quantity<D, U, f32>) -> Quantity<D, U, f32>
+where
+    D: uom::si::Dimension  + ?Sized,
+    U: uom::si::Units<f32> + ?Sized,
+{
+    let a = a.value;
+    let b = b.value;
+    let c = (a*a + b*b).sqrt();
+    Quantity::<D, U, f32> {
+         dimension: uom::lib::marker::PhantomData,
+         units: uom::lib::marker::PhantomData,
+         value: c,
+     }
+}
+
+#[cfg(test)]
+mod test_pythagoras {
+    use super::*;
+    use geometry::{units::{cm, mm, nm, ps}, assert_uom_eq};
+    use uom::si::{length::millimeter, time::second};
+
+    #[test]
+    fn test_pythagoras() {
+        assert_uom_eq!(millimeter, pythagoras(mm(3.0), mm( 4.0)), mm( 5.0), ulps <= 1);
+        assert_uom_eq!(millimeter, pythagoras(nm(3.0), nm( 4.0)), nm( 5.0), ulps <= 1);
+        assert_uom_eq!(millimeter, pythagoras(cm(3.0), cm( 4.0)), cm( 5.0), ulps <= 1);
+        assert_uom_eq!(second    , pythagoras(ps(3.0), ps( 4.0)), ps( 5.0), ulps <= 1);
+        assert_uom_eq!(millimeter, pythagoras(mm(5.0), mm(12.0)), mm(13.0), ulps <= 1);
+        assert_uom_eq!(millimeter, pythagoras(nm(5.0), nm(12.0)), nm(13.0), ulps <= 1);
+        assert_uom_eq!(millimeter, pythagoras(cm(5.0), cm(12.0)), cm(13.0), ulps <= 1);
+        assert_uom_eq!(second    , pythagoras(ps(5.0), ps(12.0)), ps(13.0), ulps <= 1);
+    }
+}
+
 // TODO stop reinventing this wheel
 pub fn mean(data: &[Intensityf32]) -> Option<Intensityf32> {
     data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as Intensityf32)
@@ -246,11 +281,46 @@ pub fn mu_and_sigma(data: &[Intensityf32]) -> Option<(Intensityf32, Intensityf32
         .map(|x| x*x)
         .sum::<Intensityf32>() / data.len() as Intensityf32;
     Some((mu, variance.sqrt()))
+}
 
+pub fn uom_mean<D, U>(data: &[Quantity<D, U, f32>]) -> Option<Quantity<D, U, f32>>
+where
+    D: uom::si::Dimension  + ?Sized,
+    U: uom::si::Units<f32> + ?Sized,
+    Quantity<D, U, f32>: std::ops::Div<f32, Output = Quantity<D, U, f32>>,
+    Quantity<D, U, f32>: std::ops::Add<     Output = Quantity<D, U, f32>>,
+
+{
+    data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as f32)
+}
+
+pub fn uom_mu_and_sigma<D, U>(data: &[Quantity<D, U, f32>]) -> Option<(Quantity<D, U, f32>, Quantity<D, U, f32>)>
+where
+    D: uom::si::Dimension + ?Sized,
+    U: uom::si::Units<f32> + ?Sized,
+    Quantity<D, U, f32>: std::ops::Div<f32, Output = Quantity<D, U, f32>>,
+    Quantity<D, U, f32>: std::ops::Add<     Output = Quantity<D, U, f32>>,
+{
+    let uom_mu = uom_mean(data)?;
+    let     mu = uom_mu.value;
+    let variance = data.iter().cloned()
+        .map(|q| q.value)
+        .map(|x| x-mu)
+        .map(|x| x*x)
+        .sum::<Intensityf32>() / data.len() as Intensityf32;
+    let uom_sigma = Quantity::<D, U, f32> {
+        dimension: uom::lib::marker::PhantomData,
+        units: uom::lib::marker::PhantomData,
+        value: variance.sqrt(),
+    };
+    Some((uom_mu, uom_sigma))
 }
 
 #[cfg(test)]
 mod test_mean {
+    use geometry::{units::{mm, ns, Time}, assert_uom_eq};
+    use uom::si::time::second;
+
     use super::*;
 
     #[test]
@@ -262,6 +332,22 @@ mod test_mean {
         assert_eq!(it, Some(2.5));
 
         let it = mean(&vec![]);
+        assert_eq!(it, None);
+    }
+
+    fn to_mm(data: &[f32]) -> Vec<Length> { data.iter().map(|&d| mm(d)).collect() }
+    fn to_ns(data: &[f32]) -> Vec<Time  > { data.iter().map(|&d| ns(d)).collect() }
+
+    #[test]
+    fn test_uom_mean() {
+
+        let it = uom_mean(&to_mm(&[1.0, 1.0, 1.0]));
+        assert_eq!(it, Some(mm(1.0)));
+
+        let it = uom_mean(&to_ns(&[1.0, 2.0, 3.0, 4.0]));
+        assert_eq!(it, Some(ns(2.5)));
+
+        let it = uom_mean(&to_mm(&[]));
         assert_eq!(it, None);
     }
 
@@ -277,6 +363,20 @@ mod test_mean {
             assert_eq!(sigma, 2.0_f32.sqrt());
         };
 
+        assert!(mu_and_sigma(&vec![]) == None);
+    }
+
+    #[test]
+    fn test_uom_mu_and_sigma() {
+        if let Some((mu, sigma)) = uom_mu_and_sigma(&to_mm(&[1.0, 1.0, 1.0])) {
+            assert_eq!(mu,    mm(1.0));
+            assert_eq!(sigma, mm(0.0));
+        };
+
+        if let Some((mu, sigma)) = uom_mu_and_sigma(&to_ns(&[5.0, 6.0, 7.0, 8.0, 9.0])) {
+            assert_uom_eq!(second, mu,    ns(7.0)           , ulps <= 1);
+            assert_uom_eq!(second, sigma, ns(2.0_f32.sqrt()), ulps <= 1);
+        };
         assert!(mu_and_sigma(&vec![]) == None);
     }
 }
