@@ -686,6 +686,7 @@ mod tests {
 
     use crate::lorogram::{BuildScattergram as Sc, Prompt};
 
+    #[ignore]
     #[rstest(/**/ name        , correction,
              case("corr-none" , Sc::new()                                        ),
              case("corr-r"    , Sc::new()             .r_bins(20).r_max(mm(30.0))),
