@@ -54,7 +54,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // setup, so it fails early
     // If the directory where results will be written does not exist yet, make it
     create_dir_all(&args.output_directory)
-        .expect(&format!("Cannot write in output directory `{}`", args.output_directory.display()));
+        .unwrap_or_else(|_| panic!("Cannot write in output directory `{}`", args.output_directory.display()));
     // Copy config file to output directory, in order to preserve metadata
     std::fs::copy(
         &args.config_file,
@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let sensitivity_image =
         if let Some(AC { sensitivity_image: path }) = config.attenuation_correction.as_ref() {
             let image = Image::from_raw_file(path)
-                .expect(&format!("Cannot read sensitivity image {:?}", path.display()));
+                .unwrap_or_else(|_| panic!("Cannot read sensitivity image {:?}", path.display()));
             assert_image_sizes_match(&image, config.fov.nvoxels, config.fov.size);
             progress.done_with_message("Loaded sensitivity image");
             Some(image)

@@ -229,7 +229,7 @@ pub struct BinsLength {
 
 pub fn read_config_file(path: PathBuf) -> Config {
     let config: String = fs::read_to_string(&path)
-        .expect(&format!("Couldn't read config file `{:?}`", path));
+        .unwrap_or_else(|_| panic!("Couldn't read config file `{:?}`", path));
     toml::from_str(&config).unwrap()
 }
 
