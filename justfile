@@ -2,6 +2,8 @@
 
 test: test-rust test-python test-julia
 
+test-including-slow colours='': test-rust test-python test-julia
+	cargo nextest run {{colours}} --run-ignored ignored-only
 
 test-rust colours='':
 	just test-rust-pure {{colours}}
