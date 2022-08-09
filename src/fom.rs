@@ -309,7 +309,7 @@ where
         .map(|q| q.value)
         .map(|x| x-mu)
         .map(|x| x*x)
-        .sum::<Intensityf32>() / data.len() as Intensityf32;
+        .sum::<f32>() / data.len() as f32;
     let uom_sigma = Q::<D, U> {
         dimension: uom::lib::marker::PhantomData,
         units: uom::lib::marker::PhantomData,
