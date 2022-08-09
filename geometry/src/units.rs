@@ -101,7 +101,7 @@ pub fn m_s_  (x: Velocity) -> f32 { x.get::<meter_per_second>() }
 #[macro_export]
 macro_rules! in_base_unit {
   ($value:expr) => {
-    crate::Quantity {
+    $crate::Quantity {
       dimension: std::marker::PhantomData,
       units: std::marker::PhantomData,
       value: $value,
