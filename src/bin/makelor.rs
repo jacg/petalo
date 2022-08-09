@@ -7,6 +7,7 @@ use petalo::Point;
 use petalo::io;
 use petalo::io::hdf5::Hdf5Lor;
 use petalo::io::mcreaders::{MCQT, SensorMap, MCVertex};
+use petalo::sensors::lorreconstruction::lors_from;
 use petalo::Energyf32;
 use petalo::{Length, Time, Point, Ratio};
 use geometry::units::mmps::f32::Area;
@@ -175,13 +176,6 @@ impl LorBatch {
     pub fn new(lors: Vec<Hdf5Lor>, n_events_processed: usize) -> Self {
         Self { lors, n_events_processed }
     }
-}
-
-
-fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<Hdf5Lor>) -> Vec<Hdf5Lor> {
-    events.iter()
-        .flat_map(|data| one_lor(data))
-        .collect()
 }
 
 #[allow(nonstandard_style)]

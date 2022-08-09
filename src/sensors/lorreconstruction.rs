@@ -15,6 +15,13 @@ use crate::io::mcreaders::{read_sensor_hits, read_sensor_map};
 use crate::io::mcreaders::{MCQT, MCSensorHit, SensorMap};
 use crate::config::mlem::Bounds;
 
+
+pub fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<Hdf5Lor>) -> Vec<Hdf5Lor> {
+    events.iter()
+        .flat_map(|data| one_lor(data))
+        .collect()
+}
+
 pub fn filter_pde(pde: f32) -> bool {
     random::<f32>() < pde
 }
