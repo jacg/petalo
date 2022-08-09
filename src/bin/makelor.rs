@@ -7,7 +7,7 @@ use petalo::Point;
 use petalo::io;
 use petalo::io::hdf5::Hdf5Lor;
 use petalo::io::mcreaders::{MCQT, SensorMap, MCVertex};
-use petalo::sensors::lorreconstruction::lors_from;
+use petalo::sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction};
 use petalo::Energyf32;
 use petalo::{Length, Time, Point, Ratio};
 use geometry::units::mmps::f32::Area;
@@ -166,16 +166,6 @@ fn main() -> hdf5::Result<()> {
         println!("Warning: failed to read {} file{}:", n, plural);
     }
     Ok(())
-}
-
-struct LorBatch {
-    lors: Vec<Hdf5Lor>,
-    n_events_processed: usize,
-}
-impl LorBatch {
-    pub fn new(lors: Vec<Hdf5Lor>, n_events_processed: usize) -> Self {
-        Self { lors, n_events_processed }
-    }
 }
 
 #[allow(nonstandard_style)]

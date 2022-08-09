@@ -15,6 +15,8 @@ use crate::io::mcreaders::{read_sensor_hits, read_sensor_map};
 use crate::io::mcreaders::{MCQT, MCSensorHit, SensorMap};
 use crate::config::mlem::Bounds;
 
+type DetectionEff = f32;
+
 
 pub fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<Hdf5Lor>) -> Vec<Hdf5Lor> {
     events.iter()
@@ -22,11 +24,24 @@ pub fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<H
         .collect()
 }
 
-pub fn filter_pde(pde: f32) -> bool {
-    random::<f32>() < pde
+pub struct LorBatch {
+    pub lors: Vec<Hdf5Lor>,
+    pub n_events_processed: usize,
 }
 
-pub fn gaussian_sampler(mu: f32, sigma: f32) -> Box<dyn Fn() -> f32> {
+impl LorBatch {
+    pub fn new(lors: Vec<Hdf5Lor>, n_events_processed: usize) -> Self {
+        Self { lors, n_events_processed }
+    }
+}
+
+pub fn random_detection_pde<T>(pde: DetectionEff) -> impl Fn(&T) -> bool {
+    move |_| random::<DetectionEff>() < pde
+}
+
+pub fn gaussian_sampler(mu: f32, sigma: f32) -> impl Fn() -> f32 {
     let dist = Normal::new(mu, sigma).unwrap();
-    Box::new(move || dist.sample(&mut rand::thread_rng()))
+    move || dist.sample(&mut rand::thread_rng())
+}
+
 }
