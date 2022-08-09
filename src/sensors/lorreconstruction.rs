@@ -144,6 +144,24 @@ fn sipm_charge_barycentre(hits: &[SensorReadout]) -> Barycentre {
     Barycentre { x: xx / qs, y: yy / qs, z: zz / qs, t: tt, q: qs }
 }
 
+
+// Calculate the azimuthal angle for each hit and
+// adjust so continuous (make option?)
+fn azimuthal_angle(hits: &[SensorReadout]) -> Option<Vec<Angle>> {
+    if hits.is_empty() { return None }
+    let mut phis: Vec<Angle> = hits.iter()
+        .map(|&SensorReadout { x, y, .. }| y.atan2(x))
+        .collect();
+    
+    if phis.iter().any(|&phi| phi < turn(-0.25)) && phis.iter().any(|&phi| phi > turn(0.0)) {
+        // There is a discontinuity in this case (sensors in second and third quadrants) so mean or std calculations would be wrong.
+        for phi in phis.iter_mut().filter(|p| **p < turn(-0.25)) {
+            *phi += turn(1.0);
+        }
+    }
+    Some(phis)
+}
+
 // Weighted mean and variance.
 pub fn weighted_mean<D1, D2, U>(data: &[Quantity<D1, U, f32>], weights: &[Quantity<D2, U, f32>]) -> Option<Quantity<D1, U, f32>>
 where
@@ -372,6 +390,20 @@ mod test_electronics {
         assert_uom_eq!(millimeter, std_calc, std_expt, ulps <= 1);
         let std_calc = weighted_std(&xs, &qtest, Some(ave)).unwrap();
         assert_uom_eq!(millimeter, std_calc, std_expt, ulps <= 1);
+    }
+
+    use crate::TWOPI;
+    #[rstest]
+    fn test_azimuthal_angle(qt_vector: ([u32; 10], Vec<SensorReadout>)) {
+        let (_, hits) = qt_vector;
+        let phis1 = azimuthal_angle(&hits[..6]);
+        let phis_all = azimuthal_angle(&hits);
+        assert!(phis1.is_some() && phis_all.is_some());
+        assert!(phis1.clone().unwrap().iter().all(|phi| *phi < turn(0.0)));
+        assert!(phis_all.clone().unwrap().iter().all(|phi| *phi > turn(0.0)));
+        for (&p1, &p2) in phis1.unwrap().iter().zip(phis_all.unwrap().iter()) {
+            assert_uom_eq!(radian, p1, p2 - TWOPI, ulps <= 1);
+        }
     }
 
     #[rstest]
