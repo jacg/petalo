@@ -77,6 +77,16 @@ pub struct MCQT {
     pub t: Time,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct SensorReadout {
+    pub sensor_id: u32,
+    pub x: Length,
+    pub y: Length,
+    pub z: Length,
+    pub q: u32,
+    pub t: Time,
+}
+
 pub fn read_vertices(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<MCVertex>> {
     Ok(array_to_vec(read_table::<MCVertex>(&filename, "MC/vertices", range)?))
 }
