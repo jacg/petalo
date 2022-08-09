@@ -45,6 +45,53 @@ pub fn gaussian_sampler(mu: f32, sigma: f32) -> impl Fn() -> f32 {
     move || dist.sample(&mut rand::thread_rng())
 }
 
+// Could this be a FROM? How to use the Group here to avoid too many collects?
+fn qt_min_time(sensor_id: u32, hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Option<SensorReadout> {
+    let first_time = hits.iter().fold(f32::INFINITY, |min_val, val| val.time.min(min_val));
+    let &(x, y, z) = xyzs.get(&sensor_id)?;
+    Some(SensorReadout { sensor_id, x, y, z, q: hits.len() as u32, t: ns(first_time) })
+}
+
+/// combine the individual hits into information for each sensor.
+/// Currently uses the minimum as the time for each sensor which
+/// might prove too inflexible. Should be generalised.
+pub fn combine_sensor_hits(hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Vec<SensorReadout> {
+    hits.into_iter()
+        .sorted_by_key(|&MCSensorHit { sensor_id, ..}| sensor_id)
+        .group_by(|h| h.sensor_id)
+        .into_iter()
+        .flat_map(|(s, grp)| qt_min_time(s, grp.collect(), &xyzs))
+        .collect()
+}
+
+// This seems like something that would be in a crate somewhere.
+fn dot((x1,y1,z1): (Length, Length, Length), (x2,y2,z2): (Length, Length, Length)) -> Area {
+    x1*x2 + y1*y2 + z1*z2
+}
+
+// Dot product separation for now, need to implement other algorithm(s)
+fn dot_product_clusters(hits: &[SensorReadout], threshold: f32, min_sensors: usize) -> Option<(Vec<SensorReadout>, Vec<SensorReadout>)> {
+    let max_pos = hits.iter().max_by_key(|e| e.q).map(|&SensorReadout { x, y, z, .. }| (x, y, z))?;
+    // let max_sens = hits.iter().max_by_key(|e| e.q).map(|e| e.sensor_id)?;
+    let (c1, c2): (Vec<SensorReadout>, Vec<SensorReadout>) = hits.iter()
+            .filter(|&SensorReadout { q, .. }| *q as f32 > threshold)
+            .partition(|&SensorReadout { x, y, z, .. }| dot(max_pos, (*x, *y, *z)) > Area::ZERO);
+    if c1.len() >= min_sensors && c2.len() >= min_sensors { Some((c1, c2)) } else { None }
+}
+
+// Is there a more generic way to avoid rewriting this code over and over again?
+fn get_sensor_charge(hits: &[SensorReadout]) -> Vec<Ratio> {
+    hits.iter()
+        .map(|&SensorReadout { q, .. }| ratio(q as f32))
+        .collect()
+}
+
+fn get_sensor_z(hits: &[SensorReadout]) -> Vec<Length> {
+    hits.iter()
+        .map(|&SensorReadout { z, .. }| z)
+        .collect()
+}
+
 
 // Weighted mean and variance.
 pub fn weighted_mean<D1, D2, U>(data: &[Quantity<D1, U, f32>], weights: &[Quantity<D2, U, f32>]) -> Option<Quantity<D1, U, f32>>
@@ -166,6 +213,61 @@ mod test_electronics {
         assert_float_eq!(selected.len() as f32 / n as f32, pde, abs <= samp_3sig)
     }
 
+    #[rstest]
+    fn test_sensor_min(mcsensorhit_vector: ([u32; 5], SensorMap, Vec<MCSensorHit>)) {
+        let (sensor_ids, smap, hits) = mcsensorhit_vector;
+
+        let qt = qt_min_time(sensor_ids[0], hits[0..3].to_vec(), &smap).unwrap();
+        assert_eq!(qt.q, 3);
+        assert_float_eq!(ns_(qt.t), 0.11, ulps <=1)
+    }
+
+    #[rstest]
+    fn test_combine_sensors(mcsensorhit_vector: ([u32; 5], SensorMap, Vec<MCSensorHit>)) {
+        let (_, smap, hits) = mcsensorhit_vector;
+
+        let qts = combine_sensor_hits(hits, &smap);
+        assert_eq!(qts.len(), 3);
+        let (qs, ts): (Vec<u32>, Vec<f32>) = qts.iter().map(|&SensorReadout { q, t, .. }| (q, ns_(t))).unzip();
+        assert_eq!(qs, [3, 1, 1]);
+        // Probably want to check all the ts too but getting compilation errors. TODO
+        assert_float_eq!(ts[0], 0.11, ulps <= 1)
+    }
+
+    #[test]
+    fn test_combine_sensors_unordered() {
+        let sensor_ids = [132, 145, 129, 129, 132, 145];
+        let positions: [(f32, f32, f32); 6] = [(0.0, 0.0, 1.0), (1.0, 1.0, 1.0),
+                                               (0.0, 0.0, 0.0), (0.0, 0.0, 0.0),
+                                               (0.0, 0.0, 1.0), (1.0, 1.0, 1.0)];
+        let smap = sensor_ids.iter().cloned()
+            .zip(positions.iter())
+            .map(|(id, &(x, y, z))| (id, (mm(x), mm(y), mm(z))))
+            .collect();
+        let test_hits: Vec<MCSensorHit> = sensor_ids
+            .iter()
+            .map(|&sensor_id| MCSensorHit { event_id: 1, sensor_id, time: 0.11})
+            .collect();
+        let qts = combine_sensor_hits(test_hits, &smap);
+        assert_eq!(qts.len(), 3);
+        let ids: Vec<u32> = qts
+            .iter()
+            .map(|SensorReadout { sensor_id, .. }| *sensor_id)
+            .collect();
+        assert_eq!(ids, [129, 132, 145]);
+    }
+
+    #[rstest]
+    fn test_dotproduct_separation(qt_vector: ([u32; 10], Vec<SensorReadout>)) {
+        let (qs, sensors) = qt_vector;
+        let clustering = dot_product_clusters(&sensors, 1.0, 2);
+        assert!(clustering.is_some());
+        let (c1, c2) = clustering.unwrap();
+        assert_eq!(c1.len(), 4);
+        assert_eq!(c2.len(), 5);
+        assert_eq!(c1.iter().map(|&SensorReadout { q, .. }| q).sum::<u32>(), qs[6..10].iter().sum());
+        assert_eq!(c2.iter().map(|&SensorReadout { q, .. }| q).sum::<u32>(), qs[0..6].iter().sum::<u32>() - 1);
+    }
     use geometry::assert_uom_eq;
     use uom::si::length::millimeter;
     use uom::si::angle::radian;
