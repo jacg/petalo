@@ -229,7 +229,7 @@ pub struct BinsLength {
 
 pub fn read_config_file(path: PathBuf) -> Config {
     let config: String = fs::read_to_string(&path)
-        .expect(&format!("Couldn't read config file `{:?}`", path));
+        .unwrap_or_else(|_| panic!("Couldn't read config file `{:?}`", path));
     toml::from_str(&config).unwrap()
 }
 
@@ -291,12 +291,12 @@ mod tests {
     fn parse<'d, D: Deserialize<'d>>(input: &'d str) -> D {
         toml::from_str(input).unwrap()
     }
-    // //  ---  Parse string as TOML, with explicit error reporting -------------------------
-    fn parse_carefully<'d, D: Deserialize<'d>>(input: &'d str) -> Result<D, toml::de::Error> {
+    //  ---  Parse string as TOML, with explicit error reporting -------------------------
+    fn _parse_carefully<'d, D: Deserialize<'d>>(input: &'d str) -> Result<D, toml::de::Error> {
         toml::from_str(input)
     }
-    fn parse_config<'d>(input: &'d str) -> Result<Config, toml::de::Error> {
-        parse_carefully(input)
+    fn _parse_config<'d>(input: &'d str) -> Result<Config, toml::de::Error> {
+        _parse_carefully(input)
     }
     //  ---  Macro for concise assertions about vlues of parsed fields -------------------
     macro_rules! check {
@@ -654,6 +654,7 @@ impl Display for Input {
     }
 }
 
+#[allow(clippy::useless_format)]
 impl<T: Display + Copy> Display for Bounds<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use crate::utils::group_digits as g;

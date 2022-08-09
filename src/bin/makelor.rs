@@ -97,14 +97,14 @@ fn main() -> hdf5::Result<()> {
     let makelors: FilenameToLorsFunction = match args.reco {
         Reco::FirstVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let vertices = read_vertices(&infile)?;
+                let vertices = read_vertices(infile)?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 Ok(LorBatch::new(lors_from(&events, lor_from_first_vertices), events.len()))
             }),
 
         Reco::BaryVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let vertices = read_vertices(&infile)?;
+                let vertices = read_vertices(infile)?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 Ok(LorBatch::new(lors_from(&events, lor_from_barycentre_of_vertices), events.len()))
             }),

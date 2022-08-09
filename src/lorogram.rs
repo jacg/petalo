@@ -2,8 +2,7 @@ mod build_scattergram;
 pub use build_scattergram::*;
 
 use ndhistogram::{axis::{Axis, Uniform, UniformCyclic as Cyclic},
-                  Histogram, ndhistogram,
-                  error::BinaryOperationError};
+                  Histogram, ndhistogram};
 
 use crate::system_matrix::LOR;
 use std::f32::consts::TAU;
@@ -29,6 +28,7 @@ pub struct Scattergram {
 // computing the ratios repeatedly on the fly is a waste of time.
 impl Scattergram {
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         bins_phi: usize,
         bins_z  : usize, len_z : Length,
