@@ -235,7 +235,7 @@ mod test_in_roi {
     }
 }
 
-pub fn pythagoras<D, U>(a: Quantity<D, U, f32>, b: Quantity<D, U, f32>) -> Quantity<D, U, f32>
+pub fn pythagoras<D, U>(a: Q<D, U>, b: Q<D, U>) -> Q<D, U>
 where
     D: uom::si::Dimension  + ?Sized,
     U: uom::si::Units<f32> + ?Sized,
@@ -243,7 +243,7 @@ where
     let a = a.value;
     let b = b.value;
     let c = (a*a + b*b).sqrt();
-    Quantity::<D, U, f32> {
+    Q::<D, U> {
          dimension: uom::lib::marker::PhantomData,
          units: uom::lib::marker::PhantomData,
          value: c,
@@ -283,23 +283,25 @@ pub fn mu_and_sigma(data: &[Intensityf32]) -> Option<(Intensityf32, Intensityf32
     Some((mu, variance.sqrt()))
 }
 
-pub fn uom_mean<D, U>(data: &[Quantity<D, U, f32>]) -> Option<Quantity<D, U, f32>>
+type Q<D, U> = Quantity<D, U, f32>;
+
+pub fn uom_mean<D, U>(data: &[Q<D, U>]) -> Option<Q<D, U>>
 where
     D: uom::si::Dimension  + ?Sized,
     U: uom::si::Units<f32> + ?Sized,
-    Quantity<D, U, f32>: std::ops::Div<f32, Output = Quantity<D, U, f32>>,
-    Quantity<D, U, f32>: std::ops::Add<     Output = Quantity<D, U, f32>>,
+    Q<D, U>: std::ops::Div<f32, Output = Q<D, U>>,
+    Q<D, U>: std::ops::Add<     Output = Q<D, U>>,
 
 {
     data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as f32)
 }
 
-pub fn uom_mu_and_sigma<D, U>(data: &[Quantity<D, U, f32>]) -> Option<(Quantity<D, U, f32>, Quantity<D, U, f32>)>
+pub fn uom_mu_and_sigma<D, U>(data: &[Q<D, U>]) -> Option<(Q<D, U>, Q<D, U>)>
 where
     D: uom::si::Dimension + ?Sized,
     U: uom::si::Units<f32> + ?Sized,
-    Quantity<D, U, f32>: std::ops::Div<f32, Output = Quantity<D, U, f32>>,
-    Quantity<D, U, f32>: std::ops::Add<     Output = Quantity<D, U, f32>>,
+    Q<D, U>: std::ops::Div<f32, Output = Q<D, U>>,
+    Q<D, U>: std::ops::Add<     Output = Q<D, U>>,
 {
     let uom_mu = uom_mean(data)?;
     let     mu = uom_mu.value;
@@ -308,7 +310,7 @@ where
         .map(|x| x-mu)
         .map(|x| x*x)
         .sum::<Intensityf32>() / data.len() as Intensityf32;
-    let uom_sigma = Quantity::<D, U, f32> {
+    let uom_sigma = Q::<D, U> {
         dimension: uom::lib::marker::PhantomData,
         units: uom::lib::marker::PhantomData,
         value: variance.sqrt(),
