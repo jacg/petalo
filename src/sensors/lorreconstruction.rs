@@ -92,6 +92,34 @@ fn get_sensor_z(hits: &[SensorReadout]) -> Vec<Length> {
         .collect()
 }
 
+}
+
+#[derive(Copy, Clone)]
+struct Barycentre {
+    x: Length,
+    y: Length,
+    z: Length,
+    t: Time,
+    q: Ratio,
+}
+
+// TODO protect against curvature reducing R for big clusters?
+fn sipm_charge_barycentre(hits: &[SensorReadout]) -> Barycentre {
+    let mut qs = Ratio::ZERO;
+    let mut xx = Length::ZERO;
+    let mut yy = Length::ZERO;
+    let mut zz = Length::ZERO;
+    let mut tt = Time::ZERO;
+    for &SensorReadout{ x, y, z, q, t, .. } in hits {
+        let q = ratio(q as f32);
+        qs += q;
+        xx += x * q;
+        yy += y * q;
+        zz += z * q;
+        if t < tt { tt = t };
+    }
+    Barycentre { x: xx / qs, y: yy / qs, z: zz / qs, t: tt, q: qs }
+}
 
 // Weighted mean and variance.
 pub fn weighted_mean<D1, D2, U>(data: &[Quantity<D1, U, f32>], weights: &[Quantity<D2, U, f32>]) -> Option<Quantity<D1, U, f32>>
