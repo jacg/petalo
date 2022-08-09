@@ -100,6 +100,7 @@ pub mod timing {
 
     impl Progress {
 
+        #[allow(clippy::new_without_default)]
         pub fn new() -> Self { Self { previous: Instant::now() } }
 
         /// Print message, append ellipsis, flush stdout, stay on same line, start timer.
