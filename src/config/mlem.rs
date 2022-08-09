@@ -291,12 +291,12 @@ mod tests {
     fn parse<'d, D: Deserialize<'d>>(input: &'d str) -> D {
         toml::from_str(input).unwrap()
     }
-    // //  ---  Parse string as TOML, with explicit error reporting -------------------------
-    fn parse_carefully<'d, D: Deserialize<'d>>(input: &'d str) -> Result<D, toml::de::Error> {
+    //  ---  Parse string as TOML, with explicit error reporting -------------------------
+    fn _parse_carefully<'d, D: Deserialize<'d>>(input: &'d str) -> Result<D, toml::de::Error> {
         toml::from_str(input)
     }
-    fn parse_config<'d>(input: &'d str) -> Result<Config, toml::de::Error> {
-        parse_carefully(input)
+    fn _parse_config<'d>(input: &'d str) -> Result<Config, toml::de::Error> {
+        _parse_carefully(input)
     }
     //  ---  Macro for concise assertions about vlues of parsed fields -------------------
     macro_rules! check {
