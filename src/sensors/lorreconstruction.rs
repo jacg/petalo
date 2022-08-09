@@ -4,8 +4,9 @@ use std::path::PathBuf;
 use geometry::Quantity;
 use itertools::Itertools;
 
+use uom::typenum::P2;
 use geometry::uom::ConstZero;
-use geometry::units::{mm_, ns, ns_, ratio};
+use geometry::units::{mm, mm_, ns, ns_, radian_, ratio, ratio_, turn};
 use geometry::units::mmps::f32::Area;
 use rand::random;
 use rand_distr::{Normal, Distribution};
@@ -92,6 +93,28 @@ fn get_sensor_z(hits: &[SensorReadout]) -> Vec<Length> {
         .collect()
 }
 
+/// Reconstruct LORs based on the barycentre of the 2 selected clusters (dot prod).
+fn lor_from_sensor_positions(
+    hits        : &[SensorReadout],
+    threshold   : f32             ,
+    min_sensors : usize           ,
+    min_charge  : f32             ,
+    doi_function: impl Fn(Barycentre, &[SensorReadout]) -> Option<Barycentre>
+) -> Option<Hdf5Lor> {
+    if hits.is_empty() { return None }
+    let (c1, c2) = dot_product_clusters(hits, threshold, min_sensors)?;
+    // TODO time just taken as minimum of minima. Averaging used elsewhere.\
+    let b1 = sipm_charge_barycentre(&c1);
+    let b1 = doi_function(b1, &c1)?;
+    let b2 = sipm_charge_barycentre(&c2);
+    let b2 = doi_function(b2, &c2)?;
+    if b1.q.min(b2.q) < ratio(min_charge) { return None }
+    Some(Hdf5Lor {
+        dt: ns_(b2.t - b1.t),
+        x1: mm_(b1.x), y1: mm_(b1.y), z1: mm_(b1.z),
+        x2: mm_(b2.x), y2: mm_(b2.y), z2: mm_(b2.z),
+        q1: ratio_(b1.q), q2: ratio_(b2.q), E1: f32::NAN, E2: f32::NAN,
+    })
 }
 
 #[derive(Copy, Clone)]
@@ -296,6 +319,15 @@ mod test_electronics {
         assert_eq!(c1.iter().map(|&SensorReadout { q, .. }| q).sum::<u32>(), qs[6..10].iter().sum());
         assert_eq!(c2.iter().map(|&SensorReadout { q, .. }| q).sum::<u32>(), qs[0..6].iter().sum::<u32>() - 1);
     }
+
+    #[rstest]
+    fn test_lor_from_sensor_position(qt_vector: ([u32; 10], Vec<SensorReadout>)) {
+        let (_, sensors) = qt_vector;
+        let lor = lor_from_sensor_positions(&sensors, 1.0, 2, 2.0,
+            |b: Barycentre, _h: &[SensorReadout]| Some(b));
+        assert!(lor.is_some());
+    }
+
     use geometry::assert_uom_eq;
     use uom::si::length::millimeter;
     use uom::si::angle::radian;
