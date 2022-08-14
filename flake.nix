@@ -45,10 +45,6 @@
                     cargo = rustup.default;
                     rust-analyzer-preview = rust-analyzer-preview-on "2022-07-03";
                   })
-              # ==== Cargo nextest ========================================================
-              (final: prev: {
-                cargo-nextest = final.callPackage ./overlays/cargo-nextest.nix {};
-              })
             ];
           };
 
