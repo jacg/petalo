@@ -72,45 +72,39 @@ mod units {
                     angle   ::{radian, revolution},
   };
 }
-// Making values from float literals seems to be very long-winded, so provide
+
+// Making uom quantities from float literals is very long-winded, so provide
 // some pithily-named convenience constructors. These would probably have to be
 // packed up in a constructor module in real life.
 
-/// Generate a function called NAME which returns QUANTITY by interpreting its
-/// argument as UNIT
+/// Generate a pair of functions for converting between f32 and uom quantities.
 ///
-/// wrap!(NAME QUANTITY UNIT);
+/// wrap!(WRAP_NAME UNWRAP_NAME QUANTITY UNIT);
+///
+/// The wrapping function is called WRAP_NAME and returns QUANTITY by
+/// interpreting its argument as UNIT. The function UNWRAP_NAME is the inverse
+/// of WRAP_NAME.
 macro_rules! wrap {
-  ($name:ident $quantity:ident $unit:ident ) => {
-    pub fn $name(x: f32) -> $quantity { $quantity::new::<units::$unit>(x) }
+  ($wrap_name:ident $unwrap_name:ident $quantity:ident $unit:ident ) => {
+    pub fn   $wrap_name(x: f32) -> $quantity { $quantity::new::<units::$unit>(x) }
+    pub fn $unwrap_name(x: $quantity) -> f32 {          x.get::<units::$unit>( ) }
   };
 }
 
-wrap!(cm     Length         centimeter);
-wrap!(mm     Length         millimeter);
-wrap!(nm     Length          nanometer);
-wrap!(ns     Time           nanosecond);
-wrap!(ps     Time           picosecond);
-wrap!(m_s    Velocity meter_per_second);
-wrap!(kg     Mass             kilogram);
-wrap!(ratio  Ratio               ratio);
-wrap!(radian Angle              radian);
-wrap!(turn   Angle          revolution);
-
-// Reverse direction of the above. Rethink nomenclature once the dust has
-// settled after the transition to uom is complete.
-pub fn mm_(x: Length) -> f32 { x.get::<units::millimeter>() }
-pub fn ps_(x: Time  ) -> f32 { x.get::<units::picosecond>() }
-pub fn ns_(x: Time  ) -> f32 { x.get::<units::nanosecond>() }
-pub fn kg_(x: Mass  ) -> f32 { x.get::<units::kilogram>  () }
-
-pub fn ratio_ (x: Ratio) -> f32 { x.get::<uom::si::ratio::ratio>() }
-pub fn radian_(x: Angle) -> f32 { x.get::<uom::si::angle::radian>() }
-pub fn turn_  (x: Angle) -> f32 { x.get::<uom::si::angle::revolution>() }
+wrap!(cm     cm_     Length         centimeter);
+wrap!(mm     mm_     Length         millimeter);
+wrap!(nm     nm_     Length          nanometer);
+wrap!(ns     ns_     Time           nanosecond);
+wrap!(ps     ps_     Time           picosecond);
+wrap!(m_s    m_s_    Velocity meter_per_second);
+wrap!(kg     kg_     Mass             kilogram);
+wrap!(ratio  ratio_  Ratio               ratio);
+wrap!(radian radian_ Angle              radian);
+wrap!(turn   turn_   Angle          revolution);
 
 pub fn mm_ps (x: f32) -> Velocity { m_s (x / m_s(1.0).value) }
 pub fn mm_ps_(x: Velocity) -> f32 { m_s_(x * m_s(1.0).value) }
-pub fn m_s_  (x: Velocity) -> f32 { x.get::<units::meter_per_second>() }
+
 
 #[macro_export]
 macro_rules! in_base_unit {
