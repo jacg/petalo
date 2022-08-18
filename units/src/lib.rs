@@ -1,3 +1,24 @@
+/// The `uom`-based system of units used by petalo
+///
+/// It uses `mm` and `ps` as the base units of `Length` and `Time` (as opposed
+/// to the standard and default `m` and `s`), on order to match the meaning of
+/// the floats written out by the Geant4-based Monte Carlo data.
+///
+/// TODO: write more documentation
+
+
+// Make the version of `uom` that is used here, accessible to other crates in
+// the workspace. The problem is that the versions of `uom` declared as
+// dependencies in differenc crates in the workspace, can diverge, and then we
+// get annoying compilation errors. So, for now, we agree to use *this* version
+// everywhere in the production code. The other version is used only in the
+// `uom` example, which I want to leave in it's current prominent place, rather
+// than moving it into this crate.
+// TODO: this shouldn't be necessary any more once
+// https://github.com/rust-lang/cargo/issues/8415 is stabilized.
+pub use uom;
+
+
 use uom::si::Dimension;
 pub type InvertDimension<D> = uom::si::ISQ<
     <<D as Dimension>::L  as uom::lib::ops::Neg>::Output,
@@ -118,26 +139,26 @@ macro_rules! in_base_unit {
 }
 
 
+#[doc(hidden)]
+pub use float_eq;
+
 #[macro_export]
 macro_rules! assert_uom_eq {
-  ($unit:ident, $lhs:expr, $rhs:expr, $algo:ident <= $tol:expr) => {
-    float_eq::assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
-  };
+    ($unit:ident, $lhs:expr, $rhs:expr, $algo:ident <= $tol:expr) => (
+        $crate::float_eq::assert_float_eq!($lhs.get::<$unit>(), $rhs.get::<$unit>(), $algo <= $tol)
+    );
 }
-
-#[cfg(test)]
-pub (crate) use assert_uom_eq;
 
 
 #[cfg(test)]
 mod tests {
-  use super::*;
+    use super::*;
 
-  #[test]
-  fn test_name() {
-    let v = vec![mm(1.0), cm(1.0)];
-    let total: Length = v.into_iter().sum();
-    use units::nanometer;
-    assert_uom_eq!(nanometer, total, mm(11.0), ulps <= 1);
-  }
+    #[test]
+    fn test_name() {
+        let v = vec![mm(1.0), cm(1.0)];
+        let total: Length = v.into_iter().sum();
+        use units::nanometer;
+        assert_uom_eq!(nanometer, total, mm(11.0), ulps <= 1);
+    }
 }

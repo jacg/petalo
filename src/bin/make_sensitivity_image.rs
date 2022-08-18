@@ -43,8 +43,8 @@ use petalo::{utils::group_digits, fov::FOV, Lengthf32};
 use petalo::image::Image;
 
 use petalo::{Length, Time, AreaPerMass};
-use geometry::units::{ratio, kg, mm};
-use geometry::uom::ConstZero;
+use units::{ratio, kg, mm};
+use units::uom::ConstZero;
 use petalo::system_matrix as sm;
 
 fn main() -> Result<(), Box<dyn Error>> {

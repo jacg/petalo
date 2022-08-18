@@ -255,9 +255,9 @@ dependencies = [
 name = "bindings"
 version = "0.1.0"
 dependencies = [
- "geometry",
  "petalo",
  "pyo3",
+ "units",
 ]
 
 [[package]]
@@ -1046,11 +1046,10 @@ dependencies = [
 name = "geometry"
 version = "0.1.0"
 dependencies = [
- "float_eq",
  "ncollide3d",
  "pretty_assertions",
  "rstest",
- "uom",
+ "units",
 ]
 
 [[package]]
@@ -2314,6 +2313,7 @@ dependencies = [
  "structopt",
  "tempfile",
  "toml",
+ "units",
  "uom",
 ]
 
@@ -3073,6 +3073,14 @@ name = "unindent"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52fee519a3e570f7df377a06a1a7775cdbfb7aa460be7e08de2b1f0e69973a44"
+
+[[package]]
+name = "units"
+version = "0.1.0"
+dependencies = [
+ "float_eq",
+ "uom",
+]
 
 [[package]]
 name = "uom"

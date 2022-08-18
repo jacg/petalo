@@ -38,7 +38,7 @@ use petalo::fov::FOV;
 use petalo::image::Image;
 use petalo::io;
 use petalo::utils::timing::Progress;
-use geometry::units::mm_;
+use units::mm_;
 
 
 fn main() -> Result<(), Box<dyn Error>> {

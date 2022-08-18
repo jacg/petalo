@@ -129,8 +129,8 @@ impl IndexMut<usize> for Point {
 mod tests {
     use crate::{Point, Vector};
     const EPS: f32 = f32::EPSILON;
-    use uom::si::length::{millimeter, meter};
-    use crate::units::{nm, mm, cm, assert_uom_eq};
+    use units::uom::si::length::{millimeter, meter};
+    use units::{nm, mm, cm, assert_uom_eq};
 
     #[test]
     fn point_components() {

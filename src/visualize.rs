@@ -10,7 +10,7 @@ use crate::system_matrix::LOR;
 use crate::fov::FOV;
 use crate::config::mlem::Tof;
 
-use geometry::units::{mm_, ps_};
+use units::{mm_, ps_};
 
 use structopt::clap::arg_enum;
 

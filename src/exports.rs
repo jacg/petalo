@@ -2,9 +2,9 @@ pub use crate::system_matrix::{LOR, find_tof_peak, find_entry_point, voxel_size,
 
 use ncollide3d as nc;
 
-pub use geometry::uom::si::Quantity;
-pub use geometry::uom::typenum::{Z0, N1};
-use geometry::in_base_unit;
+pub use units::uom::si::Quantity;
+pub use units::uom::typenum::{Z0, N1};
+use units::in_base_unit;
 
 pub type Lengthf32  = f32;
 pub use geometry::Length;
@@ -51,7 +51,7 @@ pub const C: Velocity = in_base_unit!(0.299_792_458);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use geometry::units::{m_s_, mm_ps_};
+    use units::{m_s_, mm_ps_};
     use float_eq::assert_float_eq;
 
     #[test]

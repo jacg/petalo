@@ -12,7 +12,7 @@ use petalo::io;
 
 use petalo::config::mlem::{Config, Bounds, Input};
 
-use geometry::units::mm;
+use units::mm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 

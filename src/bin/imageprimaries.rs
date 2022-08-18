@@ -33,12 +33,12 @@ pub struct Cli {
 use std::error::Error;
 use petalo::Lengthf32;
 use petalo::Length;
-use geometry::units::{mm, mm_};
+use units::{mm, mm_};
 use petalo::fov::FOV;
 use petalo::image::Image;
 use petalo::io::hdf5::{read_table, Primary};
 type L = Lengthf32;
-use geometry::uom::si::length::millimeter;
+use units::uom::si::length::millimeter;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();

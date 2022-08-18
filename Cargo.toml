@@ -1,6 +1,6 @@
 [workspace]
 # members = ["mlem", "bindings"]
-members = ["geometry", "bindings"]
+members = ["geometry", "bindings", "units"]
 
 [package]
 name = "petalo"
@@ -15,6 +15,7 @@ debug = true
 
 [dependencies]
 geometry = { path = "geometry" }
+units = { path = "units" }
 structopt = "0.3"
 ndarray = { version = "0.15.4", features = ["rayon"] }
 rayon = "1.5.3"

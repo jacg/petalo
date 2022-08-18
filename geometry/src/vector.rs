@@ -1,7 +1,7 @@
 use std::ops::{Index, IndexMut, Mul, Sub};
-use crate::{Length, Ratio};
+use units::{Length, Ratio};
 
-use crate::units::{mm, ratio};
+use units::{mm, ratio};
 
 type NcVector = ncollide3d::math::Vector::<f32>;
 
@@ -100,7 +100,7 @@ impl Vector {
 
     pub fn xyz<T>(x: f32, y: f32, z: f32) -> Self
     where
-        T: uom::Conversion<f32, T = f32> + uom::si::length::Unit,
+        T: units::uom::Conversion<f32, T = f32> + units::uom::si::length::Unit,
     {
         Self {
             x: Length::new::<T>(x),
@@ -179,8 +179,8 @@ impl Sub for RatioVec {
 mod tests {
     use crate::Vector;
     const EPS: f32 = f32::EPSILON;
-    use uom::si::length::meter;
-    use crate::units::{nm, mm, cm, assert_uom_eq};
+    use units::uom::si::length::meter;
+    use units::{nm, mm, cm, assert_uom_eq};
     use rstest::rstest;
 
     #[test]
