@@ -32,8 +32,7 @@ pub struct Cli {
 
 use std::error::Error;
 use petalo::Lengthf32;
-use petalo::Length;
-use units::{mm, mm_};
+use units::{Length, mm, mm_};
 use petalo::fov::FOV;
 use petalo::image::Image;
 use petalo::io::hdf5::{read_table, Primary};

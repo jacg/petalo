@@ -1,7 +1,6 @@
+use units::{Length, Quantity};
 use crate::io::raw;
-use crate::{Intensityf32, Ratiof32};
-use crate::{Length, Point};
-use geometry::Quantity;
+use crate::{Point, Intensityf32, Ratiof32};
 use units::ratio_;
 use crate::image::{Image, ImageData};
 use crate::fov::FOV;

@@ -4,29 +4,14 @@ use ncollide3d as nc;
 
 pub use units::uom::si::Quantity;
 pub use units::uom::typenum::{Z0, N1};
-use units::in_base_unit;
 
-pub type Lengthf32  = f32;
-pub use geometry::Length;
-
-pub type PerLength = geometry::PerLength;
-
-pub type Timef32 = f32;
-pub use geometry::Time;
-
-pub type Velocity = geometry::Velocity;
-
-pub type Weightf32 = f32;  // TODO uom Weight
-
-pub type Ratiof32 = f32;
-pub use geometry::Ratio;
-
-pub use geometry::{Angle, TWOPI};
+pub type Lengthf32 = f32;
+pub type Timef32   = f32;
+pub type Weightf32 = f32; // TODO uom Weight
+pub type Ratiof32  = f32;
 pub type Anglef32  = f32; // TODO eliminate
-
 pub type Energyf32 = f32; // TODO uom Energy
 pub type Chargef32 = f32; // TODO uom Charge
-
 pub type Intensityf32 = f32; // TODO uom Intensity
 
 pub use geometry::RatioVec;
@@ -40,24 +25,3 @@ pub type Point    = geometry::Point;
 pub use crate::index::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, LengthI, LengthU};
 
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);
-
-pub use geometry::AreaPerMass;
-
-
-#[allow(clippy::excessive_precision)]
-pub const C: Velocity = in_base_unit!(0.299_792_458);
-// `f32` will truncate this to        0.299_792_47
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use units::{m_s_, mm_ps_};
-    use float_eq::assert_float_eq;
-
-    #[test]
-    fn test_speed_of_light() {
-        println!("C visual check: {:?}", C);
-        assert_float_eq!(  m_s_(C),   299_792_458.0, ulps <= 1);
-        assert_float_eq!(mm_ps_(C), 0.299_792_458  , ulps <= 1);
-    }
-}

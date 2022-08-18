@@ -3,8 +3,8 @@ use ndarray::azip;
 
 use rayon::prelude::*;
 
+use units::{Length, PerLength, AreaPerMass};
 use crate::{io, Lengthf32, Index1_u, Intensityf32};
-use crate::{Length, PerLength, AreaPerMass};
 use crate::{fov::{lor_fov_hit, FovHit}, system_matrix::{system_matrix_elements, LOR}};
 use crate::fov::FOV;
 use crate::gauss::make_gauss_option;

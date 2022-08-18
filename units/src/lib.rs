@@ -162,3 +162,22 @@ mod tests {
         assert_uom_eq!(nanometer, total, mm(11.0), ulps <= 1);
     }
 }
+
+
+
+#[allow(clippy::excessive_precision)]
+pub const C: Velocity = in_base_unit!(0.299_792_458);
+// `f32` will truncate this to        0.299_792_47
+
+#[cfg(test)]
+mod test_speed_of_light {
+    use super::*;
+    use float_eq::assert_float_eq;
+
+    #[test]
+    fn test_speed_of_light() {
+        println!("C visual check: {:?}", C);
+        assert_float_eq!(  m_s_(C),   299_792_458.0, ulps <= 1);
+        assert_float_eq!(mm_ps_(C), 0.299_792_458  , ulps <= 1);
+    }
+}

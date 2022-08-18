@@ -13,13 +13,12 @@
 //!    indices calculated by the algorithm, must be flipped back to the original
 //!    coordinate system.
 
-use units::in_base_unit;
+use units::{C, Length, Ratio, PerLength, Time, in_base_unit};
+use units::{mm, mm_, ns_, ratio_};
 use crate::{Index3Weightf32, Lengthf32};
-use crate::{Length, PerLength, Time, C,
-            Point, Vector, Ratio, RatioPoint, RatioVec};
+use crate::{Point, Vector, RatioPoint, RatioVec};
 use crate::fov::FOV;
 
-use units::{mm, mm_, ns_, ratio_};
 use crate::gauss::make_gauss_option;
 use crate::index::index1_to_3;
 use crate::config::mlem::Tof;
@@ -33,8 +32,7 @@ mod test {
     use super::*;
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
-    use crate::TWOPI;
-    use units::ratio;
+    use units::{TWOPI, ratio};
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The

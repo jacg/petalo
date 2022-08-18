@@ -1,5 +1,5 @@
 use std::ops::{Add, AddAssign, Index, Sub, IndexMut};
-use crate::{Length, Ratio};
+use units::{Length, Ratio};
 use crate::{Vector, RatioVec};
 
 #[derive(Clone, Copy, Debug, PartialEq)]

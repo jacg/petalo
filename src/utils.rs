@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::ops::{Bound, Range};
 
-use crate::{Timef32, Lengthf32, BoundPair};
-use crate::{Point, Ratio};
+use units::Ratio;
+use crate::{Point, Timef32, Lengthf32, BoundPair};
 use crate::system_matrix::LOR;
 use units::{mm, ns, ratio};
 

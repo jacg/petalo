@@ -6,8 +6,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Deserializer, de};
 
-
-use crate::{Length, Ratio, Time};
+use units::{Length, Ratio, Time};
 
 #[cfg(test)]
 fn deserialize_uom_opt<'d, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
