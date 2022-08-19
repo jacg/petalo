@@ -9,7 +9,6 @@ pub type Lengthf32 = f32;
 pub type Timef32   = f32;
 pub type Weightf32 = f32; // TODO uom Weight
 pub type Ratiof32  = f32;
-pub type Anglef32  = f32; // TODO eliminate
 pub type Energyf32 = f32; // TODO uom Energy
 pub type Chargef32 = f32; // TODO uom Charge
 pub type Intensityf32 = f32; // TODO uom Intensity
