@@ -3,7 +3,7 @@
 test: test-rust test-python
 
 test-including-slow colours='': test-rust test-python
-	cargo nextest run {{colours}} --run-ignored ignored-only
+	cargo nextest run {{colours}} --run-ignored ignored-only --release
 
 test-rust colours='':
 	just test-rust-pure {{colours}}
