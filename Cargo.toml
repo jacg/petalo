@@ -54,3 +54,6 @@ bindgen = "0.59.2"
 
 [features]
 compile-error = []
+
+[profile.test]
+opt-level = 3
