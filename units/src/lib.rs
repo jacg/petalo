@@ -45,7 +45,7 @@ pub mod mmps {
   };
 
   // TODO: replace with system! macro, once it has been fixed in uom
-  type Units = dyn uom::si::Units<
+  pub type Units = dyn uom::si::Units<
       f32,
     length                    = millimeter,
     mass                      = kilogram,
@@ -56,13 +56,8 @@ pub mod mmps {
     luminous_intensity        = candela>;
 
   pub mod f32 {
-    use uom::{ISQ, system, si::Quantity};
+    use uom::{ISQ, system};
     ISQ!(uom::si, f32, (millimeter, kilogram, picosecond, ampere, kelvin, mole, candela));
-
-    use uom::typenum::{P2, N1, Z0};
-    pub type PerLength   = Quantity<super::super::InvertDimension<uom::si::length::Dimension>, super::Units, f32>;
-    pub type AreaPerMass = Quantity<uom::si::ISQ<P2, N1, Z0, Z0, Z0, Z0, Z0>                 , super::Units, f32>;
-
 
     /// The full circle constant (τ) Equal to 2π.
     pub const TWOPI: Angle = Angle {
@@ -84,9 +79,13 @@ pub mod mmps {
 
 }
 
+use uom::typenum::{P2, N1, Z0};
+pub type PerLength   = Quantity<InvertDimension<uom::si::length::Dimension>, mmps::Units, f32>;
+pub type AreaPerMass = Quantity<uom::si::ISQ<P2, N1, Z0, Z0, Z0, Z0, Z0>   , mmps::Units, f32>;
+
 //use uom::fmt::DisplayStyle::Abbreviation;
 pub use uom::si::Quantity;
-pub use mmps::f32::{Angle, TWOPI, Length, Time, Velocity, Ratio, Mass, PerLength, AreaPerMass};
+pub use mmps::f32::{Angle, TWOPI, Length, Time, Velocity, Ratio, Mass};
 mod units {
   pub use uom::si::{length  ::{nanometer, millimeter, centimeter},
                     time    ::{nanosecond, picosecond},
