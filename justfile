@@ -2,12 +2,8 @@
 
 test: test-rust test-python
 
-test-including-slow colours='': test-rust test-python
-	cargo nextest run {{colours}} --run-ignored ignored-only
-
 test-rust colours='':
 	just test-rust-pure {{colours}}
-
 
 test-rust-pure colours='':
 	cargo nextest run {{colours}} --workspace --exclude bindings
