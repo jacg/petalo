@@ -13,6 +13,35 @@ pub struct BuildScattergram {
 // could be important.
 }
 
+impl From<&crate::config::mlem::Scatter> for Option<Scattergram> {
+    fn from(config: &crate::config::mlem::Scatter) -> Self {
+        use crate::config::mlem::{Bins, BinsMax, BinsLength};
+
+        let mut builder = BuildScattergram::new();
+
+        if let Some(Bins { bins }) = config.phi {
+            builder = builder.phi_bins(bins);
+        }
+        if let Some(BinsMax { bins, max }) = config.r {
+            builder = builder.r_bins(bins);
+            builder = builder.r_max (max );
+        }
+        if let Some(BinsMax { bins, max }) = config.dz {
+            builder = builder.dz_bins(bins);
+            builder = builder.dz_max (max );
+        }
+        if let Some(BinsMax { bins, max }) = config.dt {
+            builder = builder.dt_bins(bins);
+            builder = builder.dt_max (max );
+        }
+        if let Some(BinsLength { bins, length }) = config.z {
+            builder = builder.z_bins  (bins);
+            builder = builder.z_length(length);
+        }
+        builder.build()
+    }
+}
+
 const DEFAULT_NUMBER_OF_BINS: usize = 30;
 
 impl BuildScattergram {
