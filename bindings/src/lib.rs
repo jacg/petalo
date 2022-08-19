@@ -3,7 +3,7 @@ use pyo3::wrap_pyfunction;
 
 type L = f32;
 use petalo::{image::Image, fov::FOV, fom, Intensityf32};
-use geometry::units::mm;
+use units::mm;
 
 #[pyfunction]
 #[text_signature = "(n, /)"]
@@ -58,7 +58,7 @@ impl FomConfig {
         let background_rois = bg_rois.into_iter().map(pyroi_to_fomroi).collect();
 
         let cfg = fom::FomConfig{ rois, background_rois, background_activity: bg};
-        use geometry::units::mm;
+        use units::mm;
         let size = (mm(size.0), mm(size.1), mm(size.2));
         FomConfig{ cfg, fov: FOV::new(size, voxels)}
     }

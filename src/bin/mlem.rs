@@ -32,13 +32,12 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use petalo::Length;
+use units::{Length, mm_};
 use petalo::lorogram::Scattergram;
 use petalo::fov::FOV;
 use petalo::image::Image;
 use petalo::io;
 use petalo::utils::timing::Progress;
-use geometry::units::mm_;
 
 
 fn main() -> Result<(), Box<dyn Error>> {

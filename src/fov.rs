@@ -1,12 +1,12 @@
 /// The size and granularity of the Field of View (FOV) in which images should
 /// be reconstructed
 
+use units::{Length, mm_};
 use crate::{Lengthf32, Pointf32};
-use crate::{Length, Point, Vector, LOR, find_tof_peak, find_entry_point, voxel_size, first_boundaries};
+use crate::{Point, Vector, LOR, find_tof_peak, find_entry_point, voxel_size, first_boundaries};
 use crate::index::{BoxDim_u, Index3_u, Index1_u, index1_to_3, index3_to_1};
-use geometry::units::mm_;
 use geometry::RatioPoint;
-use geometry::uom::ConstZero;
+use uom::ConstZero;
 
 #[derive(Clone, Copy, Debug)]
 pub struct FOV {
@@ -74,7 +74,7 @@ impl FOV {
 mod test_fov {
     use super::*;
     use rstest::rstest;
-    use geometry::units::mm;
+    use units::mm;
     use float_eq::assert_float_eq;
 
     #[rstest(/**/ index,   expected_position,
@@ -107,7 +107,7 @@ fn signed_i32(x: usize) -> i32 { x as i32 }
 #[allow(clippy::identity_op)]
 fn index_trackers(entry_point: RatioPoint, flipped: [bool; 3], [nx, ny, nz]: BoxDim_u) -> IndexTrackers {
     let entry_point: Pointf32 = entry_point.into();
-    //use geometry::uom::uomcrate::ConstOne;
+    //use units::uom::ConstOne;
     //let one = ONE;
     let one = 1;
 

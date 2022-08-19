@@ -25,13 +25,12 @@ pub struct Cli {
 
 // --------------------------------------------------------------------------------
 use std::error::Error;
+use units::{Length, mm, mm_};
 use petalo::{fom::{InRoiFn, PointValue}, io::raw::Image3D};
 use petalo::Intensityf32;
-use petalo::{Length};
 use petalo::image::Image;
 use petalo::fom;
 use petalo::fom::{Sphere, ROI, centres_of_slices_closest_to};
-use geometry::units::{mm, mm_};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();

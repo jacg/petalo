@@ -1,8 +1,7 @@
-use crate::{Angle, Length, PerLength, Ratio, TWOPI, C};
-use crate::config::mlem::Tof;
+use units::{Angle, Length, PerLength, Ratio, TWOPI, C, mm};
+use units::uom::ConstZero; // num_traits::Zero;
 
-use geometry::uom::ConstZero; // num_traits::Zero;
-use geometry::units::mm;
+use crate::config::mlem::Tof;
 
 // How would you make this generic over Length -> T ?
 fn make_gauss(sigma: Length, cutoff: Option<Ratio>) -> impl Fn(Length) -> PerLength {

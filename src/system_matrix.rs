@@ -13,13 +13,12 @@
 //!    indices calculated by the algorithm, must be flipped back to the original
 //!    coordinate system.
 
-use geometry::in_base_unit;
+use units::{C, Length, Ratio, PerLength, Time, in_base_unit};
+use units::{mm, mm_, ns_, ratio_};
 use crate::{Index3Weightf32, Lengthf32};
-use crate::{Length, PerLength, Time, C,
-            Point, Vector, Ratio, RatioPoint, RatioVec};
+use crate::{Point, Vector, RatioPoint, RatioVec};
 use crate::fov::FOV;
 
-use geometry::units::{mm, mm_, ns_, ratio_};
 use crate::gauss::make_gauss_option;
 use crate::index::index1_to_3;
 use crate::config::mlem::Tof;
@@ -33,8 +32,7 @@ mod test {
     use super::*;
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
-    use crate::TWOPI;
-    use geometry::units::ratio;
+    use units::{TWOPI, ratio};
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
@@ -210,7 +208,7 @@ pub fn system_matrix_elements(
     }
 }
 
-use geometry::uom::ConstZero;
+use units::uom::ConstZero;
 
 const EPS: Ratio = in_base_unit!(1e-5);
 
@@ -248,7 +246,7 @@ pub fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Leng
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
 pub fn first_boundaries(entry_point: RatioPoint, voxel_size: Vector) -> Vector {
-    use geometry::uom::si::ratio::ratio;
+    use units::uom::si::ratio::ratio;
     // How far have we penetrated into this voxel, along any axis
     let frac_done: RatioVec = entry_point - entry_point.map(|x| x.floor::<ratio>());
     // Distances remaining to the nearest boundaries

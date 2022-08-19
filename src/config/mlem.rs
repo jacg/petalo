@@ -6,8 +6,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Deserializer, de};
 
-
-use crate::{Length, Ratio, Time};
+use units::{Length, Ratio, Time};
 
 #[cfg(test)]
 fn deserialize_uom_opt<'d, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
@@ -180,7 +179,7 @@ pub struct Tof {
 
 }
 
-fn three() -> Ratio { geometry::units::ratio(3.0) }
+fn three() -> Ratio { units::ratio(3.0) }
 
 #[derive(Deserialize, Debug, Clone, Default)]
 #[serde(deny_unknown_fields)]
@@ -247,7 +246,7 @@ fn mandatory<T: Default>() -> T { T::default() }
 mod tests {
     use super::*;
 
-    use geometry::units::{cm, mm, ps, ratio};
+    use units::{cm, mm, ps, ratio};
 
     // ----- Test an example on-disk config file -----------------------------------------
     #[test]

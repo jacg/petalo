@@ -1,10 +1,10 @@
 use std::error::Error;
 use std::ops::{Bound, Range};
 
-use crate::{Timef32, Lengthf32, BoundPair};
-use crate::{Point, Ratio};
+use units::Ratio;
+use crate::{Point, Timef32, Lengthf32, BoundPair};
 use crate::system_matrix::LOR;
-use geometry::units::{mm, ns, ratio};
+use units::{mm, ns, ratio};
 
 pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {
     let v = s.split("..").collect::<Vec<_>>();
@@ -78,7 +78,7 @@ pub type CutoffOption<T> = Option<T>;
 
 
 pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<Ratio>, std::num::ParseFloatError> {
-    Ok(if s == "no" { None } else { Some(geometry::units::ratio(s.parse()?)) })
+    Ok(if s == "no" { None } else { Some(units::ratio(s.parse()?)) })
 }
 
 /// Group numeric digits to facilitate reading long numbers

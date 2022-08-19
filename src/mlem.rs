@@ -3,14 +3,14 @@ use ndarray::azip;
 
 use rayon::prelude::*;
 
+use units::{Length, PerLength, AreaPerMass};
 use crate::{io, Lengthf32, Index1_u, Intensityf32};
-use crate::{Length, PerLength, AreaPerMass};
 use crate::{fov::{lor_fov_hit, FovHit}, system_matrix::{system_matrix_elements, LOR}};
 use crate::fov::FOV;
 use crate::gauss::make_gauss_option;
 use crate::config::mlem::Tof;
 
-use geometry::units::{ratio_, mm, kg};
+use units::{ratio_, mm, kg};
 
 use crate::image::{Image, ImageData};
 
@@ -322,7 +322,7 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use geometry::{units::{mm, mm_, ns, ratio, turn, turn_}, Angle, Ratio};
+    use units::{mm, mm_, ns, ratio, turn, turn_, Angle, Ratio};
     use rstest::{rstest, fixture};
     use float_eq::assert_float_eq;
 
@@ -625,7 +625,7 @@ mod tests {
             .collect()
     }
 
-    use geometry::in_base_unit;
+    use units::in_base_unit;
     pub const DETECTOR_RADIUS: Length = in_base_unit!(50.0);
 
     // Regions of interest for re-use in tests

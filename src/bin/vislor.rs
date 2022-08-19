@@ -2,8 +2,8 @@ use std::error::Error;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
+use units::{Time, Ratio};
 use petalo::Lengthf32;
-use petalo::{Time, Ratio};
 use petalo::{system_matrix::LOR, fov::FOV};
 use petalo::visualize::{lor_weights, Shape};
 
@@ -12,7 +12,7 @@ use petalo::io;
 
 use petalo::config::mlem::{Config, Bounds, Input};
 
-use geometry::units::mm;
+use units::mm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 

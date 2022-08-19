@@ -1,8 +1,7 @@
+use units::{Length, Quantity};
 use crate::io::raw;
-use crate::{Intensityf32, Ratiof32};
-use crate::{Length, Point};
-use geometry::Quantity;
-use geometry::units::ratio_;
+use crate::{Point, Intensityf32, Ratiof32};
+use units::ratio_;
 use crate::image::{Image, ImageData};
 use crate::fov::FOV;
 
@@ -137,7 +136,7 @@ pub fn centres_of_slices_closest_to(targets: &[Length], half_width: Length, voxe
 mod test_in_roi {
     use super::*;
     use rstest::rstest;
-    use geometry::{units::mm, in_base_unit};
+    use units::{mm, in_base_unit};
 
     // Arrange for outer voxels to be centred at +/- 100.0, when n = 10
     const MAGIC: Length = in_base_unit!(10.0 / 9.0 * 200.0);
@@ -253,7 +252,7 @@ where
 #[cfg(test)]
 mod test_pythagoras {
     use super::*;
-    use geometry::{units::{cm, mm, nm, ps}, assert_uom_eq};
+    use units::{cm, mm, nm, ps, assert_uom_eq};
     use uom::si::{length::millimeter, time::second};
 
     #[test]
@@ -320,7 +319,7 @@ where
 
 #[cfg(test)]
 mod test_mean {
-    use geometry::{units::{mm, ns, Time}, assert_uom_eq};
+    use units::{mm, ns, Time, assert_uom_eq};
     use uom::si::time::second;
 
     use super::*;

@@ -21,7 +21,7 @@ use ndarray::{s, Array1};
 use crate::{Point, Energyf32, Chargef32};
 use crate::system_matrix::LOR;
 
-use geometry::units::{mm, ns, ratio};
+use units::{mm, ns, ratio};
 
 
 pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, events: Bounds<usize>) -> hdf5::Result<Array1<T>> {

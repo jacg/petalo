@@ -1,6 +1,5 @@
-use crate::{Length, Time};
+use units::{Length, Time, mm, ps};
 use crate::lorogram::Scattergram;
-use geometry::units::{mm, ps};
 
 pub struct BuildScattergram {
     phi_bins: Option<usize>,
