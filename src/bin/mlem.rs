@@ -2,7 +2,7 @@ use petalo::config::mlem::AttenuationCorrection as AC;
 // ----------------------------------- CLI -----------------------------------
 use structopt::StructOpt;
 
-use petalo::{lorogram::BuildScattergram, config};
+use petalo::config;
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
@@ -33,7 +33,6 @@ use std::path::PathBuf;
 use std::fs::create_dir_all;
 
 use units::{Length, mm_};
-use petalo::lorogram::Scattergram;
 use petalo::fov::FOV;
 use petalo::image::Image;
 use petalo::io;
@@ -65,7 +64,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Define field of view extent and voxelization
     let fov = FOV::new(config.fov.size, config.fov.nvoxels);
 
-    let scattergram = build_scattergram(&config.scatter_correction);
+    let scattergram = config.scatter_correction.as_ref().and_then(Into::into);
     progress.done_with_message("Startup");
 
     let sensitivity_image =
@@ -120,36 +119,5 @@ fn assert_image_sizes_match(image: &Image, nvoxels: NVoxels, fov_size: FovSize) 
         println!("Sensitivity image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", inx,iny,inz, mm_(idx),mm_(idy),mm_(idz));
         println!("     Output image: {:3} x {:3} x {:3} pixels, {:3} x {:3} x {:3} mm", enx,eny,enz, mm_(edx),mm_(edy),mm_(edz));
         panic!("For now, the sensitivity image must match the dimensions of the output image exactly.");
-    }
-}
-
-// TODO: Make builder use config::mlem::Scatter directly
-fn build_scattergram(scatter: &Option<config::mlem::Scatter>) -> Option<Scattergram> {
-    use petalo::config::mlem::{Bins, BinsMax, BinsLength};
-    if let Some(scatter) = scatter.as_ref() {
-        let mut builder = BuildScattergram::new();
-
-        if let Some(Bins { bins }) = scatter.phi {
-            builder = builder.phi_bins(bins);
-        }
-        if let Some(BinsMax { bins, max }) = scatter.r {
-            builder = builder.r_bins(bins);
-            builder = builder.r_max (max );
-        }
-        if let Some(BinsMax { bins, max }) = scatter.dz {
-            builder = builder.dz_bins(bins);
-            builder = builder.dz_max (max );
-        }
-        if let Some(BinsMax { bins, max }) = scatter.dt {
-            builder = builder.dt_bins(bins);
-            builder = builder.dt_max (max );
-        }
-        if let Some(BinsLength { bins, length }) = scatter.z {
-            builder = builder.z_bins  (bins);
-            builder = builder.z_length(length);
-        }
-        builder.build()
-    } else {
-        None
     }
 }
