@@ -45,7 +45,6 @@ impl Scattergram {
             LorAxisT  ::new(bins_dt, max_dt);
             usize
         ));
-        // TODO: Can we clone `trues`?
         let scatters = trues.clone();
         Self { trues, scatters }
     }
