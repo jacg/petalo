@@ -1,8 +1,8 @@
 # -*-Makefile-*-
 
-test: test-rust test-python test-julia
+test: test-rust test-python
 
-test-including-slow colours='': test-rust test-python test-julia
+test-including-slow colours='': test-rust test-python
 	cargo nextest run {{colours}} --run-ignored ignored-only
 
 test-rust colours='':
@@ -24,10 +24,6 @@ test-python-pure colours='':
 test-python-bindings colours='': python-build-bindings
 	pytest -v {{colours}} bindings
 
-
-test-julia colours='':
-	echo SKIPPING JULIA TESTS FOR NOW
-	# julia julia/testme.jl
 
 
 python-build-bindings profile='default':

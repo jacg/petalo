@@ -127,9 +127,8 @@ install Nix, than to attempt to run this software without it.
 
 # Testing
 
-Running `just` should compile and test all components, including Rust, Python and Julia.
-
-TODO: Python and Julia not yet enabled in the flake
+Running `just` should compile and test all components, including Rust, Python
+and Rust/Python bindings..
 
 # Available tools
 
