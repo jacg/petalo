@@ -1,5 +1,4 @@
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 type L = f32;
 use petalo::{image::Image, fov::FOV, fom};
