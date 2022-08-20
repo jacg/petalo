@@ -90,6 +90,7 @@ def write_command(directory, images, commandStart, sphere_diameters,cli_args):
             write(outfile,cli_args, ''.join(f'{c:6.1f} ' for c in crcs)         , end='         ')
             write(outfile,cli_args, ''.join(f'{v:6.1f} ' for v in variabilities), end='         ')
             write(outfile,cli_args, ''.join(f'{r:6.1f} ' for r in snrs.values())) # look broken in the Rust implementation of foms
+
 def plot_from_fom(directory, sphere_diameters, cli_args):
 
     cache_file = f'{directory}/foms'
