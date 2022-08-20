@@ -11,7 +11,7 @@ arg_enum! {
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
-#[structopt(name = "nema7_foms", about = "Calculate NEMA7 Figures of Merit")]
+#[structopt(name = "foms", about = "Calculate NEMA7 or Jaszczak Figures of Merit (FOMs) from raw image files")]
 pub struct Cli {
 
     /// Which phantom is being analysed.
