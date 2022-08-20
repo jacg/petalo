@@ -3,9 +3,6 @@ pub use crate::system_matrix::{LOR, find_tof_peak, find_entry_point, voxel_size,
 use ncollide3d as nc;
 use units::todo::Lengthf32;
 
-pub use units::uom::si::Quantity;
-pub use units::uom::typenum::{Z0, N1};
-
 pub use geometry::RatioVec;
 pub type Vectorf32 = nc::math::Vector<Lengthf32>;
 pub use geometry::Vector;
