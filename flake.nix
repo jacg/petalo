@@ -74,6 +74,7 @@
           python-version = "python310";
 
           my-python-packages = pypkgs: [
+            pypkgs.ipython
             pypkgs.numpy
             pypkgs.matplotlib
             pypkgs.pytest
