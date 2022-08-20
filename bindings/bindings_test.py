@@ -50,8 +50,14 @@ def test_rust_enum_parameter(arg, expected):
         with raises(expected) as excinfo:
             fulano.rust_enum_parameter(arg)
         msg = str(excinfo.value)
-        assert msg == "argument 'e': 'dict' object cannot be converted to 'Union[Int, String, IntTuple, StringIntTuple, Coordinates3d, Coordinates2d]'"
-
+        print(msg)
+        assert msg == """argument 'e': failed to extract enum RustyEnum ('Int | String | IntTuple | StringIntTuple | Coordinates3d | Coordinates2d')
+- variant Int (Int): 'dict' object cannot be interpreted as an integer
+- variant String (String): 'dict' object cannot be converted to 'PyString'
+- variant IntTuple (IntTuple): 'dict' object cannot be converted to 'PyTuple'
+- variant StringIntTuple (StringIntTuple): 'dict' object cannot be converted to 'PyTuple'
+- variant Coordinates3d (Coordinates3d): 'dict' object has no attribute 'x'
+- variant Coordinates2d (Coordinates2d): 'dict' object has no attribute 'x'"""
 
 cylinderX = namedtuple('cylinderX', 'y,z,r')
 cylinderY = namedtuple('cylinderY', 'x,z,r')

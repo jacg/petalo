@@ -6,7 +6,7 @@ use petalo::{image::Image, fov::FOV, fom, Intensityf32};
 use units::mm;
 
 #[pyfunction]
-#[text_signature = "(n, /)"]
+#[pyo3(text_signature = "(n, /)")]
 /// The naive, recursive fibonacci implementation
 fn fib(n: usize) -> usize {
     if n < 2 { 1 }
@@ -21,8 +21,9 @@ fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(roi, m)?)?;
     m.add_function(wrap_pyfunction!(fom_config, m)?)?;
 
-    #[pyfn(m, "fab")]
-    #[text_signature = "(n, /)"]
+    #[pyfn(m)]
+    #[pyo3(name = "fab")]
+    #[pyo3(text_signature = "(n, /)")]
     /// The iterative fibonacci implementation
     fn burp(_py_gil: Python, mut n: usize) -> usize {
         let (mut p, mut c) = (0,1);
@@ -74,7 +75,7 @@ impl FomConfig {
 
 
 #[pyclass]
-#[text_signature = "(initial_height)"]
+#[pyo3(text_signature = "(initial_height)")]
 /// It's a Lift: it goes up and down
 struct Lift {
     #[pyo3(get)]
