@@ -39,10 +39,10 @@ use structopt::StructOpt;
 use std::{error::Error, io::Write};
 use std::path::PathBuf;
 
-use petalo::{utils::group_digits, fov::FOV, Lengthf32};
+use petalo::{utils::group_digits, fov::FOV};
 use petalo::image::Image;
 
-use units::{Length, Time, AreaPerMass, ratio, kg, mm};
+use units::{Length, Time, AreaPerMass, ratio, kg, mm, todo::Lengthf32};
 use units::uom::ConstZero;
 use petalo::system_matrix as sm;
 
