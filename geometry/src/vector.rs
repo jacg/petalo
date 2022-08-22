@@ -1,5 +1,5 @@
 use std::ops::{Index, IndexMut, Mul, Sub};
-use units::{Length, Ratio};
+use units::{Area, Length, Ratio};
 
 use units::{mm, ratio};
 
@@ -174,6 +174,38 @@ impl Sub for RatioVec {
     }
 }
 
+
+pub trait Dot<RHS = Self> {
+    type Output;
+    fn dot(&self, other: RHS) -> Self::Output;
+}
+
+impl Dot for Vector {
+    type Output = Area;
+    fn dot(&self, other: Vector) -> Area {
+        self.x * other.x +
+        self.y * other.y +
+        self.z * other.z
+    }
+}
+
+impl Dot<RatioVec> for Vector {
+    type Output = Length;
+    fn dot(&self, other: RatioVec) -> Length {
+        self.x * other.x +
+        self.y * other.y +
+        self.z * other.z
+    }
+}
+
+impl Dot<Vector> for RatioVec {
+    type Output = Length;
+    fn dot(&self, other: Vector) -> Length {
+        self.x * other.x +
+        self.y * other.y +
+        self.z * other.z
+    }
+}
 
 #[cfg(test)]
 mod tests {
