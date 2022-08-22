@@ -41,6 +41,28 @@ impl Mul<f32> for Vector {
     }
 }
 
+impl Mul<Ratio> for Vector {
+    type Output = Vector;
+    fn mul(self, rhs: Ratio) -> Self::Output {
+        Vector {
+            x: self.x * rhs,
+            y: self.y * rhs,
+            z: self.z * rhs,
+        }
+    }
+}
+
+impl Mul<Vector> for Ratio {
+    type Output = Vector;
+    fn mul(self, rhs: Vector) -> Self::Output {
+        Vector {
+            x: self * rhs.x,
+            y: self * rhs.y,
+            z: self * rhs.z,
+        }
+    }
+}
+
 impl Mul<RatioVec> for Vector {
     type Output = Self;
     fn mul(self, rhs: RatioVec) -> Self::Output {
