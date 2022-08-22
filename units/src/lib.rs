@@ -64,7 +64,7 @@ pub type AreaPerMass = Quantity<uom::si::ISQ<P2, N1, Z0, Z0, Z0, Z0, Z0>   , mmp
 
 //use uom::fmt::DisplayStyle::Abbreviation;
 pub use uom::si::Quantity;
-pub use mmps::f32::{Angle, TWOPI, Length, Time, Velocity, Ratio, Mass};
+pub use mmps::f32::{Angle, Area, TWOPI, Length, Time, Velocity, Ratio, Mass};
 mod units {
   pub use uom::si::{length  ::{nanometer, millimeter, centimeter},
                     time    ::{nanosecond, picosecond},

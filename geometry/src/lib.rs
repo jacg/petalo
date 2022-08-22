@@ -5,3 +5,4 @@ pub use point::{Point, RatioPoint};
 pub use vector::{Vector, RatioVec, Dot};
 
 pub mod mix;
+pub mod cylinder;
