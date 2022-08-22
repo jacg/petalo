@@ -290,7 +290,6 @@ where
     U: uom::si::Units<f32> + ?Sized,
     Q<D, U>: std::ops::Div<f32, Output = Q<D, U>>,
     Q<D, U>: std::ops::Add<     Output = Q<D, U>>,
-
 {
     data.iter().cloned().reduce(|a, b| a+b).map(|s| s / data.len() as f32)
 }
