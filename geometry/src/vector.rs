@@ -98,6 +98,8 @@ impl Vector {
 
     pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
 
+    pub fn zero() -> Self { Self::new(mm(0.), mm(0.), mm(0.)) }
+
     pub fn xyz<T>(x: f32, y: f32, z: f32) -> Self
     where
         T: units::uom::Conversion<f32, T = f32> + units::uom::si::length::Unit,
