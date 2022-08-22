@@ -1,4 +1,4 @@
-use units::{Area, Length, Ratio, mm};
+use units::{Area, Length, Length4, Ratio, mm, ratio};
 use units::uom::typenum::P2;
 use crate::{Point, RatioVec, Dot};
 
@@ -16,11 +16,15 @@ pub fn cylinder_line_intersection_length(p1: Point, p2: Point, r: Length) -> Len
     let c: Area = w.dot(w) - squared(w.dot(z)) - squared(r);
     // Check discriminant to see if line missed cylinder
     let b_squared = b * b;
+    (delta_t(a, b_squared, c) * v).norm()
+}
+
+fn delta_t(a: Area, b_squared: Length4, c: Area) -> Ratio {
     let four_a_c = 4. * a * c;
-    if b_squared <= four_a_c { return mm(0.0) }
-    //
-    let delta_t: Ratio = (b_squared - four_a_c).sqrt() / a;
-    (delta_t * v).norm()
+    if b_squared <= four_a_c { return ratio(0.0) }
+    (b_squared - four_a_c).sqrt() / a
+}
+
 }
 
 fn squared(l: Length) -> Area { l.powi(P2::new()) }
