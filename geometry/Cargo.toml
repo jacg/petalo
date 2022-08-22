@@ -12,3 +12,4 @@ ncollide3d = "0.32"
 [dev-dependencies]
 pretty_assertions = "1.2.1"
 rstest = "0.13"
+proptest = "1.0.0"

@@ -125,7 +125,8 @@ impl Vector {
         }
     }
 
-    pub fn norm(self) -> Length { mm(NcVector::from(self).norm()) }
+    pub fn norm        (self) -> Length { mm(NcVector::from(self).norm        ())           }
+    pub fn norm_squared(self) -> Area   { mm(NcVector::from(self).norm_squared()) * mm(1.0) }
 
     pub fn normalize(self) -> RatioVec {
         let n = NcVector::from(self).normalize();
@@ -209,11 +210,13 @@ impl Dot<Vector> for RatioVec {
 
 #[cfg(test)]
 mod tests {
-    use crate::Vector;
+    use super::*;
     const EPS: f32 = f32::EPSILON;
-    use units::uom::si::length::meter;
+    use units::uom::si::area::square_millimeter;
+    use units::uom::si::length::{meter, millimeter};
     use units::{nm, mm, cm, assert_uom_eq};
     use rstest::rstest;
+    use proptest::prelude::*;
 
     #[test]
     fn vector_components() {
@@ -256,4 +259,31 @@ mod tests {
         assert_uom_eq!(meter, v[2], cm(300.0), ulps <= 1);
     }
 
+    proptest! {
+        #[test]
+        fn norm_equals_magnitude(
+            x in -100.0..(100.0 as f32),
+            y in -100.0..(100.0 as f32),
+            z in -100.0..(100.0 as f32),
+        ) {
+            let v = Vector::new(mm(x), mm(y), mm(z));
+            let n: Length = v.norm();
+            let m: Length = v.magnitude();
+            assert_uom_eq!(millimeter, n, m, ulps <=1);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn norm_squared(
+            x in -100.0..(100.0 as f32),
+            y in -100.0..(100.0 as f32),
+            z in -100.0..(100.0 as f32),
+        ) {
+            let v = Vector::new(mm(x), mm(y), mm(z));
+            let n: Length = v.norm();
+            let s: Area   = v.norm_squared();
+            assert_uom_eq!(square_millimeter, n*n, s, ulps <=2);
+        }
+    }
 }
