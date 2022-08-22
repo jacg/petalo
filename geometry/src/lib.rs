@@ -4,5 +4,7 @@ mod vector;
 pub use point::{Point, RatioPoint};
 pub use vector::{Vector, RatioVec, Dot};
 
-pub mod mix;
-pub mod cylinder;
+mod mix;
+mod cylinder;
+
+pub use cylinder::hollow_cylinder_line_intersection_length;
