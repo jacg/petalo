@@ -58,13 +58,14 @@ pub mod mmps {
 
 }
 
-use uom::typenum::{P2, N1, Z0};
+use uom::typenum::{P4, P2, N1, Z0};
 pub type PerLength   = Quantity<InvertDimension<uom::si::length::Dimension>, mmps::f32::Units, f32>;
 pub type AreaPerMass = Quantity<uom::si::ISQ<P2, N1, Z0, Z0, Z0, Z0, Z0>   , mmps::f32::Units, f32>;
+pub type Length4     = Quantity<uom::si::ISQ<P4, Z0, Z0, Z0, Z0, Z0, Z0>   , mmps::f32::Units, f32>;
 
 //use uom::fmt::DisplayStyle::Abbreviation;
 pub use uom::si::Quantity;
-pub use mmps::f32::{Angle, TWOPI, Length, Time, Velocity, Ratio, Mass};
+pub use mmps::f32::{Angle, Area, TWOPI, Length, Time, Velocity, Ratio, Mass};
 mod units {
   pub use uom::si::{length  ::{nanometer, millimeter, centimeter},
                     time    ::{nanosecond, picosecond},

@@ -59,7 +59,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         rho_to_mu * (mu_unit / rho_unit)
     };
 
-
     // Set up progress reporting and timing
     use std::time::Instant;
     let mut now = Instant::now();

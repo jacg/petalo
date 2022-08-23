@@ -1,5 +1,5 @@
 use std::ops::{Add, AddAssign, Index, Sub, IndexMut};
-use units::{Length, Ratio};
+use units::{Length, Ratio, mm};
 use crate::{Vector, RatioVec};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -18,6 +18,7 @@ pub struct RatioPoint {
 
 impl Point {
     pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
+    pub fn zero() -> Self { Self::new(mm(0.), mm(0.), mm(0.)) }
 
     pub fn map(&self, mut f: impl FnMut(Length) -> Length) -> Self {
         let &Self {x, y, z} = self;
