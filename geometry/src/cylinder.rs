@@ -5,6 +5,7 @@ use crate::{Point, RatioVec, Dot};
 /// Compute the length of the intersection of the line passing through points
 /// `p1` and `p2` with a cylinder of radius `r` whose axis coincides with the
 /// z-axis.
+#[cfg(test)]
 pub fn cylinder_line_intersection_length(p1: Point, p2: Point, r: Length) -> Length {
     // TODO: explain implementation
     let z = RatioVec::new(0., 0., 1.);
