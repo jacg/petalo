@@ -129,8 +129,12 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
     ax_snr.set_yticks(np.linspace(0,10,11))
 
     # Show which linestyle corresponds to which FOM, in legend.
-    ax_crc.plot([], [], color='black', linestyle='-' , label='CRC')
-    ax_crc.plot([], [], color='black', linestyle='--', label='SNR')
+    c_style = '-'
+    s_style = '--'
+    b_style = (0, (10,3))
+    ax_crc.plot([], [], color='black', linestyle=c_style, label='CRC')
+    ax_crc.plot([], [], color='black', linestyle=s_style, label='SNR')
+    ax_crc.plot([], [], color='black', linestyle=b_style, label='bg-var')
 
     n_subsets    = max(subsets)
     n_iterations = max(iterations)
@@ -151,10 +155,11 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
             x = [f'{i}:{s}' for i,s in zip(iterations, subsets)]
             ax_crc.set_xlabel('iteration : subset')
 
-        ax_crc.plot(x, c, color=color, linestyle='-' , marker=' ', linewidth=2.0, label=f'{d}mm')
-        ax_snr.plot(x, s, color=color, linestyle='--', marker=' ', linewidth=2.0, label=None)
+        ax_crc.plot(x, c, color=color, linestyle=c_style, marker=' ', linewidth=2.0, label=f'{d}mm')
+        ax_snr.plot(x, s, color=color, linestyle=s_style, marker=' ', linewidth=2.0, label=None)
+        ax_crc.plot(x, b, color=color, linestyle=b_style, marker=' ', linewidth=2.0, label=None)
         #plt.errorbar(x,y,yerr=e,label=f'{d}mm',capsize=3)
-    ax_crc.set_ylim(bottom=0, top= 1); ax_crc.set_ylabel('CRC')
+    ax_crc.set_ylim(bottom=0, top= 1); ax_crc.set_ylabel('CRC / bg-var')
     ax_snr.set_ylim(bottom=0, top=10); ax_snr.set_ylabel('SNR')
     ax_crc.legend()
 
