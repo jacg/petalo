@@ -8,10 +8,8 @@ use petalo::io;
 use petalo::io::hdf5::Hdf5Lor;
 use petalo::io::mcreaders::{MCQT, SensorMap, MCVertex};
 use petalo::sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction};
-use petalo::Energyf32;
-use petalo::{Length, Time, Point, Ratio};
-use geometry::units::mmps::f32::Area;
-use geometry::uom::ConstZero;
+use units::mmps::f32::Area;
+use units::uom::ConstZero;
 use petalo::utils::group_digits;
 use petalo::config::mlem::Bounds;
 

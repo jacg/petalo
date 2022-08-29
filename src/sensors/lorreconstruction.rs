@@ -1,17 +1,16 @@
 /// Simulate sensor electronics using charge and time smearing
 use std::path::PathBuf;
 
-use geometry::Quantity;
 use itertools::Itertools;
 
 use uom::typenum::P2;
-use geometry::uom::ConstZero;
-use geometry::units::{mm, mm_, ns, ns_, radian_, ratio, ratio_, turn};
-use geometry::units::mmps::f32::Area;
+use units::uom::ConstZero;
+use units::{mm, mm_, ns, ns_, radian_, ratio, ratio_, turn};
+use units::mmps::f32::Area;
 use rand::random;
 use rand_distr::{Normal, Distribution};
 
-use crate::{C, Length, Ratio, Time, Angle, Velocity};
+use units::{C, Quantity, Length, Ratio, Time, Angle, Velocity};
 use crate::io::hdf5::Hdf5Lor;
 use crate::io::mcreaders::read_sensor_hits;
 use crate::io::mcreaders::{MCSensorHit, SensorMap, SensorReadout};
@@ -436,7 +435,7 @@ mod test_electronics {
         assert!(lor.is_some());
     }
 
-    use geometry::assert_uom_eq;
+    use units::assert_uom_eq;
     use uom::si::length::millimeter;
     use uom::si::angle::radian;
     #[rstest]
@@ -482,7 +481,7 @@ mod test_electronics {
         assert_uom_eq!(millimeter, std_calc, std_expt, ulps <= 1);
     }
 
-    use crate::TWOPI;
+    use units::TWOPI;
     #[rstest]
     fn test_azimuthal_angle(qt_vector: ([u32; 10], Vec<SensorReadout>)) {
         let (_, hits) = qt_vector;
