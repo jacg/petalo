@@ -110,6 +110,16 @@ fn lor_from_sensor_positions(
     let b2 = sipm_charge_barycentre(&c2);
     let b2 = doi_function(b2, &c2)?;
     if b1.q.min(b2.q) < ratio(min_charge) { return None }
+    // Bias can appear in time and charge if don't reassign labels.
+    // Choose positive angle for label 1.
+    if b1.y.atan2(b1.x) < Angle::ZERO {
+        return Some(Hdf5Lor {
+                   dt: ns_(b1.t - b2.t),
+                   x1: mm_(b2.x), y1: mm_(b2.y), z1: mm_(b2.z),
+                   x2: mm_(b1.x), y2: mm_(b1.y), z2: mm_(b1.z),
+                   q1: ratio_(b2.q), q2: ratio_(b1.q), E1: f32::NAN, E2: f32::NAN,
+                })
+    }
     Some(Hdf5Lor {
         dt: ns_(b2.t - b1.t),
         x1: mm_(b1.x), y1: mm_(b1.y), z1: mm_(b1.z),
