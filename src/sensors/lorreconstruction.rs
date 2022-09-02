@@ -1,3 +1,4 @@
+use std::ops::RangeBounds;
 /// Simulate sensor electronics using charge and time smearing
 use std::path::PathBuf;
 
@@ -15,6 +16,7 @@ use crate::io::hdf5::Hdf5Lor;
 use crate::io::mcreaders::read_sensor_hits;
 use crate::io::mcreaders::{MCSensorHit, SensorMap, SensorReadout};
 use crate::config::mlem::Bounds;
+use crate::BoundPair;
 
 type DetectionEff = f32;
 
@@ -99,7 +101,7 @@ fn lor_from_sensor_positions(
     hits        : &[SensorReadout],
     threshold   : f32             ,
     min_sensors : usize           ,
-    min_charge  : f32             ,
+    charge_lims : BoundPair<f32>  ,
     doi_function: impl Fn(Barycentre, &[SensorReadout]) -> Option<Barycentre>
 ) -> Option<Hdf5Lor> {
     if hits.is_empty() { return None }
@@ -109,7 +111,8 @@ fn lor_from_sensor_positions(
     let b1 = doi_function(b1, &c1)?;
     let b2 = sipm_charge_barycentre(&c2);
     let b2 = doi_function(b2, &c2)?;
-    if b1.q.min(b2.q) < ratio(min_charge) { return None }
+    if !charge_lims.contains(&b1.q.value) || !charge_lims.contains(&b2.q.value) { return None }
+    // if b1.q.min(b2.q) <= ratio(min_charge) { return None }
     // Bias can appear in time and charge if don't reassign labels.
     // Choose positive angle for label 1.
     if b1.y.atan2(b1.x) < Angle::ZERO {
@@ -162,7 +165,7 @@ pub fn lor_reconstruction<'a>(
     time_sigma : f32,
     threshold  : f32,
     min_sensors: usize,
-    min_charge : f32,
+    charge_lims: BoundPair<f32>,
 ) -> Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a> {
     let time_smear = gaussian_sampler(time_mu, time_sigma);
     // TODO Values should be configurable, need to generalise.
@@ -180,7 +183,7 @@ pub fn lor_reconstruction<'a>(
                          .into_iter()
                          .map(|(_, grp)| combine_sensor_hits(grp.collect(), &xyzs))
                          .collect();
-        Ok(LorBatch::new(lors_from(&events, |evs| lor_from_sensor_positions(evs, threshold, min_sensors, min_charge, &doi_func)), events.len()))
+        Ok(LorBatch::new(lors_from(&events, |evs| lor_from_sensor_positions(evs, threshold, min_sensors, charge_lims, &doi_func)), events.len()))
     })
 }
 
@@ -439,7 +442,8 @@ mod test_electronics {
     #[rstest]
     fn test_lor_from_sensor_position(qt_vector: ([u32; 10], Vec<SensorReadout>)) {
         let (_, sensors) = qt_vector;
-        let lor = lor_from_sensor_positions(&sensors, 1.0, 2, 2.0,
+        let q_limits: BoundPair<f32> = (std::ops::Bound::Included(2.0), std::ops::Bound::Unbounded);
+        let lor = lor_from_sensor_positions(&sensors, 1.0, 2, q_limits,
             |b: Barycentre, _h: &[SensorReadout]| Some(b));
         assert!(lor.is_some());
     }

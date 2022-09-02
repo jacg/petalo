@@ -3,7 +3,7 @@ use clap::Parser;
 use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
 use units::{Length, Time, Ratio, todo::Energyf32};
-use petalo::Point;
+use petalo::{Point, BoundPair, utils::parse_bounds};
 use petalo::io;
 use petalo::io::hdf5::Hdf5Lor;
 use petalo::io::mcreaders::{MCQT, SensorMap, MCVertex};
@@ -86,7 +86,7 @@ enum Reco {
         #[structopt(short, long, default_value = "0.3")]
         pde: f32,
 
-        /// Sensor time smearing sigma
+        /// Sensor time smearing sigma in nanoseconds.
         #[structopt(short, long, default_value = "0.05")]
         sigma_t: f32,
 
@@ -98,10 +98,9 @@ enum Reco {
         #[structopt(short, long, default_value = "2")]
         nsensors: usize,
 
-        // TODO this should really be a range bound
-        /// Minimum charge sum in clusters.
-        #[structopt(short, long, default_value = "2")]
-        min_charge: f32,
+        /// Charge range to accept sum in clusters.
+        #[structopt(short, long, parse(try_from_str = parse_bounds::<f32>), default_value = "1..5000")]
+        charge_limits: BoundPair<f32>,
     }
 }
 
@@ -155,8 +154,8 @@ fn main() -> hdf5::Result<()> {
                 Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
             }),
 
-        Reco::SimpleRec { pde, sigma_t, threshold, nsensors, min_charge }
-            => lor_reconstruction(&xyzs, pde, 0.0, sigma_t, threshold, nsensors, min_charge),
+        Reco::SimpleRec { pde, sigma_t, threshold, nsensors, charge_limits }
+            => lor_reconstruction(&xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
     };
 
 
