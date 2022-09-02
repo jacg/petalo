@@ -146,7 +146,7 @@ fn sipm_charge_barycentre(hits: &[SensorReadout]) -> Barycentre {
     let mut xx = Length::ZERO;
     let mut yy = Length::ZERO;
     let mut zz = Length::ZERO;
-    let mut tt = Time::ZERO;
+    let mut tt = hits.iter().peekable().peek().unwrap().t;
     for &SensorReadout{ x, y, z, q, t, .. } in hits {
         let q = ratio(q as f32);
         qs += q;
