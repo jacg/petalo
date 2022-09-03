@@ -17,7 +17,6 @@ debug = true
 geometry = { path = "geometry" }
 units = { path = "units" }
 clap = { version = "3.2.20", features = ["derive"]}
-structopt = "0.3"
 ndarray = { version = "0.15.4", features = ["rayon"] }
 rayon = "1.5.3"
 serde = { version = "1.0", features = ["derive"] }
