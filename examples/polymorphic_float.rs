@@ -38,7 +38,7 @@ fn timings<N: Float + FromPrimitive + Send + Sync>() -> Timings {
 
     let mut t = Instant::now();
 
-    let n = Cli::from_args();
+    let n = Cli::parse();
     let mut a = A::<N>::zeros((n.x, n.y, n.z));
     let     b = A::from_elem(a.dim(), f(0.1));
     let     c = A::from_elem(a.dim(), f(0.2));

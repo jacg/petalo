@@ -10,7 +10,7 @@ struct Cli {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Cli::from_args();
+    let args = Cli::parse();
     let config = mlem::read_config_file(args.config_file);
     println!("{config:?}");
     Ok(())

@@ -31,7 +31,7 @@ type Data = Hdf5Lor; // TODO: add CLI switches for selecting type
 
 
 fn main() -> hdf5::Result<()> {
-    let args = Cli::from_args();
+    let args = Cli::parse();
     let mut joined = Vec::<Data>::new();
 
     // ----- read data from separate files -------------------------------------------

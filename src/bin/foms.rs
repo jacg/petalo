@@ -32,7 +32,7 @@ use petalo::fom;
 use petalo::fom::{Sphere, ROI, centres_of_slices_closest_to};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let args = Cli::from_args();
+    let args = Cli::parse();
     let image = Image3D::read_from_file(&args.input_file)?;
     let image = Image::from(&image);
 

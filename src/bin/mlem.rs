@@ -41,7 +41,7 @@ use petalo::utils::timing::Progress;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let args = Cli::from_args();
+    let args = Cli::parse();
     let config = config::mlem::read_config_file(args.config_file.clone());
     unsafe { petalo::mlem::N_MLEM_THREADS = args.mlem_threads; }
 

@@ -15,7 +15,7 @@ use units::mm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let args = Cli::from_args();
+    let args = Cli::parse();
 
     let (dx, dy, dz) = args.size;
     let size = (mm(dx), mm(dy), mm(dz));

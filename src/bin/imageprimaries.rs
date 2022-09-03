@@ -39,7 +39,7 @@ type L = Lengthf32;
 use units::uom::si::length::millimeter;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let args = Cli::from_args();
+    let args = Cli::parse();
     // --- Process input files -------------------------------------------------------
     let Cli{ input_files, nvoxels, out_file, .. } = args.clone();
     let mut all_events: Vec<Primary> = vec![];

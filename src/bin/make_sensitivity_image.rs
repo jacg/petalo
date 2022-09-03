@@ -48,7 +48,7 @@ use petalo::system_matrix as sm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let Cli { input, output, detector_length, detector_diameter, n_lors, rho_to_mu, n_threads } = Cli::from_args();
+    let Cli { input, output, detector_length, detector_diameter, n_lors, rho_to_mu, n_threads } = Cli::parse();
 
     // Interpret rho_to_mu as converting from [rho in g/cm^3] to [mu in cm^-1]
     let rho_to_mu: AreaPerMass = {

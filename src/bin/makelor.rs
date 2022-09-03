@@ -74,7 +74,7 @@ enum Reco {
 }
 
 fn main() -> hdf5::Result<()> {
-    let args = Cli::from_args();
+    let args = Cli::parse();
 
     // Before starting the potentially long computation, make sure that we can
     // write the result to the requested destination. If the directory where

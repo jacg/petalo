@@ -27,7 +27,7 @@ use ndarray::parallel::par_azip;
 fn main() {
 
     let mut t = Instant::now();
-    let n = Cli::from_args();
+    let n = Cli::parse();
 
     // Allocation of arrays
     let mut a = A::zeros((n.x, n.y, n.z));
