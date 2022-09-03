@@ -93,10 +93,10 @@ fn ratio(n: Duration, d: Duration) -> f32 {
     n.as_secs_f32() / d.as_secs_f32()
 }
 // ----------------------------------- CLI -----------------------------------
-use structopt::StructOpt;
+use clap::Parser;
 
-#[derive(StructOpt, Debug)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+#[derive(Parser, Debug)]
+#[structopt(setting = clap::AppSettings::ColoredHelp)]
 #[structopt(name = "azip", about = "Compare parallel and sequential zipping in ndarray")]
 pub struct Cli {
 

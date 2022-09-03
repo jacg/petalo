@@ -1,9 +1,9 @@
 use std::path::PathBuf;
-use structopt::StructOpt;
+use clap::Parser;
 
 use petalo::config::mlem;
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 struct Cli {
     /// Configuration file
     config_file: PathBuf,

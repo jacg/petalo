@@ -71,10 +71,10 @@ fn report_time(t: &mut Instant, message: &str) -> std::time::Duration {
 }
 
 // ----------------------------------- CLI -----------------------------------
-use structopt::StructOpt;
+use clap::Parser;
 
-#[derive(StructOpt, Debug)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+#[derive(Parser, Debug)]
+#[structopt(setting = clap::AppSettings::ColoredHelp)]
 #[structopt(name = "azip", about = "Compare parallel and sequential zipping in ndarray")]
 pub struct Cli {
 

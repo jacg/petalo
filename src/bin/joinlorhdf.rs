@@ -1,11 +1,11 @@
-use structopt::StructOpt;
+use clap::Parser;
 use petalo::io;
 use petalo::io::hdf5::Hdf5Lor;
 use petalo::config::mlem::Bounds;
 
 
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+#[derive(Parser, Debug, Clone)]
+#[structopt(setting = clap::AppSettings::ColoredHelp)]
 #[structopt(name = "joinlorhdf", about = "Combine datasets from separate HDF5 files into a single one")]
 pub struct Cli {
     /// HDF5 input file with (t1 t2 x1 y1 z1 x2 y2 z2)

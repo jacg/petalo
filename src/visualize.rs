@@ -12,7 +12,7 @@ use crate::config::mlem::Tof;
 
 use units::{mm_, ps_};
 
-use structopt::clap::arg_enum;
+use clap::arg_enum;
 
 arg_enum! {
     #[derive(Debug, Clone)]

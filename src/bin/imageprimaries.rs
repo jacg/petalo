@@ -2,17 +2,17 @@ use indicatif::{ProgressBar, ProgressStyle};
 /// Create raw image from the primary vertices generated in a MC run
 
 // ----------------------------------- CLI -----------------------------------
-use structopt::StructOpt;
+use clap::Parser;
 
 use petalo::utils::parse_triplet;
 
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+#[derive(Parser, Debug, Clone)]
+#[structopt(setting = clap::AppSettings::ColoredHelp)]
 #[structopt(name = "imageprimaries", about = "Generate raw image from primary vertices")]
 pub struct Cli {
 
     /// Input file with MC/primaries dataset
-    #[structopt(short = "f", long)]
+    #[structopt(short = 'f', long)]
     pub input_files: Vec<String>,
 
     /// Image output file

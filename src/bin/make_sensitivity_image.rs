@@ -1,6 +1,6 @@
 // ----------------------------------- CLI -----------------------------------
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+#[derive(Parser, Debug, Clone)]
+#[structopt(setting = clap::AppSettings::ColoredHelp)]
 #[structopt(name = "make_sensitivity_image", about = "Create sensitivity image from a density image")]
 pub struct Cli {
 
@@ -13,15 +13,15 @@ pub struct Cli {
     pub output: Option<PathBuf>,
 
     /// Detector length for sensitivity image generation
-    #[structopt(long, short="l", default_value = "1000 mm")]
+    #[structopt(long, short='l', default_value = "1000 mm")]
     pub detector_length: Length,
 
     /// Detector diameter for sensitivity image generation
-    #[structopt(long, short="d", default_value = "710 mm")]
+    #[structopt(long, short='d', default_value = "710 mm")]
     pub detector_diameter: Length,
 
     /// Number of random LORs to use in sensitivity image generation
-    #[structopt(long, short="n", default_value = "5000000")]
+    #[structopt(long, short='n', default_value = "5000000")]
     pub n_lors: usize,
 
     /// Conversion from density to attenuation coefficient in cm^2 / g
@@ -29,12 +29,12 @@ pub struct Cli {
     pub rho_to_mu: Lengthf32,
 
     /// Maximum number of rayon threads
-    #[structopt(short = "j", long, default_value = "30")]
+    #[structopt(short = 'j', long, default_value = "30")]
     pub n_threads: usize,
 
 }
 
-use structopt::StructOpt;
+use clap::Parser;
 
 use std::{error::Error, io::Write};
 use std::path::PathBuf;

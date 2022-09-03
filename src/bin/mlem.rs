@@ -1,11 +1,11 @@
 use petalo::config::mlem::AttenuationCorrection as AC;
 // ----------------------------------- CLI -----------------------------------
-use structopt::StructOpt;
+use clap::Parser;
 
 use petalo::config;
 
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+#[derive(Parser, Debug, Clone)]
+#[structopt(setting = clap::AppSettings::ColoredHelp)]
 #[structopt(name = "mlem", about = "Maximum Likelyhood Expectation Maximization")]
 pub struct Cli {
 
@@ -16,12 +16,12 @@ pub struct Cli {
     pub output_directory: PathBuf,
 
     /// Maximum number of rayon threads used by MLEM
-    #[structopt(short = "j", long, default_value = "4")]
+    #[structopt(short = 'j', long, default_value = "4")]
     pub mlem_threads: usize,
 
     // TODO: if we keep this, we need to come up with good names
     /// Rayon threads for filling scattergram [default: mlem-threads]
-    #[structopt(short = "k", long)]
+    #[structopt(short = 'k', long)]
     pub scattergram_threads: Option<usize>,
 
 }

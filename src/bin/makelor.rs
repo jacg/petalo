@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use structopt::StructOpt;
+use clap::Parser;
 use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
 use units::{Length, Time, Ratio, todo::Energyf32};
@@ -19,8 +19,8 @@ use units::{mm, mm_, ns, ns_, ratio};
 // + From<ordered_float::NotNan>
 // + Dbscan something or other
 
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+#[derive(Parser, Debug, Clone)]
+#[structopt(setting = clap::AppSettings::ColoredHelp)]
 #[structopt(name = "makelor", about = "Create LORs from MC data")]
 pub struct Cli {
     /// HDF5 input files with waveform and charge tables
@@ -36,20 +36,20 @@ pub struct Cli {
     // TODO allow using different group/dataset in output
 }
 
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+#[derive(Parser, Debug, Clone)]
+#[structopt(setting = clap::AppSettings::ColoredHelp)]
 enum Reco {
 
     /// Reconstruct LORs from first vertices in LXe
-    #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+    #[structopt(setting = clap::AppSettings::ColoredHelp)]
     FirstVertex,
 
     /// Reconstruct LORs from barycentre of vertices in LXe
-    #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+    #[structopt(setting = clap::AppSettings::ColoredHelp)]
     BaryVertex,
 
     /// Reconstruct LORs from clusters found by splitting cylinder in half
-    #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+    #[structopt(setting = clap::AppSettings::ColoredHelp)]
     Half {
         /// Ignore sensors with fewer hits
         #[structopt(short, long = "charge-threshold", default_value = "4")]
@@ -57,18 +57,18 @@ enum Reco {
     },
 
     /// Reconstruct LORs form DBSCAN clusters
-    #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
+    #[structopt(setting = clap::AppSettings::ColoredHelp)]
     Dbscan {
         /// Ignore sensors with fewer hits
         #[structopt(short, long = "charge-threshold", default_value = "4")]
         q: u32,
 
         /// Minimum number of sensors in cluster
-        #[structopt(short = "n", long, default_value = "10")]
+        #[structopt(short = 'n', long, default_value = "10")]
         min_count: usize,
 
         /// Maximum distance between neighbours in cluster
-        #[structopt(short = "d", long, default_value = "100 mm")]
+        #[structopt(short = 'd', long, default_value = "100 mm")]
         max_distance: Length,
     }
 }
