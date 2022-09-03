@@ -95,7 +95,7 @@ fn ratio(n: Duration, d: Duration) -> f32 {
 // ----------------------------------- CLI -----------------------------------
 use clap::Parser;
 
-#[derive(Parser, Debug)]
+#[derive(clap::Parser, Debug)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "azip", about = "Compare parallel and sequential zipping in ndarray")]
 pub struct Cli {

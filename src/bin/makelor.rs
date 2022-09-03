@@ -19,7 +19,7 @@ use units::{mm, mm_, ns, ns_, ratio};
 // + From<ordered_float::NotNan>
 // + Dbscan something or other
 
-#[derive(Parser, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "makelor", about = "Create LORs from MC data")]
 pub struct Cli {
@@ -36,7 +36,7 @@ pub struct Cli {
     // TODO allow using different group/dataset in output
 }
 
-#[derive(Parser, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
 enum Reco {
 

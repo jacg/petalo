@@ -1,5 +1,5 @@
 // ----------------------------------- CLI -----------------------------------
-#[derive(Parser, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "make_sensitivity_image", about = "Create sensitivity image from a density image")]
 pub struct Cli {

@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 
-#[derive(Parser, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "vislor", about = "Visualize LOR interaction with voxels")]
 pub struct Cli {

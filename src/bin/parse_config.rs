@@ -3,7 +3,7 @@ use clap::Parser;
 
 use petalo::config::mlem;
 
-#[derive(Parser, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone)]
 struct Cli {
     /// Configuration file
     config_file: PathBuf,

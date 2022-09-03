@@ -6,7 +6,7 @@ use clap::Parser;
 
 use petalo::utils::parse_triplet;
 
-#[derive(Parser, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "imageprimaries", about = "Generate raw image from primary vertices")]
 pub struct Cli {

@@ -73,7 +73,7 @@ fn report_time(t: &mut Instant, message: &str) -> std::time::Duration {
 // ----------------------------------- CLI -----------------------------------
 use clap::Parser;
 
-#[derive(Parser, Debug)]
+#[derive(clap::Parser, Debug)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "azip", about = "Compare parallel and sequential zipping in ndarray")]
 pub struct Cli {
