@@ -1,21 +1,19 @@
-use clap::{Parser, arg_enum};
+use clap::Parser;
 use ordered_float::NotNan;
 
-arg_enum! {
-    #[derive(Debug, Clone)]
-    pub enum Phantom {
-        Nema7,
-        Jaszczak,
-    }
+#[derive(Debug, Clone, clap::ValueEnum)]
+pub enum Phantom {
+    Nema7,
+    Jaszczak,
 }
 
-#[derive(Parser, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "foms", about = "Calculate NEMA7 or Jaszczak Figures of Merit (FOMs) from raw image files")]
 pub struct Cli {
 
     /// Which phantom is being analysed.
-    #[clap(possible_values = Phantom::variants(), case_insensitive = true)]
+    #[clap(value_enum, case_insensitive = true)]
     phantom: Phantom,
 
     /// Image file to analyse

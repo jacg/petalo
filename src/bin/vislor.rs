@@ -60,7 +60,7 @@ pub struct Cli {
 
     /// How to represent voxels. BOX is better for viewing the geometric
     /// weights; BALL is better for viewing TOF weights.
-    #[clap(possible_values = Shape::variants(), case_insensitive = true, default_value = "box")]
+    #[clap(value_enum, case_insensitive = true, default_value = "box")]
     shape: Shape,
 
     /// LORs to read in
