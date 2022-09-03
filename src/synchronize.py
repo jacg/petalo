@@ -28,5 +28,5 @@ def synchronize(iterables, keys):
         while min_count(sources) < (highest_count := max_count(sources)):
             for source in sources:
                 if source.count < highest_count:
-                     source.step()
+                    source.step()
         yield highest_count, tuple(map(attrgetter('data'), sources))

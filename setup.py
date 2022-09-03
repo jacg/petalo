@@ -8,6 +8,7 @@ def get_version_from_Cargo_toml():
         if line.startswith(marker):
             return eval(line[len(marker):])
 
+
 script_names = '''viewraw
                   xenon_thickness_from_h5
 '''.split()

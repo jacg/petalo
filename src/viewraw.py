@@ -155,7 +155,6 @@ class view:
         "Wrap around edges"
         return slice_ % self.images[self.image_number].shape[self.naxis]
 
-
     @property
     def naxis(self):
         ax = self.axis
@@ -182,6 +181,7 @@ def prune_path(N):
     def prune_path(path):
         return '/'.join(path.split('/')[N:])
     return prune_path
+
 
 if __name__ == '__main__':
     args = docopt(__doc__)

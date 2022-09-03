@@ -10,6 +10,7 @@ def sumit(data):
     pointer = ffi.cast('float *', array.ctypes.data)
     return mlem.sum_floats(pointer, len(array))
 
+
 data = [1,2,3,4]
 total = sumit(data)
 print(f'Sum of {data} = {total}')

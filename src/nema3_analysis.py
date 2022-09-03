@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from sys import argv
 import argparse
 from itertools import starmap
 
@@ -23,6 +22,7 @@ def voxel_centres(image, full_extent):
     x,y,z = starmap(coordinates_of_voxel_centres, zip(image.shape, full_extent))
     coords = np.swapaxes(np.array(np.meshgrid(z,y,x)), 0,3)
     return np.flip(coords, axis=3)
+
 
 image, full_extent = utils.load_image_from_file(args.infile)
 

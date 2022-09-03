@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 
 import struct
-from collections import namedtuple
-import os.path
-import subprocess
-from operator import itemgetter
-
 import numpy as np
 from operator import mul
 from functools import reduce

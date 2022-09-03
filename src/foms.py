@@ -55,7 +55,7 @@ def get_foms(command):
     return JFOMS(crcs=crcs, snrs=snrs)
 
 def write(outfile, cli_args, *args, **kwds):
-    if bool(cli_args['--hide-output']): 
+    if bool(cli_args['--hide-output']):
         print(*args, **kwds, file=outfile)
     else:
         print(*args, **kwds, file=outfile)
@@ -207,5 +207,6 @@ def main():
     command = f'target/release/foms {phantom}'
     write_command(directory, images, command, sphere_diameters[phantom], cli_args)
     plot_from_fom(directory,                  sphere_diameters[phantom], cli_args)
+
 
 main()

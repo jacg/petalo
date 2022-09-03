@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from itertools import groupby, starmap
+from itertools import groupby
 from operator import itemgetter
 import argparse
 import numpy as np
@@ -25,7 +25,7 @@ CHARGE_THRESHOLD              = args.charge_threshold
 
 def first_vertices_in_event(event_vertices):
     verts = tuple((evno, tid, x,y,z) for evno, tid, _, x,y,z, *crap, volume in event_vertices)
-    def only(n): return lambda x: x[1]==n
+    def only(n): return lambda x: x[1] == n
     vsa = tuple(filter(only(1), verts))
     vsb = tuple(filter(only(2), verts))
     va = vsa[0][2:] if vsa else None
@@ -42,7 +42,7 @@ def first_vertices(event_vertex_groups):
 
 def cluster(hits, eps=MAXIMUM_DISTANCE_TO_NEIGHBOUR, min_samples=MINIMUM_CLUSTER_SIZE):
     label = DBSCAN(eps=eps, min_samples=min_samples).fit_predict(hits)
-    return {n : hits[label==n] for n in set(label)}
+    return {n : hits[label == n] for n in set(label)}
 
 def colour(label):
     if label ==  0: return 'yellow'
@@ -51,7 +51,7 @@ def colour(label):
     return 'gray'
 
 def centroids_from_clusters(clusters):
-    return np.array(tuple(h.mean(axis=0) for n,h in clusters.items() if n!=-1))
+    return np.array(tuple(h.mean(axis=0) for n,h in clusters.items() if n != -1))
 
 
 def distance_between_point_and_line(point, line_end_1, line_end_2):
@@ -77,7 +77,7 @@ def plotem(event_number, clusters, vers, active_source, miss):
     if len(vers)      == 2: ax.plot(*vers     .T, c='red')
     if len(centroids) == 2: ax.plot(*centroids.T, c='green')
 
-    other_sources = np.array(tuple(filter(lambda p: not (p==active_source).all(), nema3_sources)))
+    other_sources = np.array(tuple(filter(lambda p: not (p == active_source).all(), nema3_sources)))
     ax.scatter(*other_sources.T, c='palegreen', label='NEMA-3 sources')
     ax.scatter(*active_source  , c='red'      , label='LOR source')
 
@@ -90,7 +90,6 @@ def plotem(event_number, clusters, vers, active_source, miss):
 def evhits(responses):
     for event_no, group in responses:
         yield event_no, np.array(tuple(sensor_xyz[sensor_id] for (event_no, sensor_id, charge) in group))
-
 
 
 f = h5py.File(args.infile)
