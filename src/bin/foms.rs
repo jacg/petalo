@@ -1,4 +1,4 @@
-use structopt::{StructOpt, clap::arg_enum};
+use clap::{Parser, arg_enum};
 use ordered_float::NotNan;
 
 arg_enum! {
@@ -9,13 +9,13 @@ arg_enum! {
     }
 }
 
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
-#[structopt(name = "foms", about = "Calculate NEMA7 or Jaszczak Figures of Merit (FOMs) from raw image files")]
+#[derive(Parser, Debug, Clone)]
+#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(name = "foms", about = "Calculate NEMA7 or Jaszczak Figures of Merit (FOMs) from raw image files")]
 pub struct Cli {
 
     /// Which phantom is being analysed.
-    #[structopt(possible_values = &Phantom::variants(), case_insensitive = true)]
+    #[clap(possible_values = Phantom::variants(), case_insensitive = true)]
     phantom: Phantom,
 
     /// Image file to analyse
