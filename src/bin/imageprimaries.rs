@@ -7,24 +7,24 @@ use clap::Parser;
 use petalo::utils::parse_triplet;
 
 #[derive(Parser, Debug, Clone)]
-#[structopt(setting = clap::AppSettings::ColoredHelp)]
-#[structopt(name = "imageprimaries", about = "Generate raw image from primary vertices")]
+#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(name = "imageprimaries", about = "Generate raw image from primary vertices")]
 pub struct Cli {
 
     /// Input file with MC/primaries dataset
-    #[structopt(short = 'f', long)]
+    #[clap(short = 'f', long)]
     pub input_files: Vec<String>,
 
     /// Image output file
-    #[structopt(short, long, default_value = "primaries.raw")]
+    #[clap(short, long, default_value = "primaries.raw")]
     pub out_file: String,
 
     /// Field Of View full-widths in mm [default: fit to data]
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>))]
+    #[clap(short, long, parse(try_from_str = parse_triplet::<Length>))]
     pub size: Option<(Length, Length, Length)>,
 
     /// Field Of View size in number of voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
+    #[clap(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
     pub nvoxels: (usize, usize, usize),
 
 }

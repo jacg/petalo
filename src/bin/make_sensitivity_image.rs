@@ -1,35 +1,35 @@
 // ----------------------------------- CLI -----------------------------------
 #[derive(Parser, Debug, Clone)]
-#[structopt(setting = clap::AppSettings::ColoredHelp)]
-#[structopt(name = "make_sensitivity_image", about = "Create sensitivity image from a density image")]
+#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(name = "make_sensitivity_image", about = "Create sensitivity image from a density image")]
 pub struct Cli {
 
     /// The density image of the FOV
-    #[structopt(short, long)]
+    #[clap(short, long)]
     pub input: PathBuf,
 
     /// Where to write the resulting sensitivity image
-    #[structopt(short, long)]
+    #[clap(short, long)]
     pub output: Option<PathBuf>,
 
     /// Detector length for sensitivity image generation
-    #[structopt(long, short='l', default_value = "1000 mm")]
+    #[clap(long, short='l', default_value = "1000 mm")]
     pub detector_length: Length,
 
     /// Detector diameter for sensitivity image generation
-    #[structopt(long, short='d', default_value = "710 mm")]
+    #[clap(long, short='d', default_value = "710 mm")]
     pub detector_diameter: Length,
 
     /// Number of random LORs to use in sensitivity image generation
-    #[structopt(long, short='n', default_value = "5000000")]
+    #[clap(long, short='n', default_value = "5000000")]
     pub n_lors: usize,
 
     /// Conversion from density to attenuation coefficient in cm^2 / g
-    #[structopt(long, default_value = "0.095")]
+    #[clap(long, default_value = "0.095")]
     pub rho_to_mu: Lengthf32,
 
     /// Maximum number of rayon threads
-    #[structopt(short = 'j', long, default_value = "30")]
+    #[clap(short = 'j', long, default_value = "30")]
     pub n_threads: usize,
 
 }

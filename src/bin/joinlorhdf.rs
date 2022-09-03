@@ -5,22 +5,22 @@ use petalo::config::mlem::Bounds;
 
 
 #[derive(Parser, Debug, Clone)]
-#[structopt(setting = clap::AppSettings::ColoredHelp)]
-#[structopt(name = "joinlorhdf", about = "Combine datasets from separate HDF5 files into a single one")]
+#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(name = "joinlorhdf", about = "Combine datasets from separate HDF5 files into a single one")]
 pub struct Cli {
     /// HDF5 input file with (t1 t2 x1 y1 z1 x2 y2 z2)
     pub inputs: Vec<String>,
 
     /// HDF5 output file for LORs found in input file
-    #[structopt(short, long)]
+    #[clap(short, long)]
     pub outfile: String,
 
     /// Group containing the dataset in each file
-    #[structopt(short, long, default_value = "reco_info")]
+    #[clap(short, long, default_value = "reco_info")]
     pub group: String,
 
     /// Dataset to read from each input file
-    #[structopt(short, long, default_value = "lors")]
+    #[clap(short, long, default_value = "lors")]
     pub dataset: String,
 
     // TODO allow using different group/dataset in output

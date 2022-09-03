@@ -74,20 +74,20 @@ fn report_time(t: &mut Instant, message: &str) -> std::time::Duration {
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[structopt(setting = clap::AppSettings::ColoredHelp)]
-#[structopt(name = "azip", about = "Compare parallel and sequential zipping in ndarray")]
+#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(name = "azip", about = "Compare parallel and sequential zipping in ndarray")]
 pub struct Cli {
 
     /// Size of array in fastest-changing index dimension
-    #[structopt(default_value = "256")]
+    #[clap(default_value = "256")]
     x: usize,
 
     /// Size of array in      middle            dimension
-    #[structopt(default_value = "256")]
+    #[clap(default_value = "256")]
     y: usize,
 
     /// Size of array in slowest-changing index dimension
-    #[structopt(default_value = "256")]
+    #[clap(default_value = "256")]
     z: usize,
 
 }
