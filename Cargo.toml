@@ -1,6 +1,5 @@
 [workspace]
-# members = ["mlem", "bindings"]
-members = ["geometry", "bindings", "units"]
+members = ["geometry", "bindings", "units", "try-cpython"]
 
 [package]
 name = "petalo"

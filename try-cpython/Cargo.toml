@@ -1,0 +1,8 @@
+[package]
+name = "try-cpython"
+version = "0.0.1"
+authors = [ "Jacek Generowicz <jacg@my-post-office.net>" ]
+edition = "2021"
+
+[dependencies]
+cpython = "0.7.0"
