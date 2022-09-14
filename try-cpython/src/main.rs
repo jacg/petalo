@@ -30,7 +30,9 @@ mod tests {
     fn python_version() -> PyResult<()> {
         let gil = Python::acquire_gil();
         let py = gil.python();
-        assert_eq!(get_python_version(py)?, "3.10.4 (main, Mar 23 2022, 20:25:24) [GCC 11.3.0]");
+        let version = get_python_version(py)?;
+        println!("{version}");
+        assert!(version.contains("3.10.4"));
         Ok(())
     }
 }
