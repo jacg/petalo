@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::path::PathBuf;
-use structopt::StructOpt;
+use clap::Parser;
 
 use units::{Time, Ratio, todo::Lengthf32};
 use petalo::{system_matrix::LOR, fov::FOV};
@@ -15,7 +15,7 @@ use units::mm;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let args = Cli::from_args();
+    let args = Cli::parse();
 
     let (dx, dy, dz) = args.size;
     let size = (mm(dx), mm(dy), mm(dz));
@@ -45,46 +45,46 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
-#[structopt(name = "vislor", about = "Visualize LOR interaction with voxels")]
+#[derive(clap::Parser, Debug, Clone)]
+#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(name = "vislor", about = "Visualize LOR interaction with voxels")]
 pub struct Cli {
 
     /// TOF time-resolution sigma (eg '200 ps'). TOF ignored if not supplied
-    #[structopt(short, long)]
+    #[clap(short, long)]
     tof: Option<Time>,
 
     /// TOF cutoff (✕ sigma). to disable: `-k no`
-    #[structopt(short = "k", default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
+    #[clap(short = 'k', default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
     cutoff: CutoffOption<Ratio>,
 
     /// How to represent voxels. BOX is better for viewing the geometric
     /// weights; BALL is better for viewing TOF weights.
-    #[structopt(possible_values = &Shape::variants(), case_insensitive = true, default_value = "box")]
+    #[clap(value_enum, case_insensitive = true, default_value = "box")]
     shape: Shape,
 
     /// LORs to read in
-    #[structopt(short = "f", long)]
+    #[clap(short = 'f', long)]
     pub input_file: Option<PathBuf>,
 
     /// The dataset location inside the input file
-    #[structopt(short, long, default_value = "reco_info/lors")]
+    #[clap(short, long, default_value = "reco_info/lors")]
     pub dataset: String,
 
     /// Event number (in <file>) to be displayed
-    #[structopt(short, long, default_value = "0")]
+    #[clap(short, long, default_value = "0")]
     event: usize,
 
     /// Field Of View full-widths in mm
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<Lengthf32>), default_value = "300,300,300")]
+    #[clap(short, long, parse(try_from_str = parse_triplet::<Lengthf32>), default_value = "300,300,300")]
     size: (Lengthf32, Lengthf32, Lengthf32),
 
     /// Field Of View size in number of voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
+    #[clap(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
     nvoxels: (usize, usize, usize),
 
     /// LOR to visualize: 't1 t2   x1 y1 z1   x2 y2 z2' (t: ps, xyz: mm)
-    #[structopt(short, long, parse(try_from_str = parse_lor), default_value = "0 300  -100 20 -90  100 60 10")]
+    #[clap(short, long, parse(try_from_str = parse_lor), default_value = "0 300  -100 20 -90  100 60 10")]
     lor: LOR,
 
 }

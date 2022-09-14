@@ -1,12 +1,12 @@
 use petalo::config::mlem::AttenuationCorrection as AC;
 // ----------------------------------- CLI -----------------------------------
-use structopt::StructOpt;
+use clap::Parser;
 
 use petalo::config;
 
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
-#[structopt(name = "mlem", about = "Maximum Likelyhood Expectation Maximization")]
+#[derive(clap::Parser, Debug, Clone)]
+#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(name = "mlem", about = "Maximum Likelyhood Expectation Maximization")]
 pub struct Cli {
 
     /// MLEM config file
@@ -16,12 +16,12 @@ pub struct Cli {
     pub output_directory: PathBuf,
 
     /// Maximum number of rayon threads used by MLEM
-    #[structopt(short = "j", long, default_value = "4")]
+    #[clap(short = 'j', long, default_value = "4")]
     pub mlem_threads: usize,
 
     // TODO: if we keep this, we need to come up with good names
     /// Rayon threads for filling scattergram [default: mlem-threads]
-    #[structopt(short = "k", long)]
+    #[clap(short = 'k', long)]
     pub scattergram_threads: Option<usize>,
 
 }
@@ -41,7 +41,7 @@ use petalo::utils::timing::Progress;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let args = Cli::from_args();
+    let args = Cli::parse();
     let config = config::mlem::read_config_file(args.config_file.clone());
     unsafe { petalo::mlem::N_MLEM_THREADS = args.mlem_threads; }
 

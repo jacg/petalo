@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::num::ParseFloatError;
 use std::ops::{Bound, Range};
 
 use units::{Ratio, todo::{Timef32, Lengthf32}};
@@ -52,7 +52,7 @@ pub fn parse_triplet<T: std::str::FromStr>(s: &str) -> Result<(T,T,T), <T as std
     Ok((x, y, z))
 }
 
-pub fn parse_lor(s: &str) -> Result<LOR, Box<dyn Error>> {
+pub fn parse_lor(s: &str) -> Result<LOR, ParseFloatError> {
     let n = s.split_whitespace().collect::<Vec<_>>();
     assert!(n.len() == 8);
 
@@ -77,7 +77,7 @@ pub fn parse_lor(s: &str) -> Result<LOR, Box<dyn Error>> {
 pub type CutoffOption<T> = Option<T>;
 
 
-pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<Ratio>, std::num::ParseFloatError> {
+pub fn parse_maybe_cutoff(s: &str) -> Result<CutoffOption<Ratio>, ParseFloatError> {
     Ok(if s == "no" { None } else { Some(units::ratio(s.parse()?)) })
 }
 

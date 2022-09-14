@@ -1,21 +1,19 @@
-use structopt::{StructOpt, clap::arg_enum};
+use clap::Parser;
 use ordered_float::NotNan;
 
-arg_enum! {
-    #[derive(Debug, Clone)]
-    pub enum Phantom {
-        Nema7,
-        Jaszczak,
-    }
+#[derive(Debug, Clone, clap::ValueEnum)]
+pub enum Phantom {
+    Nema7,
+    Jaszczak,
 }
 
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
-#[structopt(name = "foms", about = "Calculate NEMA7 or Jaszczak Figures of Merit (FOMs) from raw image files")]
+#[derive(clap::Parser, Debug, Clone)]
+#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(name = "foms", about = "Calculate NEMA7 or Jaszczak Figures of Merit (FOMs) from raw image files")]
 pub struct Cli {
 
     /// Which phantom is being analysed.
-    #[structopt(possible_values = &Phantom::variants(), case_insensitive = true)]
+    #[clap(value_enum, case_insensitive = true)]
     phantom: Phantom,
 
     /// Image file to analyse
@@ -32,7 +30,7 @@ use petalo::fom;
 use petalo::fom::{Sphere, ROI, centres_of_slices_closest_to};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let args = Cli::from_args();
+    let args = Cli::parse();
     let image = Image3D::read_from_file(&args.input_file)?;
     let image = Image::from(&image);
 

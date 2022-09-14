@@ -2,29 +2,29 @@ use indicatif::{ProgressBar, ProgressStyle};
 /// Create raw image from the primary vertices generated in a MC run
 
 // ----------------------------------- CLI -----------------------------------
-use structopt::StructOpt;
+use clap::Parser;
 
 use petalo::utils::parse_triplet;
 
-#[derive(StructOpt, Debug, Clone)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
-#[structopt(name = "imageprimaries", about = "Generate raw image from primary vertices")]
+#[derive(clap::Parser, Debug, Clone)]
+#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(name = "imageprimaries", about = "Generate raw image from primary vertices")]
 pub struct Cli {
 
     /// Input file with MC/primaries dataset
-    #[structopt(short = "f", long)]
+    #[clap(short = 'f', long)]
     pub input_files: Vec<String>,
 
     /// Image output file
-    #[structopt(short, long, default_value = "primaries.raw")]
+    #[clap(short, long, default_value = "primaries.raw")]
     pub out_file: String,
 
     /// Field Of View full-widths in mm [default: fit to data]
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<Length>))]
+    #[clap(short, long, parse(try_from_str = parse_triplet::<Length>))]
     pub size: Option<(Length, Length, Length)>,
 
     /// Field Of View size in number of voxels
-    #[structopt(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
+    #[clap(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
     pub nvoxels: (usize, usize, usize),
 
 }
@@ -39,7 +39,7 @@ type L = Lengthf32;
 use units::uom::si::length::millimeter;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let args = Cli::from_args();
+    let args = Cli::parse();
     // --- Process input files -------------------------------------------------------
     let Cli{ input_files, nvoxels, out_file, .. } = args.clone();
     let mut all_events: Vec<Primary> = vec![];

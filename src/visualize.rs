@@ -12,14 +12,10 @@ use crate::config::mlem::Tof;
 
 use units::{mm_, ps_};
 
-use structopt::clap::arg_enum;
-
-arg_enum! {
-    #[derive(Debug, Clone)]
-    pub enum Shape {
-        Box,
-        Ball
-    }
+#[derive(Debug, Clone, clap::ValueEnum)]
+pub enum Shape {
+    Box,
+    Ball
 }
 
 pub struct Scene {

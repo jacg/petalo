@@ -38,7 +38,7 @@ fn timings<N: Float + FromPrimitive + Send + Sync>() -> Timings {
 
     let mut t = Instant::now();
 
-    let n = Cli::from_args();
+    let n = Cli::parse();
     let mut a = A::<N>::zeros((n.x, n.y, n.z));
     let     b = A::from_elem(a.dim(), f(0.1));
     let     c = A::from_elem(a.dim(), f(0.2));
@@ -93,23 +93,23 @@ fn ratio(n: Duration, d: Duration) -> f32 {
     n.as_secs_f32() / d.as_secs_f32()
 }
 // ----------------------------------- CLI -----------------------------------
-use structopt::StructOpt;
+use clap::Parser;
 
-#[derive(StructOpt, Debug)]
-#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
-#[structopt(name = "azip", about = "Compare parallel and sequential zipping in ndarray")]
+#[derive(clap::Parser, Debug)]
+#[clap(setting = clap::AppSettings::ColoredHelp)]
+#[clap(name = "azip", about = "Compare parallel and sequential zipping in ndarray")]
 pub struct Cli {
 
     /// Size of array in fastest-changing index dimension
-    #[structopt(default_value = "256")]
+    #[clap(default_value = "256")]
     x: usize,
 
     /// Size of array in      middle            dimension
-    #[structopt(default_value = "256")]
+    #[clap(default_value = "256")]
     y: usize,
 
     /// Size of array in slowest-changing index dimension
-    #[structopt(default_value = "256")]
+    #[clap(default_value = "256")]
     z: usize,
 
 }
