@@ -75,7 +75,6 @@ fn dot((x1,y1,z1): (Length, Length, Length), (x2,y2,z2): (Length, Length, Length
 // Dot product separation for now, need to implement other algorithm(s)
 fn dot_product_clusters(hits: &[SensorReadout], threshold: f32, min_sensors: usize) -> Option<(Vec<SensorReadout>, Vec<SensorReadout>)> {
     let max_pos = hits.iter().max_by_key(|e| e.q).map(|&SensorReadout { x, y, z, .. }| (x, y, z))?;
-    // let max_sens = hits.iter().max_by_key(|e| e.q).map(|e| e.sensor_id)?;
     let (c1, c2): (Vec<SensorReadout>, Vec<SensorReadout>) = hits.iter()
             .filter(|&SensorReadout { q, .. }| *q as f32 > threshold)
             .partition(|&SensorReadout { x, y, z, .. }| dot(max_pos, (*x, *y, *z)) > Area::ZERO);

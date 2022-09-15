@@ -21,6 +21,7 @@ use units::{mm, mm_, ns, ns_, ratio};
 // + From<ordered_float::NotNan>
 // + Dbscan something or other
 
+// TODO this could be improved implementing Config file
 #[derive(clap::Parser, Debug, Clone)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(
@@ -97,6 +98,7 @@ enum Reco {
         #[structopt(short, long, default_value = "2")]
         nsensors: usize,
 
+        // TODO this should really be a range bound
         /// Minimum charge sum in clusters.
         #[structopt(short, long, default_value = "2")]
         min_charge: f32,
