@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use clap::Parser;
 use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -78,6 +78,30 @@ enum Reco {
         /// Maximum distance between neighbours in cluster
         #[clap(short = 'd', long, default_value = "100 mm")]
         max_distance: Length,
+    },
+
+    /// Reconstruct LORs from hits using barycentre of clusters.
+    #[clap(setting = clap::AppSettings::ColoredHelp)]
+    SimpleRec {
+        /// Sensor PDE
+        #[structopt(short, long, default_value = "0.3")]
+        pde: f32,
+
+        /// Sensor time smearing sigma
+        #[structopt(short, long, default_value = "0.05")]
+        sigma_t: f32,
+
+        /// Charge threshold for individual sensors.
+        #[structopt(short, long, default_value = "2")]
+        threshold: f32,
+
+        /// Minimum number of sensors per cluster.
+        #[structopt(short, long, default_value = "2")]
+        nsensors: usize,
+
+        /// Minimum charge sum in clusters.
+        #[structopt(short, long, default_value = "2")]
+        min_charge: f32,
     }
 }
 
@@ -101,7 +125,7 @@ fn main() -> hdf5::Result<()> {
     let mut n_events = 0;
     let mut failed_files = vec![];
 
-    type FilenameToLorsFunction = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch>>;
+    type FilenameToLorsFunction<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a>;
     let makelors: FilenameToLorsFunction = match args.reco {
         Reco::FirstVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
@@ -130,6 +154,9 @@ fn main() -> hdf5::Result<()> {
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
                 Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
             }),
+
+        Reco::SimpleRec { pde, sigma_t, threshold, nsensors, min_charge }
+            => lor_reconstruction(&xyzs, pde, 0.0, sigma_t, threshold, nsensors, min_charge),
     };
 
 

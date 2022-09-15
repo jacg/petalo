@@ -19,6 +19,9 @@ use crate::config::mlem::Bounds;
 
 type DetectionEff = f32;
 
+pub fn c_in_medium(rindex: f32) -> Velocity {
+    C / ratio(rindex)
+}
 
 pub fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<Hdf5Lor>) -> Vec<Hdf5Lor> {
     events.iter()
@@ -144,6 +147,93 @@ fn sipm_charge_barycentre(hits: &[SensorReadout]) -> Barycentre {
     Barycentre { x: xx / qs, y: yy / qs, z: zz / qs, t: tt, q: qs }
 }
 
+pub fn lor_reconstruction<'a>(
+    xyzs       : &'a SensorMap,
+    pde        : f32,
+    time_mu    : f32,
+    time_sigma : f32,
+    threshold  : f32,
+    min_sensors: usize,
+    min_charge : f32,
+) -> Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a> {
+    let time_smear = gaussian_sampler(time_mu, time_sigma);
+    // TODO Values should be configurable, need to generalise.
+    let doi_func = calculate_interaction_position(DOI::ZRMS, ratio(-1.2906), mm(384.4280), mm(352.0), mm(382.0));
+    Box::new(move |filename: &PathBuf| -> hdf5::Result<LorBatch> {
+        let sensor_hits = read_sensor_hits(&filename, Bounds::none())?;
+        let detected_hits: Vec<MCSensorHit> =
+            sensor_hits.iter()
+                       .filter(random_detection_pde(pde))
+                       .map(|hit| MCSensorHit { time: hit.time + time_smear(), ..*hit })
+                       .collect();
+        let events: Vec<Vec<SensorReadout>> =
+            detected_hits.into_iter()
+                         .group_by(|h| h.event_id)
+                         .into_iter()
+                         .map(|(_, grp)| combine_sensor_hits(grp.collect(), &xyzs))
+                         .collect();
+        Ok(LorBatch::new(lors_from(&events, |evs| lor_from_sensor_positions(evs, threshold, min_sensors, min_charge, &doi_func)), events.len()))
+    })
+}
+
+enum DOI { ZRMS, PRMS, CRMS }
+
+// Function to correct for DOI
+// Takes into account the physical range for the setup.
+// TODO Only implemented for zrms, need phi and combined
+fn calculate_interaction_position(
+    ftype: DOI   ,
+    m    : Ratio ,
+    c    : Length,
+    rmin : Length,
+    rmax : Length
+) -> Box<dyn Fn(Barycentre, &[SensorReadout]) -> Option<Barycentre>> {
+    match ftype {
+        DOI::ZRMS =>
+            Box::new(move |barycentre: Barycentre, hits: &[SensorReadout]| -> Option<Barycentre> {
+                let zs = get_sensor_z(hits);
+                let weights = get_sensor_charge(hits);
+                let rms = weighted_std(&zs, &weights, Some(barycentre.z))?;
+                let mut r = m * rms + c;// Bias correction?
+                if r < rmin { r = rmin; }
+                else if r > rmax { r = rmax; }
+                let phi = barycentre.y.atan2(barycentre.x);
+                let t = correct_interaction_time(&barycentre, rmax - r);
+                Some(Barycentre {x: r * phi.cos(), y: r * phi.sin(), t, ..barycentre})
+            }),
+        DOI::PRMS =>
+            Box::new(move |barycentre: Barycentre, hits: &[SensorReadout]| -> Option<Barycentre> {
+                let phis = azimuthal_angle(hits)?;
+                let weights = get_sensor_charge(hits);
+                let rms = weighted_std(&phis, &weights, None)?;
+                // The parameterisation here isn't strictly units safe as use a std of angle to get a length.
+                let mut r = mm(ratio_(m) * radian_(rms)) + c;
+                if r < rmin { r = rmin; }
+                else if r > rmax { r = rmax; }
+                let phi = barycentre.y.atan2(barycentre.x);
+                let t = correct_interaction_time(&barycentre, rmax - r);
+                Some(Barycentre {x: r * phi.cos(), y: r * phi.sin(), t, ..barycentre})
+            }),
+        DOI::CRMS => 
+            Box::new(move |barycentre: Barycentre, hits: &[SensorReadout]| -> Option<Barycentre> {
+                let zs = get_sensor_z(hits);
+                let phis = azimuthal_angle(hits)?;
+                let weights = get_sensor_charge(hits);
+                let zrms: Length = weighted_std(&zs, &weights, Some(barycentre.z))?;
+                let prms: Angle = weighted_std(&phis, &weights, None)?;
+                let mut r = m * (zrms.powi(P2::new()) + (rmax * prms).powi(P2::new())).sqrt() + c;
+                if r < rmin { r = rmin; }
+                else if r > rmax { r = rmax; }
+                let phi = barycentre.y.atan2(barycentre.x);
+                let t = correct_interaction_time(&barycentre, rmax - r);
+                Some(Barycentre {x: r * phi.cos(), y: r * phi.sin(), t, ..barycentre})
+            }),
+    }
+}
+
+fn correct_interaction_time(b: &Barycentre, rdiff: Length) -> Time {
+    b.t - rdiff / c_in_medium(1.69)
+}
 
 // Calculate the azimuthal angle for each hit and
 // adjust so continuous (make option?)
