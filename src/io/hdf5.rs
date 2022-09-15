@@ -127,30 +127,6 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
 
 
 // --------------------------------------------------------------------------------
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct SensorXYZ {
-    pub sensor_id: u32,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}
-
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct Charge {
-    pub event_id: u64,
-    pub sensor_id: u64,
-    pub charge: u64,
-}
-
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct SensorHit {
-    pub event_id: u64,
-    pub sensor_id: u64,
-    pub time: f64,
-}
 
 // The LOR used by mlem contains fields (the points) with types (ncollide Point)
 // which hdf5 appears not to be able to digest, so hack around the problem for
@@ -198,17 +174,4 @@ impl From<&Hdf5Lor> for LOR {
             additive_correction: ratio(1.0)
         }
     }
-}
-
-// --------------------------------------------------------------------------------
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct Primary {
-    pub event_id: u32,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub vx: f32,
-    pub vy: f32,
-    pub vz: f32,
 }

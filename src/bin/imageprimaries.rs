@@ -3,6 +3,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 // ----------------------------------- CLI -----------------------------------
 use clap::Parser;
+use std::path::PathBuf;
 
 use petalo::utils::parse_triplet;
 
@@ -13,7 +14,7 @@ pub struct Cli {
 
     /// Input file with MC/primaries dataset
     #[clap(short = 'f', long)]
-    pub input_files: Vec<String>,
+    pub input_files: Vec<PathBuf>,
 
     /// Image output file
     #[clap(short, long, default_value = "primaries.raw")]
@@ -34,7 +35,7 @@ use std::error::Error;
 use units::{Length, mm, mm_, todo::Lengthf32};
 use petalo::fov::FOV;
 use petalo::image::Image;
-use petalo::io::hdf5::{read_table, Primary};
+use petalo::io::mcreaders::{read_primaries, MCPrimary};
 type L = Lengthf32;
 use units::uom::si::length::millimeter;
 
@@ -42,20 +43,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
     // --- Process input files -------------------------------------------------------
     let Cli{ input_files, nvoxels, out_file, .. } = args.clone();
-    let mut all_events: Vec<Primary> = vec![];
-    let dataset = "MC/primaries";
+    let mut all_events: Vec<MCPrimary> = vec![];
     let mut failed_files = vec![];
     // --- Progress bar --------------------------------------------------------------
-    let progress = ProgressBar::new(args.input_files.len() as u64).with_message(args.input_files[0].clone());
+    let progress = ProgressBar::new(args.input_files.len() as u64).with_message(args.input_files[0].display().to_string());
     progress.set_style(ProgressStyle::default_bar()
                        .template("Processing file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
     );
     progress.tick();
     // --- Collect all events --------------------------------------------------------
     for file in input_files {
-        progress.set_message(format!("Processing file {}", file));
+        progress.set_message(format!("Processing file {}", file.display()));
         // TODO: replace this loop with a chain of iterators
-        if let Ok(events) = read_table::<Primary>(&file, dataset, petalo::config::mlem::Bounds::none()) {
+        if let Ok(events) = read_primaries(&file, petalo::config::mlem::Bounds::none()) {
             for event in events.iter() {
                 all_events.push(event.clone());
             }
@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         (x,y,z)
     } else { // from extrema of positions in input files
         let (mut xmax, mut ymax, mut zmax): (Length, Length, Length) = (mm(10.0), mm(10.0), mm(10.0));
-        for &Primary{ x,y,z, ..} in all_events.iter() {
+        for &MCPrimary{ x,y,z, ..} in all_events.iter() {
             xmax = xmax.max(mm(x).abs());
             ymax = ymax.max(mm(y).abs());
             zmax = zmax.max(mm(z).abs());
@@ -91,7 +91,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some([i,j,k])
     };
     // --- Collect event data into image ---------------------------------------------
-    for &Primary{ x,y,z, ..} in all_events.iter() {
+    for &MCPrimary{ x,y,z, ..} in all_events.iter() {
         if let Some(i3) = pos_to_index3(x,y,z) {
             image[i3] += 1.0;
         }
@@ -100,7 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if !failed_files.is_empty() {
         println!("Warning: failed to read the following files:");
         for file in failed_files.iter() {
-            println!("  {}", file);
+            println!("  {}", file.display());
         }
         let n = failed_files.len();
         let plural = if n == 1 { "" } else { "s" };
