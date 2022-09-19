@@ -1,24 +1,27 @@
-use std::ops::RangeBounds;
 /// Simulate sensor electronics using charge and time smearing
+use std::ops::RangeBounds;
 use std::path::PathBuf;
 
 use itertools::Itertools;
 
 use uom::typenum::P2;
 use units::uom::ConstZero;
+use units::{C, Quantity, Length, Ratio, Time, Angle, Velocity};
 use units::{mm, mm_, ns, ns_, radian_, ratio, ratio_, turn};
 use units::mmps::f32::Area;
+
 use rand::random;
 use rand_distr::{Normal, Distribution};
 
-use units::{C, Quantity, Length, Ratio, Time, Angle, Velocity};
 use crate::io::hdf5::Hdf5Lor;
 use crate::io::mcreaders::read_sensor_hits;
 use crate::io::mcreaders::{MCSensorHit, SensorMap, SensorReadout};
+
 use crate::config::mlem::Bounds;
 use crate::BoundPair;
 
 type DetectionEff = f32;
+
 
 pub fn c_in_medium(rindex: f32) -> Velocity {
     C / ratio(rindex)
@@ -50,7 +53,7 @@ pub fn gaussian_sampler(mu: f32, sigma: f32) -> impl Fn() -> f32 {
     move || dist.sample(&mut rand::thread_rng())
 }
 
-// Could this be a FROM? How to use the Group here to avoid too many collects?
+// How to use the Group here to avoid too many collects?
 fn qt_min_time(sensor_id: u32, hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Option<SensorReadout> {
     let first_time = hits.iter().fold(f32::INFINITY, |min_val, val| val.time.min(min_val));
     let &(x, y, z) = xyzs.get(&sensor_id)?;
@@ -69,7 +72,6 @@ pub fn combine_sensor_hits(hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Vec<Sens
         .collect()
 }
 
-// This seems like something that would be in a crate somewhere.
 fn dot((x1,y1,z1): (Length, Length, Length), (x2,y2,z2): (Length, Length, Length)) -> Area {
     x1*x2 + y1*y2 + z1*z2
 }
@@ -83,7 +85,6 @@ fn dot_product_clusters(hits: &[SensorReadout], threshold: f32, min_sensors: usi
     if c1.len() >= min_sensors && c2.len() >= min_sensors { Some((c1, c2)) } else { None }
 }
 
-// Is there a more generic way to avoid rewriting this code over and over again?
 fn get_sensor_charge(hits: &[SensorReadout]) -> Vec<Ratio> {
     hits.iter()
         .map(|&SensorReadout { q, .. }| ratio(q as f32))
@@ -112,7 +113,6 @@ fn lor_from_sensor_positions(
     let b2 = sipm_charge_barycentre(&c2);
     let b2 = doi_function(b2, &c2)?;
     if !charge_lims.contains(&b1.q.value) || !charge_lims.contains(&b2.q.value) { return None }
-    // if b1.q.min(b2.q) <= ratio(min_charge) { return None }
     // Bias can appear in time and charge if don't reassign labels.
     // Choose positive angle for label 1.
     if b1.y.atan2(b1.x) < Angle::ZERO {
@@ -191,7 +191,6 @@ enum DOI { ZRMS, PRMS, CRMS }
 
 // Function to correct for DOI
 // Takes into account the physical range for the setup.
-// TODO Only implemented for zrms, need phi and combined
 fn calculate_interaction_position(
     ftype: DOI   ,
     m    : Ratio ,
