@@ -3,6 +3,7 @@ use std::ops::RangeBounds;
 use std::path::PathBuf;
 
 use itertools::Itertools;
+use ordered_float::NotNan;
 
 use uom::typenum::P2;
 use units::uom::ConstZero;
@@ -55,7 +56,7 @@ pub fn gaussian_sampler(mu: f32, sigma: f32) -> impl Fn() -> f32 {
 
 // How to use the Group here to avoid too many collects?
 fn qt_min_time(sensor_id: u32, hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Option<SensorReadout> {
-    let first_time = hits.iter().fold(f32::INFINITY, |min_val, val| val.time.min(min_val));
+    let first_time = hits.iter().min_by_key(|h| NotNan::new(h.time).ok())?.time;
     let &(x, y, z) = xyzs.get(&sensor_id)?;
     Some(SensorReadout { sensor_id, x, y, z, q: hits.len() as u32, t: ns(first_time) })
 }
@@ -68,7 +69,7 @@ pub fn combine_sensor_hits(hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Vec<Sens
         .sorted_by_key(|&MCSensorHit { sensor_id, ..}| sensor_id)
         .group_by(|h| h.sensor_id)
         .into_iter()
-        .flat_map(|(s, grp)| qt_min_time(s, grp.collect(), &xyzs))
+        .filter_map(|(s, grp)| qt_min_time(s, grp.collect(), &xyzs))
         .collect()
 }
 
