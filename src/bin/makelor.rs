@@ -21,7 +21,11 @@ use units::{mm, mm_, ns, ns_, ratio};
 
 #[derive(clap::Parser, Debug, Clone)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
-#[clap(name = "makelor", about = "Create LORs from MC data")]
+#[clap(
+    name = "makelor",
+    about = "Create LORs from MC data",
+    subcommand_precedence_over_arg = true, // This can probably be removed in clap 4
+)]
 pub struct Cli {
     /// HDF5 input files with waveform and charge tables
     pub infiles: Vec<PathBuf>,
