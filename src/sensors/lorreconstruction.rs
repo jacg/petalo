@@ -433,8 +433,8 @@ mod test_electronics {
         let (c1, c2) = clustering.unwrap();
         assert_eq!(c1.len(), 4);
         assert_eq!(c2.len(), 5);
-        assert_eq!(c1.iter().map(|&SensorReadout { q, .. }| q).sum::<u32>(), qs[6..10].iter().sum());
-        assert_eq!(c2.iter().map(|&SensorReadout { q, .. }| q).sum::<u32>(), qs[0..6].iter().sum::<u32>() - 1);
+        assert_eq!(c1.iter().map(|r| r.q).sum::<u32>(), qs[6..10].iter().sum());
+        assert_eq!(c2.iter().map(|r| r.q).sum::<u32>(), qs[0..6].iter().sum::<u32>() - 1);
     }
 
     #[rstest]
