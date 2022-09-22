@@ -88,13 +88,13 @@ fn dot_product_clusters(hits: &[SensorReadout], threshold: f32, min_sensors: usi
 
 fn get_sensor_charge(hits: &[SensorReadout]) -> Vec<Ratio> {
     hits.iter()
-        .map(|&SensorReadout { q, .. }| ratio(q as f32))
+        .map(|r| ratio(r.q as f32))
         .collect()
 }
 
 fn get_sensor_z(hits: &[SensorReadout]) -> Vec<Length> {
     hits.iter()
-        .map(|&SensorReadout { z, .. }| z)
+        .map(|r| r.z)
         .collect()
 }
 
