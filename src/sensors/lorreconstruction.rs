@@ -237,6 +237,7 @@ fn correct_interaction_time(b: &Barycentre, rdiff: Length) -> Time {
     b.t - rdiff / c_in_medium(1.69)
 }
 
+#[inline]
 fn interaction_position(barycentre: Barycentre, r: Length, rmax: Length) -> Barycentre {
     let phi = barycentre.y.atan2(barycentre.x);
     let t = correct_interaction_time(&barycentre, rmax - r);
