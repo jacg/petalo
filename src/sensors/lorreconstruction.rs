@@ -456,7 +456,7 @@ mod test_electronics {
         let (qs, sensors) = qt_vector;
         let mut xs = Vec::with_capacity(qs.len());
         let mut qtest = Vec::with_capacity(qs.len());
-        let mut xq_sum = Length::ZERO * Ratio::ZERO;
+        let mut xq_sum = Length::ZERO;
         let mut wsum = Ratio::ZERO;
         for (&SensorReadout { x, .. }, &q) in sensors.iter().zip(qs.iter()) {
             xs.push(x);
@@ -476,7 +476,7 @@ mod test_electronics {
         let mut qtest = Vec::with_capacity(qs.len());
         let mut wsum = Ratio::ZERO;
         let mut ave = Length::ZERO;
-        let mut std = Area::ZERO * Ratio::ZERO;
+        let mut std = Area::ZERO;
         for (&SensorReadout { x, .. }, &q) in sensors.iter().zip(qs.iter()) {
             xs.push(x);
             let qrat = ratio(q as f32);
