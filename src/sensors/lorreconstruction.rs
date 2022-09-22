@@ -444,6 +444,42 @@ mod test_electronics {
         let lor = lor_from_sensor_positions(&sensors, 1.0, 2, q_limits,
             |b: Barycentre, _h: &[SensorReadout]| Some(b));
         assert!(lor.is_some());
+        let exp_lor = Hdf5Lor {
+            dt:   0.0,
+            x1:  20.0, y1:  20.357143, z1:  20.357143,
+            x2: -20.0, y2: -19.8     , z2: -19.666666,
+            q1:  14.0, q2:  15.0     , E1: f32::NAN  , E2: f32::NAN
+        };
+        let Hdf5Lor { dt, x1, y1, z1, x2, y2, z2, q1, q2, .. } = lor.unwrap();
+        assert_float_eq!(dt, exp_lor.dt, ulps <= 1);
+        assert_float_eq!(x1, exp_lor.x1, ulps <= 1);
+        assert_float_eq!(y1, exp_lor.y1, ulps <= 1);
+        assert_float_eq!(z1, exp_lor.z1, ulps <= 1);
+        assert_float_eq!(x2, exp_lor.x2, ulps <= 1);
+        assert_float_eq!(y2, exp_lor.y2, ulps <= 1);
+        assert_float_eq!(z2, exp_lor.z2, ulps <= 1);
+        assert_float_eq!(q1, exp_lor.q1, ulps <= 1);
+        assert_float_eq!(q2, exp_lor.q2, ulps <= 1);
+    }
+
+    #[rstest]
+    fn test_lor_from_sensor_position_crms(qt_vector: ([u32; 10], Vec<SensorReadout>)) {
+        let (_, sensors) = qt_vector;
+        let q_limits: BoundPair<f32> = (std::ops::Bound::Included(2.0), std::ops::Bound::Unbounded);
+        let rmin = 19.0;
+        let rmax = 23.0;
+        let lor = lor_from_sensor_positions(&sensors, 1.0, 2, q_limits,
+            calculate_interaction_position(DOI::CRMS, ratio(-0.5), mm(23.0), mm(rmin), mm(rmax)));
+        assert!(lor.is_some());
+        let Hdf5Lor { x1, y1, x2, y2, .. } = lor.unwrap();
+        let r1 = (x1*x1 + y1*y1).sqrt();
+        let r2 = (x2*x2 + y2*y2).sqrt();
+        assert!(r1 < rmax);
+        assert!(r1 > rmin);
+        assert!(r2 < rmax);
+        assert!(r2 > rmin);
+        // println!("Checks {:?}", lor.unwrap());
+        // assert_eq!(1, 2)
     }
 
     use units::assert_uom_eq;
