@@ -208,12 +208,8 @@ fn calculate_interaction_position(
                 let zs = get_sensor_z(hits);
                 let weights = get_sensor_charge(hits);
                 let rms = weighted_std(&zs, &weights, Some(barycentre.z))?;
-                let mut r = m * rms + c;// Bias correction?
-                if r < rmin { r = rmin; }
-                else if r > rmax { r = rmax; }
-                let phi = barycentre.y.atan2(barycentre.x);
-                let t = correct_interaction_time(&barycentre, rmax - r);
-                Some(Barycentre {x: r * phi.cos(), y: r * phi.sin(), t, ..barycentre})
+                let r = m * rms + c;// Bias correction?
+                Some(interaction_position(barycentre, mm(mm_(r).clamp(mm_(rmin), mm_(rmax))), rmax))
             }),
         DOI::PRMS =>
             Box::new(move |barycentre: Barycentre, hits: &[SensorReadout]| -> Option<Barycentre> {
@@ -221,12 +217,8 @@ fn calculate_interaction_position(
                 let weights = get_sensor_charge(hits);
                 let rms = weighted_std(&phis, &weights, None)?;
                 // The parameterisation here isn't strictly units safe as use a std of angle to get a length.
-                let mut r = mm(ratio_(m) * radian_(rms)) + c;
-                if r < rmin { r = rmin; }
-                else if r > rmax { r = rmax; }
-                let phi = barycentre.y.atan2(barycentre.x);
-                let t = correct_interaction_time(&barycentre, rmax - r);
-                Some(Barycentre {x: r * phi.cos(), y: r * phi.sin(), t, ..barycentre})
+                let r = mm(ratio_(m) * radian_(rms)) + c;
+                Some(interaction_position(barycentre, mm(mm_(r).clamp(mm_(rmin), mm_(rmax))), rmax))
             }),
         DOI::CRMS => 
             Box::new(move |barycentre: Barycentre, hits: &[SensorReadout]| -> Option<Barycentre> {
@@ -235,18 +227,20 @@ fn calculate_interaction_position(
                 let weights = get_sensor_charge(hits);
                 let zrms: Length = weighted_std(&zs, &weights, Some(barycentre.z))?;
                 let prms: Angle = weighted_std(&phis, &weights, None)?;
-                let mut r = m * (zrms.powi(P2::new()) + (rmax * prms).powi(P2::new())).sqrt() + c;
-                if r < rmin { r = rmin; }
-                else if r > rmax { r = rmax; }
-                let phi = barycentre.y.atan2(barycentre.x);
-                let t = correct_interaction_time(&barycentre, rmax - r);
-                Some(Barycentre {x: r * phi.cos(), y: r * phi.sin(), t, ..barycentre})
+                let r = m * (zrms.powi(P2::new()) + (rmax * prms).powi(P2::new())).sqrt() + c;
+                Some(interaction_position(barycentre, mm(mm_(r).clamp(mm_(rmin), mm_(rmax))), rmax))
             }),
     }
 }
 
 fn correct_interaction_time(b: &Barycentre, rdiff: Length) -> Time {
     b.t - rdiff / c_in_medium(1.69)
+}
+
+fn interaction_position(barycentre: Barycentre, r: Length, rmax: Length) -> Barycentre {
+    let phi = barycentre.y.atan2(barycentre.x);
+    let t = correct_interaction_time(&barycentre, rmax - r);
+    Barycentre {x: r * phi.cos(), y: r * phi.sin(), t, ..barycentre}
 }
 
 // Calculate the azimuthal angle for each hit and
