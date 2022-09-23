@@ -57,7 +57,7 @@ fn qt_min_time(sensor_id: u32, hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Opti
     Some(SensorReadout { sensor_id, x, y, z, q: hits.len() as u32, t: ns(first_time) })
 }
 
-/// combine the individual hits into information for each sensor.
+/// Combine the individual hits into information for each sensor.
 /// Currently uses the minimum as the time for each sensor which
 /// might prove too inflexible. Should be generalised.
 pub fn combine_sensor_hits(hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Vec<SensorReadout> {
