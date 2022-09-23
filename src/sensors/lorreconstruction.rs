@@ -7,9 +7,8 @@ use ordered_float::NotNan;
 
 use uom::typenum::P2;
 use units::uom::ConstZero;
-use units::{C, Quantity, Length, Ratio, Time, Angle, Velocity};
+use units::{C, Quantity, Length, Ratio, Time, Angle, Velocity, Area};
 use units::{mm, mm_, ns, ns_, radian_, ratio, ratio_, turn};
-use units::mmps::f32::Area;
 
 use rand::random;
 use rand_distr::{Normal, Distribution};
