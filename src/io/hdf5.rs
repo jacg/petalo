@@ -7,15 +7,6 @@ use crate::config::mlem::{Bounds, Config};
 
 use rayon::prelude::*;
 
-#[derive(Clone)]
-pub struct Args {
-    pub input_file: PathBuf,
-    pub dataset: String,
-    pub event_range: Option<std::ops::Range<usize>>,
-    pub ecut: Bounds<Energyf32>,
-    pub qcut: Bounds<Chargef32>,
-}
-
 use ndarray::{s, Array1};
 
 use units::todo::{Energyf32, Chargef32};
