@@ -185,10 +185,10 @@ pub fn lor_reconstruction<'a>(
 enum DOI {
     /// Uses the RMS in Z to calculate interaction radius.
     ZRMS,
-    
+
     /// Uses the RMS in azimuthal angle (phi) to calculate interaction radius.
     PRMS,
-    
+
     /// Uses a combined Z/phi RMS to calculate interaction radius.
     CRMS
 }
