@@ -7,7 +7,7 @@ use ordered_float::NotNan;
 
 use uom::typenum::P2;
 use units::uom::ConstZero;
-use units::{C, Quantity, Length, Ratio, Time, Angle, Velocity, Area};
+use units::{C, Quantity, Length, Ratio, Time, Angle, Velocity, Area, todo::DetectionEff};
 use units::{mm, mm_, ns, ns_, radian_, ratio, ratio_, turn};
 
 use rand::random;
@@ -19,9 +19,6 @@ use crate::io::mcreaders::{MCSensorHit, SensorMap, SensorReadout};
 
 use crate::config::mlem::Bounds;
 use crate::BoundPair;
-
-type DetectionEff = f32;
-
 
 pub fn c_in_medium(rindex: f32) -> Velocity {
     C / ratio(rindex)
