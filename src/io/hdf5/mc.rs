@@ -26,18 +26,18 @@ mod grr {
         pub process_id: u32, // NB these may differ across
         pub volume_id: u32,  // different files
     }
-}
 
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct Primary {
-    pub event_id: u32,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub vx: f32,
-    pub vy: f32,
-    pub vz: f32,
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct Primary {
+        pub event_id: u32,
+        pub x: f32,
+        pub y: f32,
+        pub z: f32,
+        pub vx: f32,
+        pub vy: f32,
+        pub vz: f32,
+    }
 }
 
 pub fn read_vertices(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<Vertex>> {

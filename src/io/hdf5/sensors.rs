@@ -26,15 +26,15 @@ mod grr {
         pub sensor_id: u32,
         pub charge: u32,
     }
-}
 
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct SensorXYZ {
-    pub sensor_id: u32,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct SensorXYZ {
+        pub sensor_id: u32,
+        pub x: f32,
+        pub y: f32,
+        pub z: f32,
+    }
 }
 
 // Combines individual SensorHit times with total charge.
