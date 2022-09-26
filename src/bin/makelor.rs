@@ -6,7 +6,8 @@ use units::{Length, Time, Ratio, todo::Energyf32, Area};
 use petalo::{Point, BoundPair, utils::parse_bounds};
 use petalo::io;
 use petalo::io::hdf5::Hdf5Lor;
-use petalo::io::mcreaders::{QT, SensorMap, Vertex};
+use petalo::io::mcreaders::{QT, SensorMap};
+use petalo::io::hdf5::mc::Vertex;
 use petalo::sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction};
 use units::uom::ConstZero;
 use petalo::utils::group_digits;
@@ -127,14 +128,14 @@ fn main() -> hdf5::Result<()> {
     let makelors: FilenameToLorsFunction = match args.reco {
         Reco::FirstVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let vertices = io::mcreaders::read_vertices(infile, Bounds::none())?;
+                let vertices = io::hdf5::mc::read_vertices(infile, Bounds::none())?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 Ok(LorBatch::new(lors_from(&events, lor_from_first_vertices), events.len()))
             }),
 
         Reco::BaryVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let vertices = io::mcreaders::read_vertices(infile, Bounds::none())?;
+                let vertices = io::hdf5::mc::read_vertices(infile, Bounds::none())?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 Ok(LorBatch::new(lors_from(&events, lor_from_barycentre_of_vertices), events.len()))
             }),

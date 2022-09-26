@@ -35,7 +35,7 @@ use std::error::Error;
 use units::{Length, mm, mm_, todo::Lengthf32};
 use petalo::fov::FOV;
 use petalo::image::Image;
-use petalo::io::mcreaders::{read_primaries, Primary};
+use petalo::io::hdf5::mc::{read_primaries, Primary};
 type L = Lengthf32;
 use units::uom::si::length::millimeter;
 
