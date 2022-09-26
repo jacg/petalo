@@ -67,7 +67,7 @@ pub fn read_sensor_xyz(filename: &Path) -> hdf5::Result<Vec<SensorXYZ>> {
 pub type SensorMap = std::collections::HashMap<u32, (Length, Length, Length)>;
 
 pub fn read_sensor_map(filename: &Path) -> hdf5::Result<SensorMap> {
-    let sensor_xyz = read_sensor_xyz(&filename);
+    let sensor_xyz = read_sensor_xyz(filename);
     Ok(make_sensor_position_map(sensor_xyz.unwrap()))
 }
 

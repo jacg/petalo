@@ -65,7 +65,7 @@ pub fn combine_sensor_hits(hits: Vec<SensorHit>, xyzs: &SensorMap) -> Vec<Sensor
         .sorted_by_key(|&SensorHit { sensor_id, ..}| sensor_id)
         .group_by(|h| h.sensor_id)
         .into_iter()
-        .filter_map(|(s, grp)| qt_min_time(s, grp.collect(), &xyzs))
+        .filter_map(|(s, grp)| qt_min_time(s, grp.collect(), xyzs))
         .collect()
 }
 
@@ -161,7 +161,7 @@ pub fn lor_reconstruction<'a>(
     // TODO Values should be configurable, need to generalise.
     let doi_func = calculate_interaction_position(DOI::Zrms, ratio(-1.2906), mm(384.4280), mm(352.0), mm(382.0));
     Box::new(move |filename: &PathBuf| -> hdf5::Result<LorBatch> {
-        let sensor_hits = read_sensor_hits(&filename, Bounds::none())?;
+        let sensor_hits = read_sensor_hits(filename, Bounds::none())?;
         let detected_hits: Vec<SensorHit> =
             sensor_hits.iter()
                        .filter(random_detection_pde(pde))
@@ -171,7 +171,7 @@ pub fn lor_reconstruction<'a>(
             detected_hits.into_iter()
                          .group_by(|h| h.event_id)
                          .into_iter()
-                         .map(|(_, grp)| combine_sensor_hits(grp.collect(), &xyzs))
+                         .map(|(_, grp)| combine_sensor_hits(grp.collect(), xyzs))
                          .collect();
         Ok(LorBatch::new(lors_from(&events, |evs| lor_from_sensor_positions(evs, threshold, min_sensors, charge_lims, &doi_func)), events.len()))
     })
