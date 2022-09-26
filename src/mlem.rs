@@ -336,8 +336,7 @@ mod tests {
         fn from_point_and_angle((x,y): (Length, Length), angle: Angle) -> Line {
             let (b,a) = inverse_atan2(angle);
             let b = -b;
-            let line = Self { a, b, c: -(a*x + b*y) };
-            line
+            Self { a, b, c: -(a*x + b*y) }
         }
 
         /// The points at which this line crosses a circle of radius `r`,
