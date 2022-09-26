@@ -159,7 +159,7 @@ pub fn lor_reconstruction<'a>(
 ) -> Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a> {
     let time_smear = gaussian_sampler(time_mu, time_sigma);
     // TODO Values should be configurable, need to generalise.
-    let doi_func = calculate_interaction_position(DOI::Zrms, ratio(-1.2906), mm(384.4280), mm(352.0), mm(382.0));
+    let doi_func = calculate_interaction_position(DOI::Zrms, ratio(-1.2906), mm(384.428), mm(352.0), mm(382.0));
     Box::new(move |filename: &PathBuf| -> hdf5::Result<LorBatch> {
         let sensor_hits = read_sensor_hits(filename, Bounds::none())?;
         let detected_hits =
