@@ -1,5 +1,5 @@
 use std::path::Path;
-use crate::io::hdf5::read_table;
+use crate::io::hdf5::{array_to_vec,read_table};
 use units::{Length, Time};
 
 use crate::config::mlem::Bounds;
@@ -121,13 +121,6 @@ fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
     xyzs.iter().cloned()
         .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (mm(x), mm(y), mm(z))))
         .collect()
-}
-
-// TODO Is there really no simpler way?
-pub fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
-    let mut vec = vec![];
-    vec.extend_from_slice(array.as_slice().unwrap());
-    vec
 }
 
 fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<SensorHit>) -> Vec<QT> {

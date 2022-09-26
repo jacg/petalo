@@ -115,6 +115,16 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
     Ok(lors)
 }
 
+// TODO Is there really no simpler way?
+pub fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
+    let mut vec = vec![];
+    vec.extend_from_slice(array.as_slice().unwrap());
+    vec
+}
+
+// Include specific table readers and associated types
+pub mod mc;
+
 
 
 // --------------------------------------------------------------------------------
