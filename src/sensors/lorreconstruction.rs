@@ -159,7 +159,7 @@ pub fn lor_reconstruction<'a>(
 ) -> Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a> {
     let time_smear = gaussian_sampler(time_mu, time_sigma);
     // TODO Values should be configurable, need to generalise.
-    let doi_func = calculate_interaction_position(DOI::ZRMS, ratio(-1.2906), mm(384.4280), mm(352.0), mm(382.0));
+    let doi_func = calculate_interaction_position(DOI::Zrms, ratio(-1.2906), mm(384.4280), mm(352.0), mm(382.0));
     Box::new(move |filename: &PathBuf| -> hdf5::Result<LorBatch> {
         let sensor_hits = read_sensor_hits(&filename, Bounds::none())?;
         let detected_hits: Vec<SensorHit> =
@@ -180,13 +180,13 @@ pub fn lor_reconstruction<'a>(
 /// Depth Of Interaction (DOI) algorithms.
 enum DOI {
     /// Uses the RMS in Z to calculate interaction radius.
-    ZRMS,
+    Zrms,
 
     /// Uses the RMS in azimuthal angle (phi) to calculate interaction radius.
-    PRMS,
+    Prms,
 
     /// Uses a combined Z/phi RMS to calculate interaction radius.
-    CRMS
+    Crms
 }
 
 // Function to correct for DOI
@@ -199,7 +199,7 @@ fn calculate_interaction_position(
     rmax : Length
 ) -> Box<dyn Fn(Barycentre, &[SensorReadout]) -> Option<Barycentre>> {
     match ftype {
-        DOI::ZRMS =>
+        DOI::Zrms =>
             Box::new(move |barycentre: Barycentre, hits: &[SensorReadout]| -> Option<Barycentre> {
                 let zs = get_sensor_z(hits);
                 let weights = get_sensor_charge(hits);
@@ -207,7 +207,7 @@ fn calculate_interaction_position(
                 let r = m * rms + c;// Bias correction?
                 Some(interaction_position(barycentre, mm(mm_(r).clamp(mm_(rmin), mm_(rmax))), rmax))
             }),
-        DOI::PRMS =>
+        DOI::Prms =>
             Box::new(move |barycentre: Barycentre, hits: &[SensorReadout]| -> Option<Barycentre> {
                 let phis = azimuthal_angle(hits)?;
                 let weights = get_sensor_charge(hits);
@@ -216,7 +216,7 @@ fn calculate_interaction_position(
                 let r = mm(ratio_(m) * radian_(rms)) + c;
                 Some(interaction_position(barycentre, mm(mm_(r).clamp(mm_(rmin), mm_(rmax))), rmax))
             }),
-        DOI::CRMS => 
+        DOI::Crms =>
             Box::new(move |barycentre: Barycentre, hits: &[SensorReadout]| -> Option<Barycentre> {
                 let zs = get_sensor_z(hits);
                 let phis = azimuthal_angle(hits)?;
@@ -465,7 +465,7 @@ mod test_electronics {
         let rmin = 19.0;
         let rmax = 23.0;
         let lor = lor_from_sensor_positions(&sensors, 1.0, 2, q_limits,
-            calculate_interaction_position(DOI::CRMS, ratio(-0.5), mm(23.0), mm(rmin), mm(rmax)));
+            calculate_interaction_position(DOI::Crms, ratio(-0.5), mm(23.0), mm(rmin), mm(rmax)));
         assert!(lor.is_some());
         let Hdf5Lor { x1, y1, x2, y2, .. } = lor.unwrap();
         let r1 = (x1*x1 + y1*y1).sqrt();
