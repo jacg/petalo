@@ -124,6 +124,7 @@ pub fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
 
 // Include specific table readers and associated types
 pub mod mc;
+pub mod sensors;
 
 
 

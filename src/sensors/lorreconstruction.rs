@@ -14,8 +14,8 @@ use rand::random;
 use rand_distr::{Normal, Distribution};
 
 use crate::io::hdf5::Hdf5Lor;
-use crate::io::mcreaders::read_sensor_hits;
-use crate::io::mcreaders::{SensorHit, SensorMap, SensorReadout};
+use crate::io::hdf5::sensors::read_sensor_hits;
+use crate::io::hdf5::sensors::{SensorHit, SensorMap, SensorReadout};
 
 use crate::config::mlem::Bounds;
 use crate::BoundPair;

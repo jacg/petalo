@@ -6,7 +6,7 @@ use units::{Length, Time, Ratio, todo::Energyf32, Area};
 use petalo::{Point, BoundPair, utils::parse_bounds};
 use petalo::io;
 use petalo::io::hdf5::Hdf5Lor;
-use petalo::io::mcreaders::{QT, SensorMap};
+use petalo::io::hdf5::sensors::{QT, SensorMap};
 use petalo::io::hdf5::mc::Vertex;
 use petalo::sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction};
 use units::uom::ConstZero;
@@ -119,7 +119,7 @@ fn main() -> hdf5::Result<()> {
         );
     files_pb.tick();
     // --- Process input files -------------------------------------------------------
-    let xyzs = io::mcreaders::read_sensor_map(&args.infiles[0])?;
+    let xyzs = io::hdf5::sensors::read_sensor_map(&args.infiles[0])?;
     let mut lors: Vec<Hdf5Lor> = vec![];
     let mut n_events = 0;
     let mut failed_files = vec![];
@@ -142,14 +142,14 @@ fn main() -> hdf5::Result<()> {
 
         Reco::Half{q} => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let qts = io::mcreaders::read_qts(infile, Bounds::none())?;
+                let qts = io::hdf5::sensors::read_qts(infile, Bounds::none())?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
                 Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
             }),
 
         Reco::Dbscan { q, min_count, max_distance } => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let qts = io::mcreaders::read_qts(infile, Bounds::none())?;
+                let qts = io::hdf5::sensors::read_qts(infile, Bounds::none())?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
                 Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
             }),
