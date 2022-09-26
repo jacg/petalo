@@ -1,7 +1,7 @@
 /// Read LORs from HDF5 tables
 
 use std::error::Error;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use crate::lorogram::{Scattergram, Prompt};
 use crate::config::mlem::{Bounds, Config};
 
@@ -9,7 +9,6 @@ use rayon::prelude::*;
 
 use ndarray::{s, Array1};
 
-use units::todo::{Energyf32, Chargef32};
 use crate::Point;
 use crate::system_matrix::LOR;
 
