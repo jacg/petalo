@@ -162,11 +162,10 @@ pub fn lor_reconstruction<'a>(
     let doi_func = calculate_interaction_position(DOI::Zrms, ratio(-1.2906), mm(384.4280), mm(352.0), mm(382.0));
     Box::new(move |filename: &PathBuf| -> hdf5::Result<LorBatch> {
         let sensor_hits = read_sensor_hits(filename, Bounds::none())?;
-        let detected_hits: Vec<SensorHit> =
+        let detected_hits =
             sensor_hits.iter()
                        .filter(random_detection_pde(pde))
-                       .map(|hit| SensorHit { time: hit.time + time_smear(), ..*hit })
-                       .collect();
+                       .map(|hit| SensorHit { time: hit.time + time_smear(), ..*hit });
         let events: Vec<Vec<SensorReadout>> =
             detected_hits.into_iter()
                          .group_by(|h| h.event_id)
