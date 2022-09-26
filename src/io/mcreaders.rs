@@ -14,7 +14,7 @@ mod grr {
 
     #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
     #[repr(C)]
-    pub struct MCVertex {
+    pub struct Vertex {
         pub event_id: u32,
         pub track_id: u32,
         pub parent_id: u32,
@@ -32,7 +32,7 @@ mod grr {
 
     #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
     #[repr(C)]
-    pub struct MCSensorHit {
+    pub struct SensorHit {
         pub event_id: u32,
         pub sensor_id: u32,
         pub time: f32,
@@ -40,7 +40,7 @@ mod grr {
 
     #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
     #[repr(C)]
-    pub struct MCQtot {
+    pub struct Qtot {
         pub event_id: u32,
         pub sensor_id: u32,
         pub charge: u32,
@@ -49,7 +49,7 @@ mod grr {
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
-pub struct MCPrimary {
+pub struct Primary {
     pub event_id: u32,
     pub x: f32,
     pub y: f32,
@@ -61,7 +61,7 @@ pub struct MCPrimary {
 
 #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
 #[repr(C)]
-pub struct MCSensorXYZ {
+pub struct SensorXYZ {
     pub sensor_id: u32,
     pub x: f32,
     pub y: f32,
@@ -70,7 +70,7 @@ pub struct MCSensorXYZ {
 
 // Combines individual SensorHit times with total charge.
 #[derive(Clone, Copy, Debug)]
-pub struct MCQT {
+pub struct QT {
     pub event_id: u32,
     pub sensor_id: u32,
     pub q: u32,
@@ -87,20 +87,20 @@ pub struct SensorReadout {
     pub t: Time,
 }
 
-pub fn read_vertices(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<MCVertex>> {
-    Ok(array_to_vec(read_table::<MCVertex>(&filename, "MC/vertices", range)?))
+pub fn read_vertices(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<Vertex>> {
+    Ok(array_to_vec(read_table::<Vertex>(&filename, "MC/vertices", range)?))
 }
 
-pub fn read_sensor_hits(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<MCSensorHit>> {
-    Ok(array_to_vec(read_table::<MCSensorHit>(&filename, "MC/waveform", range)?))
+pub fn read_sensor_hits(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<SensorHit>> {
+    Ok(array_to_vec(read_table::<SensorHit>(&filename, "MC/waveform", range)?))
 }
 
-pub fn read_primaries(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<MCPrimary>> {
-    Ok(array_to_vec(read_table::<MCPrimary>(&filename, "MC/primaries", range)?))
+pub fn read_primaries(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<Primary>> {
+    Ok(array_to_vec(read_table::<Primary>(&filename, "MC/primaries", range)?))
 }
 
-pub fn read_sensor_xyz(filename: &Path) -> hdf5::Result<Vec<MCSensorXYZ>> {
-    Ok(array_to_vec(read_table::<MCSensorXYZ>(&filename, "MC/sensor_xyz", Bounds::none())?))
+pub fn read_sensor_xyz(filename: &Path) -> hdf5::Result<Vec<SensorXYZ>> {
+    Ok(array_to_vec(read_table::<SensorXYZ>(&filename, "MC/sensor_xyz", Bounds::none())?))
 }
 
 pub type SensorMap = std::collections::HashMap<u32, (Length, Length, Length)>;
@@ -110,16 +110,16 @@ pub fn read_sensor_map(filename: &Path) -> hdf5::Result<SensorMap> {
     Ok(make_sensor_position_map(sensor_xyz.unwrap()))
 }
 
-pub fn read_qts(infile: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<MCQT>> {
+pub fn read_qts(infile: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<QT>> {
     // Read charges and waveforms
-    let qs = read_table::<MCQtot     >(&infile, "MC/total_charge", range.clone())?;
-    let ts = read_table::<MCSensorHit>(&infile, "MC/waveform"    , range        )?;
+    let qs = read_table::<Qtot     >(&infile, "MC/total_charge", range.clone())?;
+    let ts = read_table::<SensorHit>(&infile, "MC/waveform"    , range        )?;
     Ok(combine_tables(qs, ts))
 }
 
-fn make_sensor_position_map(xyzs: Vec<MCSensorXYZ>) -> SensorMap {
+fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
     xyzs.iter().cloned()
-        .map(|MCSensorXYZ{sensor_id, x, y, z}| (sensor_id, (mm(x), mm(y), mm(z))))
+        .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (mm(x), mm(y), mm(z))))
         .collect()
 }
 
@@ -130,13 +130,13 @@ pub fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
     vec
 }
 
-fn combine_tables(qs: ndarray::Array1<MCQtot>, ts: ndarray::Array1<MCSensorHit>) -> Vec<MCQT> {
+fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<SensorHit>) -> Vec<QT> {
     let mut qts = vec![];
     let mut titer = ts.iter();
-    for &MCQtot{ event_id, sensor_id, charge:q} in qs.iter() {
-        for &MCSensorHit{ event_id: te, sensor_id: ts, time:t} in titer.by_ref() {
+    for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
+        for &SensorHit{ event_id: te, sensor_id: ts, time:t} in titer.by_ref() {
             if event_id == te && sensor_id == ts {
-                qts.push(MCQT{ event_id, sensor_id, q, t: ns(t) });
+                qts.push(QT{ event_id, sensor_id, q, t: ns(t) });
                 break;
             }
         }

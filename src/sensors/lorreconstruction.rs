@@ -15,7 +15,7 @@ use rand_distr::{Normal, Distribution};
 
 use crate::io::hdf5::Hdf5Lor;
 use crate::io::mcreaders::read_sensor_hits;
-use crate::io::mcreaders::{MCSensorHit, SensorMap, SensorReadout};
+use crate::io::mcreaders::{SensorHit, SensorMap, SensorReadout};
 
 use crate::config::mlem::Bounds;
 use crate::BoundPair;
@@ -51,7 +51,7 @@ pub fn gaussian_sampler(mu: f32, sigma: f32) -> impl Fn() -> f32 {
 }
 
 // How to use the Group here to avoid too many collects?
-fn qt_min_time(sensor_id: u32, hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Option<SensorReadout> {
+fn qt_min_time(sensor_id: u32, hits: Vec<SensorHit>, xyzs: &SensorMap) -> Option<SensorReadout> {
     let first_time = hits.iter().min_by_key(|h| NotNan::new(h.time).ok())?.time;
     let &(x, y, z) = xyzs.get(&sensor_id)?;
     Some(SensorReadout { sensor_id, x, y, z, q: hits.len() as u32, t: ns(first_time) })
@@ -60,9 +60,9 @@ fn qt_min_time(sensor_id: u32, hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Opti
 /// Combine the individual hits into information for each sensor.
 /// Currently uses the minimum as the time for each sensor which
 /// might prove too inflexible. Should be generalised.
-pub fn combine_sensor_hits(hits: Vec<MCSensorHit>, xyzs: &SensorMap) -> Vec<SensorReadout> {
+pub fn combine_sensor_hits(hits: Vec<SensorHit>, xyzs: &SensorMap) -> Vec<SensorReadout> {
     hits.into_iter()
-        .sorted_by_key(|&MCSensorHit { sensor_id, ..}| sensor_id)
+        .sorted_by_key(|&SensorHit { sensor_id, ..}| sensor_id)
         .group_by(|h| h.sensor_id)
         .into_iter()
         .filter_map(|(s, grp)| qt_min_time(s, grp.collect(), &xyzs))
@@ -162,10 +162,10 @@ pub fn lor_reconstruction<'a>(
     let doi_func = calculate_interaction_position(DOI::ZRMS, ratio(-1.2906), mm(384.4280), mm(352.0), mm(382.0));
     Box::new(move |filename: &PathBuf| -> hdf5::Result<LorBatch> {
         let sensor_hits = read_sensor_hits(&filename, Bounds::none())?;
-        let detected_hits: Vec<MCSensorHit> =
+        let detected_hits: Vec<SensorHit> =
             sensor_hits.iter()
                        .filter(random_detection_pde(pde))
-                       .map(|hit| MCSensorHit { time: hit.time + time_smear(), ..*hit })
+                       .map(|hit| SensorHit { time: hit.time + time_smear(), ..*hit })
                        .collect();
         let events: Vec<Vec<SensorReadout>> =
             detected_hits.into_iter()
@@ -324,7 +324,7 @@ mod test_electronics {
     use float_eq::assert_float_eq;
 
     #[fixture]
-    fn mcsensorhit_vector() -> ([u32; 5], SensorMap, Vec<MCSensorHit>) {
+    fn mcsensorhit_vector() -> ([u32; 5], SensorMap, Vec<SensorHit>) {
         let dummy_times: [f32; 5] = [0.4, 0.25, 0.11, 0.50, 0.47];
         let sensor_ids: [u32; 5]  = [133, 133, 133, 135, 136];
         let positions = [(0.0, 0.0, 0.0), (0.0, 0.0, 0.0),
@@ -338,7 +338,7 @@ mod test_electronics {
         let dummy_hits = dummy_times
             .iter()
             .zip(sensor_ids.iter())
-            .map(|(&t, &s)| MCSensorHit { event_id, sensor_id: s, time: t})
+            .map(|(&t, &s)| SensorHit { event_id, sensor_id: s, time: t})
             .collect();
         (sensor_ids, smap, dummy_hits)
     }
@@ -378,7 +378,7 @@ mod test_electronics {
     }
 
     #[rstest]
-    fn test_sensor_min(mcsensorhit_vector: ([u32; 5], SensorMap, Vec<MCSensorHit>)) {
+    fn test_sensor_min(mcsensorhit_vector: ([u32; 5], SensorMap, Vec<SensorHit>)) {
         let (sensor_ids, smap, hits) = mcsensorhit_vector;
 
         let qt = qt_min_time(sensor_ids[0], hits[0..3].to_vec(), &smap).unwrap();
@@ -387,7 +387,7 @@ mod test_electronics {
     }
 
     #[rstest]
-    fn test_combine_sensors(mcsensorhit_vector: ([u32; 5], SensorMap, Vec<MCSensorHit>)) {
+    fn test_combine_sensors(mcsensorhit_vector: ([u32; 5], SensorMap, Vec<SensorHit>)) {
         let (_, smap, hits) = mcsensorhit_vector;
 
         let qts = combine_sensor_hits(hits, &smap);
@@ -408,9 +408,9 @@ mod test_electronics {
             .zip(positions.iter())
             .map(|(id, &(x, y, z))| (id, (mm(x), mm(y), mm(z))))
             .collect();
-        let test_hits: Vec<MCSensorHit> = sensor_ids
+        let test_hits: Vec<SensorHit> = sensor_ids
             .iter()
-            .map(|&sensor_id| MCSensorHit { event_id: 1, sensor_id, time: 0.11})
+            .map(|&sensor_id| SensorHit { event_id: 1, sensor_id, time: 0.11})
             .collect();
         let qts = combine_sensor_hits(test_hits, &smap);
         assert_eq!(qts.len(), 3);

@@ -6,7 +6,7 @@ use units::{Length, Time, Ratio, todo::Energyf32, Area};
 use petalo::{Point, BoundPair, utils::parse_bounds};
 use petalo::io;
 use petalo::io::hdf5::Hdf5Lor;
-use petalo::io::mcreaders::{MCQT, SensorMap, MCVertex};
+use petalo::io::mcreaders::{QT, SensorMap, Vertex};
 use petalo::sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction};
 use units::uom::ConstZero;
 use petalo::utils::group_digits;
@@ -194,10 +194,10 @@ fn main() -> hdf5::Result<()> {
 }
 
 #[allow(nonstandard_style)]
-fn lor_from_first_vertices(vertices: &[MCVertex]) -> Option<Hdf5Lor> {
+fn lor_from_first_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
     let mut in_lxe = vertices.iter().filter(|v| v.volume_id == 0);
-    let &MCVertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_lxe.find(|v| v.track_id == 2)?;
-    let &MCVertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_lxe.find(|v| v.track_id == 1)?;
+    let &Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_lxe.find(|v| v.track_id == 2)?;
+    let &Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_lxe.find(|v| v.track_id == 1)?;
     Some(Hdf5Lor {
         dt: t2 - t1,                   x1, y1, z1,   x2, y2, z2,
         q1: f32::NAN, q2: f32::NAN,        E1,           E2,
@@ -205,7 +205,7 @@ fn lor_from_first_vertices(vertices: &[MCVertex]) -> Option<Hdf5Lor> {
 }
 
 #[allow(nonstandard_style)]
-fn lor_from_barycentre_of_vertices(vertices: &[MCVertex]) -> Option<Hdf5Lor> {
+fn lor_from_barycentre_of_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
     let (a,b): (Vec<_>, Vec<_>) = vertices
         .iter()
         .filter(|v| v.volume_id == 0 && v.parent_id <= 2)
@@ -224,7 +224,7 @@ fn lor_from_barycentre_of_vertices(vertices: &[MCVertex]) -> Option<Hdf5Lor> {
     })
 }
 
-fn lor_from_hits(hits: &[MCQT], xyzs: &SensorMap) -> Option<Hdf5Lor> {
+fn lor_from_hits(hits: &[QT], xyzs: &SensorMap) -> Option<Hdf5Lor> {
     let (cluster_a, cluster_b) = group_into_clusters(hits, xyzs)?;
     //println!("{} + {} = {} ", cluster_a.len(), cluster_b.len(), hits.len());
     let (p1, t1) = cluster_xyzt(&cluster_a, xyzs)?;
@@ -258,11 +258,11 @@ mod test_n_clusters {
     }
 }
 
-fn lor_from_hits_dbscan(hits: &[MCQT], xyzs: &SensorMap, min_points: usize, tolerance: Length) -> Option<Hdf5Lor> {
+fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolerance: Length) -> Option<Hdf5Lor> {
     use linfa_clustering::AppxDbscan;
     use linfa::traits::Transformer;
     let active_sensor_positions: ndarray::Array2<f32> = hits.iter()
-        .flat_map(|MCQT { sensor_id, ..}| xyzs.get(sensor_id))
+        .flat_map(|QT { sensor_id, ..}| xyzs.get(sensor_id))
         .map(|&(x,y,z)| [mm_(x), mm_(y), mm_(z)])
         .collect::<Vec<_>>()
         .into();
@@ -296,7 +296,7 @@ fn lor_from_hits_dbscan(hits: &[MCQT], xyzs: &SensorMap, min_points: usize, tole
     })
 }
 
-fn cluster_xyzt(hits: &[MCQT], xyzs: &SensorMap) -> Option<(Point, Time)> {
+fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Time)> {
     let (x,y,z) = sipm_charge_barycentre(hits, xyzs)?;
     let ts = k_smallest(10, hits.iter().map(|h| h.t))?;
     let t = mean(&ts)?;
@@ -329,14 +329,14 @@ where
     Some(result)
 }
 
-fn find_sensor_with_highest_charge(sensors: &[MCQT]) -> Option<u32> {
+fn find_sensor_with_highest_charge(sensors: &[QT]) -> Option<u32> {
     sensors.iter().max_by_key(|e| e.q).map(|e| e.sensor_id)
 }
 
-fn group_into_clusters(hits: &[MCQT], xyzs: &SensorMap) -> Option<(Vec::<MCQT>, Vec::<MCQT>)> {
+fn group_into_clusters(hits: &[QT], xyzs: &SensorMap) -> Option<(Vec::<QT>, Vec::<QT>)> {
     let sensor_with_highest_charge = find_sensor_with_highest_charge(hits)?;
-    let mut a = Vec::<MCQT>::new();
-    let mut b = Vec::<MCQT>::new();
+    let mut a = Vec::<QT>::new();
+    let mut b = Vec::<QT>::new();
     let &(xm, ym, _) = xyzs.get(&sensor_with_highest_charge)?;
     for hit in hits.iter().cloned() {
         let &(x, y, _) = xyzs.get(&hit.sensor_id)?;
@@ -348,13 +348,13 @@ fn group_into_clusters(hits: &[MCQT], xyzs: &SensorMap) -> Option<(Vec::<MCQT>, 
 
 fn dot((x1,y1): (Length, Length), (x2,y2): (Length, Length)) -> Area { x1*x2 + y1*y2 }
 
-fn sipm_charge_barycentre(hits: &[MCQT], xyzs: &SensorMap) -> Option<(Length, Length, Length)> {
+fn sipm_charge_barycentre(hits: &[QT], xyzs: &SensorMap) -> Option<(Length, Length, Length)> {
     if hits.is_empty() { return None }
     let mut qs = Ratio::ZERO;
     let mut xx = Length::ZERO;
     let mut yy = Length::ZERO;
     let mut zz = Length::ZERO;
-    for &MCQT{ sensor_id, q, .. } in hits {
+    for &QT{ sensor_id, q, .. } in hits {
         let &(x, y, z) = xyzs.get(&sensor_id)?;
         let q = ratio(q as f32);
         qs += q;
@@ -376,7 +376,7 @@ struct Barycentre {
 }
 
 #[allow(nonstandard_style)]
-fn vertex_barycentre(vertices: &[&MCVertex]) -> Option<Barycentre> {
+fn vertex_barycentre(vertices: &[&Vertex]) -> Option<Barycentre> {
     if vertices.is_empty() { return None }
     let mut delta_E = 0.0;
     let mut rr = Length::ZERO;
@@ -384,7 +384,7 @@ fn vertex_barycentre(vertices: &[&MCVertex]) -> Option<Barycentre> {
     let mut yy = Length::ZERO;
     let mut zz = Length::ZERO;
     let mut tt = Time::ZERO;
-    for &&MCVertex { x, y, z, t, pre_KE, post_KE, .. } in vertices {
+    for &&Vertex { x, y, z, t, pre_KE, post_KE, .. } in vertices {
         let dE = pre_KE - post_KE;
         let (x, y, z, t) = (mm(x), mm(y), mm(z), ns(t));
         delta_E += dE;
@@ -413,8 +413,8 @@ mod test_vertex_barycentre {
     use std::f32::consts::PI;
 
     /// Create a vertex with interesting x,y, optional pre_KE and dummy values elsewhere
-    fn vertex(x: Length, y: Length, pre_ke: Option<Energyf32>) -> MCVertex {
-        MCVertex {
+    fn vertex(x: Length, y: Length, pre_ke: Option<Energyf32>) -> Vertex {
+        Vertex {
             // interesting values
             x: mm_(x), y: mm_(y),
             // dummy values
@@ -431,14 +431,14 @@ mod test_vertex_barycentre {
         let r = mm(355.0);
 
         // Distribute vertices on quarter circle
-        let vertices: Vec<MCVertex> = (0..10)
+        let vertices: Vec<Vertex> = (0..10)
             .map(|i| radian(i as f32 * PI / 20.0))
             .map(|angle| (r * angle.cos(), r * angle.sin()))
             .map(|(x,y)| vertex(x,y, None))
             .collect();
 
         // Create vector of vertex refs, as required by vertex_barycentre
-        let vertex_refs: Vec<&MCVertex> = vertices.iter().collect();
+        let vertex_refs: Vec<&Vertex> = vertices.iter().collect();
 
         let Barycentre { x, y, .. } = vertex_barycentre(&vertex_refs).unwrap();
         let bary_r = (x*x + y*y).sqrt();
@@ -458,7 +458,7 @@ mod test_vertex_barycentre {
         let (expected_x, expected_y) = (r * angle.cos(), r * angle.sin());
 
         // Create vector of vertex refs, as required by vertex_barycentre
-        let vertex_refs: Vec<&MCVertex> = vertices.iter().collect();
+        let vertex_refs: Vec<&Vertex> = vertices.iter().collect();
 
         let Barycentre { x, y, .. } = vertex_barycentre(&vertex_refs).unwrap();
 
@@ -470,12 +470,12 @@ mod test_vertex_barycentre {
     fn energy_weights_used_correctly() {
         let energies = vec![511.0, 415.7, 350.0, 479.0, 222.5];
         let ys       = vec![353.5, 382.0, 367.3, 372.9, 377.0];
-        let vertices: Vec<MCVertex> = ys.iter().zip(energies.iter())
+        let vertices: Vec<Vertex> = ys.iter().zip(energies.iter())
             .map(|(y, e)| vertex(mm(0.0), mm(*y), Some(*e)))
             .collect();
 
         // Create vector of vertex refs, as required by vertex_barycentre
-        let vertex_refs: Vec<&MCVertex> = vertices.iter().collect();
+        let vertex_refs: Vec<&Vertex> = vertices.iter().collect();
 
         let weighted_sum = ys.iter().zip(energies.iter())
             .fold(0.0, |acc, (y, w)| acc + y * w);

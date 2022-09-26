@@ -35,7 +35,7 @@ use std::error::Error;
 use units::{Length, mm, mm_, todo::Lengthf32};
 use petalo::fov::FOV;
 use petalo::image::Image;
-use petalo::io::mcreaders::{read_primaries, MCPrimary};
+use petalo::io::mcreaders::{read_primaries, Primary};
 type L = Lengthf32;
 use units::uom::si::length::millimeter;
 
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
     // --- Process input files -------------------------------------------------------
     let Cli{ input_files, nvoxels, out_file, .. } = args.clone();
-    let mut all_events: Vec<MCPrimary> = vec![];
+    let mut all_events: Vec<Primary> = vec![];
     let mut failed_files = vec![];
     // --- Progress bar --------------------------------------------------------------
     let progress = ProgressBar::new(args.input_files.len() as u64).with_message(args.input_files[0].display().to_string());
@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         (x,y,z)
     } else { // from extrema of positions in input files
         let (mut xmax, mut ymax, mut zmax): (Length, Length, Length) = (mm(10.0), mm(10.0), mm(10.0));
-        for &MCPrimary{ x,y,z, ..} in all_events.iter() {
+        for &Primary{ x,y,z, ..} in all_events.iter() {
             xmax = xmax.max(mm(x).abs());
             ymax = ymax.max(mm(y).abs());
             zmax = zmax.max(mm(z).abs());
@@ -91,7 +91,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some([i,j,k])
     };
     // --- Collect event data into image ---------------------------------------------
-    for &MCPrimary{ x,y,z, ..} in all_events.iter() {
+    for &Primary{ x,y,z, ..} in all_events.iter() {
         if let Some(i3) = pos_to_index3(x,y,z) {
             image[i3] += 1.0;
         }
