@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::config::mlem::Bounds;
-use crate::io::hdf5::{array_to_vec, read_table};
+use crate::io::hdf5::read_table;
 
 use units::{Length, Time, mm, ns};
 
@@ -57,11 +57,11 @@ pub struct SensorReadout {
 }
 
 pub fn read_sensor_hits(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<SensorHit>> {
-    Ok(array_to_vec(read_table::<SensorHit>(&filename, "MC/waveform", range)?))
+    Ok(read_table::<SensorHit>(&filename, "MC/waveform", range)?.to_vec())
 }
 
 pub fn read_sensor_xyz(filename: &Path) -> hdf5::Result<Vec<SensorXYZ>> {
-    Ok(array_to_vec(read_table::<SensorXYZ>(&filename, "MC/sensor_xyz", Bounds::none())?))
+    Ok(read_table::<SensorXYZ>(&filename, "MC/sensor_xyz", Bounds::none())?.to_vec())
 }
 
 pub type SensorMap = std::collections::HashMap<u32, (Length, Length, Length)>;

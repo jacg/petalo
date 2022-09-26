@@ -539,8 +539,7 @@ mod test_nested_compound_hdf5 {
                 .create("nested")?;
         }
         // read
-        let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", Bounds::none())?;
-        let read_data = super::io::hdf5::array_to_vec(read_data);
+        let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", Bounds::none())?.to_vec();
         assert_eq!(test_data, read_data);
         println!("Test table written to {}", file_path);
         Ok(())
