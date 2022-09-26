@@ -19,3 +19,4 @@ pub type Ratiof32     = f32;
 pub type Energyf32    = f32; // TODO uom Energy
 pub type Chargef32    = f32; // TODO uom Charge
 pub type Intensityf32 = f32; // TODO uom Intensity
+pub type DetectionEff = f32;

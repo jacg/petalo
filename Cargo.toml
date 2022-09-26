@@ -38,6 +38,7 @@ linfa-clustering = "0.5.1"
 numsep = "0.1.12"
 ndhistogram = "0.8.0"
 toml = "0.5.9"
+rand_distr = "0.4.3"
 
 [dev-dependencies]
 rstest = "0.13"

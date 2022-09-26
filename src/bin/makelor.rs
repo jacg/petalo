@@ -1,12 +1,14 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use clap::Parser;
 use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
-use units::{Length, Time, Ratio, todo::Energyf32};
-use petalo::Point;
+use units::{Length, Time, Ratio, todo::Energyf32, Area};
+use petalo::{Point, BoundPair, utils::parse_bounds};
 use petalo::io;
-use petalo::io::hdf5::{SensorXYZ, Hdf5Lor};
-use units::mmps::f32::Area;
+use petalo::io::hdf5::Hdf5Lor;
+use petalo::io::hdf5::sensors::{QT, SensorMap};
+use petalo::io::hdf5::mc::Vertex;
+use petalo::sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction};
 use units::uom::ConstZero;
 use petalo::utils::group_digits;
 use petalo::config::mlem::Bounds;
@@ -19,6 +21,7 @@ use units::{mm, mm_, ns, ns_, ratio};
 // + From<ordered_float::NotNan>
 // + Dbscan something or other
 
+// TODO this could be improved implementing Config file
 #[derive(clap::Parser, Debug, Clone)]
 #[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(
@@ -74,6 +77,30 @@ enum Reco {
         /// Maximum distance between neighbours in cluster
         #[clap(short = 'd', long, default_value = "100 mm")]
         max_distance: Length,
+    },
+
+    /// Reconstruct LORs from hits using barycentre of clusters.
+    #[clap(setting = clap::AppSettings::ColoredHelp)]
+    SimpleRec {
+        /// Sensor PDE
+        #[structopt(short, long, default_value = "0.3")]
+        pde: f32,
+
+        /// Sensor time smearing sigma in nanoseconds.
+        #[structopt(short, long, default_value = "0.05")]
+        sigma_t: f32,
+
+        /// Charge threshold for individual sensors.
+        #[structopt(short, long, default_value = "2")]
+        threshold: f32,
+
+        /// Minimum number of sensors per cluster.
+        #[structopt(short, long, default_value = "2")]
+        nsensors: usize,
+
+        /// Charge range to accept sum in clusters.
+        #[structopt(short, long, parse(try_from_str = parse_bounds::<f32>), default_value = "1..5000")]
+        charge_limits: BoundPair<f32>,
     }
 }
 
@@ -92,40 +119,43 @@ fn main() -> hdf5::Result<()> {
         );
     files_pb.tick();
     // --- Process input files -------------------------------------------------------
-    let xyzs = read_sensor_map(&args.infiles[0])?;
+    let xyzs = io::hdf5::sensors::read_sensor_map(&args.infiles[0])?;
     let mut lors: Vec<Hdf5Lor> = vec![];
     let mut n_events = 0;
     let mut failed_files = vec![];
 
-    type FilenameToLorsFunction = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch>>;
+    type FilenameToLorsFunction<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a>;
     let makelors: FilenameToLorsFunction = match args.reco {
         Reco::FirstVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let vertices = read_vertices(infile)?;
+                let vertices = io::hdf5::mc::read_vertices(infile, Bounds::none())?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 Ok(LorBatch::new(lors_from(&events, lor_from_first_vertices), events.len()))
             }),
 
         Reco::BaryVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let vertices = read_vertices(infile)?;
+                let vertices = io::hdf5::mc::read_vertices(infile, Bounds::none())?;
                 let events = group_by(|v| v.event_id, vertices.into_iter());
                 Ok(LorBatch::new(lors_from(&events, lor_from_barycentre_of_vertices), events.len()))
             }),
 
         Reco::Half{q} => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let qts = read_qts(infile)?;
+                let qts = io::hdf5::sensors::read_qts(infile, Bounds::none())?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
                 Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
             }),
 
         Reco::Dbscan { q, min_count, max_distance } => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let qts = read_qts(infile)?;
+                let qts = io::hdf5::sensors::read_qts(infile, Bounds::none())?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
                 Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
             }),
+
+        Reco::SimpleRec { pde, sigma_t, threshold, nsensors, charge_limits }
+            => lor_reconstruction(&xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
     };
 
 
@@ -162,23 +192,6 @@ fn main() -> hdf5::Result<()> {
         println!("Warning: failed to read {} file{}:", n, plural);
     }
     Ok(())
-}
-
-struct LorBatch {
-    lors: Vec<Hdf5Lor>,
-    n_events_processed: usize,
-}
-impl LorBatch {
-    pub fn new(lors: Vec<Hdf5Lor>, n_events_processed: usize) -> Self {
-        Self { lors, n_events_processed }
-    }
-}
-
-
-fn lors_from<T>(events: &[Vec<T>], mut one_lor: impl FnMut(&[T]) -> Option<Hdf5Lor>) -> Vec<Hdf5Lor> {
-    events.iter()
-        .flat_map(|data| one_lor(data))
-        .collect()
 }
 
 #[allow(nonstandard_style)]
@@ -320,8 +333,6 @@ where
 fn find_sensor_with_highest_charge(sensors: &[QT]) -> Option<u32> {
     sensors.iter().max_by_key(|e| e.q).map(|e| e.sensor_id)
 }
-
-type SensorMap = std::collections::HashMap<u32, (Length, Length, Length)>;
 
 fn group_into_clusters(hits: &[QT], xyzs: &SensorMap) -> Option<(Vec::<QT>, Vec::<QT>)> {
     let sensor_with_highest_charge = find_sensor_with_highest_charge(hits)?;
@@ -480,105 +491,11 @@ mod test_vertex_barycentre {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct QT {
-    pub event_id: u32,
-    pub sensor_id: u32,
-    pub q: u32,
-    pub t: Time,
-}
-
-// Use otherwise pointless module to allow nonstandard_style in constants
-// generated by hdf5 derive macro
-pub use grr::*;
-#[allow(nonstandard_style)]
-mod grr {
-
-    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-    #[repr(C)]
-    pub struct Vertex {
-        pub event_id: u32,
-        pub track_id: u32,
-        pub parent_id: u32,
-        pub x: f32,
-        pub y: f32,
-        pub z: f32,
-        pub t: f32,
-        pub moved: f32,
-        pub pre_KE: f32,
-        pub post_KE: f32,
-        pub deposited: u32,
-        pub process_id: u32, // NB these may differ across
-        pub volume_id: u32,  // different files
-    }
-
-    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-    #[repr(C)]
-    pub struct Waveform {
-        pub event_id: u32,
-        pub sensor_id: u32,
-        pub time: f32,
-    }
-
-    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-    #[repr(C)]
-    pub struct Qtot {
-        pub event_id: u32,
-        pub sensor_id: u32,
-        pub charge: u32,
-    }
-}
-// TODO Is there really no simpler way?
-fn array_to_vec<T: Clone>(array: ndarray::Array1<T>) -> Vec<T> {
-    let mut vec = vec![];
-    vec.extend_from_slice(array.as_slice().unwrap());
-    vec
-}
-
-
-
-fn read_sensor_map(filename: &Path) -> hdf5::Result<SensorMap> {
-    // TODO: refactor and hide in a function
-    let array = io::hdf5::read_table::<SensorXYZ>(&filename, "MC/sensor_xyz", Bounds::none())?;
-    Ok(make_sensor_position_map(array_to_vec(array)))
-}
-
-fn read_vertices(filename: &Path) -> hdf5::Result<Vec<Vertex>> {
-    Ok(array_to_vec(io::hdf5::read_table::<Vertex>(&filename, "MC/vertices", Bounds::none())?))
-}
-
-fn read_qts(infile: &Path) -> hdf5::Result<Vec<QT>> {
-    // Read charges and waveforms
-    let qs = io::hdf5::read_table::<Qtot     >(&infile, "MC/total_charge", Bounds::none())?;
-    let ts = io::hdf5::read_table::<Waveform >(&infile, "MC/waveform"    , Bounds::none())?;
-    Ok(combine_tables(qs, ts))
-}
-
-fn combine_tables(qs: ndarray::Array1<Qtot>, ts: ndarray::Array1<Waveform>) -> Vec<QT> {
-    let mut qts = vec![];
-    let mut titer = ts.iter();
-    for &Qtot{ event_id, sensor_id, charge:q} in qs.iter() {
-        for &Waveform{ event_id: te, sensor_id: ts, time:t} in titer.by_ref() {
-            if event_id == te && sensor_id == ts {
-                qts.push(QT{ event_id, sensor_id, q, t: ns(t) });
-                break;
-            }
-        }
-    }
-    qts
-}
-
 fn group_by<T>(group_by: impl FnMut(&T) -> u32, qts: impl IntoIterator<Item = T>) -> Vec<Vec<T>> {
     qts.into_iter()
         .group_by(group_by)
         .into_iter()
         .map(|(_, group)| group.collect())
-        .collect()
-}
-
-fn make_sensor_position_map(xyzs: Vec<SensorXYZ>) -> SensorMap {
-    xyzs.iter().cloned()
-        .map(|SensorXYZ{sensor_id, x, y, z}| (sensor_id, (mm(x), mm(y), mm(z))))
         .collect()
 }
 
@@ -606,9 +523,10 @@ mod test_nested_compound_hdf5 {
 
     #[test]
     fn roundtrip() -> Result<(), Box<dyn std::error::Error>> {
-        let mut test_data = vec![];
-        test_data.push(Outer{ id:0, r#true:Inner{ a: 123, b: 4.56 }, reco:Inner{ a: 789, b: 0.12} });
-        test_data.push(Outer{ id:1, r#true:Inner{ a: 132, b: 45.6 }, reco:Inner{ a: 798, b: 10.2} });
+        let test_data = vec![
+            Outer{ id:0, r#true:Inner{ a: 123, b: 4.56 }, reco:Inner{ a: 789, b: 0.12} },
+            Outer{ id:1, r#true:Inner{ a: 132, b: 45.6 }, reco:Inner{ a: 798, b: 10.2} },
+        ];
 
         let dir = tempfile::tempdir()?;
         let file_path = dir.path().join("nested-compound.h5");
@@ -622,8 +540,7 @@ mod test_nested_compound_hdf5 {
                 .create("nested")?;
         }
         // read
-        let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", Bounds::none())?;
-        let read_data = super::array_to_vec(read_data);
+        let read_data = petalo::io::hdf5::read_table::<Outer>(&file_path, "just-testing/nested", Bounds::none())?.to_vec();
         assert_eq!(test_data, read_data);
         println!("Test table written to {}", file_path);
         Ok(())

@@ -1,24 +1,14 @@
 /// Read LORs from HDF5 tables
 
 use std::error::Error;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use crate::lorogram::{Scattergram, Prompt};
 use crate::config::mlem::{Bounds, Config};
 
 use rayon::prelude::*;
 
-#[derive(Clone)]
-pub struct Args {
-    pub input_file: PathBuf,
-    pub dataset: String,
-    pub event_range: Option<std::ops::Range<usize>>,
-    pub ecut: Bounds<Energyf32>,
-    pub qcut: Bounds<Chargef32>,
-}
-
 use ndarray::{s, Array1};
 
-use units::todo::{Energyf32, Chargef32};
 use crate::Point;
 use crate::system_matrix::LOR;
 
@@ -124,33 +114,13 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
     Ok(lors)
 }
 
+// Include specific table readers and associated types
+pub mod mc;
+pub mod sensors;
+
 
 
 // --------------------------------------------------------------------------------
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct SensorXYZ {
-    pub sensor_id: u32,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}
-
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct Charge {
-    pub event_id: u64,
-    pub sensor_id: u64,
-    pub charge: u64,
-}
-
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct SensorHit {
-    pub event_id: u64,
-    pub sensor_id: u64,
-    pub time: f64,
-}
 
 // The LOR used by mlem contains fields (the points) with types (ncollide Point)
 // which hdf5 appears not to be able to digest, so hack around the problem for
@@ -198,17 +168,4 @@ impl From<&Hdf5Lor> for LOR {
             additive_correction: ratio(1.0)
         }
     }
-}
-
-// --------------------------------------------------------------------------------
-#[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
-#[repr(C)]
-pub struct Primary {
-    pub event_id: u32,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub vx: f32,
-    pub vy: f32,
-    pub vz: f32,
 }
