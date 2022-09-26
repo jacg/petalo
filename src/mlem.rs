@@ -528,7 +528,7 @@ mod tests {
     fn grid(xs: (i32, i32), ys: (i32, i32)) -> impl Iterator<Item = (i32, i32)> {
         let mut x = xs.0;
         let mut y = ys.0;
-        return std::iter::from_fn(move || {
+        std::iter::from_fn(move || {
             if y > ys.1 { x += 1; y = ys.0 }
             if x > xs.1 { return None }
             y += 1;
