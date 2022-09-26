@@ -523,9 +523,10 @@ mod test_nested_compound_hdf5 {
 
     #[test]
     fn roundtrip() -> Result<(), Box<dyn std::error::Error>> {
-        let mut test_data = vec![];
-        test_data.push(Outer{ id:0, r#true:Inner{ a: 123, b: 4.56 }, reco:Inner{ a: 789, b: 0.12} });
-        test_data.push(Outer{ id:1, r#true:Inner{ a: 132, b: 45.6 }, reco:Inner{ a: 798, b: 10.2} });
+        let test_data = vec![
+            Outer{ id:0, r#true:Inner{ a: 123, b: 4.56 }, reco:Inner{ a: 789, b: 0.12} },
+            Outer{ id:1, r#true:Inner{ a: 132, b: 45.6 }, reco:Inner{ a: 798, b: 10.2} },
+        ];
 
         let dir = tempfile::tempdir()?;
         let file_path = dir.path().join("nested-compound.h5");
