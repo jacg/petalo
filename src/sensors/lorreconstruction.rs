@@ -375,9 +375,9 @@ mod test_electronics {
         let pde: f32 = 0.45;
 
         let n = 1000;
-        let selected: Vec<i32> = (0..n).filter(random_detection_pde(pde)).collect();
+        let selected = (0..n).filter(random_detection_pde(pde));
         let samp_3sig = 3.0 * (0.45 * (1.0 - 0.45) / n as f32).sqrt();
-        assert_float_eq!(selected.len() as f32 / n as f32, pde, abs <= samp_3sig)
+        assert_float_eq!(selected.count() as f32 / n as f32, pde, abs <= samp_3sig)
     }
 
     #[rstest]
