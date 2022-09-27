@@ -572,9 +572,10 @@ mod test_hdf5_array {
 
     #[test]
     fn testit() -> Result<(), Box<dyn std::error::Error>> {
-        let mut test_data = vec![];
-        test_data.push(Waveform::new(0, 8, vec![1.2, 3.4]));
-        test_data.push(Waveform::new(9, 3, vec![5.6, 7.8, 9.0]));
+        let test_data = vec![
+            Waveform::new(0, 8, vec![1.2, 3.4]),
+            Waveform::new(9, 3, vec![5.6, 7.8, 9.0]),
+        ];
         let filename = "just-testing.h5";
         hdf5::File::create(filename)?
             .create_group("foo")?
