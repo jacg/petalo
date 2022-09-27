@@ -148,6 +148,8 @@ fn sipm_charge_barycentre(hits: &[SensorReadout]) -> Barycentre {
     Barycentre { x: xx / qs, y: yy / qs, z: zz / qs, t: tt, q: qs }
 }
 
+type FnPathToLorBatch<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a>;
+
 pub fn lor_reconstruction(
     xyzs       : &SensorMap,
     pde        : f32,
@@ -156,7 +158,7 @@ pub fn lor_reconstruction(
     threshold  : f32,
     min_sensors: usize,
     charge_lims: BoundPair<f32>,
-) -> Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + '_> {
+) -> FnPathToLorBatch<'_> {
     let time_smear = gaussian_sampler(time_mu, time_sigma);
     // TODO Values should be configurable, need to generalise.
     let doi_func = calculate_interaction_position(DOI::Zrms, ratio(-1.2906), mm(384.428), mm(352.0), mm(382.0));
@@ -188,6 +190,8 @@ enum DOI {
     _Crms
 }
 
+type FnFindBarycentre = dyn Fn(Barycentre, &[SensorReadout]) -> Option<Barycentre>;
+
 // Function to correct for DOI
 // Takes into account the physical range for the setup.
 fn calculate_interaction_position(
@@ -196,7 +200,7 @@ fn calculate_interaction_position(
     c    : Length,
     rmin : Length,
     rmax : Length
-) -> Box<dyn Fn(Barycentre, &[SensorReadout]) -> Option<Barycentre>> {
+) -> Box<FnFindBarycentre> {
     match ftype {
         DOI::Zrms =>
             Box::new(move |barycentre: Barycentre, hits: &[SensorReadout]| -> Option<Barycentre> {

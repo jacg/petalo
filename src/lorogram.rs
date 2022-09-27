@@ -86,13 +86,15 @@ impl std::ops::AddAssign<&Scattergram> for Scattergram {
     }
 }
 
+type FnCoordinateFromT<T, A> = dyn Fn(&T) -> <A as Axis>::Coordinate + Sync;
+
 // --------------------------------------------------------------------------------
 pub struct MappedAxis<T,A>
 where
     A: Axis,
 {
     axis: A,
-    map: Box<dyn Fn(&T) -> A::Coordinate + Sync>,
+    map: Box<FnCoordinateFromT<T,A>>,
 }
 
 impl<T,A> Axis for MappedAxis<T,A>
