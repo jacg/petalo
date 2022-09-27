@@ -527,7 +527,7 @@ mod tests {
         check!(X("      ").a = None);
 
         fn bbb<'d, D: Deserializer<'d>>(deserializer: D) -> Result<Option<u32>, D::Error> {
-            Ok(Option::<u32>::deserialize(deserializer)?)
+            Option::<u32>::deserialize(deserializer)
         }
     }
     // See
@@ -547,7 +547,7 @@ mod tests {
         check!(X("      ").a = None    );
 
         fn bbb<'d, D: Deserializer<'d>>(deserializer: D) -> Result<Option<u32>, D::Error> {
-            Ok(Option::<u32>::deserialize(deserializer)?)
+            Option::<u32>::deserialize(deserializer)
         }
     }
 
