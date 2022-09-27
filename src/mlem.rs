@@ -18,11 +18,11 @@ pub static mut N_MLEM_THREADS: usize = 1;
 
 impl Image {
 
-    pub fn mlem<'a>(fov: FOV,
-                    measured_lors: &'a [LOR],
-                    tof          :     Option<Tof>,
-                    sensitivity  :     Option<Self>,
-                    n_subsets    :     usize,
+    pub fn mlem(fov: FOV,
+                measured_lors: &[LOR],
+                tof          : Option<Tof>,
+                sensitivity  : Option<Self>,
+                n_subsets    : usize,
     ) -> impl Iterator<Item = (Image, usize, usize)> + '_ {
 
         // Start off with a uniform image
