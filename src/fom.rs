@@ -325,13 +325,13 @@ mod test_mean {
 
     #[test]
     fn test_mean() {
-        let it = mean(&vec![1.0, 1.0, 1.0]);
+        let it = mean(&[1.0, 1.0, 1.0]);
         assert_eq!(it, Some(1.0));
 
-        let it = mean(&vec![1.0, 2.0, 3.0, 4.0]);
+        let it = mean(&[1.0, 2.0, 3.0, 4.0]);
         assert_eq!(it, Some(2.5));
 
-        let it = mean(&vec![]);
+        let it = mean(&[]);
         assert_eq!(it, None);
     }
 
@@ -353,17 +353,17 @@ mod test_mean {
 
     #[test]
     fn test_mu_and_sigma() {
-        if let Some((mu, sigma)) = mu_and_sigma(&vec![1.0, 1.0, 1.0]) {
+        if let Some((mu, sigma)) = mu_and_sigma(&[1.0, 1.0, 1.0]) {
             assert_eq!(mu,    1.0);
             assert_eq!(sigma, 0.0);
         };
 
-        if let Some((mu, sigma)) = mu_and_sigma(&vec![5.0, 6.0, 7.0, 8.0, 9.0]) {
+        if let Some((mu, sigma)) = mu_and_sigma(&[5.0, 6.0, 7.0, 8.0, 9.0]) {
             assert_eq!(mu,    7.0);
             assert_eq!(sigma, 2.0_f32.sqrt());
         };
 
-        assert!(mu_and_sigma(&vec![]) == None);
+        assert!(mu_and_sigma(&[]) == None);
     }
 
     #[test]
@@ -377,7 +377,7 @@ mod test_mean {
             assert_uom_eq!(second, mu,    ns(7.0)           , ulps <= 1);
             assert_uom_eq!(second, sigma, ns(2.0_f32.sqrt()), ulps <= 1);
         };
-        assert!(mu_and_sigma(&vec![]) == None);
+        assert!(mu_and_sigma(&[]) == None);
     }
 }
 
