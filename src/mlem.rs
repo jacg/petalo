@@ -718,7 +718,7 @@ mod tests {
 
         // Perform MLEM reconstruction, saving images to disk
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
-        let _ = pool.install(|| {
+        pool.install(|| {
             Image::mlem(fov, &lors, None, None, 1)
                 .take(10)
                 .inspect(save_each_image_in(format!("test-mlem-images/{name}/")))
