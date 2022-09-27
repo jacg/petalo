@@ -19,7 +19,7 @@ mod grr {
         pub time: f32,
     }
 
-    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[derive(hdf5::H5Type, Clone, PartialEq, Eq, Debug)]
     #[repr(C)]
     pub struct Qtot {
         pub event_id: u32,
