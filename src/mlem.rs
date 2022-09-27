@@ -538,12 +538,12 @@ mod tests {
 
     // TODO: this should be reused in bin/mlem:main (report_time complicates it)
     /// Return a function which saves images in the given directory
-    fn save_each_image_in(directory: String) -> impl FnMut(&(Image, usize, usize)) {
+    fn save_each_image_in(directory: String) -> impl FnMut((Image, usize, usize)) {
         use std::path::PathBuf;
         std::fs::create_dir_all(PathBuf::from(&directory)).unwrap();
         move |(image, iteration, subset)| {
             let image_path = PathBuf::from(format!("{directory}/{iteration:02}-{subset:02}.raw"));
-            crate::io::raw::Image3D::from(image).write_to_file(&image_path).unwrap();
+            crate::io::raw::Image3D::from(&image).write_to_file(&image_path).unwrap();
         }
     }
 
@@ -721,9 +721,7 @@ mod tests {
         pool.install(|| {
             Image::mlem(fov, &lors, None, None, 1)
                 .take(10)
-                .inspect(save_each_image_in(format!("test-mlem-images/{name}/")))
-                .for_each(|_| {
-                });
+                .for_each(save_each_image_in(format!("test-mlem-images/{name}/")));
         });
         //assert!(false);
     }
