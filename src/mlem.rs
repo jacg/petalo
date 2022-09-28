@@ -18,11 +18,11 @@ pub static mut N_MLEM_THREADS: usize = 1;
 
 impl Image {
 
-    pub fn mlem<'a>(fov: FOV,
-                    measured_lors: &'a [LOR],
-                    tof          :     Option<Tof>,
-                    sensitivity  :     Option<Self>,
-                    n_subsets    :     usize,
+    pub fn mlem(fov: FOV,
+                measured_lors: &[LOR],
+                tof          : Option<Tof>,
+                sensitivity  : Option<Self>,
+                n_subsets    : usize,
     ) -> impl Iterator<Item = (Image, usize, usize)> + '_ {
 
         // Start off with a uniform image
@@ -538,18 +538,18 @@ mod tests {
 
     // TODO: this should be reused in bin/mlem:main (report_time complicates it)
     /// Return a function which saves images in the given directory
-    fn save_each_image_in(directory: String) -> impl FnMut(&(Image, usize, usize)) {
+    fn save_each_image_in(directory: String) -> impl FnMut((Image, usize, usize)) {
         use std::path::PathBuf;
         std::fs::create_dir_all(PathBuf::from(&directory)).unwrap();
         move |(image, iteration, subset)| {
             let image_path = PathBuf::from(format!("{directory}/{iteration:02}-{subset:02}.raw"));
-            crate::io::raw::Image3D::from(image).write_to_file(&image_path).unwrap();
+            crate::io::raw::Image3D::from(&image).write_to_file(&image_path).unwrap();
         }
     }
 
     /// The position of a rectangular region of interest in the x-y plane, with
     /// an associated count of decays associated with the region
-    struct ROI {
+    struct Roi {
         x: (i32, i32),
         y: (i32, i32),
         activity: usize,
@@ -560,7 +560,7 @@ mod tests {
     /// voxels which are not covered by any of the foreground ROIs. To
     /// facilitate generating higher statistics, `scale` is applied to each
     /// activity.
-    fn trues_from_rois(foreground_rois: &[&ROI], background_roi: &ROI, scale: usize) -> Vec<LOR> {
+    fn trues_from_rois(foreground_rois: &[&Roi], background_roi: &Roi, scale: usize) -> Vec<LOR> {
         let mut activity = std::collections::HashMap::new();
         // Sum activities in voxels covered by foreground_rois
         for roi in foreground_rois {
@@ -632,10 +632,10 @@ mod tests {
     const ACT_2: usize = 100;
     const ACT_3: usize =  80;
     const BG   : usize =  20;
-    #[fixture] fn roi_1() -> ROI { ROI { x: (-15,-10), y: (  9,14), activity: ACT_1 } }
-    #[fixture] fn roi_2() -> ROI { ROI { x: ( 10, 15), y: (  6,11), activity: ACT_2 } }
-    #[fixture] fn roi_3() -> ROI { ROI { x: (- 7,  7), y: ( -8,-4), activity: ACT_3 } }
-    #[fixture] fn roi_b() -> ROI { ROI { x: (-20, 20), y: (-20,20), activity: BG    } }
+    #[fixture] fn roi_1() -> Roi { Roi { x: (-15,-10), y: (  9,14), activity: ACT_1 } }
+    #[fixture] fn roi_2() -> Roi { Roi { x: ( 10, 15), y: (  6,11), activity: ACT_2 } }
+    #[fixture] fn roi_3() -> Roi { Roi { x: (- 7,  7), y: ( -8,-4), activity: ACT_3 } }
+    #[fixture] fn roi_b() -> Roi { Roi { x: (-20, 20), y: (-20,20), activity: BG    } }
 
     #[fixture]
     fn fov() -> FOV {
@@ -647,7 +647,7 @@ mod tests {
 
     #[fixture]
     #[once]
-    fn trues_and_scatters(roi_1: ROI, roi_2: ROI, roi_3: ROI, roi_b: ROI) -> (Vec<LOR>, Vec<LOR>) {
+    fn trues_and_scatters(roi_1: Roi, roi_2: Roi, roi_3: Roi, roi_b: Roi) -> (Vec<LOR>, Vec<LOR>) {
         // Generate scatters and trues
         let trues = trues_from_rois(&[&roi_1, &roi_2, &roi_3], &roi_b, 1);
         let noise = scatter_lors(trues.iter().cloned(), turn(0.1), 1);
@@ -718,12 +718,10 @@ mod tests {
 
         // Perform MLEM reconstruction, saving images to disk
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
-        let _ = pool.install(|| {
+        pool.install(|| {
             Image::mlem(fov, &lors, None, None, 1)
                 .take(10)
-                .inspect(save_each_image_in(format!("test-mlem-images/{name}/")))
-                .for_each(|_| {
-                });
+                .for_each(save_each_image_in(format!("test-mlem-images/{name}/")));
         });
         //assert!(false);
     }

@@ -6,7 +6,7 @@ fn main() {
 }
 
 fn hello(py: Python) -> PyResult<()> {
-    let sys = py.import("sys")?;
+    let _sys = py.import("sys")?;
     let version = get_python_version(py)?;
 
     let locals = PyDict::new(py);

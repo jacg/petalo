@@ -294,7 +294,7 @@ mod tests {
     fn _parse_carefully<'d, D: Deserialize<'d>>(input: &'d str) -> Result<D, toml::de::Error> {
         toml::from_str(input)
     }
-    fn _parse_config<'d>(input: &'d str) -> Result<Config, toml::de::Error> {
+    fn _parse_config(input: &str) -> Result<Config, toml::de::Error> {
         _parse_carefully(input)
     }
     //  ---  Macro for concise assertions about vlues of parsed fields -------------------
@@ -527,7 +527,7 @@ mod tests {
         check!(X("      ").a = None);
 
         fn bbb<'d, D: Deserializer<'d>>(deserializer: D) -> Result<Option<u32>, D::Error> {
-            Ok(Option::<u32>::deserialize(deserializer)?)
+            Option::<u32>::deserialize(deserializer)
         }
     }
     // See
@@ -547,7 +547,7 @@ mod tests {
         check!(X("      ").a = None    );
 
         fn bbb<'d, D: Deserializer<'d>>(deserializer: D) -> Result<Option<u32>, D::Error> {
-            Ok(Option::<u32>::deserialize(deserializer)?)
+            Option::<u32>::deserialize(deserializer)
         }
     }
 
