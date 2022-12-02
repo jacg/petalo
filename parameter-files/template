@@ -23,108 +23,107 @@
 #
 
 
-
 # Decay information:
 
-# BOOL    decay_x_position                  =       TRUE/FALSE
+BOOL    decay_x_position               =       FALSE
 # REAL    decay_x_pos_min                   =           x.xx
 # REAL    decay_x_pos_max                   =           x.xx
 
-# BOOL    decay_y_position                  =       TRUE/FALSE
+BOOL    decay_y_position               =       FALSE
 # REAL    decay_y_pos_min                   =           x.xx
 # REAL    decay_y_pos_max                   =           x.xx
 
-# BOOL    decay_z_position                  =       TRUE/FALSE
+BOOL    decay_z_position               =       FALSE
 # REAL    decay_z_pos_min                   =           x.xx
 # REAL    decay_z_pos_max                   =           x.xx
 
-# BOOL     decay_time                       =       TRUE/FALSE
-# BOOL     decay_type                       =       TRUE/FALSE
+BOOL     decay_time                    =       FALSE
+BOOL     decay_type                    =       FALSE
 
 
 # Importance sampling info:
 
-# BOOL     decay_weight                     =       TRUE/FALSE
-# BOOL     weight                           =       TRUE/FALSE
+BOOL     decay_weight                  =       FALSE
+BOOL     weight                        =       FALSE
 
 
 # Photon position and direction at the end of module processing:
 
-# BOOL    x_position                        =       TRUE/FALSE
+BOOL    x_position                     =       FALSE
 # REAL    x_pos_min                         =           x.xx
 # REAL    x_pos_max                         =           x.xx
 
-# BOOL    y_position                        =       TRUE/FALSE
+BOOL    y_position                     =       FALSE
 # REAL    y_pos_min                         =           x.xx
 # REAL    y_pos_max                         =           x.xx
 
-# BOOL    z_position                        =       TRUE/FALSE
+BOOL    z_position                     =       FALSE
 # REAL    z_pos_min                         =           x.xx
 # REAL    z_pos_max                         =           x.xx
 
-# BOOL    x_cosine                          =       TRUE/FALSE
+BOOL    x_cosine                       =       FALSE
 # REAL    x_cos_min                         =           x.xx
 # REAL    x_cos_max                         =           x.xx
 
-# BOOL    y_cosine                          =       TRUE/FALSE
+BOOL    y_cosine                       =       FALSE
 # REAL    y_cos_min                         =           x.xx
 # REAL    y_cos_max                         =           x.xx
 
-# BOOL    z_cosine                          =       TRUE/FALSE
+BOOL    z_cosine                       =       FALSE
 # REAL    z_cos_min                         =           x.xx
 # REAL    z_cos_max                         =           x.xx
 
 
 # Photon path and energy info:
 
-# BOOL    scatters_in_object                =       TRUE/FALSE
+BOOL    scatters_in_object             =       FALSE
 # INT     obj_scatters_min                  =           x
 # INT     obj_scatters_max                  =           x
 
-# BOOL    scatters_in_collimator            =       TRUE/FALSE
+BOOL    scatters_in_collimator         =       FALSE
 # INT     col_scatters_min                  =           x
 # INT     col_scatters_max                  =           x
 
-# BOOL    energy                            =       TRUE/FALSE
+BOOL    energy                         =       FALSE
 # REAL    energy_min                        =           x.xx
 # REAL    energy_max                        =           x.xx
 
-# BOOL    travel_distance                   =       TRUE/FALSE
+BOOL    travel_distance                =       FALSE
 # REAL    travel_distance_min               =           x.xx
 # REAL    travel_distance_max               =           x.xx
 
 
 # LOR position:
 
-# BOOL    transaxial_distance               =       TRUE/FALSE
+BOOL    transaxial_distance            =       FALSE
 # REAL    transaxial_distance_min           =           x.xx
 # REAL    transaxial_distance_max           =           x.xx
 
-# BOOL    azimuthal_angle_index             =       TRUE/FALSE
+BOOL    azimuthal_angle_index          =       FALSE
 # INT     aa_index_min                      =           x
 # INT     aa_index_max                      =           x
 
-# BOOL    axial_position                    =       TRUE/FALSE
+BOOL    axial_position                 =       FALSE
 # REAL    axial_position_min                =           x.xx
 # REAL    axial_position_max                =           x.xx
 
 
 # Interaction position in detector coordinates (flat detectors only):
 
-# BOOL    detector_x_position               =       TRUE/FALSE
+BOOL    detector_x_position            =       FALSE
 # REAL    detector_x_position_min           =           x.xx
 # REAL    detector_x_position_max           =           x.xx
 
-# BOOL    detector_y_position               =       TRUE/FALSE
+BOOL    detector_y_position            =       FALSE
 # REAL    detector_y_position_min           =           x.xx
 # REAL    detector_y_position_max           =           x.xx
 
-# BOOL    detector_z_position               =       TRUE/FALSE
+BOOL    detector_z_position            =       FALSE
 # REAL    detector_z_position_min           =           x.xx
 # REAL    detector_z_position_max           =           x.xx
 
 
-# BOOL    detector_angle                    =       TRUE/FALSE
+BOOL    detector_angle                 =       FALSE
 # REAL    detector_angle_min                =           x.xx
 # REAL    detector_angle_max                =           x.xx
 #
@@ -132,13 +131,13 @@
 
 # Detector interaction info:
 
-# BOOL    num_detector_interactions         =       TRUE/FALSE
+BOOL    num_detector_interactions      =       FALSE
 # INT     num_detector_interactions_min     =           x
 # INT     num_detector_interactions_max     =           x
 
-# BOOL    det_interaction_positions         =       TRUE/FALSE
+BOOL    det_interaction_positions      =       FALSE
 
 
 # Detector crystal number (block detectors only):
 
-# BOOL    detector_crystal                =       TRUE/FALSE
+BOOL    detector_crystal                =       FALSE
