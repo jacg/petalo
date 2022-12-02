@@ -1,0 +1,23 @@
+#################################################################
+#
+#	PARAMETER FILE FOR CREATION OF CUSTOMIZED HISTORY FILES
+#
+#	RUN NAME:	ONE
+#	CREATED:
+#	OWNER:
+#
+#
+#################################################################
+#  Creates a history file with records containing three values
+#  representing the cartesian coordinates of each photon
+#  accepted by the module creating the history file. Only
+#  photons whose  axial position falls within the central
+#  10 cm of the FOV will be accepted.
+#
+#
+
+BOOL     x_position     =    TRUE
+BOOL     y_position     =    TRUE
+BOOL     z_position     =    TRUE
+REAL     z_pos_min      =    -5.0
+REAL     z_pos_max      =     5.0

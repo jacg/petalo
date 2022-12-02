@@ -1,0 +1,144 @@
+#################################################################
+#
+#   PARAMETER FILE FOR CREATION OF CUSTOMIZED HISTORY FILES
+#
+#   RUN NAME:   EXAMPLE 2
+#   CREATED:    17 Feb 1999
+#   OWNER:      R D Badawi
+#
+#   MODIFIED:   6 MARCH 2006
+#   BY:         R L Harrison
+#
+#
+#################################################################
+#
+#  This template file contains all the the history parameters
+#  currently available. Copy this to your working directory and
+#  edit to your requirements.
+#
+#  Note that all entries are currently commented out.
+#  De-comment the fields you want and assign them the
+#  desired values.
+#
+#
+
+
+
+# Decay information:
+
+# BOOL    decay_x_position                  =       TRUE/FALSE
+# REAL    decay_x_pos_min                   =           x.xx
+# REAL    decay_x_pos_max                   =           x.xx
+
+# BOOL    decay_y_position                  =       TRUE/FALSE
+# REAL    decay_y_pos_min                   =           x.xx
+# REAL    decay_y_pos_max                   =           x.xx
+
+# BOOL    decay_z_position                  =       TRUE/FALSE
+# REAL    decay_z_pos_min                   =           x.xx
+# REAL    decay_z_pos_max                   =           x.xx
+
+# BOOL     decay_time                       =       TRUE/FALSE
+# BOOL     decay_type                       =       TRUE/FALSE
+
+
+# Importance sampling info:
+
+# BOOL     decay_weight                     =       TRUE/FALSE
+# BOOL     weight                           =       TRUE/FALSE
+
+
+# Photon position and direction at the end of module processing:
+
+# BOOL    x_position                        =       TRUE/FALSE
+# REAL    x_pos_min                         =           x.xx
+# REAL    x_pos_max                         =           x.xx
+
+# BOOL    y_position                        =       TRUE/FALSE
+# REAL    y_pos_min                         =           x.xx
+# REAL    y_pos_max                         =           x.xx
+
+# BOOL    z_position                        =       TRUE/FALSE
+# REAL    z_pos_min                         =           x.xx
+# REAL    z_pos_max                         =           x.xx
+
+# BOOL    x_cosine                          =       TRUE/FALSE
+# REAL    x_cos_min                         =           x.xx
+# REAL    x_cos_max                         =           x.xx
+
+# BOOL    y_cosine                          =       TRUE/FALSE
+# REAL    y_cos_min                         =           x.xx
+# REAL    y_cos_max                         =           x.xx
+
+# BOOL    z_cosine                          =       TRUE/FALSE
+# REAL    z_cos_min                         =           x.xx
+# REAL    z_cos_max                         =           x.xx
+
+
+# Photon path and energy info:
+
+# BOOL    scatters_in_object                =       TRUE/FALSE
+# INT     obj_scatters_min                  =           x
+# INT     obj_scatters_max                  =           x
+
+# BOOL    scatters_in_collimator            =       TRUE/FALSE
+# INT     col_scatters_min                  =           x
+# INT     col_scatters_max                  =           x
+
+# BOOL    energy                            =       TRUE/FALSE
+# REAL    energy_min                        =           x.xx
+# REAL    energy_max                        =           x.xx
+
+# BOOL    travel_distance                   =       TRUE/FALSE
+# REAL    travel_distance_min               =           x.xx
+# REAL    travel_distance_max               =           x.xx
+
+
+# LOR position:
+
+# BOOL    transaxial_distance               =       TRUE/FALSE
+# REAL    transaxial_distance_min           =           x.xx
+# REAL    transaxial_distance_max           =           x.xx
+
+# BOOL    azimuthal_angle_index             =       TRUE/FALSE
+# INT     aa_index_min                      =           x
+# INT     aa_index_max                      =           x
+
+# BOOL    axial_position                    =       TRUE/FALSE
+# REAL    axial_position_min                =           x.xx
+# REAL    axial_position_max                =           x.xx
+
+
+# Interaction position in detector coordinates (flat detectors only):
+
+# BOOL    detector_x_position               =       TRUE/FALSE
+# REAL    detector_x_position_min           =           x.xx
+# REAL    detector_x_position_max           =           x.xx
+
+# BOOL    detector_y_position               =       TRUE/FALSE
+# REAL    detector_y_position_min           =           x.xx
+# REAL    detector_y_position_max           =           x.xx
+
+# BOOL    detector_z_position               =       TRUE/FALSE
+# REAL    detector_z_position_min           =           x.xx
+# REAL    detector_z_position_max           =           x.xx
+
+
+# BOOL    detector_angle                    =       TRUE/FALSE
+# REAL    detector_angle_min                =           x.xx
+# REAL    detector_angle_max                =           x.xx
+#
+
+
+# Detector interaction info:
+
+# BOOL    num_detector_interactions         =       TRUE/FALSE
+# INT     num_detector_interactions_min     =           x
+# INT     num_detector_interactions_max     =           x
+
+# BOOL    det_interaction_positions         =       TRUE/FALSE
+
+
+# Detector crystal number (block detectors only):
+
+# BOOL    detector_crystal                =       TRUE/FALSE
