@@ -62,42 +62,50 @@ enum Standard {
 
 #[binrw]
 #[derive(Debug)]
-enum Custom {
+struct Custom {
 
-    #[br(magic = 0_u8)]
-    Uhh,
+    n_pairs: u8,
 
-    #[br(magic = 1_u8)]
-    Photon {
-        pos: Point,
-        // x-cos
-        // y-cos
-        // z-cos
-        // scatters in object
-        // scatters in collimator
-        // decay_weight: f64,
-        // weight: f64,
-        energy: f64,
-        // travel_distance: f64,
-        // decay_pos: Point,
-        decay_time: f64,
-        // decay_type: u32,
-
-        // LOR
-        // transaxial_distance: f64
-        // azimuthal angle index
-        // axial_position: f64,
-
-        // detector_pos: Point,
-        // detector_angle: f64,
-        // detector crystal
-        num_detector_interactions: i32,
-        num_detector_interactions_again: i32,
-        #[br(count = num_detector_interactions)]
-        detector_interactions: Vec<DetectorInteraction>,
-    },
+    #[br(count = n_pairs)]
+    pairs: Vec<Entry>,
 
 }
+
+
+#[binrw]
+#[derive(Debug)]
+struct Entry {
+    pos: Point,
+    // x-cos
+    // y-cos
+    // z-cos
+    // scatters in object
+    // scatters in collimator
+    // decay_weight: f64,
+    // weight: f64,
+    energy: f64,
+    travel_distance: f64,
+    decay_pos: Point,
+    decay_time: f64,
+    // decay_type: u32,
+
+    // LOR
+    // transaxial_distance: f64
+    // azimuthal angle index
+    // axial_position: f64,
+
+    // detector_pos: Point,
+    // detector_angle: f64,
+    // detector crystal
+
+    // num_detector_interactions: i32, // Supposed to be 1 char, but it looks like alignment sometimes pads it!
+    // num_detector_interactions_written: i32, // ? Will be zero if detector_interactions not stored
+
+    // #[br(count = num_detector_interactions_written)]
+    // detector_interactions: Vec<DetectorInteraction>,
+
+}
+
 
 #[binrw]
 #[derive(Debug)]
@@ -113,31 +121,24 @@ struct DetectorInteraction {
     pos: Point,
     energy_deposited: f64,
     is_active: u8,
-    zero: u8, // There seems to be a trailing zero
+    padding: u8, // Is this here because of alignment before writing?
 }
 
 fn custom(args: Args) -> Result<(), Box<dyn Error>> {
     let mut x = File::open(args.file)?;
     x.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
-    while let Ok(y) = x.read_le::<Custom>() {
-        use Custom::*;
-        match y {
-            Uhh => {
-                if count >= args.max_decays { break }
-                count += 1;
-                println!("============================================================");
-            },
-            Photon { pos: Point { x, y, z }, energy, decay_time, num_detector_interactions: n, detector_interactions, .. } => {
-                println!("\n   ({x:7.2} {y:7.2} {z:7.2})  E: {energy:6.2}    decay time: {decay_time:5.2}");
-                for (n, DetectorInteraction { pos: Point { x, y, z }, energy_deposited: energy, .. }) in detector_interactions.iter().enumerate() {
-                    println!("{:2} ({x:7.2} {y:7.2} {z:7.2})     {energy:6.2}", n+1);
-                }
-            },
+    while let Ok(Custom { n_pairs, pairs }) = x.read_le::<Custom>() {
+        println!("N pairs: {n_pairs}");
+        if count >= args.max_decays { break }; count += 1;
+        //for Entry { pos: Point { x, y, z }, energy, travel_distance, decay_time } in pairs {
+        for Entry { pos: Point { x, y, z }, decay_time, energy, travel_distance, decay_pos: Point { x: dx, y: dy, z: dz } } in pairs {
+            //println!("({x:7.2} {y:7.2} {z:7.2})     E: {energy:6.2}  decay time: {decay_time:7.2}  travel: {travel_distance:5.2}");
+            let t = decay_time * 1.0e6;
+            println!("({x:7.2} {y:7.2} {z:7.2})   decay time: {t:7.2} μs   E:{energy:7.2}   d:{travel_distance:6.2}      decay pos: ({dx:7.2} {dy:7.2} {dz:7.2})");
         }
     }
     Ok(())
-
 }
 
 fn standard(args: Args) -> Result<(), Box<dyn Error>> {
@@ -150,7 +151,7 @@ fn standard(args: Args) -> Result<(), Box<dyn Error>> {
             Decay { pos: Point { x, y, z }, weight, time, decay_type } => {
                 if count >= args.max_decays { break }
                 count += 1;
-                println!("--------------------------------------");
+                println!("\n============================================================================================================================================================================================================================================================================================================");
                 println!("{x:5.2} {y:5.2} {z:5.2}   {weight:5.2}    {time:5.2}   {decay_type}");
             },
             Photon { bytes } => {
