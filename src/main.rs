@@ -44,7 +44,7 @@ use binrw::BinReaderExt;
 
 #[binrw]
 #[derive(Debug)]
-enum Record {
+enum Standard {
 
     #[br(magic = 1_u8)]
     Decay {
@@ -82,14 +82,19 @@ enum Custom {
         // decay_pos: Point,
         decay_time: f64,
         // decay_type: u32,
+
+        // LOR
         // transaxial_distance: f64
         // azimuthal angle index
         // axial_position: f64,
+
         // detector_pos: Point,
         // detector_angle: f64,
         // detector crystal
         num_detector_interactions: i32,
-        // detector interaction pos
+        num_detector_interactions_again: i32,
+        #[br(count = num_detector_interactions)]
+        detector_interactions: Vec<DetectorInteraction>,
     },
 
 }
@@ -102,38 +107,31 @@ struct Point {
     z: f64,
 }
 
-
+#[binrw]
+#[derive(Debug)]
+struct DetectorInteraction {
+    pos: Point,
+    energy_deposited: f64,
+    is_active: u8,
+    zero: u8, // There seems to be a trailing zero
+}
 
 fn custom(args: Args) -> Result<(), Box<dyn Error>> {
     let mut x = File::open(args.file)?;
     x.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
-    while let Ok(y) = x.read_le::<Record>() {
-        use Record::*;
+    while let Ok(y) = x.read_le::<Custom>() {
+        use Custom::*;
         match y {
-            Decay { pos: Point { x, y, z }, weight, time, decay_type } => {
+            Uhh => {
                 if count >= args.max_decays { break }
                 count += 1;
-                println!("--------------------------------------");
-                println!("{x:5.2} {y:5.2} {z:5.2}   {weight:5.2}    {time:5.2}   {decay_type}");
+                println!("============================================================");
             },
-            Photon { bytes } => {
-                println!("");
-                for byte in bytes { print!("{byte:02x} "); }
-                println!("");
-                for offset in 0..4 {
-                    let ints = offset_by_as(&bytes, offset);
-                    show_ints(&ints, offset);
-                }
-                println!("");
-                for offset in 0..8 {
-                    let reals = offset_by_as(&bytes, offset);
-                    show_reals(&reals, offset);
-                }
-                println!("");
-                for offset in 0..4 {
-                    let reals = offset_by_as(&bytes, offset);
-                    show_reals_32(&reals, offset);
+            Photon { pos: Point { x, y, z }, energy, decay_time, num_detector_interactions: n, detector_interactions, .. } => {
+                println!("\n   ({x:7.2} {y:7.2} {z:7.2})  E: {energy:6.2}    decay time: {decay_time:5.2}");
+                for (n, DetectorInteraction { pos: Point { x, y, z }, energy_deposited: energy, .. }) in detector_interactions.iter().enumerate() {
+                    println!("{:2} ({x:7.2} {y:7.2} {z:7.2})     {energy:6.2}", n+1);
                 }
             },
         }
@@ -146,8 +144,8 @@ fn standard(args: Args) -> Result<(), Box<dyn Error>> {
     let mut x = File::open(args.file)?;
     x.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
-    while let Ok(y) = x.read_le::<Record>() {
-        use Record::*;
+    while let Ok(y) = x.read_le::<Standard>() {
+        use Standard::*;
         match y {
             Decay { pos: Point { x, y, z }, weight, time, decay_type } => {
                 if count >= args.max_decays { break }
