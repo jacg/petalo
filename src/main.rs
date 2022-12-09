@@ -62,6 +62,40 @@ enum Record {
 
 #[binrw]
 #[derive(Debug)]
+enum Custom {
+
+    #[br(magic = 0_u8)]
+    Uhh,
+
+    #[br(magic = 1_u8)]
+    Photon {
+        pos: Point,
+        // x-cos
+        // y-cos
+        // z-cos
+        // scatters in object
+        // scatters in collimator
+        // decay_weight: f64,
+        // weight: f64,
+        energy: f64,
+        // travel_distance: f64,
+        // decay_pos: Point,
+        decay_time: f64,
+        // decay_type: u32,
+        // transaxial_distance: f64
+        // azimuthal angle index
+        // axial_position: f64,
+        // detector_pos: Point,
+        // detector_angle: f64,
+        // detector crystal
+        num_detector_interactions: i32,
+        // detector interaction pos
+    },
+
+}
+
+#[binrw]
+#[derive(Debug)]
 struct Point {
     x: f64,
     y: f64,
