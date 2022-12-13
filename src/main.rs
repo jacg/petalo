@@ -156,19 +156,21 @@ fn standard(args: Args) -> Result<(), Box<dyn Error>> {
             },
             Photon { bytes } => {
                 println!("");
+                println!("-1--2--3--4--5--6--7--8--9-10-11-12 -1--2--3--4--5--6--7--8--9-10-11-12 -1 -2--3--4--5--6--7--8 -1--2--3--4--5--6--7--8 -1--2--3--4--5--6--7--8 -1--2--3--4--5--6--7--8 -1--2--3--4 -1--2 -3--4 -1--2--3--4 -1--2--3--4");
+                println!("<------------location-------------> <--------------angle--------------> FG <-----padding------> <--------weight-------> <-energy--> <-padding-> <--------time---------> <-ta pos--> <aza> <pad> <-det ang-> <-det cry->");
                 for byte in bytes { print!("{byte:02x} "); }
                 println!("");
-                for offset in 0..4 {
+                for offset in 0..1 {
                     let ints = offset_by_as(&bytes, offset);
                     show_ints(&ints, offset);
                 }
-                println!("");
-                for offset in 0..8 {
+                //println!("");
+                for offset in 0..1 {
                     let reals = offset_by_as(&bytes, offset);
                     show_reals(&reals, offset);
                 }
-                println!("");
-                for offset in 0..4 {
+                //println!("");
+                for offset in 0..1 {
                     let reals = offset_by_as(&bytes, offset);
                     show_reals_32(&reals, offset);
                 }
@@ -241,9 +243,9 @@ fn offset_by_as<T: Clone>(bytes: &[u8], offset: usize) -> Vec<T> {
 fn show_ints(stuff: &[i32], offset: usize) {
     for _ in 0..offset { print!("   "); }
     for &x in stuff {
-        if -100000 < x && x < 100000 && x != 0
-        { print!("{x:+011} "); }
-        else { print!("----------- ") };
+        if -100000 < x && x < 100000 // && x != 0
+        { print!("{x:_>11} "); }
+        else { print!("___________ ") };
     }
     println!("");
 }
@@ -251,9 +253,9 @@ fn show_ints(stuff: &[i32], offset: usize) {
 fn show_reals(stuff: &[f64], offset: usize) {
     for _ in 0..offset { print!("   "); }
     for &x in stuff {
-        if x.abs() < 1.0e5 && x.abs() > 1.0e-5 && x != 0.0
-        { print!("{x:+023.2e} "); }
-        else { print!("----------------------- "); };
+        if x.abs() < 1.0e8 && x.abs() > 1.0e-8 //&& x != 0.0
+        { print!("{x:_>23.4} "); }
+        else { print!("_______________________ "); };
     }
     println!("");
 }
@@ -261,9 +263,9 @@ fn show_reals(stuff: &[f64], offset: usize) {
 fn show_reals_32(stuff: &[f32], offset: usize) {
     for _ in 0..offset { print!("   "); }
     for &x in stuff {
-        if x.abs() < 1.0e5 && x.abs() > 1.0e-5 && x != 0.0
-        { print!("{x:+011.2e} "); }
-        else { print!("----------- "); };
+        if x.abs() < 1.0e8 && x.abs() > 1.0e-8 //&& x != 0.0
+        { print!("{x:_>11.4} "); }
+        else { print!("___________ "); };
     }
     println!("");
 }
