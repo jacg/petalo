@@ -225,34 +225,6 @@ fn interpret_flags(flag: u8) -> (&'static str, &'static str, &'static str) {
 //     PhgEn_Unknown       /* for unassigned or error situations */
 // } PhgEn_DecayTypeTy;
 
-
-// Skip the header and collect a kilobyte into the xxx file
-//
-// cat Results/Test/SimSET_Sim_Discovery_ST/division_0/phg_hf.hist | dd bs=1 skip=32768 count=1024 > xxx
-
-// at the beginning of each record in the history file is a flag-byte which
-// indicates if the following record is a decay, a blue photon, or a pink
-// photon. Processing the history file requires reading a flag byte to determine
-// what type of record follows and then reading the appropriate amount of data.
-//
-// cat xxx | od --endian=little --skip-bytes 0 --read-bytes 1 -tx1     ->  01
-// 1 presumably means it's a decay.
-
-// ... a PHG_decay starts with a PHG_position which is three doubles
-// cat xxx | od --endian=little --skip-bytes 1 --read-bytes 24 -tfD    ->   0.03716783271826184 0.12195498170336516 -0.0670295889395485
-
-// ... then there's double for the starting weight of the decay
-// cat xxx | od --endian=little --skip-bytes 25 --read-bytes 8 -tfD    ->   1.0000000016947894
-
-// ... and another double for the decay time
-// cat xxx | od --endian=little --skip-bytes 33 --read-bytes 8 -tfD    ->   18.77595793825161
-
-// Next  a PhgEn_DecayTypeTy enum, so let's guess it's a byte (after further inspection, it looks more like a little endian 8-byte int)
-// cat xxx | od --endian=little --skip-bytes 41 --read-bytes 1 -tx1    ->   01
-// which looks like it's a positron
-
-//
-
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     match args.history_file_type {
