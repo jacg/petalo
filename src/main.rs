@@ -180,7 +180,7 @@ fn standard(args: Args) -> Result<(), Box<dyn Error>> {
                 if let [Some(t1), Some(t2)] = ts {
                     let dtof = t1 - t2;
                     let dx = dtof * 0.3 /* mm / ps */ / 2.0;
-                    println!("dTOF: {dtof:4.1} ps    ->   dx {dx:6.2} mm");
+                    println!("dTOF: {dtof:6.1} ps    ->    dx {dx:6.2} mm");
                 }
             },
         }
