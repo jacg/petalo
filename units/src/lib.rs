@@ -157,6 +157,7 @@ mod test_speed_of_light {
     use float_eq::assert_float_eq;
 
     #[test]
+    #[allow(clippy::excessive_precision)]
     fn test_speed_of_light() {
         println!("C visual check: {:?}", C);
         assert_float_eq!(  m_s_(C),   299_792_458.0, ulps <= 1);

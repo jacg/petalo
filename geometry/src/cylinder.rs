@@ -67,19 +67,19 @@ mod tests {
     use units::float_eq::assert_float_eq;
     use units::assert_uom_eq;
 
-    #[rstest(/**/   x1,    y1,    z1,     x2,   y2,    z2,     r, expected,
-             case( 10.0, -10.0,  0.0,   10.0, 10.0,   0.0,   1.0, 0.0), // miss completely on right
-             case(-10.0,  10.0,  0.0,   10.0, 10.0,   0.0,   2.0, 0.0), // miss completely above
-             case( 10.0, -10.0,  9.0,   10.0, 10.0,  19.0,   1.0, 0.0), // as above, but ...
-             case(-10.0,  10.0, -3.0,   10.0, 10.0,  19.0,   2.0, 0.0), // ... different zs
-             case(  0.0, -10.0,  0.0,    0.0, 10.0,   0.0,   3.0, 6.0), // along vertical   diameter
-             case(-10.0,   0.0,  0.0,   10.0,  0.0,   0.0,   4.0, 8.0), // along horizontal diameter
-             case(-10.0,   0.0, 10.0,   10.0,  0.0, -10.0,   4.0, 8.0 * 2.0_f32.sqrt()), // at 45 degrees to z-axis
-             case(-10.0,   2.5,  0.0,   10.0,  2.5,   0.0,   5.0, 5.0 * 3.0_f32.sqrt()), // off-z-axis by r/2
+    #[rstest(/**/           _p1,                _p2,    r  , expected,
+             case(( 10.0, -10.0,  0.0), (10.0, 10.0,   0.0), 1.0, 0.0), // miss completely on right
+             case((-10.0,  10.0,  0.0), (10.0, 10.0,   0.0), 2.0, 0.0), // miss completely above
+             case(( 10.0, -10.0,  9.0), (10.0, 10.0,  19.0), 1.0, 0.0), // as above, but ...
+             case((-10.0,  10.0, -3.0), (10.0, 10.0,  19.0), 2.0, 0.0), // ... different zs
+             case((  0.0, -10.0,  0.0), ( 0.0, 10.0,   0.0), 3.0, 6.0), // along vertical   diameter
+             case((-10.0,   0.0,  0.0), (10.0,  0.0,   0.0), 4.0, 8.0), // along horizontal diameter
+             case((-10.0,   0.0, 10.0), (10.0,  0.0, -10.0), 4.0, 8.0 * 2.0_f32.sqrt()), // at 45 degrees to z-axis
+             case((-10.0,   2.5,  0.0), (10.0,  2.5,   0.0), 5.0, 5.0 * 3.0_f32.sqrt()), // off-z-axis by r/2
     )]
     fn test_cylinder_line_intersection_length(
-        x1: f32, y1: f32, z1: f32,
-        x2: f32, y2: f32, z2: f32,
+        _p1@(x1, y1, z1): (f32, f32, f32),
+        _p2@(x2, y2, z2): (f32, f32, f32),
         r: f32,
         expected: f32,
     ) {
@@ -92,14 +92,14 @@ mod tests {
     proptest! {
         #[test]
         fn hollow_cylinder_intersection_length_compare_implementations(
-            x1 in    0.1..(100.0 as f32),
-            y1 in -100.0..(100.0 as f32),
-            z1 in -100.0..(100.0 as f32),
-            x2 in -100.0..(  0.0 as f32),
-            y2 in -100.0..(100.0 as f32),
-            z2 in -100.0..(100.0 as f32),
-            r  in  100.0..(300.0 as f32),
-            dr in    1.0..( 30.0 as f32),
+            x1 in    0.1..100.0_f32,
+            y1 in -100.0..100.0_f32,
+            z1 in -100.0..100.0_f32,
+            x2 in -100.0..  0.0_f32,
+            y2 in -100.0..100.0_f32,
+            z2 in -100.0..100.0_f32,
+            r  in  100.0..300.0_f32,
+            dr in    1.0.. 30.0_f32,
         ) {
             let p1 = Point::new(mm(x1), mm(y1), mm(z1));
             let p2 = Point::new(mm(x2), mm(y2), mm(z2));

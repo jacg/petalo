@@ -260,6 +260,7 @@ mod tests {
         assert_uom_eq!(meter, r.z, e.z, ulps <= 2);
     }
 
+    #[allow(clippy::excessive_precision)]
     #[rstest(/**/ x,  y,  z,  magnitude,
              case(0.0,  0.0,  0.0,  0.0),
              case(1.0,  0.0,  0.0,  1.0),
@@ -286,9 +287,9 @@ mod tests {
     proptest! {
         #[test]
         fn norm_equals_magnitude(
-            x in -100.0..(100.0 as f32),
-            y in -100.0..(100.0 as f32),
-            z in -100.0..(100.0 as f32),
+            x in -100.0..100.0_f32,
+            y in -100.0..100.0_f32,
+            z in -100.0..100.0_f32,
         ) {
             let v = Vector::new(mm(x), mm(y), mm(z));
             let n: Length = v.norm();
@@ -300,9 +301,9 @@ mod tests {
     proptest! {
         #[test]
         fn norm_squared(
-            x in -100.0..(100.0 as f32),
-            y in -100.0..(100.0 as f32),
-            z in -100.0..(100.0 as f32),
+            x in -100.0..100.0_f32,
+            y in -100.0..100.0_f32,
+            z in -100.0..100.0_f32,
         ) {
             let v = Vector::new(mm(x), mm(y), mm(z));
             let n: Length = v.norm();

@@ -28,7 +28,7 @@ fn fulano(_py_gil: Python, m: &PyModule) -> PyResult<()> {
         let (mut p, mut c) = (0,1);
         while n > 0 {
             let old_c = c;
-            c = c + p;
+            c += p;
             p = old_c;
             n -= 1;
         }
@@ -66,8 +66,7 @@ impl FomConfig {
     /// Calculate CRC for a 60x60x60 voxel image
     fn crcs(&self, data: Vec<Intensityf32>) -> Vec<Intensityf32> {
         let image = Image::new(self.fov, data);
-        let crcs = image.foms(&self.cfg, true).crcs;
-        crcs
+        image.foms(&self.cfg, true).crcs
     }
 
 }
