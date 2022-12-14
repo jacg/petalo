@@ -60,14 +60,14 @@ enum Standard {
         location              : Point96,  // 123456789aba  12  12 photon current location or, in detector list mode, detection position
         angle                 : Point96,  // 123456789aba  12  24 photon durrent direction.  perhaps undefined in detector list mode.
         flags                 : u8,       // 1              1  25 Photon flags
-        pad1                  : [u8; 7],  //  2345678       7  32
+        #[br(pad_before = 7)]             //  2345678       7  32
         weight                : f64,      // 12345678       8  40 Photon's weight
         energy                : f32,      // 1234           4  44 Photon's energy
-        pad2                  : [u8; 4],  //     5678       4  48
+        #[br(pad_before = 4)]             //     5678       4  48
         time                  : f64,      // 12345678       3  56 In seconds
         transaxial_position   : f32,      // 1234           4  60 For SPECT, transaxial position on "back" of collimator/detector
         azimuthal_angle_index : u16,      // 12             2  62 For SPECT/DHCI, index of collimator/detector angle
-        pad3                  : [u8; 2],  //   34           2  64
+        #[br(pad_before = 2)]             //   34           2  64
         detector_angle        : f32,      // 1234           4  68 For SPECT, DHCI, angle of detector
         detector_crystal      : u32,      // 1234           4  72 for block detectors, the crystal number for detection
     }, // bytes wasted: 17 on padding, 10 on SPECT, 12 on undefined-in-LM direction, 4 on block detectors; 43/72 = 60%
