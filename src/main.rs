@@ -46,11 +46,11 @@ enum Standard {
 
     #[br(magic = 1_u8)]
     Decay {
-        pos: Point192,
-        weight: f64,
-        time: f64,
-        decay_type: u64, // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
-    },
+        pos       : Point192, // 24
+        weight    : f64,      //  8
+        time      : f64,      //  8
+        decay_type: u64,      //  8  // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
+    }, // bytes wasted: probably all 48 of them
 
     // according to struct PHG_DetectedPhoton in file Photon.h
     #[br(magic = 2_u8)]
