@@ -262,42 +262,23 @@ dependencies = [
 
 [[package]]
 name = "binrw"
-version = "0.8.4"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a13d2fa8772b88ee64a0d84602c636ad2bae9c176873f6c440e2b0a1df4c8c43"
+checksum = "f846d8732b2a55b569b885852ecc925a2b1f24568f4707f8b1ccd5dc6805ea9b"
 dependencies = [
  "array-init",
  "binrw_derive",
+ "bytemuck",
 ]
 
 [[package]]
 name = "binrw_derive"
-version = "0.8.4"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "193bcff2709da50edf2e9a89e0f9a2118eea70f257b1f4380ccf27d3d8578302"
+checksum = "5c2aa66a5e35daf7f91ed44c945886597ef4c327f34f68b6bbf22951a250ceeb"
 dependencies = [
+ "either",
  "owo-colors",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "binwrite"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42c3da1db1f384ad643e27cb6ba4f08f2a7cd8753bef8dd95c39fe45d7a474c8"
-dependencies = [
- "binwrite_derive",
- "paste 0.1.18",
-]
-
-[[package]]
-name = "binwrite_derive"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "476f17c19ce04226ba997c229ce8fb96eaef1c0e0745ec91d8df35f723aae353"
-dependencies = [
  "proc-macro2",
  "quote",
  "syn",
@@ -358,9 +339,9 @@ checksum = "a4a45a46ab1f2412e53d3a0ade76ffad2025804294569aae387231a0cd6e0899"
 
 [[package]]
 name = "bytemuck"
-version = "1.9.1"
+version = "1.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdead85bdec19c194affaeeb670c0e41fe23de31459efd1c174d049269cf02cc"
+checksum = "aaa3a8d9a1ca92e282c96a32d6511b695d7d994d1d102ba85d279f9b2756947f"
 
 [[package]]
 name = "byteorder"
@@ -671,7 +652,7 @@ checksum = "b7d46ba8ace7f3a1d204ac5060a706d0a68de6b42eafb6a586cc08bebcffe664"
 dependencies = [
  "libc",
  "num-traits",
- "paste 1.0.7",
+ "paste",
  "python3-sys",
 ]
 
@@ -896,9 +877,9 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
 name = "either"
-version = "1.6.1"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
+checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
 
 [[package]]
 name = "encode_unicode"
@@ -1261,7 +1242,7 @@ dependencies = [
  "libc",
  "ndarray",
  "parking_lot",
- "paste 1.0.7",
+ "paste",
 ]
 
 [[package]]
@@ -2248,28 +2229,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45ca20c77d80be666aef2b45486da86238fabe33e38306bd3118fe4af33fa880"
-dependencies = [
- "paste-impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "paste"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c520e05135d6e763148b6426a837e239041653ba7becd2e538c076c738025fc"
-
-[[package]]
-name = "paste-impl"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d95a7db200b97ef370c8e6de0088252f7e0dfff7d047a28528e47456c0fc98b6"
-dependencies = [
- "proc-macro-hack",
-]
 
 [[package]]
 name = "peeking_take_while"
@@ -2289,7 +2251,6 @@ version = "0.1.0"
 dependencies = [
  "bindgen",
  "binrw",
- "binwrite",
  "clap 3.2.22",
  "float_eq",
  "geometry",
@@ -2426,12 +2387,6 @@ dependencies = [
  "quote",
  "version_check",
 ]
-
-[[package]]
-name = "proc-macro-hack"
-version = "0.5.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbf0c48bc1d91375ae5c3cd81e3722dff1abcf81a30960240640d223f59fe0e5"
 
 [[package]]
 name = "proc-macro2"
@@ -2861,7 +2816,7 @@ dependencies = [
  "approx 0.5.1",
  "num-complex",
  "num-traits",
- "paste 1.0.7",
+ "paste",
  "wide",
 ]
 
@@ -2874,7 +2829,7 @@ dependencies = [
  "approx 0.5.1",
  "num-complex",
  "num-traits",
- "paste 1.0.7",
+ "paste",
  "wide",
 ]
 

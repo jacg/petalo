@@ -73,13 +73,12 @@ mod test {
 
 // ----- Raw 3d image with matrix/physical size metadata --------------------------------
 
-use binrw::{BinRead, BinReaderExt};
-use binwrite::BinWrite;
+use binrw::{binrw, BinWrite, BinReaderExt};
 
-#[derive(BinRead, BinWrite, PartialEq, Debug)]
-// #[br(magic = b"IMG3D")] // TODO: magic not supported by writers?
-#[br(big)]
-#[binwrite(big)]
+#[derive(PartialEq, Debug)]
+// #[br(magic = b"IMG3D")] // TODO: magic was not supported by older writers
+#[binrw]
+#[brw(big)]
 pub struct Image3D {
     pub pixels: [u16; 3],
     pub mm: [f32; 3],
@@ -88,13 +87,13 @@ pub struct Image3D {
 }
 
 impl Image3D {
-    pub fn write_to_file(&self, path: impl AsRef<std::path::Path>) -> std::io::Result<()> {
+    pub fn write_to_file(&self, path: impl AsRef<std::path::Path>) -> Result<(), binrw::Error> {
         let file = File::create(path)?;
         let mut buf = BufWriter::new(file);
         self.write(&mut buf)
     }
 
-    pub fn read_from_file(path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
+    pub fn read_from_file(path: impl AsRef<std::path::Path>) -> Result<Self, binrw::Error> {
         let file = File::open(path)?;
         let mut buffered = BufReader::new(file);
         Ok(buffered.read_ne().unwrap())
@@ -148,20 +147,20 @@ mod test_with_metadata {
         let original = guinea_pig();
 
         // Serialize the image
-        let mut bytes = vec![];
-        original.write(&mut bytes).unwrap();
+        let mut buffer = Cursor::new(vec![]);
+        original.write(&mut buffer).unwrap();
         println!("{:?}", original);
 
         // Deserialize
-        let mut reader = Cursor::new(bytes);
-        let recovered: Image3D = reader.read_ne().unwrap();
+        let mut bytes = Cursor::new(buffer.into_inner());
+        let recovered: Image3D = bytes.read_ne().unwrap();
 
         // Verify
         assert_eq!(recovered, original);
     }
 
     #[test]
-    fn roundtrip_via_file() -> std::io::Result<()> {
+    fn roundtrip_via_file() -> Result<(), binrw::Error> {
         use tempfile::tempdir;
         #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
 
@@ -196,7 +195,7 @@ mod test_with_metadata {
 // ----- Proofs of concept ---------------------------------------------------------------
 #[cfg(test)]
 mod test_br_enum {
-    use super::*;
+    use binrw::{BinRead, io::Cursor};
 
     #[test]
     fn test_br_enum() {
