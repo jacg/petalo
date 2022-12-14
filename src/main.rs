@@ -9,7 +9,6 @@ use clap::Parser;
 /// Try to parse SimSET (custom) history files
 #[derive(Parser, Debug)]
 struct Args {
-
     /// History file to parse
     file: PathBuf,
 
@@ -19,7 +18,6 @@ struct Args {
 
     #[arg(value_enum, short = 't', long = "file-type", default_value_t = HistoryFileType::Custom)]
     history_file_type: HistoryFileType,
-
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
@@ -48,10 +46,10 @@ enum Standard {
 
     #[br(magic = 1_u8)]
     Decay {
-    pos: Point192,
-    weight: f64,
-    time: f64,
-    decay_type: u64, // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
+        pos: Point192,
+        weight: f64,
+        time: f64,
+        decay_type: u64, // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
     },
 
     // according to struct PHG_DetectedPhoton in file Photon.h
@@ -73,16 +71,13 @@ enum Standard {
     }, // bytes wasted: 17 on padding, 10 on SPECT, 12 on undefined-in-LM direction, 4 on block detectors; 43/72 = 60%
 }
 
-
 #[binrw]
 #[derive(Debug)]
 struct Custom {
-
     n_pairs: u8,
 
     #[br(count = n_pairs)]
     pairs: Vec<Entry>,
-
 }
 
 #[binrw]
@@ -119,7 +114,6 @@ struct Entry {
 
 }
 
-
 #[binrw]
 #[derive(Debug)]
 struct Point192 {
@@ -154,11 +148,10 @@ fn custom(args: Args) -> Result<(), Box<dyn Error>> {
         println!("------ N pairs: {n_pairs} --------");
         //for Entry { pos: Point192 { x, y, z }, energy, travel_distance, decay_time } in pairs {
         for Entry { pos: Point192 { x, y, z },  energy, travel_distance } in pairs {
-            let dtof = travel_distance * 2.0 / 0.3;
             //println!("({x:7.2} {y:7.2} {z:7.2})     E: {energy:6.2}  decay time: {decay_time:7.2}  travel: {travel_distance:5.2}");
             //let t = decay_time * 1.0e6;
             //println!("({x:7.2} {y:7.2} {z:7.2})   decay time: {t:7.2} μs   E:{energy:7.2}   d:{travel_distance:6.2}      decay pos: ({dx:7.2} {dy:7.2} {dz:7.2})");
-            println!("({x:7.2} {y:7.2} {z:7.2})   E:{energy:7.2}   dx:{travel_distance:6.2} cm  -> dTOF:{dtof}");
+            println!("({x:7.2} {y:7.2} {z:7.2})   E:{energy:7.2}   dist:{travel_distance:6.2} cm");
         }
     }
     Ok(())
