@@ -48,17 +48,31 @@ enum Standard {
 
     #[br(magic = 1_u8)]
     Decay {
-    pos: Point,
+    pos: Point192,
     weight: f64,
     time: f64,
     decay_type: u64, // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
     },
 
+    // according to struct PHG_DetectedPhoton in file Photon.h
     #[br(magic = 2_u8)]
-    Photon { // Both blue and pink?
-        bytes: [u8; 72],
-    },
+    Photon { // Both blue and pink?                               -- comments from struct definicion in SimSET: Photon.h --
+        location              : Point96,  // 123456789aba  12  12 photon current location or, in detector list mode, detection position
+        angle                 : Point96,  // 123456789aba  12  24 photon durrent direction.  perhaps undefined in detector list mode.
+        flags                 : u8,       // 1              1  25 Photon flags
+        pad1                  : [u8; 7],  //  2345678       7  32
+        weight                : f64,      // 12345678       8  40 Photon's weight
+        energy                : f32,      // 1234           4  44 Photon's energy
+        pad2                  : [u8; 4],  //     5678       4  48
+        time                  : f64,      // 12345678       3  56 In seconds
+        transaxial_position   : f32,      // 1234           4  60 For SPECT, transaxial position on "back" of collimator/detector
+        azimuthal_angle_index : u16,      // 12             2  62 For SPECT/DHCI, index of collimator/detector angle
+        pad3                  : [u8; 2],  //   34           2  64
+        detector_angle        : f32,      // 1234           4  68 For SPECT, DHCI, angle of detector
+        detector_crystal      : u32,      // 1234           4  72 for block detectors, the crystal number for detection
+    }, // bytes wasted: 17 on padding, 10 on SPECT, 12 on undefined-in-LM direction, 4 on block detectors; 43/72 = 60%
 }
+
 
 #[binrw]
 #[derive(Debug)]
@@ -71,11 +85,10 @@ struct Custom {
 
 }
 
-
 #[binrw]
 #[derive(Debug)]
 struct Entry {
-    pos: Point,
+    pos: Point192,
     // x-cos
     // y-cos
     // z-cos
@@ -85,8 +98,8 @@ struct Entry {
     // weight: f64,
     energy: f64,
     travel_distance: f64,
-    decay_pos: Point,
-    decay_time: f64,
+    // decay_pos: Point192,
+    // decay_time: f64,
     // decay_type: u32,
 
     // LOR
@@ -94,7 +107,7 @@ struct Entry {
     // azimuthal angle index
     // axial_position: f64,
 
-    // detector_pos: Point,
+    // detector_pos: Point192,
     // detector_angle: f64,
     // detector crystal
 
@@ -109,7 +122,7 @@ struct Entry {
 
 #[binrw]
 #[derive(Debug)]
-struct Point {
+struct Point192 {
     x: f64,
     y: f64,
     z: f64,
@@ -117,8 +130,16 @@ struct Point {
 
 #[binrw]
 #[derive(Debug)]
+struct Point96 {
+    x: f32,
+    y: f32,
+    z: f32,
+}
+
+#[binrw]
+#[derive(Debug)]
 struct DetectorInteraction {
-    pos: Point,
+    pos: Point192,
     energy_deposited: f64,
     is_active: u8,
     padding: u8, // Is this here because of alignment before writing?
@@ -129,13 +150,15 @@ fn custom(args: Args) -> Result<(), Box<dyn Error>> {
     x.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
     while let Ok(Custom { n_pairs, pairs }) = x.read_le::<Custom>() {
-        println!("N pairs: {n_pairs}");
         if count >= args.max_decays { break }; count += 1;
-        //for Entry { pos: Point { x, y, z }, energy, travel_distance, decay_time } in pairs {
-        for Entry { pos: Point { x, y, z }, decay_time, energy, travel_distance, decay_pos: Point { x: dx, y: dy, z: dz } } in pairs {
+        println!("------ N pairs: {n_pairs} --------");
+        //for Entry { pos: Point192 { x, y, z }, energy, travel_distance, decay_time } in pairs {
+        for Entry { pos: Point192 { x, y, z },  energy, travel_distance } in pairs {
+            let dtof = travel_distance * 2.0 / 0.3;
             //println!("({x:7.2} {y:7.2} {z:7.2})     E: {energy:6.2}  decay time: {decay_time:7.2}  travel: {travel_distance:5.2}");
-            let t = decay_time * 1.0e6;
-            println!("({x:7.2} {y:7.2} {z:7.2})   decay time: {t:7.2} μs   E:{energy:7.2}   d:{travel_distance:6.2}      decay pos: ({dx:7.2} {dy:7.2} {dz:7.2})");
+            //let t = decay_time * 1.0e6;
+            //println!("({x:7.2} {y:7.2} {z:7.2})   decay time: {t:7.2} μs   E:{energy:7.2}   d:{travel_distance:6.2}      decay pos: ({dx:7.2} {dy:7.2} {dz:7.2})");
+            println!("({x:7.2} {y:7.2} {z:7.2})   E:{energy:7.2}   dx:{travel_distance:6.2} cm  -> dTOF:{dtof}");
         }
     }
     Ok(())
@@ -145,34 +168,26 @@ fn standard(args: Args) -> Result<(), Box<dyn Error>> {
     let mut x = File::open(args.file)?;
     x.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
+    let mut ts = [None, None];
     while let Ok(y) = x.read_le::<Standard>() {
         use Standard::*;
         match y {
-            Decay { pos: Point { x, y, z }, weight, time, decay_type } => {
+            Decay { pos: Point192 { x, y, z }, weight, time, decay_type } => {
                 if count >= args.max_decays { break }
                 count += 1;
-                println!("\n============================================================================================================================================================================================================================================================================================================");
-                println!("{x:5.2} {y:5.2} {z:5.2}   {weight:5.2}    {time:5.2}   {decay_type}");
+                ts = [None, None];
+                println!("\n===================================================================================");
+                println!("({x:6.2} {y:6.2} {z:6.2})    t: {time:5.2}  s   w:{weight:4.1}   type:{decay_type}");
             },
-            Photon { bytes } => {
-                println!("");
-                println!("-1--2--3--4--5--6--7--8--9-10-11-12 -1--2--3--4--5--6--7--8--9-10-11-12 -1 -2--3--4--5--6--7--8 -1--2--3--4--5--6--7--8 -1--2--3--4--5--6--7--8 -1--2--3--4--5--6--7--8 -1--2--3--4 -1--2 -3--4 -1--2--3--4 -1--2--3--4");
-                println!("<------------location-------------> <--------------angle--------------> FG <-----padding------> <--------weight-------> <-energy--> <-padding-> <--------time---------> <-ta pos--> <aza> <pad> <-det ang-> <-det cry->");
-                for byte in bytes { print!("{byte:02x} "); }
-                println!("");
-                for offset in 0..1 {
-                    let ints = offset_by_as(&bytes, offset);
-                    show_ints(&ints, offset);
-                }
-                //println!("");
-                for offset in 0..1 {
-                    let reals = offset_by_as(&bytes, offset);
-                    show_reals(&reals, offset);
-                }
-                //println!("");
-                for offset in 0..1 {
-                    let reals = offset_by_as(&bytes, offset);
-                    show_reals_32(&reals, offset);
+            Photon { location: Point96 { x, y, z }, flags, weight, energy, time, .. } => {
+                let time = time * 1e12;
+                ts[blue_or_pink_index(flags)] = Some(time);
+                let (c, s, t) = interpret_flags(flags);
+                println!("({x:6.2} {y:6.2} {z:6.2})    + {time:6.1} ps   w:{weight:4.1}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
+                if let [Some(t1), Some(t2)] = ts {
+                    let dtof = t1 - t2;
+                    let dx = dtof * 0.3 /* mm / ps */ / 2.0;
+                    println!("dTOF: {dtof:4.1} ps    ->   dx {dx:6.2} mm");
                 }
             },
         }
@@ -180,6 +195,13 @@ fn standard(args: Args) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn blue_or_pink_index(flag: u8) -> usize { (flag & 0x1) as usize }
+fn interpret_flags(flag: u8) -> (&'static str, &'static str, &'static str) {
+    let c = if (flag & 0x1) == 0x1 { "blue"    } else { "pink"    };
+    let s = if (flag & 0x2) == 0x2 { "scatter" } else { "-------" };
+    let t = if (flag & 0x4) == 0x4 { "primary" } else { "-------" };
+    (c, s, t)
+}
 
 // typedef struct  {
 //     double x_position;
@@ -230,45 +252,6 @@ fn standard(args: Args) -> Result<(), Box<dyn Error>> {
 // which looks like it's a positron
 
 //
-
-fn offset_by_as<T: Clone>(bytes: &[u8], offset: usize) -> Vec<T> {
-    let mut vec = Vec::<u8>::new();
-    for byte in &bytes[offset..] { vec.push(*byte); }
-    unsafe {
-        let (_, values, _) = vec.align_to::<T>();
-        values.to_vec()
-    }
-}
-
-fn show_ints(stuff: &[i32], offset: usize) {
-    for _ in 0..offset { print!("   "); }
-    for &x in stuff {
-        if -100000 < x && x < 100000 // && x != 0
-        { print!("{x:_>11} "); }
-        else { print!("___________ ") };
-    }
-    println!("");
-}
-
-fn show_reals(stuff: &[f64], offset: usize) {
-    for _ in 0..offset { print!("   "); }
-    for &x in stuff {
-        if x.abs() < 1.0e8 && x.abs() > 1.0e-8 //&& x != 0.0
-        { print!("{x:_>23.4} "); }
-        else { print!("_______________________ "); };
-    }
-    println!("");
-}
-
-fn show_reals_32(stuff: &[f32], offset: usize) {
-    for _ in 0..offset { print!("   "); }
-    for &x in stuff {
-        if x.abs() < 1.0e8 && x.abs() > 1.0e-8 //&& x != 0.0
-        { print!("{x:_>11.4} "); }
-        else { print!("___________ "); };
-    }
-    println!("");
-}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
