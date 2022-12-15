@@ -228,17 +228,15 @@ struct StandardDecayWithPhotons {
     photons: Vec<Photon>,
 }
 
+const DECAY_SIZE_INCLUDING_MAGIC_: i64 = (std::mem::size_of::<Decay>() + 1) as i64;
+
 impl StandardDecayWithPhotons {
     fn read(file: &mut File) -> Result<Self, Box<dyn Error>> {
         use Standard::*;
         let mut photons = vec![];
         let       Decay (decay ) = file.read_le::<Standard>()? else { panic!("Expected decay") };
-        let mut pos = file.stream_position()?;
-        while let Photon(photon) = file.read_le::<Standard>()? {
-            photons.push(photon);
-            pos = file.stream_position()?;
-        }
-        file.seek(std::io::SeekFrom::Start(pos))?;
+        while let Photon(photon) = file.read_le::<Standard>()? { photons.push(photon); }
+        file.seek(std::io::SeekFrom::Current(-DECAY_SIZE_INCLUDING_MAGIC_))?;
         Ok(Self { decay, photons })
     }
 }
