@@ -44,43 +44,13 @@ use binrw::binrw;
 use binrw::io::{Seek, SeekFrom};
 use binrw::BinReaderExt;
 
-#[binrw]
-#[derive(Debug)]
-struct Decay {
-    pos       : Point192, // 24
-    weight    : f64,      //  8
-    time      : f64,      //  8
-    decay_type: u64,      //  8  // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
-} // bytes wasted: probably all 48 of them
-
-#[binrw]
-#[derive(Debug)]
-struct Photon { // Both blue and pink?                        -- comments from struct definicion in SimSET: Photon.h --
-    location              : Point96,  // 123456789aba  12  12 photon current location or, in detector list mode, detection position
-    angle                 : Point96,  // 123456789aba  12  24 photon durrent direction.  perhaps undefined in detector list mode.
-    flags                 : u8,       // 1              1  25 Photon flags
-    #[br(pad_before = 7)]             //  2345678       7  32
-    weight                : f64,      // 12345678       8  40 Photon's weight
-    energy                : f32,      // 1234           4  44 Photon's energy
-    #[br(pad_before = 4)]             //     5678       4  48
-    time                  : f64,      // 12345678       3  56 In seconds
-    transaxial_position   : f32,      // 1234           4  60 For SPECT, transaxial position on "back" of collimator/detector
-    azimuthal_angle_index : u16,      // 12             2  62 For SPECT/DHCI, index of collimator/detector angle
-    #[br(pad_before = 2)]             //   34           2  64
-    detector_angle        : f32,      // 1234           4  68 For SPECT, DHCI, angle of detector
-    detector_crystal      : u32,      // 1234           4  72 for block detectors, the crystal number for detection
-} // bytes wasted: 17 on padding, 10 on SPECT, 12 on undefined-in-LM direction, 4 on block detectors; 43/72 = 60%
 
 #[binrw]
 #[derive(Debug)]
 enum Standard {
-
-    #[br(magic = 1_u8)]
-    Decay(Decay),
-
+    #[br(magic = 1_u8)] Decay (standard::Decay),
+    #[br(magic = 2_u8)] Photon(standard::Photon),
     // according to struct PHG_DetectedPhoton in file Photon.h
-    #[br(magic = 2_u8)]
-    Photon(Photon),
 }
 
 #[binrw]
@@ -89,46 +59,80 @@ struct Custom {
     n_pairs: u8,
 
     #[br(count = n_pairs)]
-    pairs: Vec<Entry>,
+    pairs: Vec<custom::Photon>,
 }
 
-#[binrw]
-#[derive(Debug)]
-struct Entry {
-    pos: Point192,
-    // x-cos
-    // y-cos
-    // z-cos
-    // scatters in object
-    // scatters in collimator
-    // decay_weight: f64,
-    // weight: f64,
-    energy: f64,
-    travel_distance: f64,
-    // decay_pos: Point192,
-    // decay_time: f64,
-    // decay_type: u32,
+mod standard {
+    use super::{Point96, Point192, binrw};
 
-    // LOR
-    // transaxial_distance: f64
-    // azimuthal angle index
-    // axial_position: f64,
+    #[binrw]
+    #[derive(Debug)]
+    pub struct Decay {
+        pub pos       : Point192, // 24
+        pub weight    : f64,      //  8
+        pub time      : f64,      //  8
+        pub decay_type: u64,      //  8  // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
+    } // bytes wasted: probably all 48 of them
 
-    // detector_pos: Point192,
-    // detector_angle: f64,
-    // detector crystal
-
-    // num_detector_interactions: i32, // Supposed to be 1 char, but it looks like alignment sometimes pads it!
-    // num_detector_interactions_written: i32, // ? Will be zero if detector_interactions not stored
-
-    // #[br(count = num_detector_interactions_written)]
-    // detector_interactions: Vec<DetectorInteraction>,
-
+    #[binrw]
+    #[derive(Debug)]
+    pub struct Photon { // Both blue and pink?                        -- comments from struct definicion in SimSET: Photon.h --
+        pub location              : Point96,  // 123456789aba  12  12 photon current location or, in detector list mode, detection position
+        pub angle                 : Point96,  // 123456789aba  12  24 photon durrent direction.  perhaps undefined in detector list mode.
+        pub flags                 : u8,       // 1              1  25 Photon flags
+        #[br(pad_before = 7)]                 //  2345678       7  32
+        pub weight                : f64,      // 12345678       8  40 Photon's weight
+        pub energy                : f32,      // 1234           4  44 Photon's energy
+        #[br(pad_before = 4)]                 //     5678       4  48
+        pub time                  : f64,      // 12345678       3  56 In seconds
+        pub transaxial_position   : f32,      // 1234           4  60 For SPECT, transaxial position on "back" of collimator/detector
+        pub azimuthal_angle_index : u16,      // 12             2  62 For SPECT/DHCI, index of collimator/detector angle
+        #[br(pad_before = 2)]                 //   34           2  64
+        pub detector_angle        : f32,      // 1234           4  68 For SPECT, DHCI, angle of detector
+        pub detector_crystal      : u32,      // 1234           4  72 for block detectors, the crystal number for detection
+    } // bytes wasted: 17 on padding, 10 on SPECT, 12 on undefined-in-LM direction, 4 on block detectors; 43/72 = 60%
 }
 
+mod custom {
+    use super::{Point192, binrw};
+
+    #[binrw]
+    #[derive(Debug)]
+    pub struct Photon {
+        pub pos: Point192,
+        // x-cos
+        // y-cos
+        // z-cos
+        // scatters in object
+        // scatters in collimator
+        // decay_weight: f64,
+        // weight: f64,
+        pub energy: f64,
+        pub travel_distance: f64,
+        // decay_pos: Point192,
+        // decay_time: f64,
+        // decay_type: u32,
+
+        // LOR
+        // transaxial_distance: f64
+        // azimuthal angle index
+        // axial_position: f64,
+
+        // detector_pos: Point192,
+        // detector_angle: f64,
+        // detector crystal
+
+        // num_detector_interactions: i32, // Supposed to be 1 char, but it looks like alignment sometimes pads it!
+        // num_detector_interactions_written: i32, // ? Will be zero if detector_interactions not stored
+
+        // #[br(count = num_detector_interactions_written)]
+        // detector_interactions: Vec<DetectorInteraction>,
+
+    }
+}
 #[binrw]
 #[derive(Debug)]
-struct Point192 {
+pub struct Point192 {
     x: f64,
     y: f64,
     z: f64,
@@ -136,7 +140,7 @@ struct Point192 {
 
 #[binrw]
 #[derive(Debug)]
-struct Point96 {
+pub struct Point96 {
     x: f32,
     y: f32,
     z: f32,
@@ -158,7 +162,7 @@ fn custom(args: Args) -> Result<(), Box<dyn Error>> {
     while let Ok(Custom { n_pairs, pairs }) = file.read_le::<Custom>() {
         if let Some(stop) = args.stop_after { if count >= stop { break } }; count += 1;
         println!("------ N pairs: {n_pairs} --------");
-        for Entry { pos: Point192 { x, y, z },  energy, travel_distance } in pairs {
+        for custom::Photon { pos: Point192 { x, y, z },  energy, travel_distance } in pairs {
             println!("({x:7.2} {y:7.2} {z:7.2})   E:{energy:7.2}   dist:{travel_distance:6.2} cm");
         }
     }
@@ -166,19 +170,21 @@ fn custom(args: Args) -> Result<(), Box<dyn Error>> {
 }
 
 fn standard(args: Args) -> Result<(), Box<dyn Error>> {
+    use Standard as St;
+    use standard as st;
     let mut file = File::open(args.file)?;
     file.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
     let mut ts = [None, None];
     while let Ok(record) = file.read_le::<Standard>() {
         match record {
-            Standard::Decay(Decay { pos: Point192 { x, y, z }, weight, time, decay_type }) => {
+            St::Decay(st::Decay { pos: Point192 { x, y, z }, weight, time, decay_type }) => {
                 if let Some(stop) = args.stop_after { if count >= stop { break } }; count += 1;
                 ts = [None, None];
                 println!("\n===================================================================================");
                 println!("({x:6.2} {y:6.2} {z:6.2})    t: {time:5.2}  s   w:{weight:4.1}   type:{decay_type}");
             },
-            Standard::Photon(Photon { location: Point96 { x, y, z }, flags, weight, energy, time, .. }) => {
+            St::Photon(st::Photon { location: Point96 { x, y, z }, flags, weight, energy, time, .. }) => {
                 let time = time * 1e12;
                 ts[blue_or_pink_index(flags)] = Some(time);
                 let (c, s, t) = interpret_flags(flags);
@@ -208,7 +214,7 @@ fn compare(file1: &Path, file2: &Path, args: &Args) -> Result<(), Box<dyn Error>
             if count >= stop { break };
             count += 1;
         }
-        for (Photon { energy: el, .. }, Photon { energy: er, .. }) in lphotons.into_iter().zip(rphotons) {
+        for (standard::Photon { energy: el, .. }, standard::Photon { energy: er, .. }) in lphotons.into_iter().zip(rphotons) {
             println!("{el:7.2} - {er:7.2} = {:7.2}", el - er);
         }
     }
@@ -224,11 +230,11 @@ fn interpret_flags(flag: u8) -> (&'static str, &'static str, &'static str) {
 }
 
 struct StandardDecayWithPhotons {
-    decay: Decay,
-    photons: Vec<Photon>,
+    decay: standard::Decay,
+    photons: Vec<standard::Photon>,
 }
 
-const DECAY_SIZE_INCLUDING_MAGIC_: i64 = (std::mem::size_of::<Decay>() + 1) as i64;
+const DECAY_SIZE_INCLUDING_MAGIC_: i64 = (std::mem::size_of::<standard::Decay>() + 1) as i64;
 
 impl StandardDecayWithPhotons {
     fn read(file: &mut File) -> Result<Self, Box<dyn Error>> {
