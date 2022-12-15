@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::Display;
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 // ----- CLI --------------------------------------------------
 use clap::Parser;
@@ -12,9 +12,13 @@ struct Args {
     /// History file to parse
     file: PathBuf,
 
-    /// Maximum number of decays to parse
-    #[arg(short = 'n', long, default_value_t = 10)]
-    max_decays: usize,
+    /// Second history file for record-by-record comparison
+    #[arg(short = 'c', long)]
+    compare: Option<PathBuf>,
+
+    /// Maximum number of records to parse
+    #[arg(short = 'n', long)]
+    stop_after: Option<usize>,
 
     #[arg(value_enum, short = 't', long = "file-type", default_value_t = HistoryFileType::Custom)]
     history_file_type: HistoryFileType,
@@ -42,33 +46,41 @@ use binrw::BinReaderExt;
 
 #[binrw]
 #[derive(Debug)]
+struct Decay {
+    pos       : Point192, // 24
+    weight    : f64,      //  8
+    time      : f64,      //  8
+    decay_type: u64,      //  8  // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
+} // bytes wasted: probably all 48 of them
+
+#[binrw]
+#[derive(Debug)]
+struct Photon { // Both blue and pink?                        -- comments from struct definicion in SimSET: Photon.h --
+    location              : Point96,  // 123456789aba  12  12 photon current location or, in detector list mode, detection position
+    angle                 : Point96,  // 123456789aba  12  24 photon durrent direction.  perhaps undefined in detector list mode.
+    flags                 : u8,       // 1              1  25 Photon flags
+    #[br(pad_before = 7)]             //  2345678       7  32
+    weight                : f64,      // 12345678       8  40 Photon's weight
+    energy                : f32,      // 1234           4  44 Photon's energy
+    #[br(pad_before = 4)]             //     5678       4  48
+    time                  : f64,      // 12345678       3  56 In seconds
+    transaxial_position   : f32,      // 1234           4  60 For SPECT, transaxial position on "back" of collimator/detector
+    azimuthal_angle_index : u16,      // 12             2  62 For SPECT/DHCI, index of collimator/detector angle
+    #[br(pad_before = 2)]             //   34           2  64
+    detector_angle        : f32,      // 1234           4  68 For SPECT, DHCI, angle of detector
+    detector_crystal      : u32,      // 1234           4  72 for block detectors, the crystal number for detection
+} // bytes wasted: 17 on padding, 10 on SPECT, 12 on undefined-in-LM direction, 4 on block detectors; 43/72 = 60%
+
+#[binrw]
+#[derive(Debug)]
 enum Standard {
 
     #[br(magic = 1_u8)]
-    Decay {
-        pos       : Point192, // 24
-        weight    : f64,      //  8
-        time      : f64,      //  8
-        decay_type: u64,      //  8  // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
-    }, // bytes wasted: probably all 48 of them
+    Decay(Decay),
 
     // according to struct PHG_DetectedPhoton in file Photon.h
     #[br(magic = 2_u8)]
-    Photon { // Both blue and pink?                               -- comments from struct definicion in SimSET: Photon.h --
-        location              : Point96,  // 123456789aba  12  12 photon current location or, in detector list mode, detection position
-        angle                 : Point96,  // 123456789aba  12  24 photon durrent direction.  perhaps undefined in detector list mode.
-        flags                 : u8,       // 1              1  25 Photon flags
-        #[br(pad_before = 7)]             //  2345678       7  32
-        weight                : f64,      // 12345678       8  40 Photon's weight
-        energy                : f32,      // 1234           4  44 Photon's energy
-        #[br(pad_before = 4)]             //     5678       4  48
-        time                  : f64,      // 12345678       3  56 In seconds
-        transaxial_position   : f32,      // 1234           4  60 For SPECT, transaxial position on "back" of collimator/detector
-        azimuthal_angle_index : u16,      // 12             2  62 For SPECT/DHCI, index of collimator/detector angle
-        #[br(pad_before = 2)]             //   34           2  64
-        detector_angle        : f32,      // 1234           4  68 For SPECT, DHCI, angle of detector
-        detector_crystal      : u32,      // 1234           4  72 for block detectors, the crystal number for detection
-    }, // bytes wasted: 17 on padding, 10 on SPECT, 12 on undefined-in-LM direction, 4 on block detectors; 43/72 = 60%
+    Photon(Photon),
 }
 
 #[binrw]
@@ -140,17 +152,13 @@ struct DetectorInteraction {
 }
 
 fn custom(args: Args) -> Result<(), Box<dyn Error>> {
-    let mut x = File::open(args.file)?;
-    x.seek(SeekFrom::Start(2_u64.pow(15)))?;
+    let mut file = File::open(args.file)?;
+    file.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
-    while let Ok(Custom { n_pairs, pairs }) = x.read_le::<Custom>() {
-        if count >= args.max_decays { break }; count += 1;
+    while let Ok(Custom { n_pairs, pairs }) = file.read_le::<Custom>() {
+        if let Some(stop) = args.stop_after { if count >= stop { break } }; count += 1;
         println!("------ N pairs: {n_pairs} --------");
-        //for Entry { pos: Point192 { x, y, z }, energy, travel_distance, decay_time } in pairs {
         for Entry { pos: Point192 { x, y, z },  energy, travel_distance } in pairs {
-            //println!("({x:7.2} {y:7.2} {z:7.2})     E: {energy:6.2}  decay time: {decay_time:7.2}  travel: {travel_distance:5.2}");
-            //let t = decay_time * 1.0e6;
-            //println!("({x:7.2} {y:7.2} {z:7.2})   decay time: {t:7.2} μs   E:{energy:7.2}   d:{travel_distance:6.2}      decay pos: ({dx:7.2} {dy:7.2} {dz:7.2})");
             println!("({x:7.2} {y:7.2} {z:7.2})   E:{energy:7.2}   dist:{travel_distance:6.2} cm");
         }
     }
@@ -158,21 +166,19 @@ fn custom(args: Args) -> Result<(), Box<dyn Error>> {
 }
 
 fn standard(args: Args) -> Result<(), Box<dyn Error>> {
-    let mut x = File::open(args.file)?;
-    x.seek(SeekFrom::Start(2_u64.pow(15)))?;
+    let mut file = File::open(args.file)?;
+    file.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
     let mut ts = [None, None];
-    while let Ok(y) = x.read_le::<Standard>() {
-        use Standard::*;
-        match y {
-            Decay { pos: Point192 { x, y, z }, weight, time, decay_type } => {
-                if count >= args.max_decays { break }
-                count += 1;
+    while let Ok(record) = file.read_le::<Standard>() {
+        match record {
+            Standard::Decay(Decay { pos: Point192 { x, y, z }, weight, time, decay_type }) => {
+                if let Some(stop) = args.stop_after { if count >= stop { break } }; count += 1;
                 ts = [None, None];
                 println!("\n===================================================================================");
                 println!("({x:6.2} {y:6.2} {z:6.2})    t: {time:5.2}  s   w:{weight:4.1}   type:{decay_type}");
             },
-            Photon { location: Point96 { x, y, z }, flags, weight, energy, time, .. } => {
+            Standard::Photon(Photon { location: Point96 { x, y, z }, flags, weight, energy, time, .. }) => {
                 let time = time * 1e12;
                 ts[blue_or_pink_index(flags)] = Some(time);
                 let (c, s, t) = interpret_flags(flags);
@@ -185,6 +191,27 @@ fn standard(args: Args) -> Result<(), Box<dyn Error>> {
             },
         }
     }
+    println!("Stopping after {count} records");
+    Ok(())
+}
+
+fn compare(file1: &Path, file2: &Path, args: &Args) -> Result<(), Box<dyn Error>> {
+    let mut file1 = File::open(file1)?; file1.seek(SeekFrom::Start(2_u64.pow(15)))?;
+    let mut file2 = File::open(file2)?; file2.seek(SeekFrom::Start(2_u64.pow(15)))?;
+    let mut count = 0;
+    let mut read1 = || StandardDecayWithPhotons::read(&mut file1);
+    let mut read2 = || StandardDecayWithPhotons::read(&mut file2);
+    type D = StandardDecayWithPhotons;
+    while let (Ok(D { decay: ldecay, photons: lphotons }), Ok(D { decay: rdecay, photons: rphotons })) = (read1(), read2()) {
+        println!();
+        if let Some(stop) = args.stop_after {
+            if count >= stop { break };
+            count += 1;
+        }
+        for (Photon { energy: el, .. }, Photon { energy: er, .. }) in lphotons.into_iter().zip(rphotons) {
+            println!("{el:7.2} - {er:7.2} = {:7.2}", el - er);
+        }
+    }
     Ok(())
 }
 
@@ -194,6 +221,26 @@ fn interpret_flags(flag: u8) -> (&'static str, &'static str, &'static str) {
     let s = if (flag & 0x2) == 0x2 { "scatter" } else { "-------" };
     let t = if (flag & 0x4) == 0x4 { "primary" } else { "-------" };
     (c, s, t)
+}
+
+struct StandardDecayWithPhotons {
+    decay: Decay,
+    photons: Vec<Photon>,
+}
+
+impl StandardDecayWithPhotons {
+    fn read(file: &mut File) -> Result<Self, Box<dyn Error>> {
+        use Standard::*;
+        let mut photons = vec![];
+        let       Decay (decay ) = file.read_le::<Standard>()? else { panic!("Expected decay") };
+        let mut pos = file.stream_position()?;
+        while let Photon(photon) = file.read_le::<Standard>()? {
+            photons.push(photon);
+            pos = file.stream_position()?;
+        }
+        file.seek(std::io::SeekFrom::Start(pos))?;
+        Ok(Self { decay, photons })
+    }
 }
 
 // typedef struct  {
@@ -220,8 +267,11 @@ fn interpret_flags(flag: u8) -> (&'static str, &'static str, &'static str) {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    match args.history_file_type {
-        HistoryFileType::Standard => standard(args),
-        HistoryFileType::Custom   => custom(args),
+    if let Some(ref file2) = args.compare { compare(&args.file, &file2, &args) }
+    else {
+        match args.history_file_type {
+            HistoryFileType::Standard => standard(args),
+            HistoryFileType::Custom   => custom(args),
+        }
     }
 }
