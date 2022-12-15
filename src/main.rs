@@ -170,31 +170,31 @@ fn custom(args: Args) -> Result<(), Box<dyn Error>> {
 }
 
 fn standard(args: Args) -> Result<(), Box<dyn Error>> {
-    use Standard as St;
     use standard as st;
     let mut file = File::open(args.file)?;
     file.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
     let mut ts = [None, None];
-    while let Ok(record) = file.read_le::<Standard>() {
-        match record {
-            St::Decay(st::Decay { pos: Point192 { x, y, z }, weight, time, decay_type }) => {
-                if let Some(stop) = args.stop_after { if count >= stop { break } }; count += 1;
-                ts = [None, None];
-                println!("\n===================================================================================");
-                println!("({x:6.2} {y:6.2} {z:6.2})    t: {time:5.2}  s   w:{weight:4.1}   type:{decay_type}");
-            },
-            St::Photon(st::Photon { location: Point96 { x, y, z }, flags, weight, energy, time, .. }) => {
-                let time = time * 1e12;
-                ts[blue_or_pink_index(flags)] = Some(time);
-                let (c, s, t) = interpret_flags(flags);
-                println!("({x:6.2} {y:6.2} {z:6.2})    + {time:6.1} ps   w:{weight:4.1}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
-                if let [Some(t1), Some(t2)] = ts {
-                    let dtof = t1 - t2;
-                    let dx = dtof * 0.3 /* mm / ps */ / 2.0;
-                    println!("dTOF: {dtof:6.1} ps    ->    dx {dx:6.2} mm");
-                }
-            },
+    while let Ok(decay) = StandardDecayWithPhotons::read(&mut file) {// file.read_le::<Standard>() {
+
+        // ----- Process the decay data -------------------------------------------
+        let st::Decay { pos: Point192 { x, y, z }, weight, time, decay_type } = decay.decay;
+        if let Some(stop) = args.stop_after { if count >= stop { break } }; count += 1;
+        ts = [None, None];
+        println!("\n===================================================================================");
+        println!("({x:6.2} {y:6.2} {z:6.2})    t: {time:5.2}  s   w:{weight:4.1}   type:{decay_type}");
+
+        // ----- Process each photon associated with the decay --------------------
+        for st::Photon { location: Point96 { x, y, z }, flags, weight, energy, time, .. } in decay.photons {
+            let time = time * 1e12;
+            ts[blue_or_pink_index(flags)] = Some(time);
+            let (c, s, t) = interpret_flags(flags);
+            println!("({x:6.2} {y:6.2} {z:6.2})    + {time:6.1} ps   w:{weight:4.1}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
+            if let [Some(t1), Some(t2)] = ts {
+                let dtof = t1 - t2;
+                let dx = dtof * 0.3 /* mm / ps */ / 2.0;
+                println!("dTOF: {dtof:6.1} ps    ->    dx {dx:6.2} mm");
+            }
         }
     }
     println!("Stopping after {count} records");
