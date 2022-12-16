@@ -103,10 +103,10 @@ mod custom {
         // x-cos
         // y-cos
         // z-cos
-        // scatters in object
-        // scatters in collimator
+        pub scatters_in_object: u32,
+        pub scatters_in_collimator: u32,
         // decay_weight: f64,
-        // weight: f64,
+        pub weight: f64,
         pub energy: f64,
         pub travel_distance: f64,
         // decay_pos: Point192,
@@ -159,12 +159,16 @@ fn custom(args: Args) -> Result<(), Box<dyn Error>> {
     let mut file = File::open(args.file)?;
     file.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
-    while let Ok(Custom { n_pairs, pairs }) = file.read_le::<Custom>() {
+    let mut blue = true;
+    while let Ok(Custom { n_pairs: n_photons, pairs }) = file.read_le::<Custom>() {
+        if blue { println!("============================================================"); }
         if let Some(stop) = args.stop_after { if count >= stop { break } }; count += 1;
-        println!("------ N pairs: {n_pairs} --------");
-        for custom::Photon { pos: Point192 { x, y, z },  energy, travel_distance } in pairs {
-            println!("({x:7.2} {y:7.2} {z:7.2})   E:{energy:7.2}   dist:{travel_distance:6.2} cm");
+        println!("------ N {} photons: {n_photons} --------", if blue { "blue" } else { "pink" });
+        for custom::Photon { pos: Point192 { x, y, z },  energy, travel_distance, scatters_in_object: so, scatters_in_collimator: sc, weight } in pairs {
+            let t = travel_distance / 0.03;
+            println!("({x:7.2} {y:7.2} {z:7.2})   E:{energy:7.2}   t:{t:4.1} ps  w: {weight:4.2}   scatters obj:{so:2} col:{sc:2}");
         }
+        blue = ! blue;
     }
     Ok(())
 }
@@ -174,26 +178,31 @@ fn standard(args: Args) -> Result<(), Box<dyn Error>> {
     let mut file = File::open(args.file)?;
     file.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
-    let mut ts = [None, None];
+    let mut _ts = [None, None];
     while let Ok(decay) = StandardDecayWithPhotons::read(&mut file) {// file.read_le::<Standard>() {
 
         // ----- Process the decay data -------------------------------------------
         let st::Decay { pos: Point192 { x, y, z }, weight, time, decay_type } = decay.decay;
         if let Some(stop) = args.stop_after { if count >= stop { break } }; count += 1;
-        ts = [None, None];
-        println!("\n===================================================================================");
-        println!("({x:6.2} {y:6.2} {z:6.2})    t: {time:5.2}  s   w:{weight:4.1}   type:{decay_type}");
+        _ts = [None, None];
+        println!("=====================================================================================");
+        println!("({x:6.2} {y:6.2} {z:6.2})    t: {time:5.2}  s   w:{weight:6.2}   type:{decay_type}");
 
         // ----- Process each photon associated with the decay --------------------
+        let mut seen_pink = false;
         for st::Photon { location: Point96 { x, y, z }, flags, weight, energy, time, .. } in decay.photons {
             let time = time * 1e12;
-            ts[blue_or_pink_index(flags)] = Some(time);
+            _ts[blue_or_pink_index(flags)] = Some(time);
             let (c, s, t) = interpret_flags(flags);
-            println!("({x:6.2} {y:6.2} {z:6.2})    + {time:6.1} ps   w:{weight:4.1}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
-            if let [Some(t1), Some(t2)] = ts {
+            if c == "pink" && !seen_pink {
+                seen_pink = true;
+                println!();
+            }
+            println!("({x:6.2} {y:6.2} {z:6.2})    + {time:6.1} ps   w:{weight:6.2}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
+            if let [Some(t1), Some(t2)] = _ts {
                 let dtof = t1 - t2;
-                let dx = dtof * 0.3 /* mm / ps */ / 2.0;
-                println!("dTOF: {dtof:6.1} ps    ->    dx {dx:6.2} mm");
+                let _dx = dtof * 0.3 /* mm / ps */ / 2.0;
+                //println!("dTOF: {dtof:6.1} ps    ->    dx {dx:6.2} mm");
             }
         }
     }
@@ -208,14 +217,15 @@ fn compare(file1: &Path, file2: &Path, args: &Args) -> Result<(), Box<dyn Error>
     let mut read1 = || StandardDecayWithPhotons::read(&mut file1);
     let mut read2 = || StandardDecayWithPhotons::read(&mut file2);
     type D = StandardDecayWithPhotons;
-    while let (Ok(D { decay: ldecay, photons: lphotons }), Ok(D { decay: rdecay, photons: rphotons })) = (read1(), read2()) {
-        println!();
+    while let (Ok(D { decay: _ldecay, photons: lphotons }), Ok(D { decay: _rdecay, photons: rphotons })) = (read1(), read2()) {
+        //println!();
         if let Some(stop) = args.stop_after {
             if count >= stop { break };
             count += 1;
         }
         for (standard::Photon { energy: el, .. }, standard::Photon { energy: er, .. }) in lphotons.into_iter().zip(rphotons) {
-            println!("{el:7.2} - {er:7.2} = {:7.2}", el - er);
+            //println!("{el:7.2} - {er:7.2} = {:7.2}", el - er);
+            println!("{:7.2}", el - er);
         }
     }
     Ok(())
