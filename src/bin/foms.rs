@@ -12,7 +12,7 @@ pub enum Phantom {
 pub struct Cli {
 
     /// Which phantom is being analysed.
-    #[clap(value_enum, case_insensitive = true)]
+    #[clap(value_enum)]
     phantom: Phantom,
 
     /// Image file to analyse
