@@ -92,7 +92,7 @@ enum Reco {
         nsensors: usize,
 
         /// Charge range to accept sum in clusters.
-        #[structopt(short, long, parse(try_from_str = parse_bounds::<f32>), default_value = "1..5000")]
+        #[structopt(short, long, value_parser = parse_bounds::<f32>, default_value = "1..5000")]
         charge_limits: BoundPair<f32>,
     }
 }

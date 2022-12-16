@@ -20,11 +20,11 @@ pub struct Cli {
     pub out_file: String,
 
     /// Field Of View full-widths in mm [default: fit to data]
-    #[clap(short, long, parse(try_from_str = parse_triplet::<Length>))]
+    #[clap(short, long, value_parser = parse_triplet::<Length>)]
     pub size: Option<(Length, Length, Length)>,
 
     /// Field Of View size in number of voxels
-    #[clap(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
+    #[clap(short, long, value_parser = parse_triplet::<usize>, default_value = "151,151,151")]
     pub nvoxels: (usize, usize, usize),
 
 }
