@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::path::PathBuf;
 use clap::Parser;
-use parse_history::{compare, custom, standard};
+use simset::{compare, custom, standard};
 
 /// Try to parse SimSET (custom) history files
 #[derive(Parser, Debug)]
@@ -46,4 +46,3 @@ impl std::fmt::Display for HistoryFileType {
         }
     }
 }
-

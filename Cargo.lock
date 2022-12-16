@@ -2307,6 +2307,7 @@ dependencies = [
  "rayon",
  "rstest",
  "serde",
+ "simset",
  "tempfile",
  "toml",
  "units",
@@ -2873,6 +2874,14 @@ dependencies = [
  "num-traits",
  "paste",
  "wide",
+]
+
+[[package]]
+name = "simset"
+version = "0.1.0"
+dependencies = [
+ "binrw",
+ "clap 4.0.29",
 ]
 
 [[package]]

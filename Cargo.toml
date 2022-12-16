@@ -1,5 +1,5 @@
 [workspace]
-members = ["geometry", "bindings", "units", "try-cpython"]
+members = ["geometry", "bindings", "units", "try-cpython", "simset"]
 
 [package]
 name = "petalo"
@@ -15,6 +15,7 @@ debug = true
 [dependencies]
 geometry = { path = "geometry" }
 units = { path = "units" }
+simset = { path = "simset" }
 ndarray = { version = "0.15.4", features = ["rayon"] }
 rayon = "1.5.3"
 serde = { version = "1.0", features = ["derive"] }
