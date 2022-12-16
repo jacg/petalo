@@ -200,7 +200,7 @@ pub fn lor_weights(lor: LOR, fov: FOV, shape: Shape, tof: Option<Tof>) {
 pub fn vislor_command(fov: &FOV, lor: &LOR) -> String {
     let fov_half_width = Vectorf32::from(fov.half_width);
     format!(
-        "cargo run --bin vislor -- box --fov-size {vx},{vy},{vz} --nvoxels {nx},{ny},{nz} --lor '{t1} {t2}   {x1} {y1} {z1}    {x2} {y2} {z2}'",
+        "cargo run --bin vislor -- box --size {vx},{vy},{vz} --nvoxels {nx},{ny},{nz} --lor '{t1} {t2}   {x1} {y1} {z1}    {x2} {y2} {z2}'",
         vx = fov_half_width.x * 2.0,
         vy = fov_half_width.y * 2.0,
         vz = fov_half_width.z * 2.0,
