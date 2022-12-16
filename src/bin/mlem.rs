@@ -5,7 +5,6 @@ use clap::Parser;
 use petalo::config;
 
 #[derive(clap::Parser, Debug, Clone)]
-#[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "mlem", about = "Maximum Likelyhood Expectation Maximization")]
 pub struct Cli {
 

@@ -8,7 +8,6 @@ use std::path::PathBuf;
 use petalo::utils::parse_triplet;
 
 #[derive(clap::Parser, Debug, Clone)]
-#[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "imageprimaries", about = "Generate raw image from primary vertices")]
 pub struct Cli {
 
