@@ -44,7 +44,7 @@ jobs:
 
       - name: Nix build
         run: |
-          nix build
+          nix build -L
           result/bin/mlem -h
           result/bin/foms -h
           result/bin/imageprimaries -h
