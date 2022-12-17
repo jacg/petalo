@@ -23,7 +23,6 @@ use units::{mm, mm_, ns, ns_, ratio};
 
 // TODO this could be improved implementing Config file
 #[derive(clap::Parser, Debug, Clone)]
-#[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(
     name = "makelor",
     about = "Create LORs from MC data",
@@ -44,19 +43,15 @@ pub struct Cli {
 }
 
 #[derive(clap::Parser, Debug, Clone)]
-#[clap(setting = clap::AppSettings::ColoredHelp)]
 enum Reco {
 
     /// Reconstruct LORs from first vertices in LXe
-    #[clap(setting = clap::AppSettings::ColoredHelp)]
     FirstVertex,
 
     /// Reconstruct LORs from barycentre of vertices in LXe
-    #[clap(setting = clap::AppSettings::ColoredHelp)]
     BaryVertex,
 
     /// Reconstruct LORs from clusters found by splitting cylinder in half
-    #[clap(setting = clap::AppSettings::ColoredHelp)]
     Half {
         /// Ignore sensors with fewer hits
         #[clap(short, long = "charge-threshold", default_value = "4")]
@@ -64,7 +59,6 @@ enum Reco {
     },
 
     /// Reconstruct LORs form DBSCAN clusters
-    #[clap(setting = clap::AppSettings::ColoredHelp)]
     Dbscan {
         /// Ignore sensors with fewer hits
         #[clap(short, long = "charge-threshold", default_value = "4")]
@@ -80,7 +74,6 @@ enum Reco {
     },
 
     /// Reconstruct LORs from hits using barycentre of clusters.
-    #[clap(setting = clap::AppSettings::ColoredHelp)]
     SimpleRec {
         /// Sensor PDE
         #[structopt(short, long, default_value = "0.3")]
@@ -99,7 +92,7 @@ enum Reco {
         nsensors: usize,
 
         /// Charge range to accept sum in clusters.
-        #[structopt(short, long, parse(try_from_str = parse_bounds::<f32>), default_value = "1..5000")]
+        #[structopt(short, long, value_parser = parse_bounds::<f32>, default_value = "1..5000")]
         charge_limits: BoundPair<f32>,
     }
 }

@@ -46,7 +46,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
 #[derive(clap::Parser, Debug, Clone)]
-#[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "vislor", about = "Visualize LOR interaction with voxels")]
 pub struct Cli {
 
@@ -55,12 +54,12 @@ pub struct Cli {
     tof: Option<Time>,
 
     /// TOF cutoff (✕ sigma). to disable: `-k no`
-    #[clap(short = 'k', default_value = "3", long, parse(try_from_str = parse_maybe_cutoff))]
+    #[clap(short = 'k', default_value = "3", long, value_parser = parse_maybe_cutoff)]
     cutoff: CutoffOption<Ratio>,
 
     /// How to represent voxels. BOX is better for viewing the geometric
     /// weights; BALL is better for viewing TOF weights.
-    #[clap(value_enum, case_insensitive = true, default_value = "box")]
+    #[clap(value_enum, default_value = "box")]
     shape: Shape,
 
     /// LORs to read in
@@ -76,15 +75,15 @@ pub struct Cli {
     event: usize,
 
     /// Field Of View full-widths in mm
-    #[clap(short, long, parse(try_from_str = parse_triplet::<Lengthf32>), default_value = "300,300,300")]
+    #[clap(short, long, value_parser = parse_triplet::<Lengthf32>, default_value = "300,300,300")]
     size: (Lengthf32, Lengthf32, Lengthf32),
 
     /// Field Of View size in number of voxels
-    #[clap(short, long, parse(try_from_str = parse_triplet::<usize>), default_value = "151,151,151")]
+    #[clap(short, long, value_parser = parse_triplet::<usize>, default_value = "151,151,151")]
     nvoxels: (usize, usize, usize),
 
     /// LOR to visualize: 't1 t2   x1 y1 z1   x2 y2 z2' (t: ps, xyz: mm)
-    #[clap(short, long, parse(try_from_str = parse_lor), default_value = "0 300  -100 20 -90  100 60 10")]
+    #[clap(short, long, value_parser = parse_lor, default_value = "0 300  -100 20 -90  100 60 10")]
     lor: LOR,
 
 }

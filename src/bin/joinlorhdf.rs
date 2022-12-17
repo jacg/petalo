@@ -5,7 +5,6 @@ use petalo::config::mlem::Bounds;
 
 
 #[derive(clap::Parser, Debug, Clone)]
-#[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "joinlorhdf", about = "Combine datasets from separate HDF5 files into a single one")]
 pub struct Cli {
     /// HDF5 input file with (t1 t2 x1 y1 z1 x2 y2 z2)
