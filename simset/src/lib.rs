@@ -9,7 +9,7 @@ use binrw::BinReaderExt;
 
 #[binrw]
 #[derive(Debug)]
-enum Standard {
+enum StandardRecord {
     #[br(magic = 1_u8)] Decay (standard::Decay),
     #[br(magic = 2_u8)] Photon(standard::Photon),
     // according to struct PHG_DetectedPhoton in file Photon.h
@@ -224,10 +224,10 @@ const DECAY_SIZE_INCLUDING_MAGIC_: i64 = (std::mem::size_of::<standard::Decay>()
 
 impl StandardDecayWithPhotons {
     pub fn read(file: &mut File) -> Result<Self, Box<dyn Error>> {
-        use Standard::*;
+        use StandardRecord::*;
         let mut photons = vec![];
-        let       Decay (decay ) = file.read_le::<Standard>()? else { panic!("Expected decay") };
-        while let Photon(photon) = file.read_le::<Standard>()? { photons.push(photon); }
+        let       Decay (decay ) = file.read_le::<StandardRecord>()? else { panic!("Expected decay") };
+        while let Photon(photon) = file.read_le::<StandardRecord>()? { photons.push(photon); }
         file.seek(std::io::SeekFrom::Current(-DECAY_SIZE_INCLUDING_MAGIC_))?;
         Ok(Self { decay, photons })
     }
