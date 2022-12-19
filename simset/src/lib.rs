@@ -53,7 +53,17 @@ mod standard {
         pub detector_angle        : f32,      // 1234           4  68 For SPECT, DHCI, angle of detector
         pub detector_crystal      : u32,      // 1234           4  72 for block detectors, the crystal number for detection
     } // bytes wasted: 17 on padding, 10 on SPECT, 12 on undefined-in-LM direction, 4 on block detectors; 43/72 = 60%
+
+    impl Photon {
+        pub fn colour(&self) -> super::PhotonColour {
+            if self.flags & 0x1 == 0x1 { super::PhotonColour::Blue }
+            else                       { super::PhotonColour::Pink }
+        }
+    }
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PhotonColour { Blue, Pink }
 
 mod custom {
     use super::{Point192, binrw};
@@ -103,9 +113,9 @@ pub struct Point192 {
 #[binrw]
 #[derive(Debug)]
 pub struct Point96 {
-    x: f32,
-    y: f32,
-    z: f32,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 #[binrw]
