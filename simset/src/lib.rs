@@ -10,7 +10,7 @@ pub mod standard;
 
 #[binrw]
 #[derive(Debug)]
-struct Custom {
+struct CustomRecord {
     n_pairs: u8,
 
     #[br(count = n_pairs)]
@@ -89,7 +89,7 @@ pub fn custom(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<(), B
     file.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
     let mut blue = true;
-    while let Ok(Custom { n_pairs: n_photons, pairs }) = file.read_le::<Custom>() {
+    while let Ok(CustomRecord { n_pairs: n_photons, pairs }) = file.read_le::<CustomRecord>() {
         if blue { println!("============================================================"); }
         if let Some(stop) = stop_after { if count >= stop { break } }; count += 1;
         println!("------ N {} photons: {n_photons} --------", if blue { "blue" } else { "pink" });
