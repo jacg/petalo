@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn lor_from_standard_file(file: &mut File) -> Hdf5Lor {
-    let photons = simset::StandardDecayWithPhotons::read(file).unwrap().photons;
+    let photons = simset::standard::Event::read(file).unwrap().photons;
     let mut last_blue = None;
     let mut last_pink = None;
     for current in photons {
