@@ -42,21 +42,21 @@ impl std::fmt::Display for HistoryFileType {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let mut file = File::open(args.r#in)?;
-    simset::skip_header(&mut file)?;
-    let lors = std::iter::from_fn(|| Some(lor_from_standard_file(&mut file)));
-    for lor in lors.take(args.stop_after.unwrap_or(9999999999999)) {
-        println!("{lor:?}");
-    }
+    simset::standard::iterate_events(&mut file)?
+        .take(args.stop_after.unwrap_or(usize::MAX))
+        .map(lor_from_standard_event)
+        .for_each(|lor| {
+            println!("{lor:?}");
+        });
     Ok(())
 }
 
-fn lor_from_standard_file(file: &mut File) -> Hdf5Lor {
-    let photons = simset::standard::Event::read(file).unwrap().photons;
+fn lor_from_standard_event(event: simset::standard::Event) -> Hdf5Lor {
     let mut last_blue = None;
     let mut last_pink = None;
-    for current in photons {
+    for current in event.photons {
         if current.colour() == simset::PhotonColour::Blue { last_blue = Some(current) }
-        else                                                 { last_pink = Some(current) }
+        else                                              { last_pink = Some(current) }
     }
     let (p1, p2) = (last_blue.unwrap(), last_pink.unwrap());
     Hdf5Lor {

@@ -5,6 +5,8 @@ use std::path::Path;
 use binrw::{binrw, io::Seek};
 use binrw::BinReaderExt;
 
+use crate::skip_header;
+
 use super::{Point96, Point192};
 
 #[binrw]
@@ -66,6 +68,12 @@ impl Photon {
     }
 }
 
+pub fn iterate_events(file: &mut File) -> Result<impl Iterator<Item = Event> + '_, Box<dyn Error>> {
+    skip_header(file)?;
+    Ok(std::iter::from_fn(|| Event::read(file).ok()))
+}
+
+// Does not use `iterate_events` as here we might want to inspect details that it ignores
 pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<(), Box<dyn Error>> {
     let mut file = File::open(file)?;
     super::skip_header(&mut file)?;
