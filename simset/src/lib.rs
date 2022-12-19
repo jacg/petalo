@@ -215,15 +215,15 @@ fn interpret_flags(flag: u8) -> (&'static str, &'static str, &'static str) {
     (c, s, t)
 }
 
-struct StandardDecayWithPhotons {
+pub struct StandardDecayWithPhotons {
     decay: standard::Decay,
-    photons: Vec<standard::Photon>,
+    pub photons: Vec<standard::Photon>,
 }
 
 const DECAY_SIZE_INCLUDING_MAGIC_: i64 = (std::mem::size_of::<standard::Decay>() + 1) as i64;
 
 impl StandardDecayWithPhotons {
-    fn read(file: &mut File) -> Result<Self, Box<dyn Error>> {
+    pub fn read(file: &mut File) -> Result<Self, Box<dyn Error>> {
         use Standard::*;
         let mut photons = vec![];
         let       Decay (decay ) = file.read_le::<Standard>()? else { panic!("Expected decay") };
