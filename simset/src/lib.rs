@@ -135,10 +135,14 @@ pub fn custom(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<(), B
     Ok(())
 }
 
+pub fn skip_header(file: &mut File) -> std::io::Result<u64> {
+    file.seek(SeekFrom::Start(2_u64.pow(15)))
+}
+
 pub fn standard(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<(), Box<dyn Error>> {
     use standard as st;
     let mut file = File::open(file)?;
-    file.seek(SeekFrom::Start(2_u64.pow(15)))?;
+    skip_header(&mut file)?;
     let mut count = 0;
     let mut _ts = [None, None];
     while let Ok(decay) = StandardDecayWithPhotons::read(&mut file) {// file.read_le::<Standard>() {
