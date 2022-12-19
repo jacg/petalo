@@ -9,14 +9,6 @@ use binrw::BinReaderExt;
 
 #[binrw]
 #[derive(Debug)]
-enum StandardRecord {
-    #[br(magic = 1_u8)] Decay (standard::Decay),
-    #[br(magic = 2_u8)] Photon(standard::Photon),
-    // according to struct PHG_DetectedPhoton in file Photon.h
-}
-
-#[binrw]
-#[derive(Debug)]
 struct Custom {
     n_pairs: u8,
 
@@ -26,6 +18,14 @@ struct Custom {
 
 mod standard {
     use super::{Point96, Point192, binrw};
+
+    #[binrw]
+    #[derive(Debug)]
+    pub(crate) enum Record {
+        #[br(magic = 1_u8)] Decay (Decay),
+        #[br(magic = 2_u8)] Photon(Photon),
+        // according to struct PHG_DetectedPhoton in file Photon.h
+    }
 
     #[binrw]
     #[derive(Debug)]
@@ -224,10 +224,9 @@ const DECAY_SIZE_INCLUDING_MAGIC_: i64 = (std::mem::size_of::<standard::Decay>()
 
 impl StandardDecayWithPhotons {
     pub fn read(file: &mut File) -> Result<Self, Box<dyn Error>> {
-        use StandardRecord::*;
         let mut photons = vec![];
-        let       Decay (decay ) = file.read_le::<StandardRecord>()? else { panic!("Expected decay") };
-        while let Photon(photon) = file.read_le::<StandardRecord>()? { photons.push(photon); }
+        let       standard::Record::Decay (decay ) = file.read_le::<standard::Record>()? else { panic!("Expected decay") };
+        while let standard::Record::Photon(photon) = file.read_le::<standard::Record>()? { photons.push(photon); }
         file.seek(std::io::SeekFrom::Current(-DECAY_SIZE_INCLUDING_MAGIC_))?;
         Ok(Self { decay, photons })
     }
