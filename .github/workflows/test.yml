@@ -75,8 +75,8 @@ jobs:
 
       - name: Compile PyO3 in development environment
         run: nix develop -c just python-build-bindings
-        if: runner.os == 'Linux'
+        if: runner.os != 'Darwin'
 
       - name: Test PyO3 in development environment
         run: nix develop -c just test-python-bindings --color=yes
-        if: runner.os == 'Linux'
+        if: runner.os != 'Darwin'
