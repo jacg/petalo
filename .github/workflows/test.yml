@@ -67,17 +67,17 @@ jobs:
           nix shell -c viewraw.py -h
           # nix shell -c foms.py -h    TODO
 
-      - name: Test Pure Rust in development environment
+      - name: Test Pure Rust in `nix develop`
         run: nix develop -c just test-rust-pure --color=always
         if: runner.os != 'Linux'
 
-      - name: Test Pure Python in development environment
+      - name: Test Pure Python in `nix develop`
         run: nix develop -c just test-python-pure --color=yes
 
-      - name: Compile PyO3 in development environment
+      - name: Compile PyO3 in `nix develop`
         run: nix develop -c just python-build-bindings
         if: runner.os != 'Darwin' && runner.os != 'Linux'
 
-      - name: Test PyO3 in development environment
+      - name: Test PyO3 in `nix develop`
         run: nix develop -c just test-python-bindings --color=yes
         if: runner.os != 'Darwin' && runner.os != 'Linux'
