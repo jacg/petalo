@@ -69,6 +69,7 @@ jobs:
 
       - name: Test Pure Rust in development environment
         run: nix develop -c just test-rust-pure --color=always
+        if: runner.os != 'Linux'
 
       - name: Test Pure Python in development environment
         run: nix develop -c just test-python-pure --color=yes
