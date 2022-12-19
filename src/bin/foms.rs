@@ -8,12 +8,11 @@ pub enum Phantom {
 }
 
 #[derive(clap::Parser, Debug, Clone)]
-#[clap(setting = clap::AppSettings::ColoredHelp)]
 #[clap(name = "foms", about = "Calculate NEMA7 or Jaszczak Figures of Merit (FOMs) from raw image files")]
 pub struct Cli {
 
     /// Which phantom is being analysed.
-    #[clap(value_enum, case_insensitive = true)]
+    #[clap(value_enum)]
     phantom: Phantom,
 
     /// Image file to analyse
