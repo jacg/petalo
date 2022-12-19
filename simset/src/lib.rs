@@ -8,15 +8,6 @@ use binrw::BinReaderExt;
 
 pub mod standard;
 
-#[binrw]
-#[derive(Debug)]
-struct CustomRecord {
-    n_pairs: u8,
-
-    #[br(count = n_pairs)]
-    pairs: Vec<custom::Photon>,
-}
-
 
 
 #[derive(Debug, PartialEq, Eq)]
@@ -24,6 +15,15 @@ pub enum PhotonColour { Blue, Pink }
 
 mod custom {
     use super::{Point192, binrw};
+
+    #[binrw]
+    #[derive(Debug)]
+    pub(crate) struct Record {
+        pub n_pairs: u8,
+
+        #[br(count = n_pairs)]
+        pub pairs: Vec<Photon>,
+    }
 
     #[binrw]
     #[derive(Debug)]
@@ -89,7 +89,7 @@ pub fn custom(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<(), B
     file.seek(SeekFrom::Start(2_u64.pow(15)))?;
     let mut count = 0;
     let mut blue = true;
-    while let Ok(CustomRecord { n_pairs: n_photons, pairs }) = file.read_le::<CustomRecord>() {
+    while let Ok(custom::Record { n_pairs: n_photons, pairs }) = file.read_le::<custom::Record>() {
         if blue { println!("============================================================"); }
         if let Some(stop) = stop_after { if count >= stop { break } }; count += 1;
         println!("------ N {} photons: {n_photons} --------", if blue { "blue" } else { "pink" });
