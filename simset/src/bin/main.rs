@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     else {
         match args.history_file_type {
             HistoryFileType::Standard => standard::show_file(&args.file, args.stop_after),
-            HistoryFileType::Custom   => custom  (&args.file, args.stop_after),
+            HistoryFileType::Custom   =>   custom::show_file(&args.file, args.stop_after),
         }
     }
 }

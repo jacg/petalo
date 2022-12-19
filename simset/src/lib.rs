@@ -1,10 +1,9 @@
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
+use std::io::SeekFrom;
 
-use binrw::binrw;
-use binrw::io::{Seek, SeekFrom};
-use binrw::BinReaderExt;
+use binrw::{binrw, io::Seek};
 
 pub mod standard;
 pub mod custom;
@@ -39,24 +38,6 @@ struct DetectorInteraction {
     padding: u8, // Is this here because of alignment before writing?
 }
 
-pub fn custom(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<(), Box<dyn Error>> {
-    let mut file = File::open(file)?;
-    file.seek(SeekFrom::Start(2_u64.pow(15)))?;
-    let mut count = 0;
-    let mut blue = true;
-    while let Ok(custom::Record { n_pairs: n_photons, pairs }) = file.read_le::<custom::Record>() {
-        if blue { println!("============================================================"); }
-        if let Some(stop) = stop_after { if count >= stop { break } }; count += 1;
-        println!("------ N {} photons: {n_photons} --------", if blue { "blue" } else { "pink" });
-        for custom::Photon { pos: Point192 { x, y, z },  energy, travel_distance, scatters_in_object: so, scatters_in_collimator: sc, weight } in pairs {
-            let t = travel_distance / 0.03;
-            println!("({x:7.2} {y:7.2} {z:7.2})   E:{energy:7.2}   t:{t:4.1} ps  w: {weight:4.2}   scatters obj:{so:2} col:{sc:2}");
-        }
-        blue = ! blue;
-    }
-    Ok(())
-}
-
 pub fn skip_header(file: &mut File) -> std::io::Result<u64> {
     file.seek(SeekFrom::Start(2_u64.pow(15)))
 }
@@ -81,25 +62,3 @@ pub fn compare(file1: &Path, file2: &Path, stop_after: Option<usize>) -> Result<
     }
     Ok(())
 }
-
-// typedef struct  {
-//     double x_position;
-//     double y_position;
-//     double z_position;
-// } PHG_Position;
-
-// typedef struct {
-//     PHG_Position        location;       /* Origination of decay */
-//     double              startWeight;    /* starting weight for this decay */
-//     /* double           eventWeight;    old decay weight for possible changes during tracking */
-//     double              decayTime;      /* time, in seconds, between scan start and the decay */
-//     PhgEn_DecayTypeTy   decayType;      /* single photon/positron/multi-emission/random etc. */
-// } PHG_Decay;
-
-// typedef enum {
-//     PhgEn_SinglePhoton,
-//     PhgEn_Positron,
-//     PhgEn_PETRandom,    /* Artificial random coincidence events */
-//     PhgEn_Complex,      /* For isotopes with multiple possible decay products - not implemented */
-//     PhgEn_Unknown       /* for unassigned or error situations */
-// } PhgEn_DecayTypeTy;

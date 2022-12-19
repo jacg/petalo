@@ -1,6 +1,11 @@
+use std::error::Error;
+use std::fs::File;
 use std::path::Path;
 
-use super::{Point96, Point192, binrw, Error, File, BinReaderExt, Seek};
+use binrw::{binrw, io::Seek};
+use binrw::BinReaderExt;
+
+use super::{Point96, Point192};
 
 #[binrw]
 #[derive(Debug)]
@@ -61,7 +66,6 @@ impl Photon {
     }
 }
 
-
 pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<(), Box<dyn Error>> {
     let mut file = File::open(file)?;
     super::skip_header(&mut file)?;
@@ -98,11 +102,34 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
     Ok(())
 }
 
-
 fn blue_or_pink_index(flag: u8) -> usize { (flag & 0x1) as usize }
+
 fn interpret_flags(flag: u8) -> (&'static str, &'static str, &'static str) {
     let c = if (flag & 0x1) == 0x1 { "blue"    } else { "pink"    };
     let s = if (flag & 0x2) == 0x2 { "scatter" } else { "-------" };
     let t = if (flag & 0x4) == 0x4 { "primary" } else { "-------" };
     (c, s, t)
 }
+
+
+// typedef struct  {
+//     double x_position;
+//     double y_position;
+//     double z_position;
+// } PHG_Position;
+
+// typedef struct {
+//     PHG_Position        location;       /* Origination of decay */
+//     double              startWeight;    /* starting weight for this decay */
+//     /* double           eventWeight;    old decay weight for possible changes during tracking */
+//     double              decayTime;      /* time, in seconds, between scan start and the decay */
+//     PhgEn_DecayTypeTy   decayType;      /* single photon/positron/multi-emission/random etc. */
+// } PHG_Decay;
+
+// typedef enum {
+//     PhgEn_SinglePhoton,
+//     PhgEn_Positron,
+//     PhgEn_PETRandom,    /* Artificial random coincidence events */
+//     PhgEn_Complex,      /* For isotopes with multiple possible decay products - not implemented */
+//     PhgEn_Unknown       /* for unassigned or error situations */
+// } PhgEn_DecayTypeTy;
