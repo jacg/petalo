@@ -95,7 +95,6 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
         // ----- Process each photon associated with the decay --------------------
         let mut seen_pink = false;
         for Photon { x, y, z, flags, weight, energy, time, .. } in decay.photons {
-            let time = time * 1e12;
             _ts[blue_or_pink_index(flags)] = Some(time);
             let (c, s, t) = interpret_flags(flags);
             if c == "pink" && !seen_pink {
