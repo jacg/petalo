@@ -3,13 +3,12 @@ use std::fs::File;
 use std::path::Path;
 use std::io::SeekFrom;
 
-use binrw::{binrw, io::Seek};
-use binrw::BinReaderExt;
+use binrw::io::Seek;
+use binrw::{BinReaderExt, BinRead};
 
 use super::Point192;
 
-#[binrw]
-#[derive(Debug)]
+#[derive(Debug, BinRead)]
 pub(crate) struct Record {
     pub n_pairs: u8,
 
@@ -30,8 +29,7 @@ impl Event {
     }
 }
 
-#[binrw]
-#[derive(Debug)]
+#[derive(Debug, BinRead)]
 pub struct Photon {
     pub pos: Point192,
     // x-cos
