@@ -1,6 +1,20 @@
 # -*-Makefile-*-
 
-test: test-rust test-python
+test: test-rust test-python hand
+
+hand: ms mc ss sc
+
+mc:
+	cargo run -q --bin make_simset_lors -- ~/src/simpet/samples/NEMA_IEC_scatter_counts/custom_det_hf.hist   -t custom    -n 10
+
+ms:
+	cargo run -q --bin make_simset_lors -- ~/src/simpet/samples/NEMA_IEC_scatter_counts/standard_phg_hf.hist -t standard  -n 10
+
+ss:
+	cargo run -q -p         simset      -- ~/src/simpet/samples/NEMA_IEC_scatter_counts/standard_phg_hf.hist -t standard  -n 5
+
+sc:
+	cargo run -q -p         simset      -- ~/src/simpet/samples/NEMA_IEC_scatter_counts/custom_det_hf.hist   -t custom    -n 10
 
 test-rust colours='':
 	just test-rust-pure {{colours}}
