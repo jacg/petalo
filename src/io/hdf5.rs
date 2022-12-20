@@ -146,7 +146,17 @@ pub struct Hdf5Lor {
     pub E2: f32,
 }
 
-impl From<Hdf5Lor> for LOR { fn from(lor: Hdf5Lor) -> Self { lor.into() } }
+impl From<Hdf5Lor> for LOR {
+    fn from(lor: Hdf5Lor) -> Self {
+        let Hdf5Lor{dt, x1, y1, z1, x2, y2, z2, ..} = lor;
+        Self {
+            dt: ns(dt),
+            p1: Point::new(mm(x1), mm(y1), mm(z1)),
+            p2: Point::new(mm(x2), mm(y2), mm(z2)),
+            additive_correction: ratio(1.0)
+        }
+    }
+}
 
 impl From<&Hdf5Lor> for LOR {
     fn from(lor: &Hdf5Lor) -> Self {
