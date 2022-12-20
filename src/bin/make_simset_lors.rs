@@ -83,9 +83,9 @@ fn lor_from_standard_event(event: simset::standard::Event) -> Hdf5Lor {
 
 fn lor_from_custom_event_maybe(simset::custom::Event { blues, pinks }: simset::custom::Event) -> Option<Hdf5Lor> {
     let (p1, p2) = (blues.last()?, pinks.last()?);
-    use units::mm_;
+    use units::{mm_, ps_};
     Some(Hdf5Lor {
-        dt: cm_to_ps(p2.travel_distance - p1.travel_distance), // TODO check sign
+        dt: ps_((p2.travel_distance - p1.travel_distance) / units::C), // TODO check sign
         x1: mm_(p1.x), y1: mm_(p1.y), z1: mm_(p1.z),
         x2: mm_(p2.x), y2: mm_(p2.y), z2: mm_(p2.z),
         q1: f32::NAN, q2: f32::NAN,
@@ -95,8 +95,3 @@ fn lor_from_custom_event_maybe(simset::custom::Event { blues, pinks }: simset::c
 
 fn  s_to_ps( s: f64) -> f32 {  s as f32 * 10e12 }
 fn cm_to_mm(cm: f32) -> f32 { cm * 10.0  }
-fn cm_to_ps(cm: f64) -> f32 {
-    use units::{C, ps, ratio_};
-    let c = ratio_(C / (units::cm(1.0) / ps(1.0)));
-    cm as f32 / c
-}

@@ -40,7 +40,7 @@ pub struct Photon {
     // decay_weight: f64,
     pub weight: f64,
     pub energy: f64,
-    pub travel_distance: f64,
+    #[br(map = f64_as_cm)] pub travel_distance: units::Length,
     // decay_pos: Point192,
     // decay_time: f64,
     // decay_type: u32,
@@ -78,8 +78,8 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
         if let Some(stop) = stop_after { if count >= stop { break } }; count += 1;
         println!("------ N {} photons: {n_photons} --------", if blue { "blue" } else { "pink" });
         for Photon { x, y, z,  energy, travel_distance, scatters_in_object: so, scatters_in_collimator: sc, weight } in pairs {
-            let t = travel_distance / 0.03;
-            println!("({x:7.2?} {y:7.2?} {z:7.2?})   E:{energy:7.2}   t:{t:4.1} ps  w: {weight:4.2}   scatters obj:{so:2} col:{sc:2}");
+            let t = travel_distance / units::C;
+            println!("({x:7.2?} {y:7.2?} {z:7.2?})   E:{energy:7.2}   t:{t:4.1?}  w: {weight:4.2}   scatters obj:{so:2} col:{sc:2}");
         }
         blue = ! blue;
     }
