@@ -6,8 +6,6 @@ use std::io::SeekFrom;
 use binrw::io::Seek;
 use binrw::{BinReaderExt, BinRead};
 
-use super::Point192;
-
 #[derive(Debug, BinRead)]
 pub(crate) struct Record {
     pub n_pairs: u8,
@@ -31,7 +29,9 @@ impl Event {
 
 #[derive(Debug, BinRead)]
 pub struct Photon {
-    pub pos: Point192,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
     // x-cos
     // y-cos
     // z-cos
@@ -77,7 +77,7 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
         if blue { println!("============================================================"); }
         if let Some(stop) = stop_after { if count >= stop { break } }; count += 1;
         println!("------ N {} photons: {n_photons} --------", if blue { "blue" } else { "pink" });
-        for Photon { pos: Point192 { x, y, z },  energy, travel_distance, scatters_in_object: so, scatters_in_collimator: sc, weight } in pairs {
+        for Photon { x, y, z,  energy, travel_distance, scatters_in_object: so, scatters_in_collimator: sc, weight } in pairs {
             let t = travel_distance / 0.03;
             println!("({x:7.2} {y:7.2} {z:7.2})   E:{energy:7.2}   t:{t:4.1} ps  w: {weight:4.2}   scatters obj:{so:2} col:{sc:2}");
         }
