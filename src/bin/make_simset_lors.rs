@@ -42,13 +42,26 @@ impl std::fmt::Display for HistoryFileType {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let mut file = File::open(args.r#in)?;
-    simset::standard::iterate_events(&mut file)?
-        .take(args.stop_after.unwrap_or(usize::MAX))
-        .map(lor_from_standard_event)
-        .for_each(|lor| {
-            println!("{lor:?}");
-        });
+
+    match args.history_file_type {
+        HistoryFileType::Standard => {
+            simset::standard::iterate_events(&mut file)?
+                .take(args.stop_after.unwrap_or(usize::MAX))
+                .map(lor_from_standard_event)
+                .for_each(show_lor);
+        },
+        HistoryFileType::Custom => {
+            simset::custom::iterate_events(&mut file)?
+                .take(args.stop_after.unwrap_or(usize::MAX))
+                .filter_map(lor_from_custom_event_maybe)
+                .for_each(show_lor);
+        },
+    }
     Ok(())
+}
+
+fn show_lor(Hdf5Lor { dt, x1, y1, z1, x2, y2, z2, E1, E2, .. }: Hdf5Lor) {
+    println!("{dt:6.1} ps     ({x1:6.1} {y1:6.1} {z1:6.1})  -mm-  ({x2:6.1} {y2:6.1} {z2:6.1})     {E1:5.1} {E2:5.1}");
 }
 
 fn lor_from_standard_event(event: simset::standard::Event) -> Hdf5Lor {
@@ -60,10 +73,29 @@ fn lor_from_standard_event(event: simset::standard::Event) -> Hdf5Lor {
     }
     let (p1, p2) = (last_blue.unwrap(), last_pink.unwrap());
     Hdf5Lor {
-        dt: (p2.time - p1.time) as f32,
-        x1: p1.location.x, y1: p1.location.x, z1: p1.location.x,
-        x2: p2.location.x, y2: p2.location.y, z2: p2.location.z,
+        dt: s_to_ps(p2.time - p1.time),
+        x1: cm_to_mm(p1.location.x), y1: cm_to_mm(p1.location.y), z1: cm_to_mm(p1.location.z),
+        x2: cm_to_mm(p2.location.x), y2: cm_to_mm(p2.location.y), z2: cm_to_mm(p2.location.z),
         q1: f32::NAN , q2: f32::NAN,
         E1: p1.energy, E2: p2.energy
     }
+}
+
+fn lor_from_custom_event_maybe(simset::custom::Event { blues, pinks }: simset::custom::Event) -> Option<Hdf5Lor> {
+    let (p1, p2) = (blues.last()?, pinks.last()?);
+    Some(Hdf5Lor {
+        dt: cm_to_ps(p2.travel_distance - p1.travel_distance), // TODO check sign
+        x1: cm_to_mm(p1.pos.x as f32), y1: cm_to_mm(p1.pos.y as f32), z1: cm_to_mm(p1.pos.z as f32),
+        x2: cm_to_mm(p2.pos.x as f32), y2: cm_to_mm(p2.pos.y as f32), z2: cm_to_mm(p2.pos.z as f32),
+        q1: f32::NAN, q2: f32::NAN,
+        E1: p1.energy as f32, E2: p2.energy as f32,
+    })
+}
+
+fn  s_to_ps( s: f64) -> f32 {  s as f32 * 10e12 }
+fn cm_to_mm(cm: f32) -> f32 { cm * 10.0  }
+fn cm_to_ps(cm: f64) -> f32 {
+    use units::{C, ps, ratio_};
+    let c = ratio_(C / (units::cm(1.0) / ps(1.0)));
+    cm as f32 / c
 }

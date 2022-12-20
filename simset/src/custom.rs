@@ -17,6 +17,19 @@ pub(crate) struct Record {
     pub pairs: Vec<Photon>,
 }
 
+pub struct Event {
+    pub blues: Vec<Photon>,
+    pub pinks: Vec<Photon>,
+}
+
+impl Event {
+    pub fn read(file: &mut File) -> Result<Self, Box<dyn Error>> {
+        let Record { pairs: blues, .. } = file.read_le::<Record>()?;
+        let Record { pairs: pinks, .. } = file.read_le::<Record>()?;
+        Ok(Event { blues, pinks })
+    }
+}
+
 #[binrw]
 #[derive(Debug)]
 pub struct Photon {
@@ -51,6 +64,12 @@ pub struct Photon {
 
 }
 
+pub fn iterate_events(file: &mut File) -> Result<impl Iterator<Item = Event> + '_, Box<dyn Error>> {
+    crate::skip_header(file)?;
+    Ok(std::iter::from_fn(|| Event::read(file).ok()))
+}
+
+// Does not use `iterate_events` as here we might want to inspect details that it ignores
 pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<(), Box<dyn Error>> {
     let mut file = File::open(file)?;
     file.seek(SeekFrom::Start(2_u64.pow(15)))?;
