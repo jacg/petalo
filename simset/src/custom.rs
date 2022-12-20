@@ -30,8 +30,8 @@ impl Event {
 #[derive(Debug, BinRead)]
 pub struct Photon {
     #[br(map = f64_as_cm)] pub x: units::Length,
-    pub y: f64,
-    pub z: f64,
+    #[br(map = f64_as_cm)] pub y: units::Length,
+    #[br(map = f64_as_cm)] pub z: units::Length,
     // x-cos
     // y-cos
     // z-cos
@@ -79,7 +79,7 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
         println!("------ N {} photons: {n_photons} --------", if blue { "blue" } else { "pink" });
         for Photon { x, y, z,  energy, travel_distance, scatters_in_object: so, scatters_in_collimator: sc, weight } in pairs {
             let t = travel_distance / 0.03;
-            println!("({x:7.2?} {y:7.2} {z:7.2})   E:{energy:7.2}   t:{t:4.1} ps  w: {weight:4.2}   scatters obj:{so:2} col:{sc:2}");
+            println!("({x:7.2?} {y:7.2?} {z:7.2?})   E:{energy:7.2}   t:{t:4.1} ps  w: {weight:4.2}   scatters obj:{so:2} col:{sc:2}");
         }
         blue = ! blue;
     }
