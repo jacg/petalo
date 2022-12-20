@@ -11,9 +11,9 @@ pub struct Args {
     /// SimSET input files with waveform and charge tables
     pub r#in: PathBuf,
 
-    /// HDF5 output file for LORs found in input file
+    /// HDF5 output file for LORs found in input file. If not given, show on stdout
     #[clap(short, long)]
-    pub out: PathBuf,
+    pub out: Option<PathBuf>,
 
     /// Maximum number of LORs to write
     #[arg(short = 'n', long)]
@@ -43,19 +43,44 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let mut file = File::open(args.r#in)?;
 
-    match args.history_file_type {
-        HistoryFileType::Standard => {
-            simset::standard::iterate_events(&mut file)?
-                .take(args.stop_after.unwrap_or(usize::MAX))
-                .map(lor_from_standard_event)
-                .for_each(show_lor);
-        },
-        HistoryFileType::Custom => {
-            simset::custom::iterate_events(&mut file)?
-                .take(args.stop_after.unwrap_or(usize::MAX))
-                .filter_map(lor_from_custom_event_maybe)
-                .for_each(show_lor);
-        },
+    if let Some(outfile) = args.out {
+        let lors: Vec<_> = match args.history_file_type {
+            HistoryFileType::Standard => {
+                simset::standard::iterate_events(&mut file)?
+                    .take(args.stop_after.unwrap_or(usize::MAX))
+                    .map(lor_from_standard_event)
+                    .collect()
+            },
+            HistoryFileType::Custom => {
+                simset::custom::iterate_events(&mut file)?
+                    .take(args.stop_after.unwrap_or(usize::MAX))
+                    .filter_map(lor_from_custom_event_maybe)
+                    .collect()
+            },
+        };
+        // --- write lors to hdf5 --------------------------------------------------------
+        println!("Writing LORs to {}", outfile.display());
+        hdf5::File::create(outfile)?
+            .create_group("reco_info")? // TODO rethink all the HDF% group names
+            .new_dataset_builder()
+            .with_data(&lors)
+            .create("lors")?;
+
+    } else {
+        match args.history_file_type {
+            HistoryFileType::Standard => {
+                simset::standard::iterate_events(&mut file)?
+                    .take(args.stop_after.unwrap_or(usize::MAX))
+                    .map(lor_from_standard_event)
+                    .for_each(show_lor);
+            },
+            HistoryFileType::Custom => {
+                simset::custom::iterate_events(&mut file)?
+                    .take(args.stop_after.unwrap_or(usize::MAX))
+                    .filter_map(lor_from_custom_event_maybe)
+                    .for_each(show_lor);
+            },
+        }
     }
     Ok(())
 }
