@@ -7,8 +7,6 @@ use binrw::BinReaderExt;
 
 use crate::skip_header;
 
-use super::{Point96, Point192};
-
 #[binrw]
 #[derive(Debug)]
 pub(crate) enum Record {
@@ -37,7 +35,9 @@ impl Event {
 #[binrw]
 #[derive(Debug)]
 pub struct Decay {
-    pub pos       : Point192, // 24
+    pub x         : f64,      //  8
+    pub y         : f64,      //  8
+    pub z         : f64,      //  8
     pub weight    : f64,      //  8
     pub time      : f64,      //  8
     pub decay_type: u64,      //  8  // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
@@ -46,8 +46,12 @@ pub struct Decay {
 #[binrw]
 #[derive(Debug)]
 pub struct Photon { // Both blue and pink?                        -- comments from struct definicion in SimSET: Photon.h --
-    pub location              : Point96,  // 123456789aba  12  12 photon current location or, in detector list mode, detection position
-    pub angle                 : Point96,  // 123456789aba  12  24 photon durrent direction.  perhaps undefined in detector list mode.
+    pub x                     : f32,      // 1234           4   4 photon current location or, in detector list mode, detection position
+    pub y                     : f32,      // 1234           4   8 photon current location or, in detector list mode, detection position
+    pub z                     : f32,      // 1234           4  12 photon current location or, in detector list mode, detection position
+    pub angle_x               : f32,      // 1234           4  16 photon durrent direction.  perhaps undefined in detector list mode.
+    pub angle_y               : f32,      // 1234           4  20 photon durrent direction.  perhaps undefined in detector list mode.
+    pub angle_z               : f32,      // 1234           4  24 photon durrent direction.  perhaps undefined in detector list mode.
     pub flags                 : u8,       // 1              1  25 Photon flags
     #[br(pad_before = 7)]                 //  2345678       7  32
     pub weight                : f64,      // 12345678       8  40 Photon's weight
@@ -82,7 +86,7 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
     while let Ok(decay) = Event::read(&mut file) {// file.read_le::<Standard>() {
 
         // ----- Process the decay data -------------------------------------------
-        let Decay { pos: Point192 { x, y, z }, weight, time, decay_type } = decay.decay;
+        let Decay { x, y, z, weight, time, decay_type } = decay.decay;
         if let Some(stop) = stop_after { if count >= stop { break } }; count += 1;
         _ts = [None, None];
         println!("=====================================================================================");
@@ -90,7 +94,7 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
 
         // ----- Process each photon associated with the decay --------------------
         let mut seen_pink = false;
-        for Photon { location: Point96 { x, y, z }, flags, weight, energy, time, .. } in decay.photons {
+        for Photon { x, y, z, flags, weight, energy, time, .. } in decay.photons {
             let time = time * 1e12;
             _ts[blue_or_pink_index(flags)] = Some(time);
             let (c, s, t) = interpret_flags(flags);
