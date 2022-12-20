@@ -5,9 +5,9 @@ use std::path::Path;
 use binrw::{binrw, io::Seek};
 use binrw::{BinReaderExt, BinRead};
 
-use units::{cm, Length};
+use units::{cm, Length, Time};
 
-use crate::skip_header;
+use crate::{f64_as_s as s, skip_header};
 
 #[derive(Debug, BinRead)]
 pub(crate) enum Record {
@@ -57,7 +57,7 @@ pub struct Photon { // Both blue and pink?                        -- comments fr
     pub weight                : f64,      // 12345678  8  40 Photon's weight
     pub energy                : f32,      // 1234      4  44 Photon's energy
     #[br(pad_before = 4)]                 //     5678  4  48
-    pub time                  : f64,      // 12345678  3  56 In seconds
+    #[br(map = s)] pub time   : Time,     // 12345678  3  56 In seconds
     pub transaxial_position   : f32,      // 1234      4  60 For SPECT, transaxial position on "back" of collimator/detector
     pub azimuthal_angle_index : u16,      // 12        2  62 For SPECT/DHCI, index of collimator/detector angle
     #[br(pad_before = 2)]                 //   34      2  64
@@ -102,7 +102,7 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
                 seen_pink = true;
                 println!();
             }
-            println!("({x:7.2?} {y:7.2?} {z:7.2?})    + {time:6.1} ps   w:{weight:6.2}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
+            println!("({x:7.2?} {y:7.2?} {z:7.2?})    + {time:6.1?}   w:{weight:6.2}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
             if let [Some(t1), Some(t2)] = _ts {
                 let dtof = t1 - t2;
                 let _dx = dtof * 0.3 /* mm / ps */ / 2.0;

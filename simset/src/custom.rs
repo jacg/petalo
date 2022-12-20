@@ -6,6 +6,8 @@ use std::io::SeekFrom;
 use binrw::io::Seek;
 use binrw::{BinReaderExt, BinRead};
 
+use crate::{f64_as_cm, skip_header};
+
 #[derive(Debug, BinRead)]
 pub(crate) struct Record {
     pub n_pairs: u8,
@@ -63,7 +65,7 @@ pub struct Photon {
 }
 
 pub fn iterate_events(file: &mut File) -> Result<impl Iterator<Item = Event> + '_, Box<dyn Error>> {
-    crate::skip_header(file)?;
+    skip_header(file)?;
     Ok(std::iter::from_fn(|| Event::read(file).ok()))
 }
 
@@ -85,5 +87,3 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
     }
     Ok(())
 }
-
-fn f64_as_cm(v: f64) -> units::Length { units::cm(v as f32) }

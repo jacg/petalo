@@ -68,7 +68,7 @@ pub use uom::si::Quantity;
 pub use mmps::f32::{Angle, Area, TWOPI, Length, Time, Velocity, Ratio, Mass};
 mod units {
   pub use uom::si::{length  ::{nanometer, millimeter, centimeter},
-                    time    ::{nanosecond, picosecond},
+                    time    ::{nanosecond, picosecond, second},
                     mass    ::kilogram,
                     velocity::meter_per_second,
                     ratio   ::ratio,
@@ -99,6 +99,7 @@ wrap!(mm     mm_     Length         millimeter);
 wrap!(nm     nm_     Length          nanometer);
 wrap!(ns     ns_     Time           nanosecond);
 wrap!(ps     ps_     Time           picosecond);
+wrap!(s      s_      Time               second);
 wrap!(m_s    m_s_    Velocity meter_per_second);
 wrap!(kg     kg_     Mass             kilogram);
 wrap!(ratio  ratio_  Ratio               ratio);

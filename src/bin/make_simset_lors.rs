@@ -72,9 +72,9 @@ fn lor_from_standard_event(event: simset::standard::Event) -> Hdf5Lor {
         else                                              { last_pink = Some(current) }
     }
     let (p1, p2) = (last_blue.unwrap(), last_pink.unwrap());
-    use units::mm_;
+    use units::{mm_, ps_};
     Hdf5Lor {
-        dt: s_to_ps(p2.time - p1.time),
+        dt: ps_(p2.time - p1.time),
         x1: mm_(p1.x), y1: mm_(p1.y), z1: mm_(p1.z),
         x2: mm_(p2.x), y2: mm_(p2.y), z2: mm_(p2.z),
         q1: f32::NAN , q2: f32::NAN,
@@ -93,5 +93,3 @@ fn lor_from_custom_event_maybe(simset::custom::Event { blues, pinks }: simset::c
         E1: p1.energy as f32, E2: p2.energy as f32,
     })
 }
-
-fn  s_to_ps( s: f64) -> f32 {  s as f32 * 10e12 }

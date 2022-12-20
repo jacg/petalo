@@ -62,3 +62,7 @@ pub fn compare(file1: &Path, file2: &Path, stop_after: Option<usize>) -> Result<
     }
     Ok(())
 }
+
+
+fn f64_as_cm(v: f64) -> units::Length { units::cm(v as f32) }
+fn f64_as_s (v: f64) -> units::Time   { units::s (v as f32) }
