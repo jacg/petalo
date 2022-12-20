@@ -83,10 +83,11 @@ fn lor_from_standard_event(event: simset::standard::Event) -> Hdf5Lor {
 
 fn lor_from_custom_event_maybe(simset::custom::Event { blues, pinks }: simset::custom::Event) -> Option<Hdf5Lor> {
     let (p1, p2) = (blues.last()?, pinks.last()?);
+    use units::mm_;
     Some(Hdf5Lor {
         dt: cm_to_ps(p2.travel_distance - p1.travel_distance), // TODO check sign
-        x1: cm_to_mm(p1.x as f32), y1: cm_to_mm(p1.y as f32), z1: cm_to_mm(p1.z as f32),
-        x2: cm_to_mm(p2.x as f32), y2: cm_to_mm(p2.y as f32), z2: cm_to_mm(p2.z as f32),
+        x1: mm_(p1.x), y1: cm_to_mm(p1.y as f32), z1: cm_to_mm(p1.z as f32),
+        x2: mm_(p2.x), y2: cm_to_mm(p2.y as f32), z2: cm_to_mm(p2.z as f32),
         q1: f32::NAN, q2: f32::NAN,
         E1: p1.energy as f32, E2: p2.energy as f32,
     })
