@@ -3,12 +3,13 @@ use std::fs::File;
 use std::path::Path;
 
 use binrw::{binrw, io::Seek};
-use binrw::BinReaderExt;
+use binrw::{BinReaderExt, BinRead};
+
+use units::Length;
 
 use crate::skip_header;
 
-#[binrw]
-#[derive(Debug)]
+#[derive(Debug, BinRead)]
 pub(crate) enum Record {
     #[br(magic = 1_u8)] Decay (Decay),
     #[br(magic = 2_u8)] Photon(Photon),
@@ -43,10 +44,10 @@ pub struct Decay {
     pub decay_type: u64,      //  8  // Needs to be mapped to an enum (PhgEn_DecayTypeTy)
 } // bytes wasted: probably all 48 of them
 
-#[binrw]
-#[derive(Debug)]
+#[derive(Debug, BinRead)]
 pub struct Photon { // Both blue and pink?                        -- comments from struct definicion in SimSET: Photon.h --
-    pub x                     : f32,      // 1234           4   4 photon current location or, in detector list mode, detection position
+    #[br(map = units::cm)]
+    pub x                     : Length,   // 1234           4   4 photon current location or, in detector list mode, detection position
     pub y                     : f32,      // 1234           4   8 photon current location or, in detector list mode, detection position
     pub z                     : f32,      // 1234           4  12 photon current location or, in detector list mode, detection position
     pub angle_x               : f32,      // 1234           4  16 photon durrent direction.  perhaps undefined in detector list mode.
@@ -102,7 +103,7 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
                 seen_pink = true;
                 println!();
             }
-            println!("({x:6.2} {y:6.2} {z:6.2})    + {time:6.1} ps   w:{weight:6.2}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
+            println!("({x:6.2?} {y:6.2} {z:6.2})    + {time:6.1} ps   w:{weight:6.2}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
             if let [Some(t1), Some(t2)] = _ts {
                 let dtof = t1 - t2;
                 let _dx = dtof * 0.3 /* mm / ps */ / 2.0;
