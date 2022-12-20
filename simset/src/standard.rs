@@ -101,7 +101,7 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
                 seen_pink = true;
                 println!();
             }
-            println!("({x:7.2?} {y:7.2?} {z:7.2?})    + {time:6.1?}   w:{weight:6.2}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
+            println!("({x:7.2?} {y:7.2?} {z:7.2?})  {time:6.1?}   w:{weight:6.2}  E: {energy:6.2}   {c} {s} {t} {flags:02}");
             if let [Some(t1), Some(t2)] = _ts {
                 let dtof = t1 - t2;
                 let _dx = dtof * 0.3 /* mm / ps */ / 2.0;

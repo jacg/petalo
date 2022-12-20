@@ -80,8 +80,9 @@ pub fn show_file(file: impl AsRef<Path>, stop_after: Option<usize>) -> Result<()
         if let Some(stop) = stop_after { if count >= stop { break } }; count += 1;
         println!("------ N {} photons: {n_photons} --------", if blue { "blue" } else { "pink" });
         for Photon { x, y, z,  energy, travel_distance, scatters_in_object: so, scatters_in_collimator: sc, weight } in pairs {
-            let t = travel_distance / units::C;
-            println!("({x:7.2?} {y:7.2?} {z:7.2?})   E:{energy:7.2}   t:{t:4.1?}  w: {weight:4.2}   scatters obj:{so:2} col:{sc:2}");
+            let d = travel_distance;
+            let t = d / units::C;
+            println!("({x:7.2?} {y:7.2?} {z:7.2?})   E:{energy:7.2}   t:{t:4.1?} <- d:{d:5.1?}  w: {weight:4.2}   scatters obj:{so:2} col:{sc:2}");
         }
         blue = ! blue;
     }
