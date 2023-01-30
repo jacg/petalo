@@ -117,8 +117,47 @@ fn main() -> hdf5::Result<()> {
     let mut n_events = 0;
     let mut failed_files = vec![];
 
-    type FilenameToLorsFunction<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a>;
-    let makelors: FilenameToLorsFunction = match args.reco {
+    let makelors = make_makelors_fn(&args, &xyzs);
+
+    for infile in &args.infiles {
+        // TODO message doesn't appear until end of iteration
+        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
+                                     infile.display(), group_digits(lors.len()), group_digits(n_events),
+                                     if n_events > 0 {100 * lors.len() / n_events} else {0}));
+        if let Ok(batch_of_new_lors) = makelors(&infile.clone()) {
+            n_events += batch_of_new_lors.n_events_processed;
+            lors.extend_from_slice(&batch_of_new_lors.lors);
+        } else { failed_files.push(infile); }
+        files_pb.inc(1);
+
+    }
+    files_pb.finish_with_message("<finished processing files>");
+    println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
+             100 * lors.len() / n_events);
+    // --- write lors to hdf5 --------------------------------------------------------
+    println!("Writing LORs to {}", args.out.display());
+    hdf5::File::create(&args.out)?
+        .create_group("reco_info")? // TODO rethink all the HDF% group names
+        .new_dataset_builder()
+        .with_data(&lors)
+        .create("lors")?;
+    // --- Report any files that failed no be read -----------------------------------
+    if !failed_files.is_empty() {
+        println!("Warning: failed to read the following files:");
+        for file in failed_files.iter() {
+            println!("  {}", file.display());
+        }
+        let n = failed_files.len();
+        let plural = if n == 1 { "" } else { "s" };
+        println!("Warning: failed to read {} file{}:", n, plural);
+    }
+    Ok(())
+}
+
+type FilenameToLorsFunction<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a>;
+
+fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLorsFunction<'xyzs> {
+    match args.reco {
         Reco::FirstVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let vertices = io::hdf5::mc::read_vertices(infile, Bounds::none())?;
@@ -149,42 +188,7 @@ fn main() -> hdf5::Result<()> {
 
         Reco::SimpleRec { pde, sigma_t, threshold, nsensors, charge_limits }
             => lor_reconstruction(&xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
-    };
-
-
-    for infile in args.infiles {
-        // TODO message doesn't appear until end of iteration
-        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
-                                     infile.display(), group_digits(lors.len()), group_digits(n_events),
-                                     if n_events > 0 {100 * lors.len() / n_events} else {0}));
-        if let Ok(batch_of_new_lors) = makelors(&infile) {
-            n_events += batch_of_new_lors.n_events_processed;
-            lors.extend_from_slice(&batch_of_new_lors.lors);
-        } else { failed_files.push(infile); }
-        files_pb.inc(1);
-
     }
-    files_pb.finish_with_message("<finished processing files>");
-    println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
-             100 * lors.len() / n_events);
-    // --- write lors to hdf5 --------------------------------------------------------
-    println!("Writing LORs to {}", args.out.display());
-    hdf5::File::create(args.out)?
-        .create_group("reco_info")? // TODO rethink all the HDF% group names
-        .new_dataset_builder()
-        .with_data(&lors)
-        .create("lors")?;
-    // --- Report any files that failed no be read -----------------------------------
-    if !failed_files.is_empty() {
-        println!("Warning: failed to read the following files:");
-        for file in failed_files.iter() {
-            println!("  {}", file.display());
-        }
-        let n = failed_files.len();
-        let plural = if n == 1 { "" } else { "s" };
-        println!("Warning: failed to read {} file{}:", n, plural);
-    }
-    Ok(())
 }
 
 #[allow(nonstandard_style)]
