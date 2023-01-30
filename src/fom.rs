@@ -363,7 +363,7 @@ mod test_mean {
             assert_eq!(sigma, 2.0_f32.sqrt());
         };
 
-        assert!(mu_and_sigma(&[]) == None);
+        assert!(mu_and_sigma(&[]).is_none());
     }
 
     #[test]
@@ -377,7 +377,7 @@ mod test_mean {
             assert_uom_eq!(second, mu,    ns(7.0)           , ulps <= 1);
             assert_uom_eq!(second, sigma, ns(2.0_f32.sqrt()), ulps <= 1);
         };
-        assert!(mu_and_sigma(&[]) == None);
+        assert!(mu_and_sigma(&[]).is_none());
     }
 }
 
