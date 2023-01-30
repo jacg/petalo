@@ -117,8 +117,47 @@ fn main() -> hdf5::Result<()> {
     let mut n_events = 0;
     let mut failed_files = vec![];
 
-    type FilenameToLorsFunction<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a>;
-    let makelors: FilenameToLorsFunction = match args.reco {
+    let makelors = make_makelors_fn(&args, &xyzs);
+
+    for infile in &args.infiles {
+        // TODO message doesn't appear until end of iteration
+        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
+                                     infile.display(), group_digits(lors.len()), group_digits(n_events),
+                                     if n_events > 0 {100 * lors.len() / n_events} else {0}));
+        if let Ok(batch_of_new_lors) = makelors(&infile.clone()) {
+            n_events += batch_of_new_lors.n_events_processed;
+            lors.extend_from_slice(&batch_of_new_lors.lors);
+        } else { failed_files.push(infile); }
+        files_pb.inc(1);
+
+    }
+    files_pb.finish_with_message("<finished processing files>");
+    println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
+             100 * lors.len() / n_events);
+    // --- write lors to hdf5 --------------------------------------------------------
+    println!("Writing LORs to {}", args.out.display());
+    hdf5::File::create(&args.out)?
+        .create_group("reco_info")? // TODO rethink all the HDF% group names
+        .new_dataset_builder()
+        .with_data(&lors)
+        .create("lors")?;
+    // --- Report any files that failed no be read -----------------------------------
+    if !failed_files.is_empty() {
+        println!("Warning: failed to read the following files:");
+        for file in failed_files.iter() {
+            println!("  {}", file.display());
+        }
+        let n = failed_files.len();
+        let plural = if n == 1 { "" } else { "s" };
+        println!("Warning: failed to read {} file{}:", n, plural);
+    }
+    Ok(())
+}
+
+type FilenameToLorsFunction<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a>;
+
+fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLorsFunction<'xyzs> {
+    match args.reco {
         Reco::FirstVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let vertices = io::hdf5::mc::read_vertices(infile, Bounds::none())?;
@@ -137,54 +176,19 @@ fn main() -> hdf5::Result<()> {
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let qts = io::hdf5::sensors::read_qts(infile, Bounds::none())?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
-                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
+                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits(evs, xyzs)), events.len()))
             }),
 
         Reco::Dbscan { q, min_count, max_distance } => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let qts = io::hdf5::sensors::read_qts(infile, Bounds::none())?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
-                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
+                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, xyzs, min_count, max_distance)), events.len()))
             }),
 
         Reco::SimpleRec { pde, sigma_t, threshold, nsensors, charge_limits }
-            => lor_reconstruction(&xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
-    };
-
-
-    for infile in args.infiles {
-        // TODO message doesn't appear until end of iteration
-        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
-                                     infile.display(), group_digits(lors.len()), group_digits(n_events),
-                                     if n_events > 0 {100 * lors.len() / n_events} else {0}));
-        if let Ok(batch_of_new_lors) = makelors(&infile) {
-            n_events += batch_of_new_lors.n_events_processed;
-            lors.extend_from_slice(&batch_of_new_lors.lors);
-        } else { failed_files.push(infile); }
-        files_pb.inc(1);
-
+            => lor_reconstruction(xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
     }
-    files_pb.finish_with_message("<finished processing files>");
-    println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
-             100 * lors.len() / n_events);
-    // --- write lors to hdf5 --------------------------------------------------------
-    println!("Writing LORs to {}", args.out.display());
-    hdf5::File::create(args.out)?
-        .create_group("reco_info")? // TODO rethink all the HDF% group names
-        .new_dataset_builder()
-        .with_data(&lors)
-        .create("lors")?;
-    // --- Report any files that failed no be read -----------------------------------
-    if !failed_files.is_empty() {
-        println!("Warning: failed to read the following files:");
-        for file in failed_files.iter() {
-            println!("  {}", file.display());
-        }
-        let n = failed_files.len();
-        let plural = if n == 1 { "" } else { "s" };
-        println!("Warning: failed to read {} file{}:", n, plural);
-    }
-    Ok(())
 }
 
 #[allow(nonstandard_style)]
@@ -233,7 +237,7 @@ fn lor_from_hits(hits: &[QT], xyzs: &SensorMap) -> Option<Hdf5Lor> {
     })
 }
 
-fn xxx(labels: &ndarray::Array1<Option<usize>>) -> usize {
+fn count_clusters(labels: &ndarray::Array1<Option<usize>>) -> usize {
     labels.iter()
         .flat_map(|l| *l)
         .max()
@@ -247,7 +251,7 @@ mod test_n_clusters {
     #[test]
     fn test_n_clusters() {
         let a = array![None, None];
-        assert_eq!(xxx(&a), 0);
+        assert_eq!(count_clusters(&a), 0);
         let _a = array![Some(2)];
     }
 }
@@ -263,12 +267,12 @@ fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolera
     let params = AppxDbscan::params(min_points)
         .tolerance(mm_(tolerance)); // > 7mm between sipm centres
     let labels = params.transform(&active_sensor_positions).ok()?;
-    let n_clusters = xxx(&labels);
+    let n_clusters = count_clusters(&labels);
     if n_clusters != 2 { return None }
     let mut cluster: [Vec<f32>; 2] = [vec![], vec![]];
     for (c, point) in labels.iter().zip(active_sensor_positions.outer_iter()) {
         if let Some(c) = c {
-            cluster[*c].extend(&point);
+            cluster[*c].extend(point);
         }
     }
     fn cluster_centroid(vec: Vec<f32>) -> Option<ndarray::Array1<f32>> {
@@ -687,7 +691,7 @@ mod test_dbscan {
 
         for (c, point) in labels.iter().zip(observations.outer_iter()) {
             if let Some(c) = c {
-                arry[*c].extend(&point);
+                arry[*c].extend(point);
             }
         }
 
