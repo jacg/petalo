@@ -237,7 +237,7 @@ fn lor_from_hits(hits: &[QT], xyzs: &SensorMap) -> Option<Hdf5Lor> {
     })
 }
 
-fn xxx(labels: &ndarray::Array1<Option<usize>>) -> usize {
+fn count_clusters(labels: &ndarray::Array1<Option<usize>>) -> usize {
     labels.iter()
         .flat_map(|l| *l)
         .max()
@@ -251,7 +251,7 @@ mod test_n_clusters {
     #[test]
     fn test_n_clusters() {
         let a = array![None, None];
-        assert_eq!(xxx(&a), 0);
+        assert_eq!(count_clusters(&a), 0);
         let _a = array![Some(2)];
     }
 }
@@ -267,7 +267,7 @@ fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolera
     let params = AppxDbscan::params(min_points)
         .tolerance(mm_(tolerance)); // > 7mm between sipm centres
     let labels = params.transform(&active_sensor_positions).ok()?;
-    let n_clusters = xxx(&labels);
+    let n_clusters = count_clusters(&labels);
     if n_clusters != 2 { return None }
     let mut cluster: [Vec<f32>; 2] = [vec![], vec![]];
     for (c, point) in labels.iter().zip(active_sensor_positions.outer_iter()) {
