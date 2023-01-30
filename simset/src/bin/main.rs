@@ -23,7 +23,7 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    if let Some(ref file2) = args.compare { compare(&args.file, &file2, args.stop_after) }
+    if let Some(ref file2) = args.compare { compare(&args.file, file2, args.stop_after) }
     else {
         match args.history_file_type {
             HistoryFileType::Standard => standard(&args.file, args.stop_after),

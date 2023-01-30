@@ -176,18 +176,18 @@ fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLors
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let qts = io::hdf5::sensors::read_qts(infile, Bounds::none())?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
-                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits(evs, &xyzs)), events.len()))
+                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits(evs, xyzs)), events.len()))
             }),
 
         Reco::Dbscan { q, min_count, max_distance } => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let qts = io::hdf5::sensors::read_qts(infile, Bounds::none())?;
                 let events = group_by(|h| h.event_id, qts.into_iter().filter(|h| h.q >= q));
-                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, &xyzs, min_count, max_distance)), events.len()))
+                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, xyzs, min_count, max_distance)), events.len()))
             }),
 
         Reco::SimpleRec { pde, sigma_t, threshold, nsensors, charge_limits }
-            => lor_reconstruction(&xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
+            => lor_reconstruction(xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
     }
 }
 
@@ -272,7 +272,7 @@ fn lor_from_hits_dbscan(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolera
     let mut cluster: [Vec<f32>; 2] = [vec![], vec![]];
     for (c, point) in labels.iter().zip(active_sensor_positions.outer_iter()) {
         if let Some(c) = c {
-            cluster[*c].extend(&point);
+            cluster[*c].extend(point);
         }
     }
     fn cluster_centroid(vec: Vec<f32>) -> Option<ndarray::Array1<f32>> {
@@ -691,7 +691,7 @@ mod test_dbscan {
 
         for (c, point) in labels.iter().zip(observations.outer_iter()) {
             if let Some(c) = c {
-                arry[*c].extend(&point);
+                arry[*c].extend(point);
             }
         }
 
