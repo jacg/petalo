@@ -185,30 +185,29 @@ fn main() -> hdf5::Result<()> {
 type FilenameToLorsFunction<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a>;
 
 fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLorsFunction<'xyzs> {
-    match args.reco {
-        Reco::FirstVertex => Box::new(from_vertices(lor_from_first_vertices)),
-        Reco::BaryVertex  => Box::new(from_vertices(lor_from_barycentre_of_vertices)),
+    match &args.reco {
+        Reco::FirstVertex       => Box::new(from_vertices(lor_from_first_vertices)),
+        Reco::BaryVertex        => Box::new(from_vertices(lor_from_barycentre_of_vertices)),
+        d@Reco::Discrete { .. } => Box::new(from_vertices(lor_from_discretized_vertices(d))),
 
-        Reco::Half{q} => Box::new(
+        &Reco::Half{q} => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let events = group_qts(q, infile)?;
                 Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits(evs, xyzs)), events.len()))
             }),
 
-        Reco::Dbscan { q, min_count, max_distance } => Box::new(
+        &Reco::Dbscan { q, min_count, max_distance } => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
                 let events = group_qts(q, infile)?;
                 Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, xyzs, min_count, max_distance)), events.len()))
             }),
 
-        Reco::SimpleRec { pde, sigma_t, threshold, nsensors, charge_limits }
+        &Reco::SimpleRec { pde, sigma_t, threshold, nsensors, charge_limits }
             => lor_reconstruction(xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
-
-        Reco::Discrete { .. } => todo!(),
     }
 }
 
-fn from_vertices(lor_from_vertices: fn(&[Vertex]) -> Option<Hdf5Lor>) -> impl Fn(&PathBuf) -> hdf5::Result<LorBatch> {
+fn from_vertices(lor_from_vertices: impl Fn(&[Vertex]) -> Option<Hdf5Lor> + 'static + Copy) -> impl Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'static {
     move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
         let events = group_vertices(infile)?;
         Ok(LorBatch::new(lors_from(&events, lor_from_vertices), events.len()))
@@ -229,6 +228,14 @@ fn group_qts(q: u32, infile: &PathBuf) -> hdf5::Result<Vec<Vec<  QT  >>> {
                 read_qts(infile)?
                 .into_iter()
                 .filter(|h| h.q >= q)))
+}
+
+#[allow(nonstandard_style)]
+fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5Lor> + Copy{
+    let &Reco::Discrete { radius, dr, dz, da } = d else { unreachable!() };
+    move |vertices| {
+        todo!()
+    }
 }
 
 #[allow(nonstandard_style)]
