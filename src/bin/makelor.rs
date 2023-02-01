@@ -158,17 +158,8 @@ type FilenameToLorsFunction<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch>
 
 fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLorsFunction<'xyzs> {
     match args.reco {
-        Reco::FirstVertex => Box::new(
-            |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let events = group_vertices(infile)?;
-                Ok(LorBatch::new(lors_from(&events, lor_from_first_vertices), events.len()))
-            }),
-
-        Reco::BaryVertex => Box::new(
-            |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let events = group_vertices(infile)?;
-                Ok(LorBatch::new(lors_from(&events, lor_from_barycentre_of_vertices), events.len()))
-            }),
+        Reco::FirstVertex => Box::new(from_vertices(lor_from_first_vertices)),
+        Reco::BaryVertex  => Box::new(from_vertices(lor_from_barycentre_of_vertices)),
 
         Reco::Half{q} => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
@@ -184,6 +175,13 @@ fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLors
 
         Reco::SimpleRec { pde, sigma_t, threshold, nsensors, charge_limits }
             => lor_reconstruction(xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
+    }
+}
+
+fn from_vertices(lor_from_vertices: fn(&[Vertex]) -> Option<Hdf5Lor>) -> impl Fn(&PathBuf) -> hdf5::Result<LorBatch> {
+    move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
+        let events = group_vertices(infile)?;
+        Ok(LorBatch::new(lors_from(&events, lor_from_vertices), events.len()))
     }
 }
 
