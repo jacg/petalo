@@ -160,25 +160,25 @@ fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLors
     match args.reco {
         Reco::FirstVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let events = group_by(|v| v.event_id, read_vertices(infile)?.into_iter());
+                let events = group_vertices(infile)?;
                 Ok(LorBatch::new(lors_from(&events, lor_from_first_vertices), events.len()))
             }),
 
         Reco::BaryVertex => Box::new(
             |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let events = group_by(|v| v.event_id, read_vertices(infile)?.into_iter());
+                let events = group_vertices(infile)?;
                 Ok(LorBatch::new(lors_from(&events, lor_from_barycentre_of_vertices), events.len()))
             }),
 
         Reco::Half{q} => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let events = group_by(|h| h.event_id, read_qts(infile)?.into_iter().filter(|h| h.q >= q));
+                let events = group_qts(q, infile)?;
                 Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits(evs, xyzs)), events.len()))
             }),
 
         Reco::Dbscan { q, min_count, max_distance } => Box::new(
             move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let events = group_by(|h| h.event_id, read_qts(infile)?.into_iter().filter(|h| h.q >= q));
+                let events = group_qts(q, infile)?;
                 Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan(evs, xyzs, min_count, max_distance)), events.len()))
             }),
 
@@ -189,6 +189,19 @@ fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLors
 
 fn read_vertices(infile: &PathBuf) -> hdf5::Result<Vec<Vertex>> { io::hdf5::mc::read_vertices(infile, Bounds::none()) }
 fn read_qts     (infile: &PathBuf) -> hdf5::Result<Vec<  QT  >> { io::hdf5::sensors::read_qts(infile, Bounds::none()) }
+
+fn group_vertices(infile: &PathBuf) -> hdf5::Result<Vec<Vec<Vertex>>> {
+    Ok(group_by(|v| v.event_id,
+                read_vertices(infile)?
+                .into_iter()))
+}
+
+fn group_qts(q: u32, infile: &PathBuf) -> hdf5::Result<Vec<Vec<  QT  >>> {
+    Ok(group_by(|h| h.event_id,
+                read_qts(infile)?
+                .into_iter()
+                .filter(|h| h.q >= q)))
+}
 
 #[allow(nonstandard_style)]
 fn lor_from_first_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
