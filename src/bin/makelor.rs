@@ -67,6 +67,25 @@ enum Reco {
         q: u32,
     },
 
+    /// Reconstruct LORs from vertices adjusted to element centres
+    Discrete {
+        /// Inner radius of scintillator
+        #[clap(short, long)]
+        radius: Length,
+
+        /// Radial size of elements = thickness of scintillator
+        #[clap(short = 'd', long)]
+        dr: Length,
+
+        /// Axial size of elements
+        #[clap(short = 'z', long)]
+        dz: Length,
+
+        /// Azimuthal size of elements at inner radius
+        #[clap(short = 'a', long)]
+        da: Length,
+    },
+
     /// Reconstruct LORs form DBSCAN clusters
     Dbscan {
         /// Ignore sensors with fewer hits
@@ -184,6 +203,8 @@ fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLors
 
         Reco::SimpleRec { pde, sigma_t, threshold, nsensors, charge_limits }
             => lor_reconstruction(xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
+
+        Reco::Discrete { .. } => todo!(),
     }
 }
 
