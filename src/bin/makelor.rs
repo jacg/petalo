@@ -230,19 +230,86 @@ fn group_qts(q: u32, infile: &PathBuf) -> hdf5::Result<Vec<Vec<  QT  >>> {
                 .filter(|h| h.q >= q)))
 }
 
+// NOTE only using first vertex, for now
 #[allow(nonstandard_style)]
-fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5Lor> + Copy{
-    let &Reco::Discrete { radius, dr, dz, da } = d else { unreachable!() };
+fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5Lor> + Copy {
+    let &Reco::Discrete { radius, dr, dz, da } = d else {
+        panic!("lor_from_discretized_vertices called with variant other than Reco::Discrete")
+    };
+    let adjust = nearest_centre_of_box(mm_(radius), mm_(dr), mm_(dz), mm_(da));
     move |vertices| {
-        todo!()
+        let mut in_scint = vertices_in_scintillator(vertices);
+        let Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_scint.find(|v| v.track_id == 2)?;
+        let Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_scint.find(|v| v.track_id == 1)?;
+        let (x1, y1, z1) = adjust(x1, y1, z1);
+        let (x2, y2, z2) = adjust(x2, y2, z2);
+        Some(Hdf5Lor { dt: t2 - t1, x1, y1, z1, x2, y2, z2, q1: f32::NAN, q2: f32::NAN, E1, E2 })
     }
+}
+
+fn nearest_centre_of_box(r_min: f32, dr: f32, dz: f32, da: f32) -> impl Fn(f32, f32, f32) -> (f32, f32, f32) + Copy {
+    let inner_circumference = std::f32::consts::TAU * r_min;
+    let blocks_in_circle = (inner_circumference / da).round();
+    let da = inner_circumference / blocks_in_circle;
+    let r = r_min + (dr / 2.0);
+    let d_phi = da / r;
+    move |x,y,z| {
+        let phi = y.atan2(x);
+        let phi = (phi / d_phi).round() * d_phi;
+        let z   = (z   / dz   ).round() * dz;
+        let x = r * phi.cos();
+        let y = r * phi.sin();
+        (x, y, z)
+    }
+}
+
+#[cfg(test)]
+mod test_discretize {
+    use super::*;
+    use rstest::rstest;
+    use float_eq::assert_float_eq;
+
+    use std::f32::consts::SQRT_2 as ROOT2;
+    use std::f32::consts::TAU;
+
+    #[rstest]
+    //              rmin  dr     dz    da       x-in    y-in   z-in     x-out   y-out  z-out
+    // On x/y-axis
+    #[case::x_pos(( 90.0, 20.0,  3.0,  TAU), ( 109.9,    0.2,  28.6), ( 100.0 ,   0.0,  30.0))]
+    #[case::x_neg(( 90.0, 20.0,  4.0,  TAU), (- 91.3,    0.2,  33.9), (-100.0 ,   0.0,  32.0))]
+    #[case::y_pos(( 90.0, 20.0,  5.0,  TAU), (   0.2,   95.3,  50.1), (   0.0 , 100.0,  50.0))]
+    #[case::y_neg(( 90.0, 20.0,  5.5,  TAU), (   0.2, -109.9,  52.3), (   0.0 ,-100.0,  55.0))]
+    // Check that quadrants are preserved
+    #[case::quad1((  1.9,  0.2,  1.0, 0.01), ( ROOT2,  ROOT2, -23.4), ( ROOT2, ROOT2, -23.0))]
+    #[case::quad2((  1.9,  0.2,  1.0, 0.01), (-ROOT2,  ROOT2, - 9.9), (-ROOT2, ROOT2, -10.0))]
+    #[case::quad3((  1.9,  0.2,  1.0, 0.01), (-ROOT2, -ROOT2, - 9.9), (-ROOT2,-ROOT2, -10.0))]
+    #[case::quad4((  1.9,  0.2,  1.0, 0.01), ( ROOT2, -ROOT2,  23.4), ( ROOT2,-ROOT2,  23.0))]
+    // Near x-axis
+    #[case::xish1((280.0, 30.0,  4.0, 2.0 ), ( 309.9,    0.0, -31.6), ( 295.0,   0.0, -32.0))]
+    #[case::xish2((280.0, 30.0,  5.0, 2.0 ), ( 280.1,    2.8,  31.6), ( 295.0,   2.0,  30.0))]
+    #[case::xish3((280.0, 30.0,  6.0, 1.5 ), ( 294.6,   -0.8, -31.6), ( 295.0,  -1.5, -30.0))]
+    // Other cases are very fiddly to verify by hand, but we should add some, in principle
+    fn test_nearest_centre_of_box(
+        #[case] detector: (f32, f32, f32, f32),
+        #[case] vertex: (f32, f32, f32),
+        #[case] expected: (f32, f32, f32),
+    ) {
+        let (rmin, dr, dz, da) = detector;
+        let (x, y, z) = vertex;
+        let (x, y, z) = nearest_centre_of_box(rmin, dr, dz, da)(x,y,z);
+        assert_float_eq!((x,y,z), expected, abs <= (0.01, 0.01, 0.01));
+    }
+}
+
+fn vertices_in_scintillator(vertices: &[Vertex]) -> impl Iterator<Item = Vertex> + '_ {
+    vertices.iter().cloned().filter(|v| v.volume_id == 0)
 }
 
 #[allow(nonstandard_style)]
 fn lor_from_first_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
-    let mut in_lxe = vertices.iter().filter(|v| v.volume_id == 0);
-    let &Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_lxe.find(|v| v.track_id == 2)?;
-    let &Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_lxe.find(|v| v.track_id == 1)?;
+    let mut in_lxe = vertices_in_scintillator(vertices);
+    let Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_lxe.find(|v| v.track_id == 2)?;
+    let Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_lxe.find(|v| v.track_id == 1)?;
     Some(Hdf5Lor {
         dt: t2 - t1,                   x1, y1, z1,   x2, y2, z2,
         q1: f32::NAN, q2: f32::NAN,        E1,           E2,
