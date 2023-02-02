@@ -216,8 +216,8 @@ fn lor_from_first_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
 fn lor_from_barycentre_of_vertices(vertices: &[Vertex]) -> Option<Hdf5Lor> {
     let (a,b): (Vec<_>, Vec<_>) = vertices
         .iter()
-        .filter(|v| v.volume_id == 0 && v.parent_id <= 2)
-        .partition(|v| v.track_id == 1 || v.parent_id == 1);
+        .filter   (|v| v.volume_id == 0 && v.parent_id <= 2)
+        .partition(|v| v. track_id == 1 || v.parent_id == 1);
 
     let Barycentre { x: x1, y: y1, z: z1, t: t1, E: E1 } = vertex_barycentre(&a)?;
     let Barycentre { x: x2, y: y2, z: z2, t: t2, E: E2 } = vertex_barycentre(&b)?;
