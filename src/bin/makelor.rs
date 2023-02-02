@@ -239,12 +239,36 @@ fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5L
     let adjust = nearest_centre_of_box(mm_(radius), mm_(dr), mm_(dz), mm_(da));
     move |vertices| {
         let mut in_scint = vertices_in_scintillator(vertices);
+
+        // Optimistic version: grabs all remaining KE in first vertex
         let Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_scint.find(|v| v.track_id == 2)?;
         let Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_scint.find(|v| v.track_id == 1)?;
+
+        // // Pessimistic version: picks vertex with highest dKE
+        // use ordered_float::NotNan;
+        // let in_scint = &mut vertices_in_scintillator(vertices); // Working around filter consuming the iterator
+        // let Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: b1, post_KE: a1, ..} = in_scint.filter(|v| v.track_id == 2).max_by_key(|v| NotNan::new(v.pre_KE - v.post_KE).unwrap())?;
+        // let Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: b2, post_KE: a2, ..} = in_scint.filter(|v| v.track_id == 2).max_by_key(|v| NotNan::new(v.pre_KE - v.post_KE).unwrap())?;
+        // let (E1, E2) = (b1 - a1, b2 - a2);
+
+        // let (ox1, oy1, oz1, ox2, oy2, oz2) = (x1, y1, z1, x2, y2, z2);
         let (x1, y1, z1) = adjust(x1, y1, z1);
         let (x2, y2, z2) = adjust(x2, y2, z2);
+
+        // println!();
+        // let dp1 = dist((ox1, oy1, oz1), (x1, y1, z1));
+        // let dp2 = dist((ox2, oy2, oz2), (x2, y2, z2));
+        // let mean_z = (z2+z1) / 2.0;
+        // if E1.min(E2) < 500.0 { return None }
+        // println!("{ox1:6.1} {oy1:6.1} {oz1:6.1}   {ox2:6.1} {oy2:6.1} {oz2:6.1}     {dp1:4.1}  {dp2:4.1}   {mean_z:6.1}");
+        // println!("{x1:6.1} {y1:6.1} {z1:6.1}   {x2:6.1} {y2:6.1} {z2:6.1}    {E1:5.1} {E2:5.1}");
+
         Some(Hdf5Lor { dt: t2 - t1, x1, y1, z1, x2, y2, z2, q1: f32::NAN, q2: f32::NAN, E1, E2 })
     }
+}
+
+fn dist((x1,y1,z1): (f32,f32,f32), (x2,y2,z2): (f32,f32,f32)) -> f32 {
+    (x2-x1).hypot(y2-y1).hypot(z2-z1)
 }
 
 fn nearest_centre_of_box(r_min: f32, dr: f32, dz: f32, da: f32) -> impl Fn(f32, f32, f32) -> (f32, f32, f32) + Copy {
