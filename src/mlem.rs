@@ -79,7 +79,6 @@ impl Image {
         for voxel in &mut attenuation.data {
             *voxel *= rho_to_mu;
         }
-        let attenuation = &attenuation;
 
         // TOF should not be used as LOR attenuation is independent of decay point
         let notof = make_gauss_option(None);
@@ -122,7 +121,7 @@ impl Image {
         let immutable_self = &*self;
         let initial_thread_state = || {
             let (backprojection, weights, indices) = projection_buffers(self.fov);
-            (backprojection, weights, indices, &immutable_self, &tof)
+            (backprojection, weights, indices, immutable_self, &tof)
         };
 
         // -------- Project all LORs forwards and backwards ---------------------
@@ -201,9 +200,9 @@ fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
 fn zeros_buffer(fov: FOV) -> ImageData { let [x,y,z] = fov.n; vec![0.0; x*y*z] }
 
 
-type FoldState<'r, 'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1_u> , &'r &'i Image, &'g Option<G>);
+type FoldState<'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1_u> , &'i Image, &'g Option<G>);
 
-fn project_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: &LOR) -> FoldState<'r, 'i, 'g, G>
+fn project_one_lor<'i, 'g, G>(state: FoldState<'i, 'g, G>, lor: &LOR) -> FoldState<'i, 'g, G>
 where
     G: Fn(Length) -> PerLength
 {
@@ -248,7 +247,7 @@ where
     }
 }
 
-fn sensitivity_one_lor<'r, 'i, 'g, G>(state: FoldState<'r, 'i, 'g, G>, lor: LOR) -> FoldState<'r, 'i, 'g, G>
+fn sensitivity_one_lor<'i, 'g, G>(state: FoldState<'i, 'g, G>, lor: LOR) -> FoldState<'i, 'g, G>
 where
     G: Fn(Length) -> PerLength
 {
