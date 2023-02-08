@@ -6,7 +6,7 @@ use kiss3d::camera::ArcBall;
 use kiss3d::nalgebra::{Point3, Translation3};
 
 use crate::Vectorf32;
-use crate::system_matrix::LOR;
+use crate::system_matrix::{LOR, Smr};
 use crate::fov::FOV;
 use crate::config::mlem::Tof;
 
@@ -108,7 +108,7 @@ impl Scene {
 
     pub fn place_voxels(&mut self, shape: Shape, tof: Option<Tof>) {
 
-        let active_voxels = self.lor.active_voxels(&self.fov, tof);
+        let active_voxels = Smr::new(&self.lor, &self.fov, tof).0;
 
         let &max_weight = active_voxels
             .iter()

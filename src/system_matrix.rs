@@ -76,19 +76,20 @@ mod test {
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: SystemMatrixRow = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None);
+        //let hits: SystemMatrixRow = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None);
+        let hits = Smr::new(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None);
 
         // Diagnostic output
-        for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
+        for (is, l) in &hits.0 { println!("  ({} {})   {}", is[0], is[1], l) }
 
         // Check total length through FOV
-        let total_length: Lengthf32 = hits.iter()
+        let total_length: Lengthf32 = hits.0.iter()
             .map(|(_index, weight)| weight)
             .sum();
         assert_float_eq!(total_length, length, ulps <= 1);
 
         // Check voxels hit
-        let voxels: Vec<(usize, usize)> = hits.into_iter()
+        let voxels: Vec<(usize, usize)> = hits.0.into_iter()
             .map(|(index, _weight)| (index[0], index[1]))
             .collect();
         assert_eq!(voxels, expected_voxels)
@@ -128,8 +129,7 @@ mod test {
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
-                .active_voxels(&fov, None)
+            let summed: Lengthf32 = Smr::new(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None).0
                 .into_iter()
                 .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
                 .map(|(_index, weight)| weight)
@@ -152,6 +152,33 @@ mod test {
 // ---------------------- Implementation -----------------------------------------
 pub type SystemMatrixElement = (Index3_u, Weightf32);
 pub type SystemMatrixRow = Vec<SystemMatrixElement>;
+
+pub struct Smr(pub SystemMatrixRow);
+
+impl Smr {
+    pub fn new(lor: &LOR, fov: &FOV, tof: Option<Tof>) -> Self {
+        use crate::fov::{lor_fov_hit, FovHit};
+        let tof = make_gauss_option(tof);
+        let mut weights = vec![];
+        let mut indices = vec![];
+        match lor_fov_hit(lor, *fov) {
+            None => (),
+            Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+                system_matrix_elements(
+                    &mut indices, &mut weights,
+                    next_boundary, voxel_size,
+                    index, delta_index, remaining,
+                    tof_peak, &tof
+                );
+
+            }
+        }
+        Smr(indices.into_iter()
+            .map(|i| index1_to_3(i, fov.n))
+            .zip(weights.into_iter())
+            .collect())
+    }
+}
 
 /// For a single LOR, place the weights and indices of the active voxels in the
 /// `weights` and `indices` parameters. Using output parameters rather than
@@ -299,28 +326,6 @@ impl LOR {
         Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
-    pub fn active_voxels(&self, fov: &FOV, tof: Option<Tof>) -> SystemMatrixRow {
-        use crate::fov::{lor_fov_hit, FovHit};
-        let tof = make_gauss_option(tof);
-        let mut weights = vec![];
-        let mut indices = vec![];
-        match lor_fov_hit(self, *fov) {
-            None => (),
-            Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-                system_matrix_elements(
-                    &mut indices, &mut weights,
-                    next_boundary, voxel_size,
-                    index, delta_index, remaining,
-                    tof_peak, &tof
-                );
-
-            }
-        }
-        indices.into_iter()
-            .map(|i| index1_to_3(i, fov.n))
-            .zip(weights.into_iter())
-            .collect()
-    }
 }
 
 use core::fmt;
