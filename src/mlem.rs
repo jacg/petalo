@@ -20,39 +20,81 @@ use crate::{
 
 pub static mut N_MLEM_THREADS: usize = 1;
 
-impl Image {
-
-    pub fn mlem(fov: FOV,
+pub fn mlem(fov: FOV,
                 measured_lors: &[LOR],
                 tof          : Option<Tof>,
-                sensitivity  : Option<Self>,
+                sensitivity  : Option<Image>,
                 n_subsets    : usize,
-    ) -> impl Iterator<Item = (Image, usize, usize)> + '_ {
+) -> impl Iterator<Item = (Image, usize, usize)> + '_ {
 
-        // Start off with a uniform image
-        let mut image = Self::ones(fov);
+    // Start off with a uniform image
+    let mut image = Image::ones(fov);
 
-        let sensitivity = sensitivity.or_else(|| Some(Self::ones(fov))).unwrap();
+    let sensitivity = sensitivity.or_else(|| Some(Image::ones(fov))).unwrap();
 
-        let len = measured_lors.len();
-        let set_size = len / n_subsets; // TODO: remainder LORs ignored
-        let (mut iteration, mut subset) = (1, 1);
+    let len = measured_lors.len();
+    let set_size = len / n_subsets; // TODO: remainder LORs ignored
+    let (mut iteration, mut subset) = (1, 1);
 
-        // Return an iterator which generates an infinite sequence of images,
-        // each one made by performing one MLEM iteration on the previous one
-        std::iter::from_fn(move || {
-            let lo = (subset - 1) * set_size;
-            let hi = lo + set_size;
-            let (old_iteration, old_subset) = (iteration, subset);
-            subset += 1;
-            if subset > n_subsets {
-                subset = 1;
-                iteration += 1;
-            }
-            image.one_iteration(&measured_lors[lo..hi], &sensitivity.data, tof);
-            Some((image.clone(), old_iteration, old_subset)) // TODO see if we can sensibly avoid cloning
-        })
-    }
+    // Return an iterator which generates an infinite sequence of images,
+    // each one made by performing one MLEM iteration on the previous one
+    std::iter::from_fn(move || {
+        let lo = (subset - 1) * set_size;
+        let hi = lo + set_size;
+        let (old_iteration, old_subset) = (iteration, subset);
+        subset += 1;
+        if subset > n_subsets {
+            subset = 1;
+            iteration += 1;
+        }
+        one_iteration(&mut image, &measured_lors[lo..hi], &sensitivity.data, tof);
+        Some((image.clone(), old_iteration, old_subset)) // TODO see if we can sensibly avoid cloning
+    })
+}
+
+fn one_iteration(image: &mut Image, measured_lors: &[LOR], sensitivity: &[Intensityf32], tof: Option<Tof>) {
+
+    // -------- Prepare state required by serial/parallel fold --------------
+
+    // TOF adjustment to apply to the weights
+    let tof: Option<_> = make_gauss_option(tof);
+
+    // Closure preparing the state needed by `fold`: will be called by
+    // `fold` at the start of every thread that is launched.
+    let shared_image = &*image;
+    let initial_thread_state = || {
+        let (backprojection, weights, indices) = projection_buffers(image.fov);
+        (backprojection, weights, indices, shared_image, &tof)
+    };
+
+    // -------- Project all LORs forwards and backwards ---------------------
+    let n_mlem_threads = unsafe {
+        // SAFETY: modified only once, at the beginning of bin/mlem.rs::main()
+        N_MLEM_THREADS
+    };
+    let job_size = measured_lors.len() / n_mlem_threads;
+    let fold_result = measured_lors
+        .par_iter()
+        // Rayon is too eager in spawning small jobs, each of which requires the
+        // construction and subsequent combination of expensive accumulators
+        // (whole `Image`s). So here we try to limit it to one job per thread.
+        .with_min_len(job_size)
+        .with_max_len(job_size)
+        .fold(initial_thread_state, project_one_lor);
+
+    // -------- extract relevant information (backprojection) ---------------
+    let backprojection = fold_result
+        // Keep only the backprojection (ignore weights and indices)
+        .map(|tuple| tuple.0)
+        // Sum the backprojections calculated on each thread
+        .reduce(|| zeros_buffer(image.fov), elementwise_add);
+
+    // -------- Correct for attenuation and detector sensitivity ------------
+    apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
+}
+
+
+impl Image {
 
     pub fn from_raw_file(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         Ok((&crate::io::raw::Image3D::read_from_file(path)?).into())
@@ -111,48 +153,6 @@ impl Image {
             *e /= size
         }
         Self::new(attenuation.fov, backprojection)
-    }
-
-    fn one_iteration(&mut self, measured_lors: &[LOR], sensitivity: &[Intensityf32], tof: Option<Tof>) {
-
-        // -------- Prepare state required by serial/parallel fold --------------
-
-        // TOF adjustment to apply to the weights
-        let tof: Option<_> = make_gauss_option(tof);
-
-        // Closure preparing the state needed by `fold`: will be called by
-        // `fold` at the start of every thread that is launched.
-        let immutable_self = &*self;
-        let initial_thread_state = || {
-            let (backprojection, weights, indices) = projection_buffers(self.fov);
-            (backprojection, weights, indices, immutable_self, &tof)
-        };
-
-        // -------- Project all LORs forwards and backwards ---------------------
-        let n_mlem_threads = unsafe {
-            // SAFETY: modified only once, at the beginning of bin/mlem.rs::main()
-            N_MLEM_THREADS
-        };
-        let job_size = measured_lors.len() / n_mlem_threads;
-        let fold_result = measured_lors
-            .par_iter()
-            // Rayon is too eager in spawning small jobs, each of which requires
-            // the construction and subsequent combination of expensive
-            // accumulators (whole `Image`s). So here we try to limit it to one
-            // job per thread.
-            .with_min_len(job_size)
-            .with_max_len(job_size)
-            .fold(initial_thread_state, project_one_lor);
-
-        // -------- extract relevant information (backprojection) ---------------
-        let backprojection = fold_result
-            // Keep only the backprojection (ignore weights and indices)
-            .map(|tuple| tuple.0)
-            // Sum the backprojections calculated on each thread
-            .reduce(|| zeros_buffer(self.fov), elementwise_add);
-
-        // -------- Correct for attenuation and detector sensitivity ------------
-        apply_sensitivity_image(&mut self.data, &backprojection, sensitivity);
     }
 
     pub fn ones(fov: FOV) -> Self {
@@ -722,7 +722,7 @@ mod tests {
         // Perform MLEM reconstruction, saving images to disk
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
         pool.install(|| {
-            Image::mlem(fov, &lors, None, None, 1)
+            mlem(fov, &lors, None, None, 1)
                 .take(10)
                 .for_each(save_each_image_in(format!("test-mlem-images/{name}/")));
         });
