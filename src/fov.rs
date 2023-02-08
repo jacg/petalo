@@ -2,9 +2,10 @@
 /// be reconstructed
 
 use units::{Length, mm_, todo::Lengthf32};
-use crate::Pointf32;
-use crate::{Point, Vector, LOR, find_tof_peak, find_entry_point, voxel_size, first_boundaries};
-use crate::index::{BoxDim_u, Index3_u, Index1_u, index1_to_3, index3_to_1};
+use crate::{
+    Pointf32, Point, Vector, LOR, find_tof_peak, find_entry_point, voxel_size, first_boundaries,
+    index::{BoxDim_u, Index3_u, Index1_u, index1_to_3, index3_to_1},
+};
 use geometry::RatioPoint;
 use uom::ConstZero;
 

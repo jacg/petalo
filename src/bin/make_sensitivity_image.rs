@@ -35,14 +35,23 @@ pub struct Cli {
 
 use clap::Parser;
 
-use std::{error::Error, io::Write};
-use std::path::PathBuf;
+use std::{
+    error::Error,
+    io::Write,
+    path::PathBuf,
+};
 
-use petalo::{utils::group_digits, LOR, fov::FOV};
-use petalo::image::Image;
+use petalo::{
+    utils::group_digits,
+    LOR,
+    fov::FOV,
+    image::Image
+};
 
-use units::{Length, Time, AreaPerMass, ratio, kg, mm, todo::Lengthf32};
-use units::uom::ConstZero;
+use units::{
+    Length, Time, AreaPerMass, ratio, kg, mm, todo::Lengthf32,
+    uom::ConstZero,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
 

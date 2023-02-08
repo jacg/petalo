@@ -1,15 +1,19 @@
-use kiss3d::light::Light;
-use kiss3d::window::Window;
-use kiss3d::event::{Action, WindowEvent};
-use kiss3d::scene::SceneNode;
-use kiss3d::camera::ArcBall;
-use kiss3d::nalgebra::{Point3, Translation3};
+use kiss3d::{
+    light::Light,
+    window::Window,
+    event::{Action, WindowEvent},
+    scene::SceneNode,
+    camera::ArcBall,
+    nalgebra::{Point3, Translation3},
+};
 
-use crate::Vectorf32;
-use crate::system_matrix::SystemMatrixRow;
-use crate::lor::LOR;
-use crate::fov::FOV;
-use crate::config::mlem::Tof;
+use crate::{
+    Vectorf32,
+    system_matrix::SystemMatrixRow,
+    lor::LOR,
+    fov::FOV,
+    config::mlem::Tof,
+};
 
 use units::{mm_, ps_};
 

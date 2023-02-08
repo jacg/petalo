@@ -2,16 +2,25 @@ use std::path::PathBuf;
 use clap::Parser;
 use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
-use units::{Length, Time, Ratio, todo::Energyf32, Area};
-use petalo::{Point, BoundPair, utils::parse_bounds};
-use petalo::io;
-use petalo::io::hdf5::Hdf5Lor;
-use petalo::io::hdf5::sensors::{QT, SensorMap};
-use petalo::io::hdf5::mc::Vertex;
-use petalo::sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction};
-use units::uom::ConstZero;
-use petalo::utils::group_digits;
-use petalo::config::mlem::Bounds;
+use units::{
+    Length, Time, Ratio,
+    todo::Energyf32, Area,
+    uom::ConstZero
+};
+use petalo::{
+    Point, BoundPair,
+    config::mlem::Bounds,
+    io::{self,
+         hdf5::{
+             Hdf5Lor,
+             sensors::{QT, SensorMap},
+             mc::Vertex
+         }
+    },
+    sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction},
+    utils::{group_digits, parse_bounds},
+};
+
 
 // TODO: try to remove the need for these
 use units::{mm, mm_, ns, ns_, ratio};

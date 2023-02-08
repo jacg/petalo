@@ -13,17 +13,22 @@
 //!    indices calculated by the algorithm, must be flipped back to the original
 //!    coordinate system.
 
-use units::{C, Length, Ratio, PerLength, Time, todo::Weightf32, in_base_unit};
-use units::{mm, mm_, ratio_};
-use units::todo::Lengthf32;
-use crate::Index3_u;
-use crate::{Point, Vector, RatioPoint, RatioVec};
-use crate::fov::FOV;
-use crate::lor::LOR;
+use units::{
+    C, Length, Ratio, PerLength, Time,
+    mm, mm_, ratio_,
+    in_base_unit,
+    todo::{Lengthf32, Weightf32},
+};
 
-use crate::gauss::make_gauss_option;
-use crate::index::index1_to_3;
-use crate::config::mlem::Tof;
+use crate::{
+    Index3_u, Point, Vector, RatioPoint, RatioVec,
+    config::mlem::Tof,
+    fov::FOV,
+    gauss::make_gauss_option,
+    index::index1_to_3,
+    lor::LOR,
+};
+
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]

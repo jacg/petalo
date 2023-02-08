@@ -32,10 +32,12 @@ use std::path::PathBuf;
 use std::fs::create_dir_all;
 
 use units::{Length, mm_};
-use petalo::fov::FOV;
-use petalo::image::Image;
-use petalo::io;
-use petalo::utils::timing::Progress;
+use petalo::{
+    fov::FOV,
+    image::Image,
+    io,
+    utils::timing::Progress
+};
 
 
 fn main() -> Result<(), Box<dyn Error>> {
