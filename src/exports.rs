@@ -1,7 +1,6 @@
 pub use crate::{
     index::{BoxDim_u, Index1_u, Index3_u, LengthI, LengthU},
     lor::LOR,
-    system_matrix::{find_tof_peak, voxel_size, first_boundaries},
 };
 
 use ncollide3d as nc;

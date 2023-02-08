@@ -275,10 +275,9 @@ fn find_entry_point(entry_point: Point, fov: FOV) -> RatioPoint {
         .map(|x| if x.abs() < EPS { Ratio::ZERO } else { x })
 }
 
-
 /// Distance from entry point to the LOR's TOF peak
 #[inline]
-pub fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
+fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Length {
     let half_lor_length = (p1 - p2).norm() / 2.0;
     let tof_shift = C * dt / 2.0; // NOTE ignoring refractive index
     let p1_to_peak = half_lor_length - tof_shift;
@@ -286,10 +285,9 @@ pub fn find_tof_peak(entry_point: Point, p1: Point, p2: Point, dt: Time) -> Leng
     p1_to_peak - p1_to_entry
 }
 
-
 /// Distances from entry point to the next voxel boundaries, in each dimension
 #[inline]
-pub fn first_boundaries(entry_point: RatioPoint, voxel_size: Vector) -> Vector {
+fn first_boundaries(entry_point: RatioPoint, voxel_size: Vector) -> Vector {
     use units::uom::si::ratio::ratio;
     // How far have we penetrated into this voxel, along any axis
     let frac_done: RatioVec = entry_point - entry_point.map(|x| x.floor::<ratio>());
@@ -301,7 +299,7 @@ pub fn first_boundaries(entry_point: RatioPoint, voxel_size: Vector) -> Vector {
 /// to cross one voxel in any given dimension. Will be infinite for any axis
 /// which is parallel to the LOR.
 #[inline]
-pub fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
+fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     // TODO: The units are a bit dodgy here. See the TODOs for
     // Vector::{normalize,component_div}
     let lor_direction = (p2-p1).normalize();
