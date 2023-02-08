@@ -105,56 +105,6 @@ impl Image {
         Ok(())
     }
 
-    // Too much copy-paste code reuse from project_one_lor. This is because the
-    // latter (and the functions it uses) was heavily optimized, at the cost of
-    // ease of reuse.
-
-    // TODO turn this into a method?
-    /// Create sensitivity image by backprojecting LORs. In theory this should
-    /// use *all* possible LORs. In practice use a representative sample.
-    pub fn sensitivity_image(density: Self, lors: impl ParallelIterator<Item = LOR>, n_lors: usize, rho_to_mu: AreaPerMass) -> Self {
-        // Convert from [density in kg/m^3] to [mu in mm^-1]
-        let rho_to_mu: f32 = ratio_({
-            let kg = kg(1.0);
-            let  m = mm(1000.0);
-            let rho_unit = kg / (m * m * m);
-            let  mu_unit = 1.0 / mm(1.0);
-            rho_to_mu / (mu_unit / rho_unit)
-        });
-        let mut attenuation = density;
-        for voxel in &mut attenuation.data {
-            *voxel *= rho_to_mu;
-        }
-
-        // TOF should not be used as LOR attenuation is independent of decay point
-        let notof = make_gauss_option(None);
-
-        // Closure preparing the state needed by `fold`: will be called by
-        // `fold` at the start of every thread that is launched.
-        let initial_thread_state = || {
-            let (backprojection, weights, indices) = projection_buffers(attenuation.fov);
-            (backprojection, weights, indices, &attenuation, &notof)
-        };
-
-        // -------- Project all LORs forwards and backwards ---------------------
-        let fold_result = lors
-            .fold(initial_thread_state, sensitivity_one_lor);
-
-        // -------- extract relevant information (backprojection) ---------------
-        let mut backprojection = fold_result
-            // Keep only the backprojection (ignore weights and indices)
-            .map(|tuple| tuple.0)
-            // Sum the backprojections calculated on each thread
-            .reduce(|| zeros_buffer(attenuation.fov), elementwise_add);
-
-        // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
-        let size = n_lors as f32;
-        for e in backprojection.iter_mut() {
-            *e /= size
-        }
-        Self::new(attenuation.fov, backprojection)
-    }
-
     pub fn ones(fov: FOV) -> Self {
         let [x,y,z] = fov.n;
         let size = x * y * z;
@@ -294,6 +244,55 @@ where
             return_state!();
         }
     }
+}
+
+// Too much copy-paste code reuse from project_one_lor. This is because the
+// latter (and the functions it uses) was heavily optimized, at the cost of ease
+// of reuse.
+
+/// Create sensitivity image by backprojecting LORs. In theory this should use
+/// *all* possible LORs. In practice use a representative sample.
+pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>, n_lors: usize, rho_to_mu: AreaPerMass) -> Image {
+    // Convert from [density in kg/m^3] to [mu in mm^-1]
+    let rho_to_mu: f32 = ratio_({
+        let kg = kg(1.0);
+        let  m = mm(1000.0);
+        let rho_unit = kg / (m * m * m);
+        let  mu_unit = 1.0 / mm(1.0);
+        rho_to_mu / (mu_unit / rho_unit)
+    });
+    let mut attenuation = density;
+    for voxel in &mut attenuation.data {
+        *voxel *= rho_to_mu;
+    }
+
+    // TOF should not be used as LOR attenuation is independent of decay point
+    let notof = make_gauss_option(None);
+
+    // Closure preparing the state needed by `fold`: will be called by
+    // `fold` at the start of every thread that is launched.
+    let initial_thread_state = || {
+        let (backprojection, weights, indices) = projection_buffers(attenuation.fov);
+        (backprojection, weights, indices, &attenuation, &notof)
+    };
+
+    // -------- Project all LORs forwards and backwards ---------------------
+    let fold_result = lors
+        .fold(initial_thread_state, sensitivity_one_lor);
+
+    // -------- extract relevant information (backprojection) ---------------
+    let mut backprojection = fold_result
+    // Keep only the backprojection (ignore weights and indices)
+        .map(|tuple| tuple.0)
+    // Sum the backprojections calculated on each thread
+        .reduce(|| zeros_buffer(attenuation.fov), elementwise_add);
+
+    // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
+    let size = n_lors as f32;
+    for e in backprojection.iter_mut() {
+        *e /= size
+    }
+    Image::new(attenuation.fov, backprojection)
 }
 
 #[inline]
