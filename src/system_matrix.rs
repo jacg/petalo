@@ -77,7 +77,7 @@ mod test {
 
         // Collect hits
         //let hits: SystemMatrixRow = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None);
-        let hits = Smr::new(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None);
+        let hits = SystemMatrixRow::new(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None);
 
         // Diagnostic output
         for (is, l) in &hits.0 { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -129,11 +129,12 @@ mod test {
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = Smr::new(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None).0
-                .into_iter()
-                .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
-                .map(|(_index, weight)| weight)
-                .sum();
+            let summed: Lengthf32 = SystemMatrixRow::new(
+                &LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None
+            ).into_iter()
+             .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
+             .map(|(_index, weight)| weight)
+             .sum();
 
             let a = fov.entry(p1, p2);
             let b = fov.entry(p2, p1);
@@ -151,11 +152,10 @@ mod test {
 
 // ---------------------- Implementation -----------------------------------------
 pub type SystemMatrixElement = (Index3_u, Weightf32);
-pub type SystemMatrixRow = Vec<SystemMatrixElement>;
 
-pub struct Smr(pub SystemMatrixRow);
+pub struct SystemMatrixRow(Vec<SystemMatrixElement>);
 
-impl Smr {
+impl SystemMatrixRow {
     pub fn new(lor: &LOR, fov: &FOV, tof: Option<Tof>) -> Self {
         use crate::fov::{lor_fov_hit, FovHit};
         let tof = make_gauss_option(tof);
@@ -173,10 +173,19 @@ impl Smr {
 
             }
         }
-        Smr(indices.into_iter()
+        SystemMatrixRow(indices.into_iter()
             .map(|i| index1_to_3(i, fov.n))
             .zip(weights.into_iter())
             .collect())
+    }
+    pub fn iter(&self) -> std::slice::Iter<SystemMatrixElement> { self.0.iter() }
+}
+
+impl IntoIterator for SystemMatrixRow {
+    type Item = SystemMatrixElement;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
