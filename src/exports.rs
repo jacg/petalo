@@ -9,6 +9,6 @@ pub type Vectorf32 = nc::math::Vector<Lengthf32>;
 pub type Pointf32  = nc::math::Point <Lengthf32>;
 pub type Point     = geometry::Point;
 
-pub use crate::index::{BoxDim_u, Index1_u, Index3_u, Index3Weightf32, LengthI, LengthU};
+pub use crate::index::{BoxDim_u, Index1_u, Index3_u, LengthI, LengthU};
 
 pub type BoundPair<T> = (std::ops::Bound<T>, std::ops::Bound<T>);

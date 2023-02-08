@@ -13,10 +13,10 @@
 //!    indices calculated by the algorithm, must be flipped back to the original
 //!    coordinate system.
 
-use units::{C, Length, Ratio, PerLength, Time, in_base_unit};
+use units::{C, Length, Ratio, PerLength, Time, todo::Weightf32, in_base_unit};
 use units::{mm, mm_, ns_, ratio_};
 use units::todo::Lengthf32;
-use crate::{Index3Weightf32};
+use crate::Index3_u;
 use crate::{Point, Vector, RatioPoint, RatioVec};
 use crate::fov::FOV;
 
@@ -76,7 +76,7 @@ mod test {
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect hits
-        let hits: Vec<Index3Weightf32> = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None);
+        let hits: SystemMatrixRow = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None);
 
         // Diagnostic output
         for (is, l) in &hits { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -150,6 +150,8 @@ mod test {
 }
 
 // ---------------------- Implementation -----------------------------------------
+pub type SystemMatrixElement = (Index3_u, Weightf32);
+pub type SystemMatrixRow = Vec<SystemMatrixElement>;
 
 /// For a single LOR, place the weights and indices of the active voxels in the
 /// `weights` and `indices` parameters. Using output parameters rather than
@@ -297,7 +299,7 @@ impl LOR {
         Self::new(t1, t2, Point::new(x1,y1,z1), Point::new(x2,y2,z2), additive_correction)
     }
 
-    pub fn active_voxels(&self, fov: &FOV, tof: Option<Tof>) -> Vec<Index3Weightf32> {
+    pub fn active_voxels(&self, fov: &FOV, tof: Option<Tof>) -> SystemMatrixRow {
         use crate::fov::{lor_fov_hit, FovHit};
         let tof = make_gauss_option(tof);
         let mut weights = vec![];
