@@ -15,7 +15,9 @@ use crate::{
     gauss::make_gauss_option,
     image::{Image, ImageData},
     system_matrix::{
-        FovHit, lor_fov_hit, system_matrix_elements, project_one_lor, back_project, forward_project, FoldState, SystemMatrixRow,
+        FovHit, FoldState, SystemMatrixRow, Siddon,
+        lor_fov_hit, system_matrix_elements,
+        project_one_lor, back_project, forward_project,
     },
 };
 
@@ -104,7 +106,7 @@ pub fn projection_buffers(fov: FOV) -> (ImageData, SystemMatrixRow) {
 
         // Weights and indices are sparse storage of the slice through the
         // system matrix which corresponds to the current
-        SystemMatrixRow::buffer(fov)
+        Siddon::buffer(fov)
     )
 }
 

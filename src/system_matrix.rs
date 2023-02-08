@@ -83,7 +83,7 @@ mod test {
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect voxels traversed by LOR
-        let hits = SystemMatrixRow::siddon(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None);
+        let hits = Siddon::new_system_matrix_row(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None);
 
         // Utility for converting 1D-index to 3D-index
         let as_3d = |i| index1_to_3(i, [n.0, n.1, 1]);
@@ -141,7 +141,7 @@ mod test {
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = SystemMatrixRow::siddon(
+            let summed: Lengthf32 = Siddon::new_system_matrix_row(
                 &LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None
             ).into_iter()
              .inspect(|&(i, l)| println!("  ({} {} {}) {}", as_3d(i)[0], as_3d(i)[1], as_3d(i)[2], l))
@@ -168,33 +168,7 @@ pub type SystemMatrixElement = (Index1_u, Weightf32);
 pub struct SystemMatrixRow(pub Vec<SystemMatrixElement>);
 
 impl SystemMatrixRow {
-
-    pub fn siddon(lor: &LOR, fov: &FOV, tof: Option<Tof>) -> Self {
-        let tof = make_gauss_option(tof);
-        let mut system_matrix_row = Self::buffer(*fov);
-        match lor_fov_hit(lor, *fov) {
-            None => (),
-            Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-                system_matrix_elements(
-                    &mut system_matrix_row,
-                    next_boundary, voxel_size,
-                    index, delta_index, remaining,
-                    tof_peak, &tof
-                );
-
-            }
-        }
-        system_matrix_row
-    }
-
-    pub fn buffer(fov: FOV) -> Self {
-        let [nx, ny, nz] = fov.n;
-        let max_number_of_active_voxels_possible = nx + ny + nz - 2;
-        Self(Vec::with_capacity(max_number_of_active_voxels_possible))
-    }
-
     pub fn iter(&self) -> std::slice::Iter<SystemMatrixElement> { self.0.iter() }
-
 }
 
 impl IntoIterator for SystemMatrixRow {

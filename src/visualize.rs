@@ -9,7 +9,7 @@ use kiss3d::{
 
 use crate::{
     Vectorf32,
-    system_matrix::SystemMatrixRow,
+    system_matrix::{SystemMatrixRow, Siddon},
     lor::LOR,
     fov::FOV,
     config::mlem::Tof, index::index1_to_3,
@@ -113,7 +113,7 @@ impl Scene {
 
     pub fn place_voxels(&mut self, shape: Shape, tof: Option<Tof>) {
 
-        let active_voxels = SystemMatrixRow::siddon(&self.lor, &self.fov, tof);
+        let active_voxels = Siddon::new_system_matrix_row(&self.lor, &self.fov, tof);
 
         let &max_weight = active_voxels
             .iter()
