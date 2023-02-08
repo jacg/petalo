@@ -171,7 +171,7 @@ impl SystemMatrixRow {
 
     pub fn siddon(lor: &LOR, fov: &FOV, tof: Option<Tof>) -> Self {
         let tof = make_gauss_option(tof);
-        let mut system_matrix_row = SystemMatrixRow(vec![]);
+        let mut system_matrix_row = Self::buffer(*fov);
         match lor_fov_hit(lor, *fov) {
             None => (),
             Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
