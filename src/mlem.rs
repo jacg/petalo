@@ -9,12 +9,14 @@ use units::{
 };
 
 use crate::{
-    LOR, Index1_u,
+    LOR,
     config::mlem::Tof,
     fov::FOV,
     gauss::make_gauss_option,
     image::{Image, ImageData},
-    system_matrix::{FovHit, lor_fov_hit, system_matrix_elements},
+    system_matrix::{
+        FovHit, lor_fov_hit, system_matrix_elements, project_one_lor, back_project, forward_project, FoldState,
+    },
 };
 
 pub static mut N_MLEM_THREADS: usize = 1;
@@ -113,54 +115,6 @@ fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
 // A new empty data store with matching size
 fn zeros_buffer(fov: FOV) -> ImageData { let [x,y,z] = fov.n; vec![0.0; x*y*z] }
 
-
-type FoldState<'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1_u> , &'i Image, &'g Option<G>);
-
-fn project_one_lor<'i, 'g, G>(state: FoldState<'i, 'g, G>, lor: &LOR) -> FoldState<'i, 'g, G>
-where
-    G: Fn(Length) -> PerLength
-{
-    let (mut backprojection, mut weights, mut indices, image, tof) = state;
-
-    // Need to return the state from various match arms
-    macro_rules! return_state { () => (return (backprojection, weights, indices, image, tof)); }
-
-    // Analyse point where LOR hits FOV
-    match lor_fov_hit(lor, image.fov) {
-
-        // LOR missed FOV: nothing to be done
-        None => return_state!(),
-
-        // Data needed by `system_matrix_elements`
-        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-
-            // Throw away previous LOR's values
-            weights.clear();
-            indices.clear();
-
-            // Find active voxels and their weights
-            system_matrix_elements(
-                &mut indices, &mut weights,
-                next_boundary, voxel_size,
-                index, delta_index, remaining,
-                tof_peak, tof
-            );
-
-            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
-            for i in &indices {
-                if *i >= backprojection.len() { return_state!(); }
-            }
-
-            // Forward projection of current image into this LOR
-            let projection = forward_project(&weights, &indices, image) * lor.additive_correction;
-
-            // Backprojection of LOR onto image
-            back_project(&mut backprojection, &weights, &indices, ratio_(projection));
-            return_state!();
-        }
-    }
-}
-
 fn sensitivity_one_lor<'i, 'g, G>(state: FoldState<'i, 'g, G>, lor: LOR) -> FoldState<'i, 'g, G>
 where
     G: Fn(Length) -> PerLength
@@ -253,23 +207,6 @@ pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>
         *e /= size
     }
     Image::new(attenuation.fov, backprojection)
-}
-
-#[inline]
-fn forward_project(weights: &[Lengthf32], indices: &[usize], image: &Image) -> Lengthf32 {
-    let mut projection = 0.0;
-    for (w, &j) in weights.iter().zip(indices.iter()) {
-        projection += w * image[j]
-    }
-    projection
-}
-
-#[inline]
-fn back_project(backprojection: &mut [Lengthf32], weights: &[Lengthf32], indices: &[usize], projection: Lengthf32) {
-    let projection_reciprocal = 1.0 / projection;
-    for (w, &j) in weights.iter().zip(indices.iter()) {
-        backprojection[j] += w * projection_reciprocal;
-    }
 }
 
 fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], sensitivity: &[Intensityf32]) {

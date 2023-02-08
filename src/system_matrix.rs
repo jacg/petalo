@@ -21,12 +21,12 @@ use units::{
 };
 
 use crate::{
-    BoxDim_u, Index3_u, Point, Pointf32, Vector, RatioPoint, RatioVec,
+    BoxDim_u, Index1_u, Index3_u, LOR, Point, Pointf32, RatioPoint, RatioVec, Vector,
     config::mlem::Tof,
     fov::FOV,
     gauss::make_gauss_option,
+    image::{Image, ImageData},
     index::{index1_to_3, index3_to_1},
-    lor::LOR,
 };
 
 
@@ -459,4 +459,68 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
         flip_if_necessary(d);
     }
     (p1, p2, flipped)
+}
+
+pub type FoldState<'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1_u> , &'i Image, &'g Option<G>);
+
+pub fn project_one_lor<'i, 'g, G>(state: FoldState<'i, 'g, G>, lor: &LOR) -> FoldState<'i, 'g, G>
+where
+    G: Fn(Length) -> PerLength
+{
+    let (mut backprojection, mut weights, mut indices, image, tof) = state;
+
+    // Need to return the state from various match arms
+    macro_rules! return_state { () => (return (backprojection, weights, indices, image, tof)); }
+
+    // Analyse point where LOR hits FOV
+    match lor_fov_hit(lor, image.fov) {
+
+        // LOR missed FOV: nothing to be done
+        None => return_state!(),
+
+        // Data needed by `system_matrix_elements`
+        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+
+            // Throw away previous LOR's values
+            weights.clear();
+            indices.clear();
+
+            // Find active voxels and their weights
+            system_matrix_elements(
+                &mut indices, &mut weights,
+                next_boundary, voxel_size,
+                index, delta_index, remaining,
+                tof_peak, tof
+            );
+
+            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
+            for i in &indices {
+                if *i >= backprojection.len() { return_state!(); }
+            }
+
+            // Forward projection of current image into this LOR
+            let projection = forward_project(&weights, &indices, image) * lor.additive_correction;
+
+            // Backprojection of LOR onto image
+            back_project(&mut backprojection, &weights, &indices, ratio_(projection));
+            return_state!();
+        }
+    }
+}
+
+#[inline]
+pub fn forward_project(weights: &[Lengthf32], indices: &[usize], image: &Image) -> Lengthf32 {
+    let mut projection = 0.0;
+    for (w, &j) in weights.iter().zip(indices.iter()) {
+        projection += w * image[j]
+    }
+    projection
+}
+
+#[inline]
+pub fn back_project(backprojection: &mut [Lengthf32], weights: &[Lengthf32], indices: &[usize], projection: Lengthf32) {
+    let projection_reciprocal = 1.0 / projection;
+    for (w, &j) in weights.iter().zip(indices.iter()) {
+        backprojection[j] += w * projection_reciprocal;
+    }
 }
