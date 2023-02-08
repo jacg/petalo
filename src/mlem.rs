@@ -9,12 +9,12 @@ use units::{
 };
 
 use crate::{
+    LOR, Index1_u,
     config::mlem::Tof,
-    fov::{lor_fov_hit, FovHit, FOV},
+    fov::FOV,
     gauss::make_gauss_option,
     image::{Image, ImageData},
-    Index1_u,
-    system_matrix::system_matrix_elements, LOR,
+    system_matrix::{FovHit, lor_fov_hit, system_matrix_elements},
 };
 
 pub static mut N_MLEM_THREADS: usize = 1;
