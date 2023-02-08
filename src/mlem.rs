@@ -19,11 +19,11 @@ use crate::{
 
 pub static mut N_MLEM_THREADS: usize = 1;
 
-pub fn mlem(fov: FOV,
-                measured_lors: &[LOR],
-                tof          : Option<Tof>,
-                sensitivity  : Option<Image>,
-                n_subsets    : usize,
+pub fn mlem(fov          : FOV,
+            measured_lors: &[LOR],
+            tof          : Option<Tof>,
+            sensitivity  : Option<Image>,
+            n_subsets    : usize,
 ) -> impl Iterator<Item = (Image, usize, usize)> + '_ {
 
     // Start off with a uniform image
@@ -123,7 +123,7 @@ where
     let (mut backprojection, mut weights, mut indices, image, tof) = state;
 
     // Need to return the state from various match arms
-    macro_rules! return_state { () => (return  (backprojection, weights, indices, image, tof)); }
+    macro_rules! return_state { () => (return (backprojection, weights, indices, image, tof)); }
 
     // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
