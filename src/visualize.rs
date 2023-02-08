@@ -12,7 +12,7 @@ use crate::{
     system_matrix::SystemMatrixRow,
     lor::LOR,
     fov::FOV,
-    config::mlem::Tof,
+    config::mlem::Tof, index::index1_to_3,
 };
 
 use units::{mm_, ps_};
@@ -134,6 +134,7 @@ impl Scene {
         // Add voxel representations to the scene
         let s = 0.99;
         for (i, weight) in active_voxels {
+            let i = index1_to_3(i, self.fov.n);
             let relative_weight = (weight / max_weight) as f32;
             let mut v = match shape {
                 Shape::Box  => self.window.add_cube(vdx * s, vdy * s, vdz * s),

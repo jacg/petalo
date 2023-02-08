@@ -53,6 +53,10 @@ impl Image {
         for e in inverted.data.iter_mut() { *e = 1.0 / *e }
         inverted
     }
+
+    // A new empty data store with matching size
+    pub fn zeros_buffer(fov: FOV) -> ImageData { let [x,y,z] = fov.n; vec![0.0; x*y*z] }
+
 }
 
 impl core::ops::IndexMut<Index1_u> for Image {

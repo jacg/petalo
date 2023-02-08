@@ -21,12 +21,12 @@ use units::{
 };
 
 use crate::{
-    BoxDim_u, Index1_u, Index3_u, LOR, Point, Pointf32, RatioPoint, RatioVec, Vector,
+    BoxDim_u, Index1_u, LOR, Point, Pointf32, RatioPoint, RatioVec, Vector,
     config::mlem::Tof,
     fov::FOV,
     gauss::make_gauss_option,
     image::{Image, ImageData},
-    index::{index1_to_3, index3_to_1},
+    index::index3_to_1,
 };
 
 
@@ -40,6 +40,7 @@ mod test {
     #[allow(unused)] use pretty_assertions::{assert_eq, assert_ne};
     use rstest::rstest;
     use units::{TWOPI, ratio};
+    use crate::index::index1_to_3;
 
     // --------------------------------------------------------------------------------
     // This set of hand-picked values should be easy to verify by humans. The
@@ -81,22 +82,24 @@ mod test {
         let command = crate::visualize::vislor_command(&fov, &lor);
         println!("\nTo visualize this case, run:\n{}\n", command);
 
-        // Collect hits
-        //let hits: SystemMatrixRow = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None);
+        // Collect voxels traversed by LOR
         let hits = SystemMatrixRow::siddon(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None);
 
+        // Utility for converting 1D-index to 3D-index
+        let as_3d = |i| index1_to_3(i, [n.0, n.1, 1]);
+
         // Diagnostic output
-        for (is, l) in &hits.0 { println!("  ({} {})   {}", is[0], is[1], l) }
+        for (i, l) in &hits { println!("  ({} {})   {l}", as_3d(i)[0], as_3d(i)[1]) }
 
         // Check total length through FOV
-        let total_length: Lengthf32 = hits.0.iter()
+        let total_length: Lengthf32 = hits.iter()
             .map(|(_index, weight)| weight)
             .sum();
         assert_float_eq!(total_length, length, ulps <= 1);
 
         // Check voxels hit
-        let voxels: Vec<(usize, usize)> = hits.0.into_iter()
-            .map(|(index, _weight)| (index[0], index[1]))
+        let voxels: Vec<(usize, usize)> = hits.into_iter()
+            .map(|(j, _weight)| (as_3d(j)[0], as_3d(j)[1]))
             .collect();
         assert_eq!(voxels, expected_voxels)
     }
@@ -130,6 +133,9 @@ mod test {
             let p2 = Point::new(r * p2_theta.cos(), r * p2_theta.sin(), p2_z);
             let fov = FOV::new((mm(dx), mm(dy), mm(dz)), (nx, ny, nz));
 
+            // Convert 1D-index to 3D-index
+            let as_3d = |i| index1_to_3(i, [nx, ny, nz]);
+
             // Values to plug in to visualizer:
             let lor = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0));
             let command = crate::visualize::vislor_command(&fov, &lor);
@@ -138,7 +144,7 @@ mod test {
             let summed: Lengthf32 = SystemMatrixRow::siddon(
                 &LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None
             ).into_iter()
-             .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
+             .inspect(|&(i, l)| println!("  ({} {} {}) {}", as_3d(i)[0], as_3d(i)[1], as_3d(i)[2], l))
              .map(|(_index, weight)| weight)
              .sum();
 
@@ -157,20 +163,20 @@ mod test {
 }
 
 // ---------------------- Implementation -----------------------------------------
-pub type SystemMatrixElement = (Index3_u, Weightf32);
+pub type SystemMatrixElement = (Index1_u, Weightf32);
 
-pub struct SystemMatrixRow(Vec<SystemMatrixElement>);
+pub struct SystemMatrixRow(pub Vec<SystemMatrixElement>);
 
 impl SystemMatrixRow {
+
     pub fn siddon(lor: &LOR, fov: &FOV, tof: Option<Tof>) -> Self {
         let tof = make_gauss_option(tof);
-        let mut weights = vec![];
-        let mut indices = vec![];
+        let mut system_matrix_row = SystemMatrixRow(vec![]);
         match lor_fov_hit(lor, *fov) {
             None => (),
             Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
                 system_matrix_elements(
-                    &mut indices, &mut weights,
+                    &mut system_matrix_row,
                     next_boundary, voxel_size,
                     index, delta_index, remaining,
                     tof_peak, &tof
@@ -178,12 +184,17 @@ impl SystemMatrixRow {
 
             }
         }
-        SystemMatrixRow(indices.into_iter()
-            .map(|i| index1_to_3(i, fov.n))
-            .zip(weights.into_iter())
-            .collect())
+        system_matrix_row
     }
+
+    pub fn buffer(fov: FOV) -> Self {
+        let [nx, ny, nz] = fov.n;
+        let max_number_of_active_voxels_possible = nx + ny + nz - 2;
+        Self(Vec::with_capacity(max_number_of_active_voxels_possible))
+    }
+
     pub fn iter(&self) -> std::slice::Iter<SystemMatrixElement> { self.0.iter() }
+
 }
 
 impl IntoIterator for SystemMatrixRow {
@@ -194,16 +205,59 @@ impl IntoIterator for SystemMatrixRow {
     }
 }
 
-/// For a single LOR, place the weights and indices of the active voxels in the
-/// `weights` and `indices` parameters. Using output parameters rather than
-/// return values, because this function is called in the inner loop, and
-/// allocating the vectors of results repeatedly, had a noticeable impact on
-/// performance.
+impl<'a> IntoIterator for &'a SystemMatrixRow {
+    type Item = SystemMatrixElement;
+    type IntoIter = std::iter::Cloned<std::slice::Iter<'a, Self::Item>>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter().cloned()
+    }
+}
+
+// ---- Siddon Projector ----------------------------------------------------------------------
+// TODO Projector shoud be turned into a trait
+
+pub struct Siddon;
+
+impl Siddon {
+    // TODO  FOV and TOF should become construction-time arguments
+    pub fn new_system_matrix_row(lor: &LOR, fov: &FOV, tof: Option<Tof>) -> SystemMatrixRow {
+        let tof = make_gauss_option(tof);
+        let mut system_matrix_row = Self::buffer(*fov);
+        match lor_fov_hit(lor, *fov) {
+            None => (),
+            Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+                system_matrix_elements(
+                    &mut system_matrix_row,
+                    next_boundary, voxel_size,
+                    index, delta_index, remaining,
+                    tof_peak, &tof
+                );
+            }
+        }
+        system_matrix_row
+    }
+
+    pub fn buffer(fov: FOV) -> SystemMatrixRow {
+        let [nx, ny, nz] = fov.n;
+        let max_number_of_active_voxels_possible = nx + ny + nz - 2;
+        SystemMatrixRow(Vec::with_capacity(max_number_of_active_voxels_possible))
+    }
+
+    pub fn replace_system_matrix_row(
+        smr: &mut SystemMatrixRow,
+    ) {
+        todo!()
+    }
+}
+
+/// For a single LOR, place the weights and indices of the active voxels in
+/// `system_matrix_row` parameter. Using output parameters rather than return
+/// values, because this function is called in the inner loop, and allocating
+/// the vectors of results repeatedly, had a noticeable impact on performance.
 #[inline]
 #[allow(clippy::too_many_arguments)]
 pub fn system_matrix_elements(
-    indices: &mut Vec<usize>,
-    weights: &mut Vec<Lengthf32>,
+    system_matrix_row: &mut SystemMatrixRow,
     mut next_boundary: Vector,
     voxel_size: Vector,
     mut index: i32,
@@ -233,8 +287,7 @@ pub fn system_matrix_elements(
 
         // Store the index and weight of the voxel we have just crossed
         if weight > Length::ZERO {
-            indices.push(index as usize);
-            weights.push(mm_(weight));
+            system_matrix_row.0.push(((index as usize), (mm_(weight))));
         }
 
         // Move along LOR until it leaves this voxel
@@ -461,16 +514,16 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
     (p1, p2, flipped)
 }
 
-pub type FoldState<'i, 'g, G> = (ImageData , Vec<Lengthf32>, Vec<Index1_u> , &'i Image, &'g Option<G>);
+pub type FoldState<'i, 'g, G> = (ImageData, SystemMatrixRow , &'i Image, &'g Option<G>);
 
 pub fn project_one_lor<'i, 'g, G>(state: FoldState<'i, 'g, G>, lor: &LOR) -> FoldState<'i, 'g, G>
 where
     G: Fn(Length) -> PerLength
 {
-    let (mut backprojection, mut weights, mut indices, image, tof) = state;
+    let (mut backprojection, mut system_matrix_row, image, tof) = state;
 
     // Need to return the state from various match arms
-    macro_rules! return_state { () => (return (backprojection, weights, indices, image, tof)); }
+    macro_rules! return_state { () => (return (backprojection, system_matrix_row, image, tof)); }
 
     // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
@@ -482,45 +535,44 @@ where
         Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
             // Throw away previous LOR's values
-            weights.clear();
-            indices.clear();
+            system_matrix_row.0.clear();
 
             // Find active voxels and their weights
             system_matrix_elements(
-                &mut indices, &mut weights,
+                &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
                 tof_peak, tof
             );
 
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
-            for i in &indices {
-                if *i >= backprojection.len() { return_state!(); }
+            for (i, _) in &system_matrix_row {
+                if i >= backprojection.len() { return_state!(); }
             }
 
             // Forward projection of current image into this LOR
-            let projection = forward_project(&weights, &indices, image) * lor.additive_correction;
+            let projection = forward_project(&system_matrix_row, image) * lor.additive_correction;
 
             // Backprojection of LOR onto image
-            back_project(&mut backprojection, &weights, &indices, ratio_(projection));
+            back_project(&mut backprojection, &system_matrix_row, ratio_(projection));
             return_state!();
         }
     }
 }
 
 #[inline]
-pub fn forward_project(weights: &[Lengthf32], indices: &[usize], image: &Image) -> Lengthf32 {
+pub fn forward_project(system_matrix_row: &SystemMatrixRow, image: &Image) -> Lengthf32 {
     let mut projection = 0.0;
-    for (w, &j) in weights.iter().zip(indices.iter()) {
+    for (j, w) in system_matrix_row {
         projection += w * image[j]
     }
     projection
 }
 
 #[inline]
-pub fn back_project(backprojection: &mut [Lengthf32], weights: &[Lengthf32], indices: &[usize], projection: Lengthf32) {
+pub fn back_project(backprojection: &mut [Lengthf32], system_matrix_row: &SystemMatrixRow, projection: Lengthf32) {
     let projection_reciprocal = 1.0 / projection;
-    for (w, &j) in weights.iter().zip(indices.iter()) {
+    for (j, w) in system_matrix_row {
         backprojection[j] += w * projection_reciprocal;
     }
 }

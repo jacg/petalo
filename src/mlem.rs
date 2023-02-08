@@ -15,7 +15,7 @@ use crate::{
     gauss::make_gauss_option,
     image::{Image, ImageData},
     system_matrix::{
-        FovHit, lor_fov_hit, system_matrix_elements, project_one_lor, back_project, forward_project, FoldState,
+        FovHit, lor_fov_hit, system_matrix_elements, project_one_lor, back_project, forward_project, FoldState, SystemMatrixRow,
     },
 };
 
@@ -64,8 +64,8 @@ fn one_iteration(image: &mut Image, measured_lors: &[LOR], sensitivity: &[Intens
     // `fold` at the start of every thread that is launched.
     let shared_image = &*image;
     let initial_thread_state = || {
-        let (backprojection, weights, indices) = projection_buffers(image.fov);
-        (backprojection, weights, indices, shared_image, &tof)
+        let (backprojection, system_matrix_row) = projection_buffers(image.fov);
+        (backprojection, system_matrix_row, shared_image, &tof)
     };
 
     // -------- Project all LORs forwards and backwards ---------------------
@@ -88,41 +88,38 @@ fn one_iteration(image: &mut Image, measured_lors: &[LOR], sensitivity: &[Intens
         // Keep only the backprojection (ignore weights and indices)
         .map(|tuple| tuple.0)
         // Sum the backprojections calculated on each thread
-        .reduce(|| zeros_buffer(image.fov), elementwise_add);
+        .reduce(|| Image::zeros_buffer(image.fov), elementwise_add);
 
     // -------- Correct for attenuation and detector sensitivity ------------
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
 }
 
-pub fn projection_buffers(fov: FOV) -> (ImageData, Vec<Lengthf32>, Vec<usize>) {
-    // The backprojection (or sensitivity image) being constructed in a
-    // given MLEM current_iteration (or sensitivity image calculation).
-    let image = zeros_buffer(fov);
-    // Weights and indices are sparse storage of the slice through the
-    // system matrix which corresponds to the current LOR. (Allocating these
-    // anew for each LOR had a noticeable runtime cost.)
-    let [nx, ny, nz] = fov.n;
-    let max_number_of_active_voxels_possible = nx + ny + nz - 2;
-    let weights = Vec::with_capacity(max_number_of_active_voxels_possible);
-    let indices = Vec::with_capacity(max_number_of_active_voxels_possible);
-    (image, weights, indices)
+pub fn projection_buffers(fov: FOV) -> (ImageData, SystemMatrixRow) {
+    // Allocating these anew for each LOR had a noticeable runtime cost, so we
+    // create them up-front and reuse them.
+    (
+        // The ackprojection (or sensitivity image) being constructed in a given
+        // MLEM current_iteration (or sensitivity image calculation)
+        Image::zeros_buffer(fov),
+
+        // Weights and indices are sparse storage of the slice through the
+        // system matrix which corresponds to the current
+        SystemMatrixRow::buffer(fov)
+    )
 }
 
 fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
     a.iter().zip(b.iter()).map(|(l,r)| l+r).collect()
 }
 
-// A new empty data store with matching size
-fn zeros_buffer(fov: FOV) -> ImageData { let [x,y,z] = fov.n; vec![0.0; x*y*z] }
-
 fn sensitivity_one_lor<'i, 'g, G>(state: FoldState<'i, 'g, G>, lor: LOR) -> FoldState<'i, 'g, G>
 where
     G: Fn(Length) -> PerLength
 {
-    let (mut backprojection, mut weights, mut indices, attenuation, tof) = state;
+    let (mut backprojection, mut system_matrix_row, attenuation, tof) = state;
 
     // Need to return the state from various match arms
-    macro_rules! return_state { () => (return (backprojection, weights, indices, attenuation, tof)); }
+    macro_rules! return_state { () => (return (backprojection, system_matrix_row, attenuation, tof)); }
 
     // Find active voxels (slice of system matrix) WITHOUT TOF
     // Analyse point where LOR hits FOV
@@ -135,26 +132,25 @@ where
         Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
             // Throw away previous LOR's values
-            weights.clear();
-            indices.clear();
+            system_matrix_row.0.clear();
 
             // Find active voxels and their weights
             system_matrix_elements(
-                &mut indices, &mut weights,
+                &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
                 tof_peak, tof
             );
 
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
-            for i in &indices {
-                if *i >= backprojection.len() { return_state!(); }
+            for (i, _) in &system_matrix_row {
+                if i >= backprojection.len() { return_state!(); }
             }
 
-            let integral = forward_project(&weights, &indices, attenuation);
+            let integral = forward_project(&system_matrix_row, attenuation);
             let attenuation_factor = (-integral).exp();
             // Backprojection of LOR onto sensitivity image
-            back_project(&mut backprojection, &weights, &indices, attenuation_factor);
+            back_project(&mut backprojection, &system_matrix_row, attenuation_factor);
             return_state!();
         }
     }
@@ -186,8 +182,8 @@ pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
-        let (backprojection, weights, indices) = projection_buffers(attenuation.fov);
-        (backprojection, weights, indices, &attenuation, &notof)
+        let (backprojection, system_matrix_row) = projection_buffers(attenuation.fov);
+        (backprojection, system_matrix_row, &attenuation, &notof)
     };
 
     // -------- Project all LORs forwards and backwards ---------------------
@@ -199,7 +195,7 @@ pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>
     // Keep only the backprojection (ignore weights and indices)
         .map(|tuple| tuple.0)
     // Sum the backprojections calculated on each thread
-        .reduce(|| zeros_buffer(attenuation.fov), elementwise_add);
+        .reduce(|| Image::zeros_buffer(attenuation.fov), elementwise_add);
 
     // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
     let size = n_lors as f32;
