@@ -83,7 +83,7 @@ mod test {
 
         // Collect hits
         //let hits: SystemMatrixRow = LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)).active_voxels(&fov, None);
-        let hits = SystemMatrixRow::new(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None);
+        let hits = SystemMatrixRow::siddon(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None);
 
         // Diagnostic output
         for (is, l) in &hits.0 { println!("  ({} {})   {}", is[0], is[1], l) }
@@ -135,7 +135,7 @@ mod test {
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = SystemMatrixRow::new(
+            let summed: Lengthf32 = SystemMatrixRow::siddon(
                 &LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None
             ).into_iter()
              .inspect(|(i, l)| println!("  ({} {} {}) {}", i[0], i[1], i[2], l))
@@ -162,7 +162,7 @@ pub type SystemMatrixElement = (Index3_u, Weightf32);
 pub struct SystemMatrixRow(Vec<SystemMatrixElement>);
 
 impl SystemMatrixRow {
-    pub fn new(lor: &LOR, fov: &FOV, tof: Option<Tof>) -> Self {
+    pub fn siddon(lor: &LOR, fov: &FOV, tof: Option<Tof>) -> Self {
         use crate::fov::{lor_fov_hit, FovHit};
         let tof = make_gauss_option(tof);
         let mut weights = vec![];

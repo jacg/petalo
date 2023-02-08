@@ -113,7 +113,7 @@ impl Scene {
 
     pub fn place_voxels(&mut self, shape: Shape, tof: Option<Tof>) {
 
-        let active_voxels = SystemMatrixRow::new(&self.lor, &self.fov, tof);
+        let active_voxels = SystemMatrixRow::siddon(&self.lor, &self.fov, tof);
 
         let &max_weight = active_voxels
             .iter()
