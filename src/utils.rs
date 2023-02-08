@@ -2,8 +2,7 @@ use std::num::ParseFloatError;
 use std::ops::{Bound, Range};
 
 use units::{Ratio, todo::{Timef32, Lengthf32}};
-use crate::{Point, BoundPair};
-use crate::system_matrix::LOR;
+use crate::{Point, BoundPair, LOR};
 use units::{mm, ns, ratio};
 
 pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {

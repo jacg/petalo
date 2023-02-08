@@ -8,6 +8,7 @@ pub mod utils;
 pub mod mlem;
 pub mod gauss;
 pub mod fom;
+pub mod lor;
 pub mod lorogram;
 pub mod image;
 pub mod index;

@@ -6,7 +6,8 @@ use kiss3d::camera::ArcBall;
 use kiss3d::nalgebra::{Point3, Translation3};
 
 use crate::Vectorf32;
-use crate::system_matrix::{LOR, SystemMatrixRow};
+use crate::system_matrix::SystemMatrixRow;
+use crate::lor::LOR;
 use crate::fov::FOV;
 use crate::config::mlem::Tof;
 

@@ -4,7 +4,7 @@ pub use build_scattergram::*;
 use ndhistogram::{axis::{Axis, Uniform, UniformCyclic as Cyclic},
                   Histogram, ndhistogram};
 
-use crate::system_matrix::LOR;
+use crate::LOR;
 use std::f32::consts::TAU;
 
 use units::{Angle, Length, Time, Ratio, todo::Lengthf32};

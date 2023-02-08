@@ -5,7 +5,7 @@ use rayon::prelude::*;
 
 use units::{Length, PerLength, AreaPerMass, todo::{Lengthf32, Intensityf32}};
 use crate::{io, Index1_u};
-use crate::{fov::{lor_fov_hit, FovHit}, system_matrix::{system_matrix_elements, LOR}};
+use crate::{fov::{lor_fov_hit, FovHit}, system_matrix::system_matrix_elements, LOR};
 use crate::fov::FOV;
 use crate::gauss::make_gauss_option;
 use crate::config::mlem::Tof;
