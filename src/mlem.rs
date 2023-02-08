@@ -1,4 +1,3 @@
-use std::path::Path;
 use ndarray::azip;
 
 use rayon::prelude::*;
@@ -14,7 +13,7 @@ use crate::{
     fov::{lor_fov_hit, FovHit, FOV},
     gauss::make_gauss_option,
     image::{Image, ImageData},
-    io, Index1_u,
+    Index1_u,
     system_matrix::system_matrix_elements, LOR,
 };
 
@@ -91,45 +90,6 @@ fn one_iteration(image: &mut Image, measured_lors: &[LOR], sensitivity: &[Intens
 
     // -------- Correct for attenuation and detector sensitivity ------------
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
-}
-
-
-impl Image {
-
-    pub fn from_raw_file(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
-        Ok((&crate::io::raw::Image3D::read_from_file(path)?).into())
-    }
-
-    pub fn write_to_raw_file(&self, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
-        io::raw::Image3D::from(self).write_to_file(path)?;
-        Ok(())
-    }
-
-    pub fn ones(fov: FOV) -> Self {
-        let [x,y,z] = fov.n;
-        let size = x * y * z;
-        Self { data: vec![1.0; size], fov}
-    }
-
-    pub fn new(fov: FOV, data: ImageData) -> Self {
-        let [x, y, z] = fov.n;
-        if data.len() != x * y * z {
-            // TODO change panic to Option or Result
-            panic!("Image data does not match dimensions {:?}", fov.n);
-        };
-        Image { fov, data }
-    }
-
-    pub fn empty(fov: FOV) -> Self {
-        let [x,y,z] = fov.n;
-        Self::new(fov, vec![0.0; x*y*z])
-    }
-
-    pub fn inverted(&self) -> Self {
-        let mut inverted = self.clone();
-        for e in inverted.data.iter_mut() { *e = 1.0 / *e }
-        inverted
-    }
 }
 
 pub fn projection_buffers(fov: FOV) -> (ImageData, Vec<Lengthf32>, Vec<usize>) {
