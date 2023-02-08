@@ -16,8 +16,7 @@ use crate::{
     image::{Image, ImageData},
     system_matrix::{
         FovHit, FoldState, SystemMatrixRow, Siddon,
-        lor_fov_hit, system_matrix_elements,
-        project_one_lor, back_project, forward_project,
+        lor_fov_hit, project_one_lor, back_project, forward_project,
     },
 };
 
@@ -133,11 +132,8 @@ where
         // Data needed by `system_matrix_elements`
         Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
-            // Throw away previous LOR's values
-            system_matrix_row.clear();
-
             // Find active voxels and their weights
-            system_matrix_elements(
+            Siddon::update_smatrix_row(
                 &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,

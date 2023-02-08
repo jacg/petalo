@@ -201,7 +201,7 @@ impl Siddon {
         match lor_fov_hit(lor, *fov) {
             None => (),
             Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-                system_matrix_elements(
+                Self::update_smatrix_row(
                     &mut system_matrix_row,
                     next_boundary, voxel_size,
                     index, delta_index, remaining,
@@ -218,67 +218,66 @@ impl Siddon {
         SystemMatrixRow(Vec::with_capacity(max_number_of_active_voxels_possible))
     }
 
-    pub fn replace_system_matrix_row(
-        smr: &mut SystemMatrixRow,
+    /// For a single LOR, place the weights and indices of the active voxels in
+    /// `system_matrix_row` parameter. Using output parameters rather than return
+    /// values, because this function is called in the inner loop, and allocating
+    /// the vectors of results repeatedly, had a noticeable impact on performance.
+    #[inline]
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_smatrix_row(
+        system_matrix_row: &mut SystemMatrixRow,
+        mut next_boundary: Vector,
+        voxel_size: Vector,
+        mut index: i32,
+        delta_index: [i32; 3],
+        mut remaining: [i32; 3],
+        tof_peak: Length,
+        tof: &Option<impl Fn(Length) -> PerLength>
     ) {
-        todo!()
+        // Throw away previous LOR's values
+        system_matrix_row.clear();
+
+        // How far we have moved since entering the FOV
+        let mut here = Length::ZERO;
+
+        loop {
+            // Which voxel boundary will be hit next, and its position
+            let (dimension, boundary_position) = next_boundary.argmin();
+
+            // The weight is the length of LOR in this voxel
+            let mut weight = boundary_position - here;
+
+            // If TOF enabled, adjust weight
+            if let Some(gauss) = &tof {
+                let g: PerLength = gauss(here - tof_peak);
+                // TODO Normalization
+                let completely_arbitrary_factor = 666.0;
+                let g: f32 = ratio_(mm(completely_arbitrary_factor) * g);
+                weight *= g;
+            }
+
+            // Store the index and weight of the voxel we have just crossed
+            if weight > Length::ZERO {
+                system_matrix_row.0.push(((index as usize), (mm_(weight))));
+            }
+
+            // Move along LOR until it leaves this voxel
+            here = boundary_position;
+
+            // Find the next boundary in this dimension
+            next_boundary[dimension] += voxel_size[dimension];
+
+            // Move index across the boundary we are crossing
+            index += delta_index[dimension];
+            remaining[dimension] -= 1;
+
+            // If we have traversed the whole FOV, we're finished
+            if remaining[dimension] == 0 { break; }
+        }
     }
+
 }
 
-/// For a single LOR, place the weights and indices of the active voxels in
-/// `system_matrix_row` parameter. Using output parameters rather than return
-/// values, because this function is called in the inner loop, and allocating
-/// the vectors of results repeatedly, had a noticeable impact on performance.
-#[inline]
-#[allow(clippy::too_many_arguments)]
-pub fn system_matrix_elements(
-    system_matrix_row: &mut SystemMatrixRow,
-    mut next_boundary: Vector,
-    voxel_size: Vector,
-    mut index: i32,
-    delta_index: [i32; 3],
-    mut remaining: [i32; 3],
-    tof_peak: Length,
-    tof: &Option<impl Fn(Length) -> PerLength>) {
-
-    // How far we have moved since entering the FOV
-    let mut here = Length::ZERO;
-
-    loop {
-        // Which voxel boundary will be hit next, and its position
-        let (dimension, boundary_position) = next_boundary.argmin();
-
-        // The weight is the length of LOR in this voxel
-        let mut weight = boundary_position - here;
-
-        // If TOF enabled, adjust weight
-        if let Some(gauss) = &tof {
-            let g: PerLength = gauss(here - tof_peak);
-            // TODO Normalization
-            let completely_arbitrary_factor = 666.0;
-            let g: f32 = ratio_(mm(completely_arbitrary_factor) * g);
-            weight *= g;
-        }
-
-        // Store the index and weight of the voxel we have just crossed
-        if weight > Length::ZERO {
-            system_matrix_row.0.push(((index as usize), (mm_(weight))));
-        }
-
-        // Move along LOR until it leaves this voxel
-        here = boundary_position;
-
-        // Find the next boundary in this dimension
-        next_boundary[dimension] += voxel_size[dimension];
-
-        // Move index across the boundary we are crossing
-        index += delta_index[dimension];
-        remaining[dimension] -= 1;
-
-        // If we have traversed the whole FOV, we're finished
-        if remaining[dimension] == 0 { break; }
-    }
-}
 
 use units::uom::ConstZero;
 
@@ -509,11 +508,8 @@ where
         // Data needed by `system_matrix_elements`
         Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
-            // Throw away previous LOR's values
-            system_matrix_row.0.clear();
-
             // Find active voxels and their weights
-            system_matrix_elements(
+            Siddon::update_smatrix_row(
                 &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
