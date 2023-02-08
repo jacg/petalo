@@ -134,7 +134,7 @@ where
         Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
             // Throw away previous LOR's values
-            system_matrix_row.0.clear();
+            system_matrix_row.clear();
 
             // Find active voxels and their weights
             system_matrix_elements(

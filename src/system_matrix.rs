@@ -169,6 +169,7 @@ pub struct SystemMatrixRow(pub Vec<SystemMatrixElement>);
 
 impl SystemMatrixRow {
     pub fn iter(&self) -> std::slice::Iter<SystemMatrixElement> { self.0.iter() }
+    pub fn clear(&mut self) { self.0.clear(); }
 }
 
 impl IntoIterator for SystemMatrixRow {
