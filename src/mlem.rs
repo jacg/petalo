@@ -27,30 +27,20 @@ pub fn mlem(fov          : FOV,
             tof          : Option<Tof>,
             sensitivity  : Option<Image>,
             n_subsets    : usize,
-) -> impl Iterator<Item = (Image, usize, usize)> + '_ {
+) -> impl Iterator<Item = (Image, Osem)> + '_ {
 
     // Start off with a uniform image
     let mut image = Image::ones(fov);
 
     let sensitivity = sensitivity.or_else(|| Some(Image::ones(fov))).unwrap();
 
-    let len = measured_lors.len();
-    let set_size = len / n_subsets; // TODO: remainder LORs ignored
-    let (mut iteration, mut subset) = (1, 1);
+    let mut osem = Osem::new(n_subsets);
 
     // Return an iterator which generates an infinite sequence of images,
     // each one made by performing one MLEM iteration on the previous one
     std::iter::from_fn(move || {
-        let lo = (subset - 1) * set_size;
-        let hi = lo + set_size;
-        let (old_iteration, old_subset) = (iteration, subset);
-        subset += 1;
-        if subset > n_subsets {
-            subset = 1;
-            iteration += 1;
-        }
-        one_iteration(&mut image, &measured_lors[lo..hi], &sensitivity.data, tof);
-        Some((image.clone(), old_iteration, old_subset)) // TODO see if we can sensibly avoid cloning
+        one_iteration(&mut image, osem.subset(measured_lors), &sensitivity.data, tof);
+        Some((image.clone(), osem.next().unwrap())) // TODO see if we can sensibly avoid cloning
     })
 }
 
@@ -99,8 +89,8 @@ pub fn projection_buffers(fov: FOV) -> (ImageData, SystemMatrixRow) {
     // Allocating these anew for each LOR had a noticeable runtime cost, so we
     // create them up-front and reuse them.
     (
-        // The ackprojection (or sensitivity image) being constructed in a given
-        // MLEM current_iteration (or sensitivity image calculation)
+        // The backprojection (or sensitivity image) being constructed in a given
+        // MLEM iteration (or sensitivity image calculation)
         Image::zeros_buffer(fov),
 
         // Weights and indices are sparse storage of the slice through the
@@ -431,10 +421,10 @@ mod tests {
 
     // TODO: this should be reused in bin/mlem:main (report_time complicates it)
     /// Return a function which saves images in the given directory
-    fn save_each_image_in(directory: String) -> impl FnMut((Image, usize, usize)) {
+    fn save_each_image_in(directory: String) -> impl FnMut((Image, Osem)) {
         use std::path::PathBuf;
         std::fs::create_dir_all(PathBuf::from(&directory)).unwrap();
-        move |(image, iteration, subset)| {
+        move |(image, Osem{iteration, subset, ..})| {
             let image_path = PathBuf::from(format!("{directory}/{iteration:02}-{subset:02}.raw"));
             crate::io::raw::Image3D::from(&image).write_to_file(&image_path).unwrap();
         }
@@ -591,7 +581,6 @@ mod tests {
 
         let mut sgram = correction.build();
 
-
         // Fill scattergam, if required
         if let Some(sgram) = &mut sgram {
             for lor in trues { sgram.fill(Prompt::True   , lor); }
@@ -617,5 +606,40 @@ mod tests {
                 .for_each(save_each_image_in(format!("test-mlem-images/{name}/")));
         });
         //assert!(false);
+    }
+}
+
+
+#[derive(Debug, Clone, Copy)]
+pub struct Osem {
+    pub n_subsets: usize,
+    pub iteration: usize,
+    pub subset: usize,
+}
+
+impl Osem {
+    fn new(n_subsets: usize) -> Self {
+        Self { n_subsets, iteration: 1, subset: 1 }
+    }
+
+    fn subset<'s, 'l>(&'s self, lors: &'l [LOR]) -> &'l [LOR] {
+        let set_size = lors.len() / self.n_subsets; // TODO remainder LORs ignored
+        let lo = (self.subset - 1) * set_size;
+        let hi = lo + set_size;
+        &lors[lo..hi]
+    }
+}
+
+// Hmm, a `next()` method on Osem itself might be a better idea
+impl Iterator for Osem {
+    type Item = Self;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.subset += 1;
+        if self.subset > self.n_subsets {
+            self.subset = 1;
+            self.iteration += 1;
+        }
+        Some(*self)
     }
 }
