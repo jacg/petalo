@@ -3,7 +3,7 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use units::{
-    Length, PerLength, AreaPerMass,
+    Length, AreaPerMass,
     todo::{Lengthf32, Intensityf32},
     ratio_, mm, kg,
 };
@@ -90,10 +90,7 @@ fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
     a.iter().zip(b.iter()).map(|(l,r)| l+r).collect()
 }
 
-fn sensitivity_one_lor<'i, 'g, G>(state: FoldState<'i, 'g, G>, lor: LOR) -> FoldState<'i, 'g, G>
-where
-    G: Fn(Length) -> PerLength
-{
+fn sensitivity_one_lor<'i, 'g>(state: FoldState<'i, 'g>, lor: LOR) -> FoldState<'i, 'g> {
     let (mut backprojection, mut system_matrix_row, attenuation, tof) = state;
 
     // Need to return the state from various match arms

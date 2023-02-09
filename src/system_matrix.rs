@@ -24,7 +24,7 @@ use crate::{
     BoxDim_u, Index1_u, LOR, Point, Pointf32, RatioPoint, RatioVec, Vector,
     config::mlem::Tof,
     fov::FOV,
-    gauss::make_gauss_option,
+    gauss::{Gaussian, make_gauss_option},
     image::{Image, ImageData},
     index::index3_to_1,
 };
@@ -241,7 +241,7 @@ impl Siddon {
         delta_index: [i32; 3],
         mut remaining: [i32; 3],
         tof_peak: Length,
-        tof: &Option<impl Fn(Length) -> PerLength>
+        tof: &Option<Gaussian>
     ) {
         // Throw away previous LOR's values
         system_matrix_row.clear();
@@ -258,7 +258,7 @@ impl Siddon {
 
             // If TOF enabled, adjust weight
             if let Some(gauss) = &tof {
-                let g: PerLength = gauss(here - tof_peak);
+                let g: PerLength = gauss.call(here - tof_peak);
                 // TODO Normalization
                 let completely_arbitrary_factor = 666.0;
                 let g: f32 = ratio_(mm(completely_arbitrary_factor) * g);
@@ -341,9 +341,9 @@ fn voxel_size(fov: FOV, p1: Point, p2: Point) -> Vector {
     let lor_direction = (p2-p1).normalize();
     fov.voxel_size.component_div(lor_direction)
 }
+
 /// Figure out if the LOR hits the FOV at all. If it does, calculate values
 /// needed by `system_matrix_elements`.
-
 #[inline]
 pub fn lor_fov_hit(lor: &LOR, fov: FOV) -> Option<FovHit> {
 
@@ -497,12 +497,9 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
     (p1, p2, flipped)
 }
 
-pub type FoldState<'i, 'g, G> = (ImageData, SystemMatrixRow , &'i Image, &'g Option<G>);
+pub type FoldState<'i, 'g> = (ImageData, SystemMatrixRow , &'i Image, &'g Option<Gaussian>);
 
-pub fn project_one_lor<'i, 'g, G>(state: FoldState<'i, 'g, G>, lor: &LOR) -> FoldState<'i, 'g, G>
-where
-    G: Fn(Length) -> PerLength
-{
+pub fn project_one_lor<'i, 'g>(state: FoldState<'i, 'g>, lor: &LOR) -> FoldState<'i, 'g>{
     let (mut backprojection, mut system_matrix_row, image, tof) = state;
 
     // Need to return the state from various match arms
@@ -522,7 +519,7 @@ where
                 &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
-                tof_peak, tof
+                tof_peak, &tof
             );
 
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
