@@ -53,10 +53,11 @@ fn one_iteration(image: &mut Image, measured_lors: &[LOR], sensitivity: &[Intens
 
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
-    let shared_image = &*image;
+    let previous_image_shared = &*image;
     let initial_thread_state = || {
-        let (backprojection, system_matrix_row) = projection_buffers(image.fov);
-        (backprojection, system_matrix_row, shared_image, &tof)
+        let backprojection_image_per_thread = Image::zeros_buffer(image.fov);
+        let system_matrix_row = projection_buffers(image.fov);
+        (backprojection_image_per_thread, system_matrix_row, previous_image_shared, &tof)
     };
 
     // -------- Project all LORs forwards and backwards ---------------------
@@ -85,18 +86,12 @@ fn one_iteration(image: &mut Image, measured_lors: &[LOR], sensitivity: &[Intens
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
 }
 
-pub fn projection_buffers(fov: FOV) -> (ImageData, SystemMatrixRow) {
-    // Allocating these anew for each LOR had a noticeable runtime cost, so we
-    // create them up-front and reuse them.
-    (
-        // The backprojection (or sensitivity image) being constructed in a given
-        // MLEM iteration (or sensitivity image calculation)
-        Image::zeros_buffer(fov),
-
-        // Weights and indices are sparse storage of the slice through the
-        // system matrix which corresponds to the current
-        Siddon::buffer(fov)
-    )
+// Allocating these anew for each LOR had a noticeable runtime cost, so we
+// create them up-front and reuse them.
+pub fn projection_buffers(fov: FOV) -> SystemMatrixRow {
+    // Weights and indices are sparse storage of the slice through the
+    // system matrix which corresponds to the current
+    Siddon::buffer(fov)
 }
 
 fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
@@ -170,7 +165,8 @@ pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
-        let (backprojection, system_matrix_row) = projection_buffers(attenuation.fov);
+        let backprojection = Image::zeros_buffer(attenuation.fov);
+        let system_matrix_row = projection_buffers(attenuation.fov);
         (backprojection, system_matrix_row, &attenuation, &notof)
     };
 
