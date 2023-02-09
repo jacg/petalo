@@ -3,7 +3,7 @@ use ndarray::azip;
 use rayon::prelude::*;
 
 use units::{
-    Length, AreaPerMass,
+    AreaPerMass,
     todo::{Lengthf32, Intensityf32},
     ratio_, mm, kg,
 };
@@ -22,11 +22,12 @@ use crate::{
 
 pub static mut N_MLEM_THREADS: usize = 1;
 
-pub fn mlem(fov          : FOV,
-            measured_lors: &[LOR],
-            tof          : Option<Tof>,
-            sensitivity  : Option<Image>,
-            n_subsets    : usize,
+pub fn mlem<P: Projector>(
+    fov          : FOV,
+    measured_lors: &[LOR],
+    tof          : Option<Tof>,
+    sensitivity  : Option<Image>,
+    n_subsets    : usize,
 ) -> impl Iterator<Item = (Image, Osem)> + '_ {
 
     // Start off with a uniform image
@@ -39,13 +40,17 @@ pub fn mlem(fov          : FOV,
     // Return an iterator which generates an infinite sequence of images,
     // each one made by performing one MLEM iteration on the previous one
     std::iter::from_fn(move || {
-        one_iteration(&mut image, osem.subset(measured_lors), &sensitivity.data, tof);
+        one_iteration::<P>(&mut image, osem.subset(measured_lors), &sensitivity.data, tof);
         Some((image.clone(), osem.next())) // TODO see if we can sensibly avoid cloning
     })
 }
 
-fn one_iteration(image: &mut Image, measured_lors: &[LOR], sensitivity: &[Intensityf32], tof: Option<Tof>) {
-
+fn one_iteration<P: Projector>(
+    image        : &mut Image,
+    measured_lors: &[LOR],
+    sensitivity  : &[Intensityf32],
+    tof          : Option<Tof>
+) {
     // -------- Prepare state required by serial/parallel fold --------------
 
     // TOF adjustment to apply to the weights
@@ -56,7 +61,7 @@ fn one_iteration(image: &mut Image, measured_lors: &[LOR], sensitivity: &[Intens
     let previous_image_shared = &*image;
     let initial_thread_state = || {
         let backprojection_image_per_thread = Image::zeros_buffer(image.fov);
-        let system_matrix_row = Siddon::projection_buffers(image.fov);
+        let system_matrix_row = P::projection_buffers(image.fov);
         (backprojection_image_per_thread, system_matrix_row, previous_image_shared, &tof)
     };
 
@@ -190,7 +195,7 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use units::{mm, mm_, ns, ratio, turn, turn_, Angle, Ratio};
+    use units::{mm, mm_, ns, ratio, turn, turn_, Angle, Length, Ratio};
     use rstest::{rstest, fixture};
     use float_eq::assert_float_eq;
 
@@ -586,7 +591,7 @@ mod tests {
         // Perform MLEM reconstruction, saving images to disk
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
         pool.install(|| {
-            mlem(fov, &lors, None, None, 1)
+            mlem::<Siddon>(fov, &lors, None, None, 1)
                 .take(10)
                 .for_each(save_each_image_in(format!("test-mlem-images/{name}/")));
         });
