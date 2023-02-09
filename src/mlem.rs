@@ -61,7 +61,7 @@ fn one_iteration<P: Projector>(
     let previous_image_shared = &*image;
     let initial_thread_state = || {
         let backprojection_image_per_thread = Image::zeros_buffer(image.fov);
-        let system_matrix_row = P::projection_buffers(image.fov);
+        let system_matrix_row = P::buffers(image.fov);
         (backprojection_image_per_thread, system_matrix_row, previous_image_shared, &tof)
     };
 
@@ -160,7 +160,7 @@ pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
         let backprojection = Image::zeros_buffer(attenuation.fov);
-        let system_matrix_row = Siddon::projection_buffers(attenuation.fov);
+        let system_matrix_row = Siddon::buffers(attenuation.fov);
         (backprojection, system_matrix_row, &attenuation, &notof)
     };
 

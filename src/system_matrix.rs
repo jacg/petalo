@@ -193,7 +193,7 @@ pub trait Projector {
     // Sparse storage of the slice through the system matrix which corresponds
     // to the current LOR. Allocating these anew for each LOR had a noticeable
     // runtime cost, so we create them up-front and reuse them.
-    fn projection_buffers(fov: FOV) -> SystemMatrixRow;
+    fn buffers(fov: FOV) -> SystemMatrixRow;
 }
 
 // ---- Siddon Projector ----------------------------------------------------------------------
@@ -201,7 +201,7 @@ pub struct Siddon;
 
 impl Projector for Siddon {
     // This should probably have a default implementation
-    fn projection_buffers(fov: FOV) -> SystemMatrixRow {
+    fn buffers(fov: FOV) -> SystemMatrixRow {
         let [nx, ny, nz] = fov.n;
         let max_number_of_active_voxels_possible = nx + ny + nz - 2;
         SystemMatrixRow(Vec::with_capacity(max_number_of_active_voxels_possible))
@@ -212,7 +212,7 @@ impl Siddon {
     // TODO  FOV and TOF should become construction-time arguments
     pub fn new_system_matrix_row(lor: &LOR, fov: &FOV, tof: Option<Tof>) -> SystemMatrixRow {
         let tof = make_gauss_option(tof);
-        let mut system_matrix_row = Self::projection_buffers(*fov);
+        let mut system_matrix_row = Self::buffers(*fov);
         match lor_fov_hit(lor, *fov) {
             None => (),
             Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
