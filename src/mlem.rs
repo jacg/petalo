@@ -101,7 +101,7 @@ fn sensitivity_one_lor<'i, 'g>(state: FoldState<'i, 'g>, lor: LOR) -> FoldState<
     // Need to return the state from various match arms
     macro_rules! return_state { () => (return (backprojection, system_matrix_row, attenuation, tof)); }
 
-    // Find active voxels (slice of system matrix) WITHOUT TOF
+    // Find coupled voxels (slice of system matrix) WITHOUT TOF
     // Analyse point where LOR hits FOV
     match lor_fov_hit(&lor, attenuation.fov) {
 

@@ -1,5 +1,4 @@
-//! Find the weights and indices of the active voxels along a single Line Of
-//! Response LOR.
+//! Find indices and weights of the voxels coupled to a single LOR
 //!
 //! The algorithm is centred around two key simplifications:
 //!
@@ -203,8 +202,8 @@ impl Projector for Siddon {
     // This should probably have a default implementation
     fn buffers(fov: FOV) -> SystemMatrixRow {
         let [nx, ny, nz] = fov.n;
-        let max_number_of_active_voxels_possible = nx + ny + nz - 2;
-        SystemMatrixRow(Vec::with_capacity(max_number_of_active_voxels_possible))
+        let max_number_of_coupled_voxels_possible = nx + ny + nz - 2;
+        SystemMatrixRow(Vec::with_capacity(max_number_of_coupled_voxels_possible))
     }
 }
 
@@ -227,7 +226,7 @@ impl Siddon {
         system_matrix_row
     }
 
-    /// For a single LOR, place the weights and indices of the active voxels in
+    /// For a single LOR, place the weights and indices of the coupled voxels in
     /// `system_matrix_row` parameter. Using output parameters rather than return
     /// values, because this function is called in the inner loop, and allocating
     /// the vectors of results repeatedly, had a noticeable impact on performance.
@@ -476,7 +475,7 @@ fn signed_i32(x: usize) -> i32 { x as i32 }
 /// Flip axes to ensure that direction from p1 to p2 is non-negative in all
 /// dimensions. Return p1 & p2 in flipped coordinate system, along with
 /// knowledge of which axes were flipped, so that the indices of subsequently
-/// found active voxels can be flipped back into the original coordinate system.
+/// found voxels can be flipped back into the original coordinate system.
 #[inline]
 fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
     let zero = Length::ZERO;
@@ -514,7 +513,7 @@ pub fn project_one_lor<'i, 'g>(state: FoldState<'i, 'g>, lor: &LOR) -> FoldState
         // Data needed by `system_matrix_elements`
         Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
-            // Find active voxels and their weights
+            // Find non-zero elements (voxels coupled to this LOR) and their values
             Siddon::update_smatrix_row(
                 &mut system_matrix_row,
                 next_boundary, voxel_size,
