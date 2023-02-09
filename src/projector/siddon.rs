@@ -69,7 +69,7 @@ impl Siddon {
     #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn update_smatrix_row(
-        self,
+        &self,
         system_matrix_row: &mut SystemMatrixRow,
         mut next_boundary: Vector,
         voxel_size: Vector,
@@ -139,7 +139,7 @@ pub fn project_one_lor<'i>(state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState
 
             // Find non-zero elements (voxels coupled to this LOR) and their values
             Siddon::update_smatrix_row(
-                siddon,
+                &siddon,
                 &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
@@ -164,7 +164,7 @@ pub fn project_one_lor<'i>(state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState
 // Too much copy-paste code reuse from project_one_lor. This is because the
 // latter (and the functions it uses) was heavily optimized, at the cost of ease
 // of reuse.
-fn sensitivity_one_lor<'i>(state: FoldState<'i, Siddon>, lor: LOR) -> FoldState<'i, Siddon> {
+fn sensitivity_one_lor<'i, 's>(state: FoldState<'i, &'s Siddon>, lor: LOR) -> FoldState<'i, &'s Siddon> {
     let (mut backprojection, mut system_matrix_row, attenuation, siddon) = state;
 
     // Need to return the state from various match arms
@@ -182,7 +182,7 @@ fn sensitivity_one_lor<'i>(state: FoldState<'i, Siddon>, lor: LOR) -> FoldState<
 
             // Find active voxels and their weights
             Siddon::update_smatrix_row(
-                siddon,
+                &siddon,
                 &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
@@ -227,7 +227,7 @@ pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>
     let initial_thread_state = || {
         let backprojection = Image::zeros_buffer(attenuation.fov);
         let system_matrix_row = Siddon::buffers(attenuation.fov);
-        (backprojection, system_matrix_row, &attenuation, notof)
+        (backprojection, system_matrix_row, &attenuation, &notof)
     };
 
     // -------- Project all LORs forwards and backwards ---------------------
