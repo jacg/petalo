@@ -4,7 +4,7 @@ pub mod siddon;
 
 /// Abstract interface for forward-backward projection implementations
 pub trait Projector {
-    fn project_one_lor<'i, 'g>(fold_state: FoldState<'i, 'g>, lor: &LOR) -> FoldState<'i, 'g>;
+    fn project_one_lor<'i>(fold_state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self>;
 
     // Sparse storage of the slice through the system matrix which corresponds
     // to the current LOR. Allocating these anew for each LOR had a noticeable
@@ -16,7 +16,7 @@ pub trait Projector {
 
 // Data needed by project_one_lor, both as input and output, because of the
 // constrains imposed by `fold`
-pub type FoldState<'i, 'g> = (ImageData, SystemMatrixRow, &'i Image, &'g Option<Gaussian>);
+pub type FoldState<'i, T> = (ImageData, SystemMatrixRow, &'i Image, T);
 
 use crate::{
     LOR,

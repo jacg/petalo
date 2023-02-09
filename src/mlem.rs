@@ -15,10 +15,10 @@ use crate::{
 
 pub static mut N_MLEM_THREADS: usize = 1;
 
-pub fn mlem<P: Projector>(
+pub fn mlem<'a, P: Projector + Copy + Send + Sync + 'a>(
+    projector    : P,
     fov          : FOV,
-    measured_lors: &[LOR],
-    tof          : Option<Tof>,
+    measured_lors: &'a [LOR],
     sensitivity  : Option<Image>,
     n_subsets    : usize,
 ) -> impl Iterator<Item = (Image, Osem)> + '_ {
@@ -33,21 +33,18 @@ pub fn mlem<P: Projector>(
     // Return an iterator which generates an infinite sequence of images,
     // each one made by performing one MLEM iteration on the previous one
     std::iter::from_fn(move || {
-        one_iteration::<P>(&mut image, osem.subset(measured_lors), &sensitivity.data, tof);
+        one_iteration::<P>(projector, &mut image, osem.subset(measured_lors), &sensitivity.data);
         Some((image.clone(), osem.next())) // TODO see if we can sensibly avoid cloning
     })
 }
 
-fn one_iteration<P: Projector>(
+fn one_iteration<P: Projector + Copy + Send + Sync>(
+    projector    : P,
     image        : &mut Image,
     measured_lors: &[LOR],
     sensitivity  : &[Intensityf32],
-    tof          : Option<Tof>
 ) {
     // -------- Prepare state required by serial/parallel fold --------------
-
-    // TOF adjustment to apply to the weights
-    let tof: Option<_> = make_gauss_option(tof);
 
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
@@ -55,7 +52,7 @@ fn one_iteration<P: Projector>(
     let initial_thread_state = || {
         let backprojection_image_per_thread = Image::zeros_buffer(image.fov);
         let system_matrix_row = P::buffers(image.fov);
-        (backprojection_image_per_thread, system_matrix_row, previous_image_shared, &tof)
+        (backprojection_image_per_thread, system_matrix_row, previous_image_shared, projector)
     };
 
     // -------- Project all LORs forwards and backwards ---------------------

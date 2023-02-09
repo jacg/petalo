@@ -86,7 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let pool = rayon::ThreadPoolBuilder::new().num_threads(args.mlem_threads).build()?;
     println!("MLEM: Using up to {} threads.", args.mlem_threads);
     pool.install(|| {
-        for (image, Osem{iteration, subset, ..}) in (petalo::mlem::mlem::<Siddon>(fov, &measured_lors, config.tof, sensitivity_image, config.iterations.subsets))
+        for (image, Osem{iteration, subset, ..}) in (petalo::mlem::mlem(Siddon::new(config.tof), fov, &measured_lors, sensitivity_image, config.iterations.subsets))
             .take(config.iterations.number * config.iterations.subsets) {
                 progress.done_with_message(&format!("Iteration {iteration:2}-{subset:02}"));
                 let path = PathBuf::from(format!("{}{iteration:02}-{subset:02}.raw", args.output_directory.display()));

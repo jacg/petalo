@@ -28,6 +28,7 @@ pub fn make_gauss_option_old(tof: Option<Tof>) -> Option<impl Fn(Length) -> PerL
 
 // ---- Second version: struct-based --------------------------------------------------
 
+#[derive(Debug, Clone, Copy)]
 pub struct Gaussian {
     sigma: Length,
     cutoff: Length,

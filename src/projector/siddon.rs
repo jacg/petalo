@@ -22,11 +22,14 @@ use crate::{
 
 use super::{FoldState, Projector};
 
-pub struct Siddon;
+#[derive(Debug, Clone, Copy)]
+pub struct Siddon {
+    tof: Option<Gaussian>,
+}
 
 impl Projector for Siddon {
 
-    fn project_one_lor<'i, 'g>(fold_state: FoldState<'i, 'g>, lor: &LOR) -> FoldState<'i, 'g> {
+    fn project_one_lor<'i, 'g>(fold_state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState<'i, Siddon> {
         project_one_lor(fold_state, lor)
     }
 
@@ -39,18 +42,20 @@ impl Projector for Siddon {
 }
 
 impl Siddon {
-    // TODO  FOV and TOF should become construction-time arguments
-    pub fn new_system_matrix_row(lor: &LOR, fov: &FOV, tof: Option<Tof>) -> SystemMatrixRow {
-        let tof = make_gauss_option(tof);
+    pub fn new(tof: Option<Tof>) -> Self { Self { tof: make_gauss_option(tof) }}
+    pub fn notof() -> Self { Self { tof: None } }
+
+    // TODO Should FOV become construction-time argument?
+    pub fn new_system_matrix_row(self, lor: &LOR, fov: &FOV) -> SystemMatrixRow {
         let mut system_matrix_row = Self::buffers(*fov);
         match lor_fov_hit(lor, *fov) {
             None => (),
             Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-                Self::update_smatrix_row(
+                self.update_smatrix_row(
                     &mut system_matrix_row,
                     next_boundary, voxel_size,
                     index, delta_index, remaining,
-                    tof_peak, &tof
+                    tof_peak,
                 );
             }
         }
@@ -64,6 +69,7 @@ impl Siddon {
     #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn update_smatrix_row(
+        self,
         system_matrix_row: &mut SystemMatrixRow,
         mut next_boundary: Vector,
         voxel_size: Vector,
@@ -71,7 +77,6 @@ impl Siddon {
         delta_index: [i32; 3],
         mut remaining: [i32; 3],
         tof_peak: Length,
-        tof: &Option<Gaussian>
     ) {
         // Throw away previous LOR's values
         system_matrix_row.clear();
@@ -87,7 +92,7 @@ impl Siddon {
             let mut weight = boundary_position - here;
 
             // If TOF enabled, adjust weight
-            if let Some(gauss) = &tof {
+            if let Some(gauss) = &self.tof {
                 let g: PerLength = gauss.call(here - tof_peak);
                 // TODO Normalization
                 let completely_arbitrary_factor = 666.0;
@@ -117,11 +122,11 @@ impl Siddon {
 
 }
 
-pub fn project_one_lor<'i, 'g>(state: FoldState<'i, 'g>, lor: &LOR) -> FoldState<'i, 'g> {
-    let (mut backprojection, mut system_matrix_row, image, tof) = state;
+pub fn project_one_lor<'i>(state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState<'i, Siddon> {
+    let (mut backprojection, mut system_matrix_row, image, siddon) = state;
 
     // Need to return the state from various match arms
-    macro_rules! return_state { () => (return (backprojection, system_matrix_row, image, tof)); }
+    macro_rules! return_state { () => (return (backprojection, system_matrix_row, image, siddon)); }
 
     // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
@@ -134,10 +139,11 @@ pub fn project_one_lor<'i, 'g>(state: FoldState<'i, 'g>, lor: &LOR) -> FoldState
 
             // Find non-zero elements (voxels coupled to this LOR) and their values
             Siddon::update_smatrix_row(
+                siddon,
                 &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
-                tof_peak, &tof
+                tof_peak,
             );
 
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
@@ -158,11 +164,11 @@ pub fn project_one_lor<'i, 'g>(state: FoldState<'i, 'g>, lor: &LOR) -> FoldState
 // Too much copy-paste code reuse from project_one_lor. This is because the
 // latter (and the functions it uses) was heavily optimized, at the cost of ease
 // of reuse.
-fn sensitivity_one_lor<'i, 'g>(state: FoldState<'i, 'g>, lor: LOR) -> FoldState<'i, 'g> {
-    let (mut backprojection, mut system_matrix_row, attenuation, tof) = state;
+fn sensitivity_one_lor<'i>(state: FoldState<'i, Siddon>, lor: LOR) -> FoldState<'i, Siddon> {
+    let (mut backprojection, mut system_matrix_row, attenuation, siddon) = state;
 
     // Need to return the state from various match arms
-    macro_rules! return_state { () => (return (backprojection, system_matrix_row, attenuation, tof)); }
+    macro_rules! return_state { () => (return (backprojection, system_matrix_row, attenuation, siddon)); }
 
     // Find coupled voxels (slice of system matrix) WITHOUT TOF
     // Analyse point where LOR hits FOV
@@ -176,10 +182,11 @@ fn sensitivity_one_lor<'i, 'g>(state: FoldState<'i, 'g>, lor: LOR) -> FoldState<
 
             // Find active voxels and their weights
             Siddon::update_smatrix_row(
+                siddon,
                 &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
-                tof_peak, tof
+                tof_peak,
             );
 
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
@@ -213,14 +220,14 @@ pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>
     }
 
     // TOF should not be used as LOR attenuation is independent of decay point
-    let notof = make_gauss_option(None);
+    let notof = Siddon::notof();
 
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
         let backprojection = Image::zeros_buffer(attenuation.fov);
         let system_matrix_row = Siddon::buffers(attenuation.fov);
-        (backprojection, system_matrix_row, &attenuation, &notof)
+        (backprojection, system_matrix_row, &attenuation, notof)
     };
 
     // -------- Project all LORs forwards and backwards ---------------------
@@ -503,7 +510,7 @@ mod test {
         println!("\nTo visualize this case, run:\n{}\n", command);
 
         // Collect voxels traversed by LOR
-        let hits = Siddon::new_system_matrix_row(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None);
+        let hits = Siddon::notof().new_system_matrix_row(&LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov);
 
         // Utility for converting 1D-index to 3D-index
         let as_3d = |i| index1_to_3(i, [n.0, n.1, 1]);
@@ -561,8 +568,8 @@ mod test {
             let command = crate::visualize::vislor_command(&fov, &lor);
             println!("\nTo visualize this case, run:\n{}\n", command);
 
-            let summed: Lengthf32 = Siddon::new_system_matrix_row(
-                &LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov, None
+            let summed: Lengthf32 = Siddon::notof().new_system_matrix_row(
+                &LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0)), &fov
             ).into_iter()
              .inspect(|&(i, l)| println!("  ({} {} {}) {}", as_3d(i)[0], as_3d(i)[1], as_3d(i)[2], l))
              .map(|(_index, weight)| weight)
@@ -983,7 +990,7 @@ mod sensitivity_image {
         // Perform MLEM reconstruction, saving images to disk
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
         pool.install(|| {
-            mlem::<Siddon>(fov, &lors, None, None, 1)
+            mlem(Siddon::notof(), fov, &lors, None, 1)
                 .take(10)
                 .for_each(save_each_image_in(format!("test-mlem-images/{name}/")));
         });
