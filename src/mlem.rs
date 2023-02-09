@@ -15,9 +15,10 @@ use crate::{
     gauss::make_gauss_option,
     image::{Image, ImageData},
     system_matrix::{
-        FovHit, FoldState, Projector, Siddon,
+        FovHit,
         lor_fov_hit, back_project, forward_project,
     },
+    projector::{Projector, Siddon, FoldState},
 };
 
 pub static mut N_MLEM_THREADS: usize = 1;

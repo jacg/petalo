@@ -15,3 +15,4 @@ pub mod index;
 pub mod fov;
 pub mod config;
 pub mod sensors;
+pub mod projector;

@@ -1,4 +1,4 @@
-use petalo::{config::mlem::AttenuationCorrection as AC, system_matrix::Siddon};
+use petalo::{config::mlem::AttenuationCorrection as AC, projector::Siddon};
 // ----------------------------------- CLI -----------------------------------
 use clap::Parser;
 
