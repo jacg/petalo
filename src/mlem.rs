@@ -6,9 +6,7 @@ use units::todo::{Lengthf32, Intensityf32};
 
 use crate::{
     LOR,
-    config::mlem::Tof,
     fov::FOV,
-    gauss::make_gauss_option,
     image::{Image, ImageData},
     projector::Projector,
 };

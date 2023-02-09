@@ -21,7 +21,6 @@ pub type FoldState<'i, T> = (ImageData, SystemMatrixRow, &'i Image, T);
 use crate::{
     LOR,
     fov::FOV,
-    gauss::Gaussian,
     image::{ImageData, Image},
     system_matrix::SystemMatrixRow,
 };
