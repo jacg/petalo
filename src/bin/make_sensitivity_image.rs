@@ -46,7 +46,7 @@ use petalo::{
     LOR,
     fov::FOV,
     image::Image,
-    mlem::sensitivity_image,
+    projector::siddon::sensitivity_image,
 };
 
 use units::{
