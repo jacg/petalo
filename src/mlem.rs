@@ -16,7 +16,7 @@ use crate::{
     image::{Image, ImageData},
     system_matrix::{
         FovHit, FoldState, Projector, Siddon,
-        lor_fov_hit, project_one_lor, back_project, forward_project,
+        lor_fov_hit, back_project, forward_project,
     },
 };
 
@@ -78,7 +78,7 @@ fn one_iteration<P: Projector>(
         // (whole `Image`s). So here we try to limit it to one job per thread.
         .with_min_len(job_size)
         .with_max_len(job_size)
-        .fold(initial_thread_state, project_one_lor);
+        .fold(initial_thread_state, P::project_one_lor);
 
     // -------- extract relevant information (backprojection) ---------------
     let backprojection = fold_result

@@ -189,9 +189,12 @@ impl<'a> IntoIterator for &'a SystemMatrixRow {
 
 // ---- Projector Trait ----------------------------------------------------------------------
 pub trait Projector {
+    fn project_one_lor<'i, 'g>(fold_state: FoldState<'i, 'g>, lor: &LOR) -> FoldState<'i, 'g>;
+
     // Sparse storage of the slice through the system matrix which corresponds
     // to the current LOR. Allocating these anew for each LOR had a noticeable
     // runtime cost, so we create them up-front and reuse them.
+    // This should probably have a default implementation
     fn buffers(fov: FOV) -> SystemMatrixRow;
 }
 
@@ -199,12 +202,17 @@ pub trait Projector {
 pub struct Siddon;
 
 impl Projector for Siddon {
-    // This should probably have a default implementation
+
+    fn project_one_lor<'i, 'g>(fold_state: FoldState<'i, 'g>, lor: &LOR) -> FoldState<'i, 'g> {
+        project_one_lor(fold_state, lor)
+    }
+
     fn buffers(fov: FOV) -> SystemMatrixRow {
         let [nx, ny, nz] = fov.n;
         let max_number_of_coupled_voxels_possible = nx + ny + nz - 2;
         SystemMatrixRow(Vec::with_capacity(max_number_of_coupled_voxels_possible))
     }
+
 }
 
 impl Siddon {
