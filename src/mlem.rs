@@ -40,7 +40,7 @@ pub fn mlem(fov          : FOV,
     // each one made by performing one MLEM iteration on the previous one
     std::iter::from_fn(move || {
         one_iteration(&mut image, osem.subset(measured_lors), &sensitivity.data, tof);
-        Some((image.clone(), osem.next().unwrap())) // TODO see if we can sensibly avoid cloning
+        Some((image.clone(), osem.next())) // TODO see if we can sensibly avoid cloning
     })
 }
 
@@ -622,24 +622,19 @@ impl Osem {
         Self { n_subsets, iteration: 1, subset: 1 }
     }
 
-    fn subset<'s, 'l>(&'s self, lors: &'l [LOR]) -> &'l [LOR] {
-        let set_size = lors.len() / self.n_subsets; // TODO remainder LORs ignored
-        let lo = (self.subset - 1) * set_size;
-        let hi = lo + set_size;
-        &lors[lo..hi]
-    }
-}
-
-// Hmm, a `next()` method on Osem itself might be a better idea
-impl Iterator for Osem {
-    type Item = Self;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Self {
         self.subset += 1;
         if self.subset > self.n_subsets {
             self.subset = 1;
             self.iteration += 1;
         }
-        Some(*self)
+        *self
+    }
+
+    fn subset<'s, 'l>(&'s self, lors: &'l [LOR]) -> &'l [LOR] {
+        let set_size = lors.len() / self.n_subsets; // TODO remainder LORs ignored
+        let lo = (self.subset - 1) * set_size;
+        let hi = lo + set_size;
+        &lors[lo..hi]
     }
 }
