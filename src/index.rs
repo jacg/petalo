@@ -1,11 +1,7 @@
-use units::todo::Weightf32;
-
 #[allow(non_camel_case_types)] pub type Index1_u = usize;
 #[allow(non_camel_case_types)] pub type Index3_u = [usize; 3];
 #[allow(non_camel_case_types)] pub type BoxDim_u = [usize; 3];
 pub type BoxDim = [LengthU; 3];
-
-pub type Index3Weightf32 = (Index3_u, Weightf32);
 
 pub type LengthI = units::uom::si::i32  ::Length;
 pub type LengthU = units::uom::si::usize::Length;

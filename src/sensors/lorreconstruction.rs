@@ -1,24 +1,31 @@
 /// Simulate sensor electronics using charge and time smearing
-use std::ops::RangeBounds;
-use std::path::PathBuf;
+use std::{
+    ops::RangeBounds,
+    path::PathBuf,
+};
 
 use itertools::Itertools;
 use ordered_float::NotNan;
 
 use uom::typenum::P2;
-use units::uom::ConstZero;
-use units::{C, Quantity, Length, Ratio, Time, Angle, Velocity, Area, todo::DetectionEff};
-use units::{mm, mm_, ns, ns_, radian_, ratio, ratio_, turn};
+use units::{
+    C, Quantity, Length, Ratio, Time, Angle, Velocity, Area, todo::DetectionEff,
+    mm, mm_, ns, ns_, radian_, ratio, ratio_, turn,
+    uom::ConstZero,
+};
 
 use rand::random;
 use rand_distr::{Normal, Distribution};
 
-use crate::io::hdf5::Hdf5Lor;
-use crate::io::hdf5::sensors::read_sensor_hits;
-use crate::io::hdf5::sensors::{SensorHit, SensorMap, SensorReadout};
+use crate::{
+    BoundPair,
+    config::mlem::Bounds,
+    io::hdf5::{
+        Hdf5Lor,
+        sensors::{read_sensor_hits, SensorHit, SensorMap, SensorReadout},
+    }
+};
 
-use crate::config::mlem::Bounds;
-use crate::BoundPair;
 
 pub fn c_in_medium(rindex: f32) -> Velocity {
     C / ratio(rindex)

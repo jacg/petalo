@@ -1,7 +1,9 @@
 use std::path::Path;
 
-use crate::config::mlem::Bounds;
-use crate::io::hdf5::read_table;
+use crate::{
+    config::mlem::Bounds,
+    io::hdf5::read_table,
+};
 
 use units::{Length, Time, mm, ns};
 

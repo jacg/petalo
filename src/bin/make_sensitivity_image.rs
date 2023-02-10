@@ -35,15 +35,24 @@ pub struct Cli {
 
 use clap::Parser;
 
-use std::{error::Error, io::Write};
-use std::path::PathBuf;
+use std::{
+    error::Error,
+    io::Write,
+    path::PathBuf,
+};
 
-use petalo::{utils::group_digits, fov::FOV};
-use petalo::image::Image;
+use petalo::{
+    utils::group_digits,
+    LOR,
+    fov::FOV,
+    image::Image,
+    projector::siddon::sensitivity_image,
+};
 
-use units::{Length, Time, AreaPerMass, ratio, kg, mm, todo::Lengthf32};
-use units::uom::ConstZero;
-use petalo::system_matrix as sm;
+use units::{
+    Length, Time, AreaPerMass, ratio, kg, mm, todo::Lengthf32,
+    uom::ConstZero,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -80,7 +89,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
     let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
-    let sensitivity = pool.install(|| Image::sensitivity_image(density, lors, n_lors, rho_to_mu));
+    let sensitivity = pool.install(|| sensitivity_image(density, lors, n_lors, rho_to_mu));
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
@@ -93,14 +102,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl rayon::iter::ParallelIterator<Item = sm::LOR> {
+fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl rayon::iter::ParallelIterator<Item = LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
     let one_useful_random_lor = move |_lor_number| {
         loop {
             let p1 = random_point_on_cylinder(l, r);
             let p2 = random_point_on_cylinder(l, r);
             if fov.entry(p1, p2).is_some() {
-                return sm::LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
+                return LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
             }
         }
     };

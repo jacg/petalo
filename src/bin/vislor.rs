@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 
 use units::{Time, Ratio, todo::Lengthf32};
-use petalo::{system_matrix::LOR, fov::FOV};
+use petalo::{LOR, fov::FOV};
 use petalo::visualize::{lor_weights, Shape};
 
 use petalo::utils::{parse_triplet, parse_lor, parse_maybe_cutoff, CutoffOption};

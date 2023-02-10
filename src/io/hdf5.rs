@@ -2,15 +2,15 @@
 
 use std::error::Error;
 use std::path::Path;
-use crate::lorogram::{Scattergram, Prompt};
-use crate::config::mlem::{Bounds, Config};
+use crate::{
+    LOR, Point,
+    config::mlem::{Bounds, Config},
+    lorogram::{Scattergram, Prompt}
+};
 
 use rayon::prelude::*;
 
 use ndarray::{s, Array1};
-
-use crate::Point;
-use crate::system_matrix::LOR;
 
 use units::{mm, ns, ratio};
 

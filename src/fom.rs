@@ -1,9 +1,14 @@
-use units::{Length, Quantity, todo::{Intensityf32, Ratiof32}};
-use crate::io::raw;
-use crate::Point;
-use units::ratio_;
-use crate::image::{Image, ImageData};
-use crate::fov::FOV;
+use units::{
+    Length, Quantity,
+    ratio_,
+    todo::{Intensityf32, Ratiof32},
+};
+use crate::{
+    Point,
+    fov::FOV,
+    image::{Image, ImageData},
+    io::raw,
+};
 
 type BoxErr<T> = Result<T, Box<dyn std::error::Error>>;
 
