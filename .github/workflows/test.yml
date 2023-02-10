@@ -75,8 +75,6 @@ jobs:
 
       - name: Compile PyO3 in `nix develop`
         run: nix develop -c just python-build-bindings
-        if: runner.os != 'Macos' && runner.os != 'Linux'
 
       - name: Test PyO3 in `nix develop`
         run: nix develop -c just test-python-bindings --color=yes
-        if: runner.os != 'Macos' && runner.os != 'Linux'
