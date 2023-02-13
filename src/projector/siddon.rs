@@ -212,17 +212,7 @@ pub fn sensitivity_image(
     rho_to_mu: AreaPerMass
 ) -> Image {
     // Convert from [density in kg/m^3] to [mu in mm^-1]
-    let rho_to_mu: f32 = ratio_({
-        let kg = kg(1.0);
-        let  m = mm(1000.0);
-        let rho_unit = kg / (m * m * m);
-        let  mu_unit = 1.0 / mm(1.0);
-        rho_to_mu / (mu_unit / rho_unit)
-    });
-    let mut attenuation = density;
-    for voxel in &mut attenuation.data {
-        *voxel *= rho_to_mu;
-    }
+    let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
 
     // TOF should not be used as LOR attenuation is independent of decay point
     let notof = Siddon::notof();
@@ -252,6 +242,22 @@ pub fn sensitivity_image(
         *e /= size
     }
     Image::new(attenuation.fov, backprojection)
+}
+
+/// Convert from [density in kg/m^3] to [mu in mm^-1]
+fn density_image_into_attenuation_image(density: Image, rho_to_mu: AreaPerMass) -> Image {
+    let rho_to_mu: f32 = ratio_({
+        let kg = kg(1.0);
+        let  m = mm(1000.0);
+        let rho_unit = kg / (m * m * m);
+        let  mu_unit = 1.0 / mm(1.0);
+        rho_to_mu / (mu_unit / rho_unit)
+    });
+    let mut attenuation = density;
+    for voxel in &mut attenuation.data {
+        *voxel *= rho_to_mu;
+    }
+    attenuation
 }
 
 const EPS: Ratio = in_base_unit!(1e-5);
