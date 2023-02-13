@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use clap::Parser;
 use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -214,16 +214,16 @@ fn from_vertices(lor_from_vertices: impl Fn(&[Vertex]) -> Option<Hdf5Lor> + 'sta
     }
 }
 
-fn read_vertices(infile: &PathBuf) -> hdf5::Result<Vec<Vertex>> { io::hdf5::mc::read_vertices(infile, Bounds::none()) }
-fn read_qts     (infile: &PathBuf) -> hdf5::Result<Vec<  QT  >> { io::hdf5::sensors::read_qts(infile, Bounds::none()) }
+fn read_vertices(infile: &Path) -> hdf5::Result<Vec<Vertex>> { io::hdf5::mc::read_vertices(infile, Bounds::none()) }
+fn read_qts     (infile: &Path) -> hdf5::Result<Vec<  QT  >> { io::hdf5::sensors::read_qts(infile, Bounds::none()) }
 
-fn group_vertices(infile: &PathBuf) -> hdf5::Result<Vec<Vec<Vertex>>> {
+fn group_vertices(infile: &Path) -> hdf5::Result<Vec<Vec<Vertex>>> {
     Ok(group_by(|v| v.event_id,
                 read_vertices(infile)?
                 .into_iter()))
 }
 
-fn group_qts(q: u32, infile: &PathBuf) -> hdf5::Result<Vec<Vec<  QT  >>> {
+fn group_qts(q: u32, infile: &Path) -> hdf5::Result<Vec<Vec<  QT  >>> {
     Ok(group_by(|h| h.event_id,
                 read_qts(infile)?
                 .into_iter()

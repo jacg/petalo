@@ -16,7 +16,7 @@ pub trait Projector {
 
 // Data needed by project_one_lor, both as input and output, because of the
 // constrains imposed by `fold`
-pub type FoldState<'i, T> = (ImageData, SystemMatrixRow, &'i Image, T);
+pub type FoldState<'img, T> = (ImageData, SystemMatrixRow, &'img Image, T);
 
 use crate::{
     LOR,

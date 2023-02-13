@@ -29,7 +29,7 @@ pub struct Siddon {
 
 impl Projector for Siddon {
 
-    fn project_one_lor<'i, 'g>(fold_state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState<'i, Siddon> {
+    fn project_one_lor<'img, 'g>(fold_state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
         project_one_lor(fold_state, lor)
     }
 
@@ -122,7 +122,19 @@ impl Siddon {
 
 }
 
-pub fn project_one_lor<'i>(state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState<'i, Siddon> {
+pub fn project_one_lor<'img>(
+    state: FoldState<'img, Siddon>,
+    lor: &LOR,
+) -> FoldState<'img, Siddon> {
+    project_one_lor_inner(state, lor,
+                          |projection, lor| ratio_(projection * lor.additive_correction))
+}
+
+pub fn project_one_lor_inner<'img>(
+    state: FoldState<'img, Siddon>,
+    lor: &LOR,
+    adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
+) -> FoldState<'img, Siddon> {
     let (mut backprojection, mut system_matrix_row, image, siddon) = state;
 
     // Need to return the state from various match arms
@@ -151,11 +163,15 @@ pub fn project_one_lor<'i>(state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState
                 if i >= backprojection.len() { return_state!(); }
             }
 
-            // Forward projection of current image into this LOR
-            let projection = forward_project(&system_matrix_row, image) * lor.additive_correction;
+            // Sum product of relevant voxels' weights and activities
+            let projection = forward_project(&system_matrix_row, image);
+
+            // ... the sum needs to be adapted for the use specific use case:
+            // MLEM or sensitivity image generation, are the only ones so far
+            let adapted_projection = adapt_forward_projection(projection, lor);
 
             // Backprojection of LOR onto image
-            back_project(&mut backprojection, &system_matrix_row, ratio_(projection));
+            back_project(&mut backprojection, &system_matrix_row, adapted_projection);
             return_state!();
         }
     }
@@ -164,60 +180,21 @@ pub fn project_one_lor<'i>(state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState
 // Too much copy-paste code reuse from project_one_lor. This is because the
 // latter (and the functions it uses) was heavily optimized, at the cost of ease
 // of reuse.
-fn sensitivity_one_lor<'i, 's>(state: FoldState<'i, &'s Siddon>, lor: LOR) -> FoldState<'i, &'s Siddon> {
-    let (mut backprojection, mut system_matrix_row, attenuation, siddon) = state;
-
-    // Need to return the state from various match arms
-    macro_rules! return_state { () => (return (backprojection, system_matrix_row, attenuation, siddon)); }
-
-    // Find coupled voxels (slice of system matrix) WITHOUT TOF
-    // Analyse point where LOR hits FOV
-    match lor_fov_hit(&lor, attenuation.fov) {
-
-        // LOR missed FOV: nothing to be done
-        None => return_state!(),
-
-        // Data needed by `system_matrix_elements`
-        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-
-            // Find active voxels and their weights
-            Siddon::update_smatrix_row(
-                &siddon,
-                &mut system_matrix_row,
-                next_boundary, voxel_size,
-                index, delta_index, remaining,
-                tof_peak,
-            );
-
-            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
-            for (i, _) in &system_matrix_row {
-                if i >= backprojection.len() { return_state!(); }
-            }
-
-            let integral = forward_project(&system_matrix_row, attenuation);
-            let attenuation_factor = (-integral).exp();
-            // Backprojection of LOR onto sensitivity image
-            back_project(&mut backprojection, &system_matrix_row, attenuation_factor);
-            return_state!();
-        }
-    }
+fn sensitivity_one_lor(state: FoldState<Siddon>, lor: LOR) -> FoldState<Siddon> {
+    project_one_lor_inner(state, &lor, |projection, _lor| (-projection).exp())
 }
+
 
 /// Create sensitivity image by backprojecting LORs. In theory this should use
 /// *all* possible LORs. In practice use a representative sample.
-pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>, n_lors: usize, rho_to_mu: AreaPerMass) -> Image {
+pub fn sensitivity_image(
+    density: Image,
+    lors: impl ParallelIterator<Item = LOR>,
+    n_lors: usize,
+    rho_to_mu: AreaPerMass
+) -> Image {
     // Convert from [density in kg/m^3] to [mu in mm^-1]
-    let rho_to_mu: f32 = ratio_({
-        let kg = kg(1.0);
-        let  m = mm(1000.0);
-        let rho_unit = kg / (m * m * m);
-        let  mu_unit = 1.0 / mm(1.0);
-        rho_to_mu / (mu_unit / rho_unit)
-    });
-    let mut attenuation = density;
-    for voxel in &mut attenuation.data {
-        *voxel *= rho_to_mu;
-    }
+    let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
 
     // TOF should not be used as LOR attenuation is independent of decay point
     let notof = Siddon::notof();
@@ -227,7 +204,7 @@ pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>
     let initial_thread_state = || {
         let backprojection = Image::zeros_buffer(attenuation.fov);
         let system_matrix_row = Siddon::buffers(attenuation.fov);
-        (backprojection, system_matrix_row, &attenuation, &notof)
+        (backprojection, system_matrix_row, &attenuation, notof)
     };
 
     // -------- Project all LORs forwards and backwards ---------------------
@@ -247,6 +224,22 @@ pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>
         *e /= size
     }
     Image::new(attenuation.fov, backprojection)
+}
+
+/// Convert from [density in kg/m^3] to [mu in mm^-1]
+fn density_image_into_attenuation_image(density: Image, rho_to_mu: AreaPerMass) -> Image {
+    let rho_to_mu: f32 = ratio_({
+        let kg = kg(1.0);
+        let  m = mm(1000.0);
+        let rho_unit = kg / (m * m * m);
+        let  mu_unit = 1.0 / mm(1.0);
+        rho_to_mu / (mu_unit / rho_unit)
+    });
+    let mut attenuation = density;
+    for voxel in &mut attenuation.data {
+        *voxel *= rho_to_mu;
+    }
+    attenuation
 }
 
 const EPS: Ratio = in_base_unit!(1e-5);
