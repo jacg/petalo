@@ -205,7 +205,12 @@ fn sensitivity_one_lor<'i, 's>(state: FoldState<'i, &'s Siddon>, lor: LOR) -> Fo
 
 /// Create sensitivity image by backprojecting LORs. In theory this should use
 /// *all* possible LORs. In practice use a representative sample.
-pub fn sensitivity_image(density: Image, lors: impl ParallelIterator<Item = LOR>, n_lors: usize, rho_to_mu: AreaPerMass) -> Image {
+pub fn sensitivity_image(
+    density: Image,
+    lors: impl ParallelIterator<Item = LOR>,
+    n_lors: usize,
+    rho_to_mu: AreaPerMass
+) -> Image {
     // Convert from [density in kg/m^3] to [mu in mm^-1]
     let rho_to_mu: f32 = ratio_({
         let kg = kg(1.0);
