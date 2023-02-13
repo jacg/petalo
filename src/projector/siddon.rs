@@ -30,7 +30,11 @@ pub struct Siddon {
 impl Projector for Siddon {
 
     fn project_one_lor<'img, 'g>(fold_state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
-        project_one_lor(fold_state, lor)
+        project_one_lor(
+            fold_state,
+            lor,
+            |projection, lor| ratio_(projection * lor.additive_correction),
+        )
     }
 
     fn buffers(fov: FOV) -> SystemMatrixRow {
@@ -122,15 +126,7 @@ impl Siddon {
 
 }
 
-pub fn project_one_lor<'img>(
-    state: FoldState<'img, Siddon>,
-    lor: &LOR,
-) -> FoldState<'img, Siddon> {
-    project_one_lor_inner(state, lor,
-                          |projection, lor| ratio_(projection * lor.additive_correction))
-}
-
-pub fn project_one_lor_inner<'img>(
+fn project_one_lor<'img>(
     state: FoldState<'img, Siddon>,
     lor: &LOR,
     adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
@@ -177,11 +173,8 @@ pub fn project_one_lor_inner<'img>(
     }
 }
 
-// Too much copy-paste code reuse from project_one_lor. This is because the
-// latter (and the functions it uses) was heavily optimized, at the cost of ease
-// of reuse.
 fn sensitivity_one_lor(state: FoldState<Siddon>, lor: LOR) -> FoldState<Siddon> {
-    project_one_lor_inner(state, &lor, |projection, _lor| (-projection).exp())
+    project_one_lor(state, &lor, |projection, _lor| (-projection).exp())
 }
 
 
