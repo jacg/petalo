@@ -151,11 +151,14 @@ pub fn project_one_lor<'img>(state: FoldState<'img, Siddon>, lor: &LOR) -> FoldS
                 if i >= backprojection.len() { return_state!(); }
             }
 
-            // Forward projection of current image into this LOR
-            let projection = forward_project(&system_matrix_row, image) * lor.additive_correction;
+            // Forward projection image into LOR
+            let projection = forward_project(&system_matrix_row, image);
+
+            // Specific stuff
+            let value = ratio_(projection * lor.additive_correction);
 
             // Backprojection of LOR onto image
-            back_project(&mut backprojection, &system_matrix_row, ratio_(projection));
+            back_project(&mut backprojection, &system_matrix_row, value);
             return_state!();
         }
     }
@@ -164,15 +167,17 @@ pub fn project_one_lor<'img>(state: FoldState<'img, Siddon>, lor: &LOR) -> FoldS
 // Too much copy-paste code reuse from project_one_lor. This is because the
 // latter (and the functions it uses) was heavily optimized, at the cost of ease
 // of reuse.
-fn sensitivity_one_lor<'i>(state: FoldState<'i, Siddon>, lor: LOR) -> FoldState<'i, Siddon> {
-    let (mut backprojection, mut system_matrix_row, attenuation, siddon) = state;
+fn sensitivity_one_lor(state: FoldState<Siddon>, lor: LOR) -> FoldState<Siddon> {
+    sensitivity_one_lor_inner(state, &lor)
+}
+fn sensitivity_one_lor_inner<'img>(state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
+    let (mut backprojection, mut system_matrix_row, image, siddon) = state;
 
     // Need to return the state from various match arms
-    macro_rules! return_state { () => (return (backprojection, system_matrix_row, attenuation, siddon)); }
+    macro_rules! return_state { () => (return (backprojection, system_matrix_row, image, siddon)); }
 
-    // Find coupled voxels (slice of system matrix) WITHOUT TOF
     // Analyse point where LOR hits FOV
-    match lor_fov_hit(&lor, attenuation.fov) {
+    match lor_fov_hit(lor, image.fov) {
 
         // LOR missed FOV: nothing to be done
         None => return_state!(),
@@ -180,7 +185,7 @@ fn sensitivity_one_lor<'i>(state: FoldState<'i, Siddon>, lor: LOR) -> FoldState<
         // Data needed by `system_matrix_elements`
         Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
 
-            // Find active voxels and their weights
+            // Find non-zero elements (voxels coupled to this LOR) and their values
             Siddon::update_smatrix_row(
                 &siddon,
                 &mut system_matrix_row,
@@ -194,10 +199,14 @@ fn sensitivity_one_lor<'i>(state: FoldState<'i, Siddon>, lor: LOR) -> FoldState<
                 if i >= backprojection.len() { return_state!(); }
             }
 
-            let integral = forward_project(&system_matrix_row, attenuation);
-            let attenuation_factor = (-integral).exp();
-            // Backprojection of LOR onto sensitivity image
-            back_project(&mut backprojection, &system_matrix_row, attenuation_factor);
+            // Forward projection image into LOR
+            let projection = forward_project(&system_matrix_row, image);
+
+            // Specific stuff
+            let value = (-projection).exp();
+
+            // Backprojection of LOR onto image
+            back_project(&mut backprojection, &system_matrix_row, value);
             return_state!();
         }
     }
