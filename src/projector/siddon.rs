@@ -122,7 +122,19 @@ impl Siddon {
 
 }
 
-pub fn project_one_lor<'img>(state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
+pub fn project_one_lor<'img>(
+    state: FoldState<'img, Siddon>,
+    lor: &LOR,
+) -> FoldState<'img, Siddon> {
+    project_one_lor_inner(state, lor,
+                          |projection, lor| ratio_(projection * lor.additive_correction))
+}
+
+pub fn project_one_lor_inner<'img>(
+    state: FoldState<'img, Siddon>,
+    lor: &LOR,
+    adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
+) -> FoldState<'img, Siddon> {
     let (mut backprojection, mut system_matrix_row, image, siddon) = state;
 
     // Need to return the state from various match arms
@@ -151,14 +163,15 @@ pub fn project_one_lor<'img>(state: FoldState<'img, Siddon>, lor: &LOR) -> FoldS
                 if i >= backprojection.len() { return_state!(); }
             }
 
-            // Forward projection image into LOR
+            // Sum product of relevant voxels' weights and activities
             let projection = forward_project(&system_matrix_row, image);
 
-            // Specific stuff
-            let value = ratio_(projection * lor.additive_correction);
+            // ... the sum needs to be adapted for the use specific use case:
+            // MLEM or sensitivity image generation, are the only ones so far
+            let adapted_projection = adapt_forward_projection(projection, lor);
 
             // Backprojection of LOR onto image
-            back_project(&mut backprojection, &system_matrix_row, value);
+            back_project(&mut backprojection, &system_matrix_row, adapted_projection);
             return_state!();
         }
     }
@@ -168,49 +181,9 @@ pub fn project_one_lor<'img>(state: FoldState<'img, Siddon>, lor: &LOR) -> FoldS
 // latter (and the functions it uses) was heavily optimized, at the cost of ease
 // of reuse.
 fn sensitivity_one_lor(state: FoldState<Siddon>, lor: LOR) -> FoldState<Siddon> {
-    sensitivity_one_lor_inner(state, &lor)
+    project_one_lor_inner(state, &lor, |projection, _lor| (-projection).exp())
 }
-fn sensitivity_one_lor_inner<'img>(state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
-    let (mut backprojection, mut system_matrix_row, image, siddon) = state;
 
-    // Need to return the state from various match arms
-    macro_rules! return_state { () => (return (backprojection, system_matrix_row, image, siddon)); }
-
-    // Analyse point where LOR hits FOV
-    match lor_fov_hit(lor, image.fov) {
-
-        // LOR missed FOV: nothing to be done
-        None => return_state!(),
-
-        // Data needed by `system_matrix_elements`
-        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-
-            // Find non-zero elements (voxels coupled to this LOR) and their values
-            Siddon::update_smatrix_row(
-                &siddon,
-                &mut system_matrix_row,
-                next_boundary, voxel_size,
-                index, delta_index, remaining,
-                tof_peak,
-            );
-
-            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
-            for (i, _) in &system_matrix_row {
-                if i >= backprojection.len() { return_state!(); }
-            }
-
-            // Forward projection image into LOR
-            let projection = forward_project(&system_matrix_row, image);
-
-            // Specific stuff
-            let value = (-projection).exp();
-
-            // Backprojection of LOR onto image
-            back_project(&mut backprojection, &system_matrix_row, value);
-            return_state!();
-        }
-    }
-}
 
 /// Create sensitivity image by backprojecting LORs. In theory this should use
 /// *all* possible LORs. In practice use a representative sample.
