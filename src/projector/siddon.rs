@@ -164,7 +164,7 @@ pub fn project_one_lor<'i>(state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState
 // Too much copy-paste code reuse from project_one_lor. This is because the
 // latter (and the functions it uses) was heavily optimized, at the cost of ease
 // of reuse.
-fn sensitivity_one_lor<'i, 's>(state: FoldState<'i, &'s Siddon>, lor: LOR) -> FoldState<'i, &'s Siddon> {
+fn sensitivity_one_lor<'i>(state: FoldState<'i, Siddon>, lor: LOR) -> FoldState<'i, Siddon> {
     let (mut backprojection, mut system_matrix_row, attenuation, siddon) = state;
 
     // Need to return the state from various match arms
@@ -232,7 +232,7 @@ pub fn sensitivity_image(
     let initial_thread_state = || {
         let backprojection = Image::zeros_buffer(attenuation.fov);
         let system_matrix_row = Siddon::buffers(attenuation.fov);
-        (backprojection, system_matrix_row, &attenuation, &notof)
+        (backprojection, system_matrix_row, &attenuation, notof)
     };
 
     // -------- Project all LORs forwards and backwards ---------------------
