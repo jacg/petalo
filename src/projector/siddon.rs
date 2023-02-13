@@ -29,7 +29,7 @@ pub struct Siddon {
 
 impl Projector for Siddon {
 
-    fn project_one_lor<'i, 'g>(fold_state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState<'i, Siddon> {
+    fn project_one_lor<'img, 'g>(fold_state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
         project_one_lor(fold_state, lor)
     }
 
@@ -122,7 +122,7 @@ impl Siddon {
 
 }
 
-pub fn project_one_lor<'i>(state: FoldState<'i, Siddon>, lor: &LOR) -> FoldState<'i, Siddon> {
+pub fn project_one_lor<'img>(state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
     let (mut backprojection, mut system_matrix_row, image, siddon) = state;
 
     // Need to return the state from various match arms
