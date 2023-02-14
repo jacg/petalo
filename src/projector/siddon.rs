@@ -1,5 +1,3 @@
-use rayon::prelude::*;
-
 use units::{
     C, Length, PerLength, Ratio, Time,
     ratio_, mm, mm_,
@@ -16,7 +14,7 @@ use crate::{
     gauss::{make_gauss_option, Gaussian},
     image::Image,
     index::index3_to_1,
-    mlem::elementwise_add,
+    mlem::projector_core,
     system_matrix::{SystemMatrixRow, forward_project, back_project},
 };
 
@@ -181,34 +179,18 @@ fn project_one_lor<'img>(
 /// *all* possible LORs. In practice use a representative sample.
 pub fn sensitivity_image<P: Projector + Copy + Send + Sync>(
     projector  : P,
-    attenuation: Image,
+    attenuation: &Image,
     lors       : &[LOR],
+    job_size   : usize,
 ) -> Image {
-    // Closure preparing the state needed by `fold`: will be called by
-    // `fold` at the start of every thread that is launched.
-    let initial_thread_state = || {
-        let backprojection = Image::zeros_buffer(attenuation.fov);
-        let system_matrix_row = P::buffers(attenuation.fov);
-        (backprojection, system_matrix_row, &attenuation, projector)
-    };
-
-    // -------- Project all LORs forwards and backwards ---------------------
-    let fold_result = lors
-        .par_iter()
-        .fold(initial_thread_state, P::sensitivity_one_lor);
-
-    // -------- extract relevant information (backprojection) ---------------
-    let mut backprojection = fold_result
-    // Keep only the backprojection (ignore weights and indices)
-        .map(|tuple| tuple.0)
-    // Sum the backprojections calculated on each thread
-        .reduce(|| Image::zeros_buffer(attenuation.fov), elementwise_add);
+    let mut backprojection = projector_core(projector, attenuation, lors, job_size, P::sensitivity_one_lor);
 
     // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
     let size = lors.len() as f32;
     for e in backprojection.iter_mut() {
         *e /= size
     }
+
     Image::new(attenuation.fov, backprojection)
 }
 
