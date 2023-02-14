@@ -12,9 +12,7 @@ use crate::{
     config::mlem::Tof,
     fov::FOV,
     gauss::{make_gauss_option, Gaussian},
-    image::Image,
     index::index3_to_1,
-    mlem::projector_core,
     system_matrix::{SystemMatrixRow, forward_project, back_project},
 };
 
@@ -173,25 +171,6 @@ fn project_one_lor<'img>(
             return_state!();
         }
     }
-}
-
-/// Create sensitivity image by backprojecting LORs. In theory this should use
-/// *all* possible LORs. In practice use a representative sample.
-pub fn sensitivity_image<P: Projector + Copy + Send + Sync>(
-    projector  : P,
-    attenuation: &Image,
-    lors       : &[LOR],
-    job_size   : usize,
-) -> Image {
-    let mut backprojection = projector_core(projector, attenuation, lors, job_size, P::sensitivity_one_lor);
-
-    // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
-    let size = lors.len() as f32;
-    for e in backprojection.iter_mut() {
-        *e /= size
-    }
-
-    Image::new(attenuation.fov, backprojection)
 }
 
 const EPS: Ratio = in_base_unit!(1e-5);
@@ -541,7 +520,7 @@ mod sensitivity_image {
     use units::{mm, mm_, ns, ratio, ratio_, turn, turn_, Angle, Length, Ratio};
     use rstest::{rstest, fixture};
     use float_eq::assert_float_eq;
-    use crate::mlem::mlem;
+    use crate::{mlem::mlem, image::Image};
 
     /// Representation of a straght line in 2D
     /// ax + by + c = 0

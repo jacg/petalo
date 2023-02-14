@@ -46,7 +46,7 @@ use petalo::{
     LOR,
     fov::FOV,
     image::Image,
-    projector::siddon::sensitivity_image,
+    projector::{Projector, projector_core},
 };
 
 use units::{
@@ -104,6 +104,26 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Create sensitivity image by backprojecting all possible LORs
+pub fn sensitivity_image<P: Projector + Copy + Send + Sync>(
+    projector  : P,
+    attenuation: &Image,
+    lors       : &[LOR],
+    job_size   : usize,
+) -> Image {
+    let mut backprojection = projector_core(projector, attenuation, lors, job_size, P::sensitivity_one_lor);
+
+    // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
+    let size = lors.len() as f32;
+    for e in backprojection.iter_mut() {
+        *e /= size
+    }
+
+    Image::new(attenuation.fov, backprojection)
+}
+
+
+// TODO: need different versions for different projectors
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
