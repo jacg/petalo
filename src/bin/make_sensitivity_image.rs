@@ -50,7 +50,7 @@ use petalo::{
 };
 
 use units::{
-    Length, Time, AreaPerMass, ratio, kg, mm, todo::Lengthf32,
+    Length, Time, AreaPerMass, ratio, ratio_, kg, mm, todo::Lengthf32,
     uom::ConstZero,
 };
 
@@ -89,7 +89,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
     let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
-    let sensitivity = pool.install(|| sensitivity_image(density, lors, n_lors, rho_to_mu));
+    // Convert from [density in kg/m^3] to [mu in mm^-1]
+    let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
+    let sensitivity = pool.install(|| sensitivity_image(attenuation, lors, n_lors));
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
@@ -120,7 +122,6 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detecto
         .map(one_useful_random_lor)
 }
 
-
 fn random_point_on_cylinder(l: Length, r: Length) -> petalo::Point {
     use std::f32::consts::TAU;
     use rand::random;
@@ -129,4 +130,20 @@ fn random_point_on_cylinder(l: Length, r: Length) -> petalo::Point {
     let x = r * theta.cos();
     let y = r * theta.sin();
     petalo::Point::new(x, y, z)
+}
+
+/// Convert from [density in kg/m^3] to [mu in mm^-1]
+fn density_image_into_attenuation_image(density: Image, rho_to_mu: AreaPerMass) -> Image {
+    let rho_to_mu: f32 = ratio_({
+        let kg = kg(1.0);
+        let  m = mm(1000.0);
+        let rho_unit = kg / (m * m * m);
+        let  mu_unit = 1.0 / mm(1.0);
+        rho_to_mu / (mu_unit / rho_unit)
+    });
+    let mut attenuation = density;
+    for voxel in &mut attenuation.data {
+        *voxel *= rho_to_mu;
+    }
+    attenuation
 }
