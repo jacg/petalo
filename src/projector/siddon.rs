@@ -29,7 +29,7 @@ pub struct Siddon {
 
 impl Projector for Siddon {
 
-    fn project_one_lor<'img, 'g>(fold_state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
+    fn project_one_lor<'img>(fold_state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
         project_one_lor(
             fold_state,
             lor,
