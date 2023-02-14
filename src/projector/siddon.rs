@@ -37,6 +37,10 @@ impl Projector for Siddon {
         )
     }
 
+    fn sensitivity_one_lor<'img>(fold_state: FoldState<'img, Siddon>, lor: LOR) -> FoldState<'img, Siddon> {
+        project_one_lor(fold_state, &lor, |projection, _lor| (-projection).exp())
+    }
+
     fn buffers(fov: FOV) -> SystemMatrixRow {
         let [nx, ny, nz] = fov.n;
         let max_number_of_coupled_voxels_possible = nx + ny + nz - 2;
@@ -173,32 +177,25 @@ fn project_one_lor<'img>(
     }
 }
 
-fn sensitivity_one_lor(state: FoldState<Siddon>, lor: LOR) -> FoldState<Siddon> {
-    project_one_lor(state, &lor, |projection, _lor| (-projection).exp())
-}
-
-
 /// Create sensitivity image by backprojecting LORs. In theory this should use
 /// *all* possible LORs. In practice use a representative sample.
-pub fn sensitivity_image(
+pub fn sensitivity_image<P: Projector + Copy + Send + Sync>(
+    projector  : P,
     attenuation: Image,
-    lors: impl ParallelIterator<Item = LOR>,
-    n_lors: usize,
+    lors       : impl ParallelIterator<Item = LOR>,
+    n_lors     : usize,
 ) -> Image {
-    // TOF should not be used as LOR attenuation is independent of decay point
-    let notof = Siddon::notof();
-
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
         let backprojection = Image::zeros_buffer(attenuation.fov);
-        let system_matrix_row = Siddon::buffers(attenuation.fov);
-        (backprojection, system_matrix_row, &attenuation, notof)
+        let system_matrix_row = P::buffers(attenuation.fov);
+        (backprojection, system_matrix_row, &attenuation, projector)
     };
 
     // -------- Project all LORs forwards and backwards ---------------------
     let fold_result = lors
-        .fold(initial_thread_state, sensitivity_one_lor);
+        .fold(initial_thread_state, P::sensitivity_one_lor);
 
     // -------- extract relevant information (backprojection) ---------------
     let mut backprojection = fold_result
