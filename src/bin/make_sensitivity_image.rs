@@ -93,7 +93,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let projector = petalo::projector::Siddon::notof();
     // Convert from [density in kg/m^3] to [mu in mm^-1]
     let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
-    let sensitivity = pool.install(|| sensitivity_image(projector, attenuation, lors, n_lors));
+    let sensitivity = pool.install(|| sensitivity_image(projector, attenuation, &lors));
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
@@ -106,7 +106,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl rayon::iter::ParallelIterator<Item = LOR> {
+fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> Vec<LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
     let one_useful_random_lor = move |_lor_number| {
         loop {
@@ -122,6 +122,7 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detecto
     (0..n_lors)
         .into_par_iter()
         .map(one_useful_random_lor)
+        .collect()
 }
 
 fn random_point_on_cylinder(l: Length, r: Length) -> petalo::Point {

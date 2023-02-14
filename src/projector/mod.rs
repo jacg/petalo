@@ -5,7 +5,7 @@ pub mod siddon;
 /// Abstract interface for forward-backward projection implementations
 pub trait Projector {
     fn project_one_lor    <'i>(fold_state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self>;
-    fn sensitivity_one_lor<'i>(fold_state: FoldState<'i, Self>, lor:  LOR) -> FoldState<'i, Self>;
+    fn sensitivity_one_lor<'i>(fold_state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self>;
 
     // Sparse storage of the slice through the system matrix which corresponds
     // to the current LOR. Allocating these anew for each LOR had a noticeable

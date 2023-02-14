@@ -37,8 +37,8 @@ impl Projector for Siddon {
         )
     }
 
-    fn sensitivity_one_lor<'img>(fold_state: FoldState<'img, Siddon>, lor: LOR) -> FoldState<'img, Siddon> {
-        project_one_lor(fold_state, &lor, |projection, _lor| (-projection).exp())
+    fn sensitivity_one_lor<'img>(fold_state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
+        project_one_lor(fold_state, lor, |projection, _lor| (-projection).exp())
     }
 
     fn buffers(fov: FOV) -> SystemMatrixRow {
@@ -182,8 +182,7 @@ fn project_one_lor<'img>(
 pub fn sensitivity_image<P: Projector + Copy + Send + Sync>(
     projector  : P,
     attenuation: Image,
-    lors       : impl ParallelIterator<Item = LOR>,
-    n_lors     : usize,
+    lors       : &[LOR],
 ) -> Image {
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
@@ -195,6 +194,7 @@ pub fn sensitivity_image<P: Projector + Copy + Send + Sync>(
 
     // -------- Project all LORs forwards and backwards ---------------------
     let fold_result = lors
+        .par_iter()
         .fold(initial_thread_state, P::sensitivity_one_lor);
 
     // -------- extract relevant information (backprojection) ---------------
@@ -205,7 +205,7 @@ pub fn sensitivity_image<P: Projector + Copy + Send + Sync>(
         .reduce(|| Image::zeros_buffer(attenuation.fov), elementwise_add);
 
     // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
-    let size = n_lors as f32;
+    let size = lors.len() as f32;
     for e in backprojection.iter_mut() {
         *e /= size
     }
