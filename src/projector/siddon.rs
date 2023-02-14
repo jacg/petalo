@@ -25,16 +25,12 @@ pub struct Siddon {
 
 impl Projector for Siddon {
 
-    fn project_one_lor<'img>(fold_state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
-        project_one_lor(
-            fold_state,
-            lor,
-            |projection, lor| ratio_(projection * lor.additive_correction),
-        )
+    fn    project_one_lor<'i>(state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self> {
+        project_one_lor(state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
     }
 
-    fn sensitivity_one_lor<'img>(fold_state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
-        project_one_lor(fold_state, lor, |projection, _lor| (-projection).exp())
+    fn sensitivity_one_lor<'i>(state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self> {
+        project_one_lor(state, lor, |projection, _lor| (-projection).exp())
     }
 
     fn buffers(fov: FOV) -> SystemMatrixRow {
