@@ -48,10 +48,7 @@ impl Siddon {
     // TODO Should FOV become construction-time argument?
     pub fn new_system_matrix_row(self, lor: &LOR, fov: &FOV) -> SystemMatrixRow {
         let mut system_matrix_row = Self::buffers(*fov);
-        match lor_fov_hit(lor, *fov) {
-            None => (),
-            Some(hit) => { self.update_smatrix_row_inner(&mut system_matrix_row, hit); }
-        }
+        Siddon::update_system_matrix_row(&mut system_matrix_row, lor, *fov, &self);
         system_matrix_row
     }
 
