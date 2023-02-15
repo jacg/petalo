@@ -106,10 +106,10 @@ fn project_one_lor<'img>(
     system_matrix_row.clear();
 
     // Analyse point where LOR hits FOV
-    match lor_fov_hit(lor, image.fov) {
+    let project_this_lor = match lor_fov_hit(lor, image.fov) {
 
         // LOR missed FOV: nothing to be done
-        None => (),
+        None => false,
 
         // Data needed by `system_matrix_elements`
         Some(hit) => 'hit: {
@@ -119,20 +119,25 @@ fn project_one_lor<'img>(
 
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
             for (i, _) in &system_matrix_row {
-                if i >= backprojection.len() { break 'hit; }
+                if i >= backprojection.len() { break 'hit false; }
             }
-
-            // Sum product of relevant voxels' weights and activities
-            let projection = forward_project(&system_matrix_row, image);
-
-            // ... the sum needs to be adapted for the use specific use case:
-            // MLEM or sensitivity image generation, are the only ones so far
-            let adapted_projection = adapt_forward_projection(projection, lor);
-
-            // Backprojection of LOR onto image
-            back_project(&mut backprojection, &system_matrix_row, adapted_projection);
+            // This LOR look safe: process it
+            true
         }
+    };
+
+    if project_this_lor {
+        // Sum product of relevant voxels' weights and activities
+        let projection = forward_project(&system_matrix_row, image);
+
+        // ... the sum needs to be adapted for the use specific use case:
+        // MLEM or sensitivity image generation, are the only ones so far
+        let adapted_projection = adapt_forward_projection(projection, lor);
+
+        // Backprojection of LOR onto image
+        back_project(&mut backprojection, &system_matrix_row, adapted_projection);
     }
+    // Return values needed by next LOR's iteration
     Fs { backprojection, system_matrix_row, image, projector_data }
 }
 
