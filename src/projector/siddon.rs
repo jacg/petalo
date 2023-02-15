@@ -111,17 +111,14 @@ fn project_one_lor<'img>(
 ) -> Fs<'img> {
     let Fs { mut backprojection, mut system_matrix_row, image, projector_data } = state;
 
-    // Need to return the state from various match arms
-    macro_rules! return_state { () => (return Fs {backprojection, system_matrix_row, image, projector_data}); }
-
     // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
 
         // LOR missed FOV: nothing to be done
-        None => return_state!(),
+        None => (),
 
         // Data needed by `system_matrix_elements`
-        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
+        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => 'hit: {
 
             // Find non-zero elements (voxels coupled to this LOR) and their values
             Siddon::update_smatrix_row(
@@ -134,7 +131,7 @@ fn project_one_lor<'img>(
 
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
             for (i, _) in &system_matrix_row {
-                if i >= backprojection.len() { return_state!(); }
+                if i >= backprojection.len() { break 'hit; }
             }
 
             // Sum product of relevant voxels' weights and activities
@@ -146,9 +143,9 @@ fn project_one_lor<'img>(
 
             // Backprojection of LOR onto image
             back_project(&mut backprojection, &system_matrix_row, adapted_projection);
-            return_state!();
         }
     }
+    Fs { backprojection, system_matrix_row, image, projector_data }
 }
 
 const EPS: Ratio = in_base_unit!(1e-5);
