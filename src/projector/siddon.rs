@@ -106,24 +106,23 @@ fn project_one_lor<'img>(
     system_matrix_row.clear();
 
     // Analyse point where LOR hits FOV
-    let project_this_lor = match lor_fov_hit(lor, image.fov) {
-
+    match lor_fov_hit(lor, image.fov) {
         // LOR missed FOV: nothing to be done
-        None => false,
-
-        // Data needed by `system_matrix_elements`
-        Some(hit) => 'hit: {
-
+        None => (),
+        // Calculate system matrix elements for this LOR
+        Some(hit) => {
             // Find non-zero elements (voxels coupled to this LOR) and their values
             Siddon::update_smatrix_row(&projector_data, &mut system_matrix_row, hit);
+        }
+    };
 
+    let project_this_lor = 'safe_lor: {
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
             for (i, _) in &system_matrix_row {
-                if i >= backprojection.len() { break 'hit false; }
+                if i >= backprojection.len() { break 'safe_lor false; }
             }
-            // This LOR look safe: process it
+            // This LOR looks safe: process it
             true
-        }
     };
 
     if project_this_lor {
