@@ -27,7 +27,7 @@ impl Siddon {
     pub fn new(tof: Option<Tof>) -> Self { Self { tof: make_gauss_option(tof) }}
     pub fn notof() -> Self { Self { tof: None } }
 
-    pub fn update_system_matrix_row_outer(
+    pub fn update_system_matrix_row(
         system_matrix_row: &mut SystemMatrixRow,
         lor: &LOR,
         fov:  FOV,
@@ -40,7 +40,7 @@ impl Siddon {
             // Calculate system matrix elements for this LOR
             Some(hit) => {
                 // Find non-zero elements (voxels coupled to this LOR) and their values
-                Siddon::update_smatrix_row(projector_data, system_matrix_row, hit);
+                Siddon::update_smatrix_row_inner(projector_data, system_matrix_row, hit);
             }
         };
     }
@@ -50,7 +50,7 @@ impl Siddon {
         let mut system_matrix_row = Self::buffers(*fov);
         match lor_fov_hit(lor, *fov) {
             None => (),
-            Some(hit) => { self.update_smatrix_row(&mut system_matrix_row, hit); }
+            Some(hit) => { self.update_smatrix_row_inner(&mut system_matrix_row, hit); }
         }
         system_matrix_row
     }
@@ -61,7 +61,7 @@ impl Siddon {
     /// the vectors of results repeatedly, had a noticeable impact on performance.
     #[inline]
     #[allow(clippy::too_many_arguments)]
-    pub fn update_smatrix_row(
+    pub fn update_smatrix_row_inner(
         &self,
         system_matrix_row: &mut SystemMatrixRow,
         FovHit {
@@ -123,7 +123,7 @@ fn project_one_lor<'img>(
     // Throw away previous LOR's values
     system_matrix_row.clear();
 
-    Siddon::update_system_matrix_row_outer(&mut system_matrix_row, lor, image.fov, &projector_data);
+    Siddon::update_system_matrix_row(&mut system_matrix_row, lor, image.fov, &projector_data);
 
     let project_this_lor = 'safe_lor: {
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
