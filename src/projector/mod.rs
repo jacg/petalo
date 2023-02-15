@@ -18,7 +18,7 @@ pub trait Projector {
 /// Common core of forward and backward propagation.
 /// Used by `one_iteration` (MLEM) and `sensitivity_image`
 pub fn projector_core<'l, 'i, P, F>(
-    projector      : P,
+    projector_data : P,
     image          : &'i Image,
     lors           : &'l [LOR],
     job_size       : usize,
@@ -32,9 +32,9 @@ where
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
-        let backprojection_image_per_thread = Image::zeros_buffer(image.fov);
+        let backprojection = Image::zeros_buffer(image.fov);
         let system_matrix_row = P::buffers(image.fov);
-        (backprojection_image_per_thread, system_matrix_row, image, projector)
+        FoldState { backprojection, system_matrix_row, image, projector_data }
     };
 
     // -------- Project all LORs forwards and backwards ---------------------
@@ -50,7 +50,7 @@ where
     // -------- extract relevant information (backprojection) ---------------
     fold_result
         // Keep only the backprojection (ignore weights and indices)
-        .map(|tuple| tuple.0)
+        .map(|tuple| tuple.backprojection)
         // Sum the backprojections calculated on each thread
         .reduce(|| Image::zeros_buffer(image.fov), elementwise_add)
 }
@@ -61,7 +61,16 @@ pub fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
 
 // Data needed by project_one_lor, both as input and output, because of the
 // constrains imposed by `fold`
-pub type FoldState<'img, T> = (ImageData, SystemMatrixRow, &'img Image, T);
+//pub type FoldState<'img, T> = (ImageData, SystemMatrixRow, &'img Image, T);
+pub type FoldState<'img, T> = FldStt<'img, T>;
+
+pub struct FldStt<'img, T: ?Sized> {
+    backprojection: ImageData,
+    system_matrix_row: SystemMatrixRow,
+    image: &'img Image,
+    projector_data: T,
+}
+
 
 use rayon::prelude::*;
 

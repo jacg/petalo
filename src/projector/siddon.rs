@@ -127,10 +127,10 @@ fn project_one_lor<'img>(
     lor: &LOR,
     adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
 ) -> FoldState<'img, Siddon> {
-    let (mut backprojection, mut system_matrix_row, image, siddon) = state;
+    let FoldState { mut backprojection, mut system_matrix_row, image, projector_data } = state;
 
     // Need to return the state from various match arms
-    macro_rules! return_state { () => (return (backprojection, system_matrix_row, image, siddon)); }
+    macro_rules! return_state { () => (return FoldState {backprojection, system_matrix_row, image, projector_data}); }
 
     // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
@@ -143,7 +143,7 @@ fn project_one_lor<'img>(
 
             // Find non-zero elements (voxels coupled to this LOR) and their values
             Siddon::update_smatrix_row(
-                &siddon,
+                &projector_data,
                 &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
