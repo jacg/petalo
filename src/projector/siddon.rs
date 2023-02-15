@@ -1,23 +1,3 @@
-use units::{
-    C, Length, PerLength, Ratio, Time,
-    ratio_, mm, mm_,
-    in_base_unit,
-    uom::ConstZero,
-};
-
-use geometry::Vector;
-
-use crate::{
-    BoxDim_u, LOR, Point, Pointf32, RatioPoint, RatioVec,
-    config::mlem::Tof,
-    fov::FOV,
-    gauss::{make_gauss_option, Gaussian},
-    index::index3_to_1,
-    system_matrix::{SystemMatrixRow, forward_project, back_project},
-};
-
-use super::{FoldState, Projector};
-
 #[derive(Debug, Clone, Copy)]
 pub struct Siddon {
     tof: Option<Gaussian>,
@@ -378,6 +358,26 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
     (p1, p2, flipped)
 }
 
+// ----- imports ----------------------------------------------------------------------
+use units::{
+    C, Length, PerLength, Ratio, Time,
+    ratio_, mm, mm_,
+    in_base_unit,
+    uom::ConstZero,
+};
+
+use geometry::Vector;
+
+use crate::{
+    BoxDim_u, LOR, Point, Pointf32, RatioPoint, RatioVec,
+    config::mlem::Tof,
+    fov::FOV,
+    gauss::{make_gauss_option, Gaussian},
+    index::index3_to_1,
+    system_matrix::{SystemMatrixRow, forward_project, back_project},
+};
+
+use super::{FoldState, Projector};
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -510,7 +510,6 @@ mod test {
         }
     }
 }
-
 
 #[cfg(test)]
 mod sensitivity_image {
