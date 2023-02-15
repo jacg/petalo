@@ -27,6 +27,24 @@ impl Siddon {
     pub fn new(tof: Option<Tof>) -> Self { Self { tof: make_gauss_option(tof) }}
     pub fn notof() -> Self { Self { tof: None } }
 
+    pub fn update_system_matrix_row_outer(
+        system_matrix_row: &mut SystemMatrixRow,
+        lor: &LOR,
+        fov:  FOV,
+        projector_data: &Self,
+    ) {
+        // Analyse point where LOR hits FOV
+        match lor_fov_hit(lor, fov) {
+            // LOR missed FOV: nothing to be done
+            None => (),
+            // Calculate system matrix elements for this LOR
+            Some(hit) => {
+                // Find non-zero elements (voxels coupled to this LOR) and their values
+                Siddon::update_smatrix_row(projector_data, system_matrix_row, hit);
+            }
+        };
+    }
+
     // TODO Should FOV become construction-time argument?
     pub fn new_system_matrix_row(self, lor: &LOR, fov: &FOV) -> SystemMatrixRow {
         let mut system_matrix_row = Self::buffers(*fov);
@@ -105,16 +123,7 @@ fn project_one_lor<'img>(
     // Throw away previous LOR's values
     system_matrix_row.clear();
 
-    // Analyse point where LOR hits FOV
-    match lor_fov_hit(lor, image.fov) {
-        // LOR missed FOV: nothing to be done
-        None => (),
-        // Calculate system matrix elements for this LOR
-        Some(hit) => {
-            // Find non-zero elements (voxels coupled to this LOR) and their values
-            Siddon::update_smatrix_row(&projector_data, &mut system_matrix_row, hit);
-        }
-    };
+    Siddon::update_system_matrix_row_outer(&mut system_matrix_row, lor, image.fov, &projector_data);
 
     let project_this_lor = 'safe_lor: {
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
