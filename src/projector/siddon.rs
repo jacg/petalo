@@ -23,6 +23,19 @@ impl Projector for Siddon {
 
 }
 
+impl SystemMatrix for Siddon {
+    type Data = Self;
+
+    fn update_system_matrix_row(
+        system_matrix_row: &mut SystemMatrixRow,
+        lor: &LOR,
+        fov:  FOV,
+        data: &Self::Data,
+    ) {
+        Siddon::update_system_matrix_row(system_matrix_row, lor, fov, data)
+    }
+}
+
 impl Siddon {
     pub fn new(tof: Option<Tof>) -> Self { Self { tof: make_gauss_option(tof) }}
     pub fn notof() -> Self { Self { tof: None } }
@@ -369,7 +382,7 @@ use crate::{
     fov::FOV,
     gauss::{make_gauss_option, Gaussian},
     index::index3_to_1,
-    system_matrix::{SystemMatrixRow, forward_project, back_project},
+    system_matrix::{SystemMatrixRow, forward_project, back_project, SystemMatrix},
 };
 
 use super::{FoldState, Projector};

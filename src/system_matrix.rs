@@ -62,3 +62,20 @@ pub fn back_project(backprojection: &mut [Lengthf32], system_matrix_row: &System
         backprojection[j] += w * projection_reciprocal;
     }
 }
+// ----- A trait for implementations of (geometrical?) system matrix calculations --------------------
+pub trait SystemMatrix {
+
+    type Data;
+
+    fn update_system_matrix_row(
+        system_matrix_row: &mut SystemMatrixRow,
+        lor: &LOR,
+        fov:  FOV,
+        data: &Self::Data,
+    );
+}
+
+use crate::{
+    LOR,
+    fov::FOV,
+};
