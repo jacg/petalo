@@ -32,14 +32,7 @@ impl Siddon {
         let mut system_matrix_row = Self::buffers(*fov);
         match lor_fov_hit(lor, *fov) {
             None => (),
-            Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-                self.update_smatrix_row(
-                    &mut system_matrix_row,
-                    next_boundary, voxel_size,
-                    index, delta_index, remaining,
-                    tof_peak,
-                );
-            }
+            Some(hit) => { self.update_smatrix_row(&mut system_matrix_row, hit); }
         }
         system_matrix_row
     }
@@ -53,12 +46,14 @@ impl Siddon {
     pub fn update_smatrix_row(
         &self,
         system_matrix_row: &mut SystemMatrixRow,
-        mut next_boundary: Vector,
-        voxel_size: Vector,
-        mut index: i32,
-        delta_index: [i32; 3],
-        mut remaining: [i32; 3],
-        tof_peak: Length,
+        FovHit {
+            mut next_boundary,
+            voxel_size,
+            mut index,
+            delta_index,
+            mut remaining,
+            tof_peak,
+        }: FovHit
     ) {
         // Throw away previous LOR's values
         system_matrix_row.clear();
@@ -118,16 +113,10 @@ fn project_one_lor<'img>(
         None => (),
 
         // Data needed by `system_matrix_elements`
-        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => 'hit: {
+        Some(hit) => 'hit: {
 
             // Find non-zero elements (voxels coupled to this LOR) and their values
-            Siddon::update_smatrix_row(
-                &projector_data,
-                &mut system_matrix_row,
-                next_boundary, voxel_size,
-                index, delta_index, remaining,
-                tof_peak,
-            );
+            Siddon::update_smatrix_row(&projector_data, &mut system_matrix_row, hit);
 
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
             for (i, _) in &system_matrix_row {
