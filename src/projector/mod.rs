@@ -61,10 +61,7 @@ pub fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
 
 // Data needed by project_one_lor, both as input and output, because of the
 // constrains imposed by `fold`
-//pub type FoldState<'img, T> = (ImageData, SystemMatrixRow, &'img Image, T);
-pub type FoldState<'img, T> = FldStt<'img, T>;
-
-pub struct FldStt<'img, T: ?Sized> {
+pub struct FoldState<'img, T: ?Sized> {
     backprojection: ImageData,
     system_matrix_row: SystemMatrixRow,
     image: &'img Image,
