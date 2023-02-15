@@ -23,13 +23,15 @@ pub struct Siddon {
     tof: Option<Gaussian>,
 }
 
+type Fs<'i> = FoldState<'i, Siddon>;
+
 impl Projector for Siddon {
 
-    fn    project_one_lor<'i>(state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self> {
+    fn    project_one_lor<'i>(state: Fs<'i>, lor: &LOR) -> Fs<'i> {
         project_one_lor(state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
     }
 
-    fn sensitivity_one_lor<'i>(state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self> {
+    fn sensitivity_one_lor<'i>(state: Fs<'i>, lor: &LOR) -> Fs<'i> {
         project_one_lor(state, lor, |projection, _lor| (-projection).exp())
     }
 
@@ -123,14 +125,14 @@ impl Siddon {
 }
 
 fn project_one_lor<'img>(
-    state: FoldState<'img, Siddon>,
+    state: Fs<'img>,
     lor: &LOR,
     adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
-) -> FoldState<'img, Siddon> {
-    let FoldState { mut backprojection, mut system_matrix_row, image, projector_data } = state;
+) -> Fs<'img> {
+    let Fs { mut backprojection, mut system_matrix_row, image, projector_data } = state;
 
     // Need to return the state from various match arms
-    macro_rules! return_state { () => (return FoldState {backprojection, system_matrix_row, image, projector_data}); }
+    macro_rules! return_state { () => (return Fs {backprojection, system_matrix_row, image, projector_data}); }
 
     // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
