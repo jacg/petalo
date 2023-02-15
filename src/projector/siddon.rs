@@ -55,9 +55,6 @@ impl Siddon {
             tof_peak,
         }: FovHit
     ) {
-        // Throw away previous LOR's values
-        system_matrix_row.clear();
-
         // How far we have moved since entering the FOV
         let mut here = Length::ZERO;
 
@@ -105,6 +102,8 @@ fn project_one_lor<'img>(
     adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
 ) -> Fs<'img> {
     let Fs { mut backprojection, mut system_matrix_row, image, projector_data } = state;
+    // Throw away previous LOR's values
+    system_matrix_row.clear();
 
     // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
