@@ -1,10 +1,8 @@
-use rayon::prelude::*;
-
 use units::{
     C, Length, PerLength, Ratio, Time,
     ratio_, mm, mm_,
     in_base_unit,
-    uom::ConstZero, AreaPerMass, kg
+    uom::ConstZero,
 };
 
 use geometry::Vector;
@@ -14,9 +12,7 @@ use crate::{
     config::mlem::Tof,
     fov::FOV,
     gauss::{make_gauss_option, Gaussian},
-    image::Image,
     index::index3_to_1,
-    mlem::elementwise_add,
     system_matrix::{SystemMatrixRow, forward_project, back_project},
 };
 
@@ -29,8 +25,12 @@ pub struct Siddon {
 
 impl Projector for Siddon {
 
-    fn project_one_lor<'img, 'g>(fold_state: FoldState<'img, Siddon>, lor: &LOR) -> FoldState<'img, Siddon> {
-        project_one_lor(fold_state, lor)
+    fn    project_one_lor<'i>(state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self> {
+        project_one_lor(state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
+    }
+
+    fn sensitivity_one_lor<'i>(state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self> {
+        project_one_lor(state, lor, |projection, _lor| (-projection).exp())
     }
 
     fn buffers(fov: FOV) -> SystemMatrixRow {
@@ -122,23 +122,15 @@ impl Siddon {
 
 }
 
-pub fn project_one_lor<'img>(
-    state: FoldState<'img, Siddon>,
-    lor: &LOR,
-) -> FoldState<'img, Siddon> {
-    project_one_lor_inner(state, lor,
-                          |projection, lor| ratio_(projection * lor.additive_correction))
-}
-
-pub fn project_one_lor_inner<'img>(
+fn project_one_lor<'img>(
     state: FoldState<'img, Siddon>,
     lor: &LOR,
     adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
 ) -> FoldState<'img, Siddon> {
-    let (mut backprojection, mut system_matrix_row, image, siddon) = state;
+    let FoldState { mut backprojection, mut system_matrix_row, image, projector_data } = state;
 
     // Need to return the state from various match arms
-    macro_rules! return_state { () => (return (backprojection, system_matrix_row, image, siddon)); }
+    macro_rules! return_state { () => (return FoldState {backprojection, system_matrix_row, image, projector_data}); }
 
     // Analyse point where LOR hits FOV
     match lor_fov_hit(lor, image.fov) {
@@ -151,7 +143,7 @@ pub fn project_one_lor_inner<'img>(
 
             // Find non-zero elements (voxels coupled to this LOR) and their values
             Siddon::update_smatrix_row(
-                &siddon,
+                &projector_data,
                 &mut system_matrix_row,
                 next_boundary, voxel_size,
                 index, delta_index, remaining,
@@ -175,71 +167,6 @@ pub fn project_one_lor_inner<'img>(
             return_state!();
         }
     }
-}
-
-// Too much copy-paste code reuse from project_one_lor. This is because the
-// latter (and the functions it uses) was heavily optimized, at the cost of ease
-// of reuse.
-fn sensitivity_one_lor(state: FoldState<Siddon>, lor: LOR) -> FoldState<Siddon> {
-    project_one_lor_inner(state, &lor, |projection, _lor| (-projection).exp())
-}
-
-
-/// Create sensitivity image by backprojecting LORs. In theory this should use
-/// *all* possible LORs. In practice use a representative sample.
-pub fn sensitivity_image(
-    density: Image,
-    lors: impl ParallelIterator<Item = LOR>,
-    n_lors: usize,
-    rho_to_mu: AreaPerMass
-) -> Image {
-    // Convert from [density in kg/m^3] to [mu in mm^-1]
-    let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
-
-    // TOF should not be used as LOR attenuation is independent of decay point
-    let notof = Siddon::notof();
-
-    // Closure preparing the state needed by `fold`: will be called by
-    // `fold` at the start of every thread that is launched.
-    let initial_thread_state = || {
-        let backprojection = Image::zeros_buffer(attenuation.fov);
-        let system_matrix_row = Siddon::buffers(attenuation.fov);
-        (backprojection, system_matrix_row, &attenuation, notof)
-    };
-
-    // -------- Project all LORs forwards and backwards ---------------------
-    let fold_result = lors
-        .fold(initial_thread_state, sensitivity_one_lor);
-
-    // -------- extract relevant information (backprojection) ---------------
-    let mut backprojection = fold_result
-    // Keep only the backprojection (ignore weights and indices)
-        .map(|tuple| tuple.0)
-    // Sum the backprojections calculated on each thread
-        .reduce(|| Image::zeros_buffer(attenuation.fov), elementwise_add);
-
-    // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
-    let size = n_lors as f32;
-    for e in backprojection.iter_mut() {
-        *e /= size
-    }
-    Image::new(attenuation.fov, backprojection)
-}
-
-/// Convert from [density in kg/m^3] to [mu in mm^-1]
-fn density_image_into_attenuation_image(density: Image, rho_to_mu: AreaPerMass) -> Image {
-    let rho_to_mu: f32 = ratio_({
-        let kg = kg(1.0);
-        let  m = mm(1000.0);
-        let rho_unit = kg / (m * m * m);
-        let  mu_unit = 1.0 / mm(1.0);
-        rho_to_mu / (mu_unit / rho_unit)
-    });
-    let mut attenuation = density;
-    for voxel in &mut attenuation.data {
-        *voxel *= rho_to_mu;
-    }
-    attenuation
 }
 
 const EPS: Ratio = in_base_unit!(1e-5);
@@ -589,7 +516,7 @@ mod sensitivity_image {
     use units::{mm, mm_, ns, ratio, ratio_, turn, turn_, Angle, Length, Ratio};
     use rstest::{rstest, fixture};
     use float_eq::assert_float_eq;
-    use crate::mlem::mlem;
+    use crate::{mlem::mlem, image::Image};
 
     /// Representation of a straght line in 2D
     /// ax + by + c = 0

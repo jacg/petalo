@@ -46,11 +46,11 @@ use petalo::{
     LOR,
     fov::FOV,
     image::Image,
-    projector::siddon::sensitivity_image,
+    projector::{Projector, projector_core},
 };
 
 use units::{
-    Length, Time, AreaPerMass, ratio, kg, mm, todo::Lengthf32,
+    Length, Time, AreaPerMass, ratio, ratio_, kg, mm, todo::Lengthf32,
     uom::ConstZero,
 };
 
@@ -89,7 +89,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
     let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
-    let sensitivity = pool.install(|| sensitivity_image(density, lors, n_lors, rho_to_mu));
+    let job_size = lors.len() / n_threads;
+    // TOF should not be used as LOR attenuation is independent of decay point
+    let projector = petalo::projector::Siddon::notof();
+    // Convert from [density in kg/m^3] to [mu in mm^-1]
+    let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
+    let sensitivity = pool.install(|| sensitivity_image(projector, &attenuation, &lors, job_size));
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
@@ -99,10 +104,30 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Create sensitivity image by backprojecting all possible LORs
+pub fn sensitivity_image<P: Projector + Copy + Send + Sync>(
+    projector  : P,
+    attenuation: &Image,
+    lors       : &[LOR],
+    job_size   : usize,
+) -> Image {
+    let mut backprojection = projector_core(projector, attenuation, lors, job_size, P::sensitivity_one_lor);
+
+    // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
+    let size = lors.len() as f32;
+    for e in backprojection.iter_mut() {
+        *e /= size
+    }
+
+    Image::new(attenuation.fov, backprojection)
+}
+
+
+// TODO: need different versions for different projectors
 /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
 /// with length and diameter specified in Cli and passing through the FOV
 /// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> impl rayon::iter::ParallelIterator<Item = LOR> {
+fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> Vec<LOR> {
     let (l,r) = (detector_length, detector_diameter / 2.0);
     let one_useful_random_lor = move |_lor_number| {
         loop {
@@ -118,8 +143,8 @@ fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detecto
     (0..n_lors)
         .into_par_iter()
         .map(one_useful_random_lor)
+        .collect()
 }
-
 
 fn random_point_on_cylinder(l: Length, r: Length) -> petalo::Point {
     use std::f32::consts::TAU;
@@ -129,4 +154,20 @@ fn random_point_on_cylinder(l: Length, r: Length) -> petalo::Point {
     let x = r * theta.cos();
     let y = r * theta.sin();
     petalo::Point::new(x, y, z)
+}
+
+/// Convert from [density in kg/m^3] to [mu in mm^-1]
+fn density_image_into_attenuation_image(density: Image, rho_to_mu: AreaPerMass) -> Image {
+    let rho_to_mu: f32 = ratio_({
+        let kg = kg(1.0);
+        let  m = mm(1000.0);
+        let rho_unit = kg / (m * m * m);
+        let  mu_unit = 1.0 / mm(1.0);
+        rho_to_mu / (mu_unit / rho_unit)
+    });
+    let mut attenuation = density;
+    for voxel in &mut attenuation.data {
+        *voxel *= rho_to_mu;
+    }
+    attenuation
 }
