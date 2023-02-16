@@ -8,6 +8,9 @@ pub trait SystemMatrix {
 
     //type Data; // May want to use to decouple FoldState from Self
 
+    /// Calculate the probabilities of a decay occurring in the voxels of `fov`
+    /// being detected in `lor`. Place the results in the output parameter
+    /// `system_matrix_row`.
     fn update_system_matrix_row(
         system_matrix_row: &mut SystemMatrixRow,
         lor: &LOR,
