@@ -6,7 +6,7 @@
 
 /// Create an infinite iterator of reconstructed images
 pub fn mlem<'a, S: SystemMatrix + 'a>(
-    projector    : S,
+    parameters   : S::Data,
     fov          : FOV,
     measured_lors: &'a [LOR],
     sensitivity  : Option<Image>,
@@ -20,12 +20,10 @@ pub fn mlem<'a, S: SystemMatrix + 'a>(
 
     let mut osem = Osem::new(n_subsets);
 
-    let data = projector.data();
-
     // Return an iterator which generates an infinite sequence of images,
     // each one made by performing one MLEM iteration on the previous one
     std::iter::from_fn(move || {
-        one_iteration::<S>(data, &mut image, osem.subset(measured_lors), &sensitivity.data);
+        one_iteration::<S>(parameters, &mut image, osem.subset(measured_lors), &sensitivity.data);
         Some((image.clone(), osem.next())) // TODO see if we can sensibly avoid cloning
     })
 }

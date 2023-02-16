@@ -888,8 +888,9 @@ mod sensitivity_image {
 
         // Perform MLEM reconstruction, saving images to disk
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
+        let parameters = Siddon::notof().data();
         pool.install(|| {
-            mlem(Siddon::notof(), fov, &lors, None, 1)
+            mlem::<Siddon>(parameters, fov, &lors, None, 1)
                 .take(10)
                 .for_each(save_each_image_in(format!("test-mlem-images/{name}/")));
         });
