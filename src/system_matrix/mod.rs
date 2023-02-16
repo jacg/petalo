@@ -6,8 +6,12 @@
 /// Interface for calculation of (geometrical components of?) system matrix elements
 pub trait SystemMatrix {
 
+    /// Algorithm-specific information needed to be communicated efficiently
+    /// between iterations over LORs.
     type Data: Copy + Sync + Send;
 
+    /// Create algorithm-specific data that will be passed from one LOR
+    /// iteration to the next.
     fn data(&self) -> Self::Data;
 
     /// Calculate the probabilities of a decay occurring in the voxels of `fov`
@@ -20,10 +24,10 @@ pub trait SystemMatrix {
         data: &Self::Data,
     );
 
-    // Sparse storage of the slice through the system matrix which corresponds
-    // to the current LOR. Allocating these anew for each LOR had a noticeable
-    // runtime cost, so we create them up-front and reuse them.
-    // This should probably have a default implementation
+    /// Sparse storage of the slice through the system matrix which corresponds
+    /// to the current LOR. Allocating these anew for each LOR had a noticeable
+    /// runtime cost, so we create them up-front and reuse them. Should this
+    /// have a default implementation?
     fn buffers(fov: FOV) -> SystemMatrixRow;
 }
 
