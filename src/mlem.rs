@@ -4,6 +4,8 @@
 //!
 //! + OSEM: Ordered-Subset Expectation Maximization
 
+// TODO Transfer Copy + Send from SystemMatrix to SystemMatrix::Data where possible
+
 /// Create an infinite iterator of reconstructed images
 pub fn mlem<'a, S: SystemMatrix + Copy + Send + Sync + 'a>(
     projector    : S,
@@ -11,7 +13,10 @@ pub fn mlem<'a, S: SystemMatrix + Copy + Send + Sync + 'a>(
     measured_lors: &'a [LOR],
     sensitivity  : Option<Image>,
     n_subsets    : usize,
-) -> impl Iterator<Item = (Image, Osem)> + '_ {
+) -> impl Iterator<Item = (Image, Osem)> + '_
+where
+    S::Data: Copy + Send + Sync,
+{
 
     // Start off with a uniform image
     let mut image = Image::ones(fov);
@@ -20,26 +25,31 @@ pub fn mlem<'a, S: SystemMatrix + Copy + Send + Sync + 'a>(
 
     let mut osem = Osem::new(n_subsets);
 
+    let data = projector.data();
+
     // Return an iterator which generates an infinite sequence of images,
     // each one made by performing one MLEM iteration on the previous one
     std::iter::from_fn(move || {
-        one_iteration::<S>(projector, &mut image, osem.subset(measured_lors), &sensitivity.data);
+        one_iteration::<S>(data, &mut image, osem.subset(measured_lors), &sensitivity.data);
         Some((image.clone(), osem.next())) // TODO see if we can sensibly avoid cloning
     })
 }
 
 fn one_iteration<S: SystemMatrix + Copy + Send + Sync>(
-    projector    : S,
+    projector    : S::Data,
     image        : &mut Image,
     measured_lors: &[LOR],
     sensitivity  : &[Intensityf32],
-) {
+)
+where
+    S::Data: Send + Sync + Copy,
+{
     let n_mlem_threads = unsafe {
         // SAFETY: modified only once, at the beginning of bin/mlem.rs::main()
         N_MLEM_THREADS
     };
     let job_size = measured_lors.len() / n_mlem_threads;
-    let backprojection = project_lors(projector, &*image, measured_lors, job_size, project_one_lor_mlem);
+    let backprojection = project_lors::<S,_>(projector, &*image, measured_lors, job_size, project_one_lor_mlem::<S>);
 
     // -------- Correct for attenuation and detector sensitivity ------------
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);

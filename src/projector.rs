@@ -29,7 +29,7 @@
 ///
 /// + `project_one_lor_sens`
 pub fn project_lors<'l, 'i, S, F>(
-    projector_data : S,
+    projector_data : S::Data,
     image          : &'i Image,
     lors           : &'l [LOR],
     job_size       : usize,
@@ -37,7 +37,8 @@ pub fn project_lors<'l, 'i, S, F>(
 ) -> ImageData
 where
     S: SystemMatrix + Copy + Send + Sync,
-    F: Fn(Fs<'i, S>, &'i LOR) -> Fs<'i, S> + Sync + Send,
+    S::Data: Send + Sync + Copy,
+    F: Fn(Fs<'i, S::Data>, &'i LOR) -> Fs<'i, S::Data> + Sync + Send,
     'l: 'i,
 {
     // Closure preparing the state needed by `fold`: will be called by
@@ -68,13 +69,13 @@ where
 
 // ----- For injection into `project_lors` --------------------------------------------------
 /// Adapts `project_lors` for MLEM iterations
-pub fn project_one_lor_mlem<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR) -> Fs<'i,S> {
-    project_one_lor(fold_state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
+pub fn project_one_lor_mlem<'i, S: SystemMatrix>(fold_state: Fs<'i,S::Data>, lor: &LOR) -> Fs<'i,S::Data> {
+    project_one_lor::<S>(fold_state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
 }
 
 /// Adapts `project_lors` for sensitivity image generation
-pub fn project_one_lor_sens<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR) -> Fs<'i,S> {
-    project_one_lor(fold_state, lor, |projection, _lor| (-projection).exp())
+pub fn project_one_lor_sens<'i, S: SystemMatrix>(fold_state: Fs<'i,S::Data>, lor: &LOR) -> Fs<'i,S::Data> {
+    project_one_lor::<S>(fold_state, lor, |projection, _lor| (-projection).exp())
 }
 // ---------------------------------------------------------------------------------------------
 
@@ -87,10 +88,10 @@ pub fn project_one_lor_sens<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR
 /// Different varieties of projection are made possible by injecting the
 /// `adapt_forward_projection` function.
 fn project_one_lor<'img, S: SystemMatrix>(
-    state: Fs<'img, S>,
+    state: Fs<'img, S::Data>,
     lor: &LOR,
     adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
-) -> Fs<'img, S> {
+) -> Fs<'img, S::Data> {
     let Fs { mut backprojection, mut system_matrix_row, image, projector_data } = state;
     // Throw away previous LOR's values
     system_matrix_row.clear();
@@ -144,7 +145,7 @@ fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
 
 /// Data needed to be passed efficiently between the projection of one LOR and
 /// the next. Needs to work in conjunction with `rayon`'s `fold`s.
-pub struct FoldState<'img, T: ?Sized> {
+pub struct Fs<'img, T: ?Sized> {
     pub backprojection: ImageData,
     pub system_matrix_row: SystemMatrixRow,
     pub image: &'img Image,
@@ -152,7 +153,7 @@ pub struct FoldState<'img, T: ?Sized> {
 }
 
 /// Helper for `FoldState`. Might be useful when adding SystemMatrix::Data.
-pub type Fs<'i, S> = FoldState<'i, S>;
+//pub type Fs<'i, S> = FoldState<'i, S::Data>;
 
 // ----- Imports ------------------------------------------------------------------------------------------
 use rayon::prelude::*;

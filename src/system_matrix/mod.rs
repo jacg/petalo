@@ -6,7 +6,9 @@
 /// Interface for calculation of (geometrical components of?) system matrix elements
 pub trait SystemMatrix {
 
-    //type Data; // May want to use to decouple FoldState from Self
+    type Data;
+
+    fn data(&self) -> Self::Data;
 
     /// Calculate the probabilities of a decay occurring in the voxels of `fov`
     /// being detected in `lor`. Place the results in the output parameter
@@ -15,7 +17,7 @@ pub trait SystemMatrix {
         system_matrix_row: &mut SystemMatrixRow,
         lor: &LOR,
         fov:  FOV,
-        data: &Self, //::Data,
+        data: &Self::Data,
     );
 
     // Sparse storage of the slice through the system matrix which corresponds

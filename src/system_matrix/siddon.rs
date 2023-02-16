@@ -21,7 +21,10 @@ pub struct Siddon {
 }
 
 impl SystemMatrix for Siddon {
-    //type Data = Self;
+
+    type Data = Self;
+
+    fn data(&self) -> Self::Data { *self }
 
     fn update_system_matrix_row(
         system_matrix_row: &mut SystemMatrixRow,
