@@ -234,9 +234,9 @@ fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5L
     }
 }
 
-fn dist((x1,y1,z1): (f32,f32,f32), (x2,y2,z2): (f32,f32,f32)) -> f32 {
-    (x2-x1).hypot(y2-y1).hypot(z2-z1)
-}
+// fn dist((x1,y1,z1): (f32,f32,f32), (x2,y2,z2): (f32,f32,f32)) -> f32 {
+//     (x2-x1).hypot(y2-y1).hypot(z2-z1)
+// }
 
 fn nearest_centre_of_box(r_min: f32, dr: f32, dz: f32, da: f32) -> impl Fn(f32, f32, f32) -> (f32, f32, f32) + Copy {
     let inner_circumference = std::f32::consts::TAU * r_min;
