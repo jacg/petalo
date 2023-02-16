@@ -3,8 +3,6 @@ pub struct Siddon {
     tof: Option<Gaussian>,
 }
 
-pub type Fs<'i, S> = FoldState<'i, S>;
-
 impl SystemMatrix for Siddon {
     //type Data = Self;
 
@@ -111,41 +109,6 @@ impl Siddon {
         }
     }
 
-}
-
-pub fn project_one_lor<'img, S: SystemMatrix>(
-    state: Fs<'img, S>,
-    lor: &LOR,
-    adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
-) -> Fs<'img, S> {
-    let Fs { mut backprojection, mut system_matrix_row, image, projector_data } = state;
-    // Throw away previous LOR's values
-    system_matrix_row.clear();
-
-    S::update_system_matrix_row(&mut system_matrix_row, lor, image.fov, &projector_data);
-
-    let project_this_lor = 'safe_lor: {
-            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
-            for (i, _) in &system_matrix_row {
-                if i >= backprojection.len() { break 'safe_lor false; }
-            }
-            // This LOR looks safe: process it
-            true
-    };
-
-    if project_this_lor {
-        // Sum product of relevant voxels' weights and activities
-        let projection = forward_project(&system_matrix_row, image);
-
-        // ... the sum needs to be adapted for the use specific use case:
-        // MLEM or sensitivity image generation, are the only ones so far
-        let adapted_projection = adapt_forward_projection(projection, lor);
-
-        // Backprojection of LOR onto image
-        back_project(&mut backprojection, &system_matrix_row, adapted_projection);
-    }
-    // Return values needed by next LOR's iteration
-    Fs { backprojection, system_matrix_row, image, projector_data }
 }
 
 const EPS: Ratio = in_base_unit!(1e-5);
@@ -371,10 +334,8 @@ use crate::{
     fov::FOV,
     gauss::{make_gauss_option, Gaussian},
     index::index3_to_1,
-    system_matrix::{SystemMatrixRow, forward_project, back_project, SystemMatrix},
+    system_matrix::{SystemMatrixRow, SystemMatrix},
 };
-
-use super::FoldState;
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -873,7 +834,7 @@ mod sensitivity_image {
         (trues, noise)
     }
 
-    use crate::{lorogram::{BuildScattergram as Sc, Prompt}, projector::Siddon, mlem::Osem};
+    use crate::{lorogram::{BuildScattergram as Sc, Prompt}, system_matrix::Siddon, mlem::Osem};
 
     #[rstest(/**/ name        , correction,
              case("corr-none" , Sc::new()                                        ),

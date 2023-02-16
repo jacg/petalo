@@ -1,10 +1,3 @@
-pub use siddon::Siddon;
-
-pub mod siddon;
-
-use crate::projector::siddon::{Fs, project_one_lor};
-use units::ratio_;
-
 pub fn project_one_lor_mlem<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR) -> Fs<'i,S> {
     project_one_lor(fold_state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
 }
@@ -13,6 +6,41 @@ pub fn project_one_lor_sens<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR
     project_one_lor(fold_state, lor, |projection, _lor| (-projection).exp())
 }
 
+
+pub fn project_one_lor<'img, S: SystemMatrix>(
+    state: Fs<'img, S>,
+    lor: &LOR,
+    adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
+) -> Fs<'img, S> {
+    let Fs { mut backprojection, mut system_matrix_row, image, projector_data } = state;
+    // Throw away previous LOR's values
+    system_matrix_row.clear();
+
+    S::update_system_matrix_row(&mut system_matrix_row, lor, image.fov, &projector_data);
+
+    let project_this_lor = 'safe_lor: {
+            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
+            for (i, _) in &system_matrix_row {
+                if i >= backprojection.len() { break 'safe_lor false; }
+            }
+            // This LOR looks safe: process it
+            true
+    };
+
+    if project_this_lor {
+        // Sum product of relevant voxels' weights and activities
+        let projection = forward_project(&system_matrix_row, image);
+
+        // ... the sum needs to be adapted for the use specific use case:
+        // MLEM or sensitivity image generation, are the only ones so far
+        let adapted_projection = adapt_forward_projection(projection, lor);
+
+        // Backprojection of LOR onto image
+        back_project(&mut backprojection, &system_matrix_row, adapted_projection);
+    }
+    // Return values needed by next LOR's iteration
+    Fs { backprojection, system_matrix_row, image, projector_data }
+}
 
 /// Common core of forward and backward propagation.
 /// Used by `one_iteration` (MLEM) and `sensitivity_image`
@@ -25,7 +53,7 @@ pub fn projector_core<'l, 'i, S, F>(
 ) -> ImageData
 where
     S: SystemMatrix + Copy + Send + Sync,
-    F: Fn(FoldState<'i, S>, &'i LOR) -> FoldState<'i, S> + Sync + Send,
+    F: Fn(Fs<'i, S>, &'i LOR) -> Fs<'i, S> + Sync + Send,
     'l: 'i,
 {
     // Closure preparing the state needed by `fold`: will be called by
@@ -33,7 +61,7 @@ where
     let initial_thread_state = || {
         let backprojection = Image::zeros_buffer(image.fov);
         let system_matrix_row = S::buffers(image.fov);
-        FoldState { backprojection, system_matrix_row, image, projector_data }
+        Fs { backprojection, system_matrix_row, image, projector_data }
     };
 
     // -------- Project all LORs forwards and backwards ---------------------
@@ -54,24 +82,37 @@ where
         .reduce(|| Image::zeros_buffer(image.fov), elementwise_add)
 }
 
-pub fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
-    a.iter().zip(b.iter()).map(|(l,r)| l+r).collect()
+#[inline]
+pub fn forward_project(system_matrix_row: &SystemMatrixRow, image: &Image) -> Lengthf32 {
+    let mut projection = 0.0;
+    for (j, w) in system_matrix_row {
+        projection += w * image[j]
+    }
+    projection
 }
 
-// Data needed by project_one_lor, both as input and output, because of the
-// constrains imposed by `fold`
-pub struct FoldState<'img, T: ?Sized> {
-    backprojection: ImageData,
-    system_matrix_row: SystemMatrixRow,
-    image: &'img Image,
-    projector_data: T,
+#[inline]
+pub fn back_project(backprojection: &mut [Lengthf32], system_matrix_row: &SystemMatrixRow, projection: Lengthf32) {
+    let projection_reciprocal = 1.0 / projection;
+    for (j, w) in system_matrix_row {
+        backprojection[j] += w * projection_reciprocal;
+    }
+}
+
+pub fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
+    a.iter().zip(b.iter()).map(|(l,r)| l+r).collect()
 }
 
 
 use rayon::prelude::*;
 
+use units::{
+    todo::Lengthf32,
+    ratio_,
+};
+
 use crate::{
     LOR,
     image::{ImageData, Image},
-    system_matrix::{SystemMatrixRow, SystemMatrix},
+    system_matrix::{SystemMatrixRow, SystemMatrix, Fs},
 };

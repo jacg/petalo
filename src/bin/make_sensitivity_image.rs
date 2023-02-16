@@ -91,7 +91,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
     let job_size = lors.len() / n_threads;
     // TOF should not be used as LOR attenuation is independent of decay point
-    let projector = petalo::projector::Siddon::notof();
+    let projector = petalo::system_matrix::Siddon::notof();
     // Convert from [density in kg/m^3] to [mu in mm^-1]
     let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
     let sensitivity = pool.install(|| sensitivity_image(projector, &attenuation, &lors, job_size));

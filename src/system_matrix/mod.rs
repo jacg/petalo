@@ -12,13 +12,27 @@
 //!    indices calculated by the algorithm, must be flipped back to the original
 //!    coordinate system.
 
-use units::todo::{Lengthf32, Weightf32};
+use units::todo::Weightf32;
 
 use crate::{
     Index1_u,
-    image::Image,
+    image::{Image, ImageData},
 };
 
+pub mod siddon;
+pub use siddon::Siddon;
+
+
+// Data needed by project_one_lor, both as input and output, because of the
+// constrains imposed by `fold`
+pub struct FoldState<'img, T: ?Sized> {
+    pub backprojection: ImageData,
+    pub system_matrix_row: SystemMatrixRow,
+    pub image: &'img Image,
+    pub projector_data: T,
+}
+
+pub type Fs<'i, S> = FoldState<'i, S>;
 
 // ---------------------- Implementation -----------------------------------------
 pub type SystemMatrixElement = (Index1_u, Weightf32);
@@ -46,22 +60,6 @@ impl<'a> IntoIterator for &'a SystemMatrixRow {
     }
 }
 
-#[inline]
-pub fn forward_project(system_matrix_row: &SystemMatrixRow, image: &Image) -> Lengthf32 {
-    let mut projection = 0.0;
-    for (j, w) in system_matrix_row {
-        projection += w * image[j]
-    }
-    projection
-}
-
-#[inline]
-pub fn back_project(backprojection: &mut [Lengthf32], system_matrix_row: &SystemMatrixRow, projection: Lengthf32) {
-    let projection_reciprocal = 1.0 / projection;
-    for (j, w) in system_matrix_row {
-        backprojection[j] += w * projection_reciprocal;
-    }
-}
 // ----- A trait for implementations of (geometrical?) system matrix calculations --------------------
 pub trait SystemMatrix {
 
