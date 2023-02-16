@@ -73,6 +73,12 @@ pub trait SystemMatrix {
         fov:  FOV,
         data: &Self::Data,
     );
+
+    // Sparse storage of the slice through the system matrix which corresponds
+    // to the current LOR. Allocating these anew for each LOR had a noticeable
+    // runtime cost, so we create them up-front and reuse them.
+    // This should probably have a default implementation
+    fn buffers(fov: FOV) -> SystemMatrixRow;
 }
 
 use crate::{

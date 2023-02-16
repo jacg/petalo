@@ -11,7 +11,7 @@ use crate::{
 
 pub static mut N_MLEM_THREADS: usize = 1;
 
-pub fn mlem<'a, P: Projector + Copy + Send + Sync + 'a>(
+pub fn mlem<'a, P: SystemMatrix + Projector + Copy + Send + Sync + 'a>(
     projector    : P,
     fov          : FOV,
     measured_lors: &'a [LOR],
@@ -34,7 +34,8 @@ pub fn mlem<'a, P: Projector + Copy + Send + Sync + 'a>(
     })
 }
 
-fn one_iteration<P: Projector + Copy + Send + Sync>(
+use crate::system_matrix::SystemMatrix;
+fn one_iteration<P: SystemMatrix + Projector + Copy + Send + Sync>(
     projector    : P,
     image        : &mut Image,
     measured_lors: &[LOR],

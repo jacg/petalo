@@ -6,12 +6,6 @@ pub mod siddon;
 pub trait Projector {
     fn project_one_lor    <'i>(fold_state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self>;
     fn sensitivity_one_lor<'i>(fold_state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self>;
-
-    // Sparse storage of the slice through the system matrix which corresponds
-    // to the current LOR. Allocating these anew for each LOR had a noticeable
-    // runtime cost, so we create them up-front and reuse them.
-    // This should probably have a default implementation
-    fn buffers(fov: FOV) -> SystemMatrixRow;
 }
 
 
@@ -25,7 +19,7 @@ pub fn projector_core<'l, 'i, P, F>(
     project_one_lor: F,
 ) -> ImageData
 where
-    P: Projector + Copy + Send + Sync,
+    P: Projector + Copy + Send + Sync + SystemMatrix,
     F: Fn(FoldState<'i, P>, &'i LOR) -> FoldState<'i, P> + Sync + Send,
     'l: 'i,
 {
@@ -75,5 +69,5 @@ use crate::{
     LOR,
     fov::FOV,
     image::{ImageData, Image},
-    system_matrix::SystemMatrixRow,
+    system_matrix::{SystemMatrixRow, SystemMatrix},
 };

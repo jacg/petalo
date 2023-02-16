@@ -46,7 +46,7 @@ use petalo::{
     LOR,
     fov::FOV,
     image::Image,
-    projector::{Projector, projector_core},
+    projector::{Projector, projector_core}, system_matrix::SystemMatrix,
 };
 
 use units::{
@@ -105,7 +105,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 /// Create sensitivity image by backprojecting all possible LORs
-pub fn sensitivity_image<P: Projector + Copy + Send + Sync>(
+pub fn sensitivity_image<P: SystemMatrix + Projector + Copy + Send + Sync>(
     projector  : P,
     attenuation: &Image,
     lors       : &[LOR],

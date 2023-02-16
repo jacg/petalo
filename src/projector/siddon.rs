@@ -14,13 +14,6 @@ impl Projector for Siddon {
     fn sensitivity_one_lor<'i>(state: Fs<'i>, lor: &LOR) -> Fs<'i> {
         project_one_lor(state, lor, |projection, _lor| (-projection).exp())
     }
-
-    fn buffers(fov: FOV) -> SystemMatrixRow {
-        let [nx, ny, nz] = fov.n;
-        let max_number_of_coupled_voxels_possible = nx + ny + nz - 2;
-        SystemMatrixRow(Vec::with_capacity(max_number_of_coupled_voxels_possible))
-    }
-
 }
 
 impl SystemMatrix for Siddon {
@@ -34,6 +27,13 @@ impl SystemMatrix for Siddon {
     ) {
         Siddon::update_system_matrix_row(system_matrix_row, lor, fov, data)
     }
+
+    fn buffers(fov: FOV) -> SystemMatrixRow {
+        let [nx, ny, nz] = fov.n;
+        let max_number_of_coupled_voxels_possible = nx + ny + nz - 2;
+        SystemMatrixRow(Vec::with_capacity(max_number_of_coupled_voxels_possible))
+    }
+
 }
 
 impl Siddon {
