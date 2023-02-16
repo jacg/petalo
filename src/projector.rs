@@ -142,6 +142,18 @@ fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
     a.iter().zip(b.iter()).map(|(l,r)| l+r).collect()
 }
 
+/// Data needed to be passed efficiently between the projection of one LOR and
+/// the next. Needs to work in conjunction with `rayon`'s `fold`s.
+pub struct FoldState<'img, T: ?Sized> {
+    pub backprojection: ImageData,
+    pub system_matrix_row: SystemMatrixRow,
+    pub image: &'img Image,
+    pub projector_data: T,
+}
+
+/// Helper for `FoldState`. Might be useful when adding SystemMatrix::Data.
+pub type Fs<'i, S> = FoldState<'i, S>;
+
 // ----- Imports ------------------------------------------------------------------------------------------
 use rayon::prelude::*;
 
@@ -153,5 +165,5 @@ use units::{
 use crate::{
     LOR,
     image::{ImageData, Image},
-    system_matrix::{SystemMatrixRow, SystemMatrix, Fs},
+    system_matrix::{SystemMatrixRow, SystemMatrix},
 };

@@ -1,3 +1,20 @@
+//! Calculate system matrix elements using Siddon-like ray tracing.
+//!
+//! Uses our own optimization scheme, but the calculated values should be
+//! equivalent to those produced by the Siddon algorithm.
+//!
+//! The algorithm is centred around two key simplifications:
+//!
+//! 1. Express the voxel size in terms of the components of the LOR's direction
+//!    vector. This allows trivial calculation of how far we must move along the
+//!    LOR before reaching a voxel boundary, in any dimension.
+//!
+//! 2. Exploit symmetry to simplify dealing with directions: flip axes so that
+//!    the direction of the LOR has non-negative components. The algorithm can
+//!    then assume that all progress is in the positive direction. Any voxels
+//!    indices calculated by the algorithm, must be flipped back to the original
+//!    coordinate system.
+
 #[derive(Debug, Clone, Copy)]
 pub struct Siddon {
     tof: Option<Gaussian>,
