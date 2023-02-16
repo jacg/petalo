@@ -46,7 +46,7 @@ use petalo::{
     LOR,
     fov::FOV,
     image::Image,
-    projector::{Projector, projector_core}, system_matrix::SystemMatrix,
+    projector::{projector_core, project_one_lor_sens}, system_matrix::SystemMatrix,
 };
 
 use units::{
@@ -105,13 +105,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 /// Create sensitivity image by backprojecting all possible LORs
-pub fn sensitivity_image<P: SystemMatrix + Projector + Copy + Send + Sync>(
-    projector  : P,
+pub fn sensitivity_image<S: SystemMatrix + Copy + Send + Sync>(
+    projector  : S,
     attenuation: &Image,
     lors       : &[LOR],
     job_size   : usize,
 ) -> Image {
-    let mut backprojection = projector_core(projector, attenuation, lors, job_size, P::sensitivity_one_lor);
+    let mut backprojection = projector_core(projector, attenuation, lors, job_size, project_one_lor_sens);
 
     // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
     let size = lors.len() as f32;

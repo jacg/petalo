@@ -3,27 +3,16 @@ pub struct Siddon {
     tof: Option<Gaussian>,
 }
 
-type Fs<'i> = FoldState<'i, Siddon>;
-
-impl Projector for Siddon {
-
-    fn    project_one_lor<'i>(state: Fs<'i>, lor: &LOR) -> Fs<'i> {
-        project_one_lor(state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
-    }
-
-    fn sensitivity_one_lor<'i>(state: Fs<'i>, lor: &LOR) -> Fs<'i> {
-        project_one_lor(state, lor, |projection, _lor| (-projection).exp())
-    }
-}
+pub type Fs<'i, S> = FoldState<'i, S>;
 
 impl SystemMatrix for Siddon {
-    type Data = Self;
+    //type Data = Self;
 
     fn update_system_matrix_row(
         system_matrix_row: &mut SystemMatrixRow,
         lor: &LOR,
         fov:  FOV,
-        data: &Self::Data,
+        data: &Self,//::Data,
     ) {
         Siddon::update_system_matrix_row(system_matrix_row, lor, fov, data)
     }
@@ -124,16 +113,16 @@ impl Siddon {
 
 }
 
-fn project_one_lor<'img>(
-    state: Fs<'img>,
+pub fn project_one_lor<'img, S: SystemMatrix>(
+    state: Fs<'img, S>,
     lor: &LOR,
     adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
-) -> Fs<'img> {
+) -> Fs<'img, S> {
     let Fs { mut backprojection, mut system_matrix_row, image, projector_data } = state;
     // Throw away previous LOR's values
     system_matrix_row.clear();
 
-    Siddon::update_system_matrix_row(&mut system_matrix_row, lor, image.fov, &projector_data);
+    S::update_system_matrix_row(&mut system_matrix_row, lor, image.fov, &projector_data);
 
     let project_this_lor = 'safe_lor: {
             // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
@@ -385,7 +374,7 @@ use crate::{
     system_matrix::{SystemMatrixRow, forward_project, back_project, SystemMatrix},
 };
 
-use super::{FoldState, Projector};
+use super::FoldState;
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]

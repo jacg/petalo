@@ -2,32 +2,37 @@ pub use siddon::Siddon;
 
 pub mod siddon;
 
-/// Abstract interface for forward-backward projection implementations
-pub trait Projector {
-    fn project_one_lor    <'i>(fold_state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self>;
-    fn sensitivity_one_lor<'i>(fold_state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self>;
+use crate::projector::siddon::{Fs, project_one_lor};
+use units::ratio_;
+
+pub fn project_one_lor_mlem<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR) -> Fs<'i,S> {
+    project_one_lor(fold_state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
+}
+
+pub fn project_one_lor_sens<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR) -> Fs<'i,S> {
+    project_one_lor(fold_state, lor, |projection, _lor| (-projection).exp())
 }
 
 
 /// Common core of forward and backward propagation.
 /// Used by `one_iteration` (MLEM) and `sensitivity_image`
-pub fn projector_core<'l, 'i, P, F>(
-    projector_data : P,
+pub fn projector_core<'l, 'i, S, F>(
+    projector_data : S,
     image          : &'i Image,
     lors           : &'l [LOR],
     job_size       : usize,
     project_one_lor: F,
 ) -> ImageData
 where
-    P: Projector + Copy + Send + Sync + SystemMatrix,
-    F: Fn(FoldState<'i, P>, &'i LOR) -> FoldState<'i, P> + Sync + Send,
+    S: SystemMatrix + Copy + Send + Sync,
+    F: Fn(FoldState<'i, S>, &'i LOR) -> FoldState<'i, S> + Sync + Send,
     'l: 'i,
 {
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
         let backprojection = Image::zeros_buffer(image.fov);
-        let system_matrix_row = P::buffers(image.fov);
+        let system_matrix_row = S::buffers(image.fov);
         FoldState { backprojection, system_matrix_row, image, projector_data }
     };
 
@@ -67,7 +72,6 @@ use rayon::prelude::*;
 
 use crate::{
     LOR,
-    fov::FOV,
     image::{ImageData, Image},
     system_matrix::{SystemMatrixRow, SystemMatrix},
 };

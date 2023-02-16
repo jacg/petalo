@@ -65,13 +65,13 @@ pub fn back_project(backprojection: &mut [Lengthf32], system_matrix_row: &System
 // ----- A trait for implementations of (geometrical?) system matrix calculations --------------------
 pub trait SystemMatrix {
 
-    type Data;
+    //type Data;
 
     fn update_system_matrix_row(
         system_matrix_row: &mut SystemMatrixRow,
         lor: &LOR,
         fov:  FOV,
-        data: &Self::Data,
+        data: &Self, //::Data,
     );
 
     // Sparse storage of the slice through the system matrix which corresponds
