@@ -1,36 +1,35 @@
-use units::{
-    C, Length, PerLength, Ratio, Time,
-    ratio_, mm, mm_,
-    in_base_unit,
-    uom::ConstZero,
-};
-
-use geometry::Vector;
-
-use crate::{
-    BoxDim_u, LOR, Point, Pointf32, RatioPoint, RatioVec,
-    config::mlem::Tof,
-    fov::FOV,
-    gauss::{make_gauss_option, Gaussian},
-    index::index3_to_1,
-    system_matrix::{SystemMatrixRow, forward_project, back_project},
-};
-
-use super::{FoldState, Projector};
+//! Calculate system matrix elements using Siddon-like ray tracing.
+//!
+//! Uses our own optimization scheme, but the calculated values should be
+//! equivalent to those produced by the Siddon algorithm.
+//!
+//! The algorithm is centred around two key simplifications:
+//!
+//! 1. Express the voxel size in terms of the components of the LOR's direction
+//!    vector. This allows trivial calculation of how far we must move along the
+//!    LOR before reaching a voxel boundary, in any dimension.
+//!
+//! 2. Exploit symmetry to simplify dealing with directions: flip axes so that
+//!    the direction of the LOR has non-negative components. The algorithm can
+//!    then assume that all progress is in the positive direction. Any voxels
+//!    indices calculated by the algorithm, must be flipped back to the original
+//!    coordinate system.
 
 #[derive(Debug, Clone, Copy)]
 pub struct Siddon {
     tof: Option<Gaussian>,
 }
 
-impl Projector for Siddon {
+impl SystemMatrix for Siddon {
+    //type Data = Self;
 
-    fn    project_one_lor<'i>(state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self> {
-        project_one_lor(state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
-    }
-
-    fn sensitivity_one_lor<'i>(state: FoldState<'i, Self>, lor: &LOR) -> FoldState<'i, Self> {
-        project_one_lor(state, lor, |projection, _lor| (-projection).exp())
+    fn update_system_matrix_row(
+        system_matrix_row: &mut SystemMatrixRow,
+        lor: &LOR,
+        fov:  FOV,
+        data: &Self,//::Data,
+    ) {
+        Siddon::update_system_matrix_row(system_matrix_row, lor, fov, data)
     }
 
     fn buffers(fov: FOV) -> SystemMatrixRow {
@@ -45,20 +44,28 @@ impl Siddon {
     pub fn new(tof: Option<Tof>) -> Self { Self { tof: make_gauss_option(tof) }}
     pub fn notof() -> Self { Self { tof: None } }
 
+    pub fn update_system_matrix_row(
+        system_matrix_row: &mut SystemMatrixRow,
+        lor: &LOR,
+        fov:  FOV,
+        projector_data: &Self,
+    ) {
+        // Analyse point where LOR hits FOV
+        match lor_fov_hit(lor, fov) {
+            // LOR missed FOV: nothing to be done
+            None => (),
+            // Calculate system matrix elements for this LOR
+            Some(hit) => {
+                // Find non-zero elements (voxels coupled to this LOR) and their values
+                Siddon::update_smatrix_row_inner(projector_data, system_matrix_row, hit);
+            }
+        };
+    }
+
     // TODO Should FOV become construction-time argument?
     pub fn new_system_matrix_row(self, lor: &LOR, fov: &FOV) -> SystemMatrixRow {
         let mut system_matrix_row = Self::buffers(*fov);
-        match lor_fov_hit(lor, *fov) {
-            None => (),
-            Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-                self.update_smatrix_row(
-                    &mut system_matrix_row,
-                    next_boundary, voxel_size,
-                    index, delta_index, remaining,
-                    tof_peak,
-                );
-            }
-        }
+        Siddon::update_system_matrix_row(&mut system_matrix_row, lor, *fov, &self);
         system_matrix_row
     }
 
@@ -68,19 +75,18 @@ impl Siddon {
     /// the vectors of results repeatedly, had a noticeable impact on performance.
     #[inline]
     #[allow(clippy::too_many_arguments)]
-    pub fn update_smatrix_row(
+    pub fn update_smatrix_row_inner(
         &self,
         system_matrix_row: &mut SystemMatrixRow,
-        mut next_boundary: Vector,
-        voxel_size: Vector,
-        mut index: i32,
-        delta_index: [i32; 3],
-        mut remaining: [i32; 3],
-        tof_peak: Length,
+        FovHit {
+            mut next_boundary,
+            voxel_size,
+            mut index,
+            delta_index,
+            mut remaining,
+            tof_peak,
+        }: FovHit
     ) {
-        // Throw away previous LOR's values
-        system_matrix_row.clear();
-
         // How far we have moved since entering the FOV
         let mut here = Length::ZERO;
 
@@ -120,53 +126,6 @@ impl Siddon {
         }
     }
 
-}
-
-fn project_one_lor<'img>(
-    state: FoldState<'img, Siddon>,
-    lor: &LOR,
-    adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
-) -> FoldState<'img, Siddon> {
-    let FoldState { mut backprojection, mut system_matrix_row, image, projector_data } = state;
-
-    // Need to return the state from various match arms
-    macro_rules! return_state { () => (return FoldState {backprojection, system_matrix_row, image, projector_data}); }
-
-    // Analyse point where LOR hits FOV
-    match lor_fov_hit(lor, image.fov) {
-
-        // LOR missed FOV: nothing to be done
-        None => return_state!(),
-
-        // Data needed by `system_matrix_elements`
-        Some(FovHit {next_boundary, voxel_size, index, delta_index, remaining, tof_peak}) => {
-
-            // Find non-zero elements (voxels coupled to this LOR) and their values
-            Siddon::update_smatrix_row(
-                &projector_data,
-                &mut system_matrix_row,
-                next_boundary, voxel_size,
-                index, delta_index, remaining,
-                tof_peak,
-            );
-
-            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
-            for (i, _) in &system_matrix_row {
-                if i >= backprojection.len() { return_state!(); }
-            }
-
-            // Sum product of relevant voxels' weights and activities
-            let projection = forward_project(&system_matrix_row, image);
-
-            // ... the sum needs to be adapted for the use specific use case:
-            // MLEM or sensitivity image generation, are the only ones so far
-            let adapted_projection = adapt_forward_projection(projection, lor);
-
-            // Backprojection of LOR onto image
-            back_project(&mut backprojection, &system_matrix_row, adapted_projection);
-            return_state!();
-        }
-    }
 }
 
 const EPS: Ratio = in_base_unit!(1e-5);
@@ -376,6 +335,24 @@ fn flip_axes(mut p1: Point, mut p2: Point) -> (Point, Point, [bool; 3]) {
     (p1, p2, flipped)
 }
 
+// ----- imports ----------------------------------------------------------------------
+use units::{
+    C, Length, PerLength, Ratio, Time,
+    ratio_, mm, mm_,
+    in_base_unit,
+    uom::ConstZero,
+};
+
+use geometry::Vector;
+
+use crate::{
+    BoxDim_u, LOR, Point, Pointf32, RatioPoint, RatioVec,
+    config::mlem::Tof,
+    fov::FOV,
+    gauss::{make_gauss_option, Gaussian},
+    index::index3_to_1,
+    system_matrix::{SystemMatrixRow, SystemMatrix},
+};
 
 // ------------------------------ TESTS ------------------------------
 #[cfg(test)]
@@ -508,7 +485,6 @@ mod test {
         }
     }
 }
-
 
 #[cfg(test)]
 mod sensitivity_image {
@@ -875,7 +851,7 @@ mod sensitivity_image {
         (trues, noise)
     }
 
-    use crate::{lorogram::{BuildScattergram as Sc, Prompt}, projector::Siddon, mlem::Osem};
+    use crate::{lorogram::{BuildScattergram as Sc, Prompt}, system_matrix::Siddon, mlem::Osem};
 
     #[rstest(/**/ name        , correction,
              case("corr-none" , Sc::new()                                        ),

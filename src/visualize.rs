@@ -9,7 +9,7 @@ use kiss3d::{
 
 use crate::{
     Vectorf32,
-    projector::Siddon,
+    system_matrix::Siddon,
     lor::LOR,
     fov::FOV,
     config::mlem::Tof, index::index1_to_3,

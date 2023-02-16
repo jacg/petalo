@@ -46,7 +46,7 @@ use petalo::{
     LOR,
     fov::FOV,
     image::Image,
-    projector::{Projector, projector_core},
+    projector::{project_lors, project_one_lor_sens}, system_matrix::SystemMatrix,
 };
 
 use units::{
@@ -91,7 +91,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
     let job_size = lors.len() / n_threads;
     // TOF should not be used as LOR attenuation is independent of decay point
-    let projector = petalo::projector::Siddon::notof();
+    let projector = petalo::system_matrix::Siddon::notof();
     // Convert from [density in kg/m^3] to [mu in mm^-1]
     let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
     let sensitivity = pool.install(|| sensitivity_image(projector, &attenuation, &lors, job_size));
@@ -105,13 +105,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 /// Create sensitivity image by backprojecting all possible LORs
-pub fn sensitivity_image<P: Projector + Copy + Send + Sync>(
-    projector  : P,
+pub fn sensitivity_image<S: SystemMatrix + Copy + Send + Sync>(
+    projector  : S,
     attenuation: &Image,
     lors       : &[LOR],
     job_size   : usize,
 ) -> Image {
-    let mut backprojection = projector_core(projector, attenuation, lors, job_size, P::sensitivity_one_lor);
+    let mut backprojection = project_lors(projector, attenuation, lors, job_size, project_one_lor_sens);
 
     // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
     let size = lors.len() as f32;
