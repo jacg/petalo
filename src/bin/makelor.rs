@@ -1,36 +1,3 @@
-use std::path::{Path, PathBuf};
-use clap::Parser;
-use itertools::Itertools;
-use indicatif::{ProgressBar, ProgressStyle};
-use units::{
-    Length, Time, Ratio,
-    todo::Energyf32, Area,
-    uom::ConstZero
-};
-use petalo::{
-    Point, BoundPair,
-    config::mlem::Bounds,
-    io::{self,
-         hdf5::{
-             Hdf5Lor,
-             sensors::{QT, SensorMap},
-             mc::Vertex
-         }
-    },
-    sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction},
-    utils::{group_digits, parse_bounds},
-};
-
-
-// TODO: try to remove the need for these
-use units::{mm, mm_, ns, ns_, ratio};
-// The mair problems seems to be that uom types do not implement various third-party traits, such as:
-// + std::iter::Sum
-// + hdf5:H5Type
-// + From<ordered_float::NotNan>
-// + Dbscan something or other
-
-// TODO this could be improved implementing Config file
 #[derive(clap::Parser, Debug, Clone)]
 #[clap(
     name = "makelor",
@@ -287,6 +254,40 @@ fn nearest_centre_of_box(r_min: f32, dr: f32, dz: f32, da: f32) -> impl Fn(f32, 
     }
 }
 
+// ----- Imports -----------------------------------------------------------------------------------------
+use std::path::{Path, PathBuf};
+use clap::Parser;
+use itertools::Itertools;
+use indicatif::{ProgressBar, ProgressStyle};
+use units::{
+    Length, Time, Ratio,
+    todo::Energyf32, Area,
+    uom::ConstZero
+};
+use petalo::{
+    Point, BoundPair,
+    config::mlem::Bounds,
+    io::{self,
+         hdf5::{
+             Hdf5Lor,
+             sensors::{QT, SensorMap},
+             mc::Vertex
+         }
+    },
+    sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction},
+    utils::{group_digits, parse_bounds},
+};
+
+
+// TODO: try to remove the need for these
+use units::{mm, mm_, ns, ns_, ratio};
+// The mair problems seems to be that uom types do not implement various third-party traits, such as:
+// + std::iter::Sum
+// + hdf5:H5Type
+// + From<ordered_float::NotNan>
+// + Dbscan something or other
+
+// ----- TESTS ------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod test_discretize {
     use super::*;
