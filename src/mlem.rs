@@ -6,7 +6,7 @@ use crate::{
     LOR,
     fov::FOV,
     image::{Image, ImageData},
-    projector::{projector_core, project_one_lor_mlem},
+    projector::{project_lors, project_one_lor_mlem},
 };
 
 pub static mut N_MLEM_THREADS: usize = 1;
@@ -46,7 +46,7 @@ fn one_iteration<S: SystemMatrix + Copy + Send + Sync>(
         N_MLEM_THREADS
     };
     let job_size = measured_lors.len() / n_mlem_threads;
-    let backprojection = projector_core(projector, &*image, measured_lors, job_size, project_one_lor_mlem);
+    let backprojection = project_lors(projector, &*image, measured_lors, job_size, project_one_lor_mlem);
 
     // -------- Correct for attenuation and detector sensitivity ------------
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
