@@ -110,10 +110,7 @@ pub fn sensitivity_image<S: SystemMatrix>(
     attenuation: &Image,
     lors       : &[LOR],
     job_size   : usize,
-) -> Image
-where
-    S::Data: Send + Sync + Copy,
-{
+) -> Image {
     let mut backprojection = project_lors::<S,_>(projector.data(), attenuation, lors, job_size, project_one_lor_sens::<S>);
 
     // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!

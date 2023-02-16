@@ -11,10 +11,7 @@ pub fn mlem<'a, S: SystemMatrix + 'a>(
     measured_lors: &'a [LOR],
     sensitivity  : Option<Image>,
     n_subsets    : usize,
-) -> impl Iterator<Item = (Image, Osem)> + '_
-where
-    S::Data: Copy + Send + Sync,
-{
+) -> impl Iterator<Item = (Image, Osem)> + '_ {
 
     // Start off with a uniform image
     let mut image = Image::ones(fov);
@@ -38,10 +35,7 @@ fn one_iteration<S: SystemMatrix>(
     image        : &mut Image,
     measured_lors: &[LOR],
     sensitivity  : &[Intensityf32],
-)
-where
-    S::Data: Send + Sync + Copy,
-{
+) {
     let n_mlem_threads = unsafe {
         // SAFETY: modified only once, at the beginning of bin/mlem.rs::main()
         N_MLEM_THREADS

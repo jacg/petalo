@@ -6,7 +6,7 @@
 /// Interface for calculation of (geometrical components of?) system matrix elements
 pub trait SystemMatrix {
 
-    type Data;
+    type Data: Copy + Sync + Send;
 
     fn data(&self) -> Self::Data;
 
