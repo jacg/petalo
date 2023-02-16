@@ -33,28 +33,6 @@ pub struct Cli {
 
 }
 
-use clap::Parser;
-
-use std::{
-    error::Error,
-    io::Write,
-    path::PathBuf,
-};
-
-use petalo::{
-    utils::group_digits,
-    LOR,
-    fov::FOV,
-    image::Image,
-    projector::{project_lors, project_one_lor_sens},
-    system_matrix::{SystemMatrix, Siddon},
-};
-
-use units::{
-    Length, Time, AreaPerMass, ratio, ratio_, kg, mm, todo::Lengthf32,
-    uom::ConstZero,
-};
-
 fn main() -> Result<(), Box<dyn Error>> {
 
     let Cli { input, output, detector_length, detector_diameter, n_lors, rho_to_mu, n_threads } = Cli::parse();
@@ -172,3 +150,26 @@ fn density_image_into_attenuation_image(density: Image, rho_to_mu: AreaPerMass) 
     }
     attenuation
 }
+
+// ----- Imports -----------------------------------------------------------------------------------------
+use clap::Parser;
+
+use std::{
+    error::Error,
+    io::Write,
+    path::PathBuf,
+};
+
+use petalo::{
+    utils::group_digits,
+    LOR,
+    fov::FOV,
+    image::Image,
+    projector::{project_lors, project_one_lor_sens},
+    system_matrix::{SystemMatrix, Siddon},
+};
+
+use units::{
+    Length, Time, AreaPerMass, ratio, ratio_, kg, mm, todo::Lengthf32,
+    uom::ConstZero,
+};
