@@ -5,8 +5,8 @@
 //! + OSEM: Ordered-Subset Expectation Maximization
 
 /// Create an infinite iterator of reconstructed images
-pub fn mlem<'a, S: SystemMatrix + Copy + Send + Sync + 'a>(
-    projector    : S,
+pub fn mlem<'a, S: SystemMatrix + 'a>(
+    parameters   : S::Data,
     fov          : FOV,
     measured_lors: &'a [LOR],
     sensitivity  : Option<Image>,
@@ -23,13 +23,13 @@ pub fn mlem<'a, S: SystemMatrix + Copy + Send + Sync + 'a>(
     // Return an iterator which generates an infinite sequence of images,
     // each one made by performing one MLEM iteration on the previous one
     std::iter::from_fn(move || {
-        one_iteration::<S>(projector, &mut image, osem.subset(measured_lors), &sensitivity.data);
+        one_iteration::<S>(parameters, &mut image, osem.subset(measured_lors), &sensitivity.data);
         Some((image.clone(), osem.next())) // TODO see if we can sensibly avoid cloning
     })
 }
 
-fn one_iteration<S: SystemMatrix + Copy + Send + Sync>(
-    projector    : S,
+fn one_iteration<S: SystemMatrix>(
+    projector    : S::Data,
     image        : &mut Image,
     measured_lors: &[LOR],
     sensitivity  : &[Intensityf32],
@@ -39,7 +39,7 @@ fn one_iteration<S: SystemMatrix + Copy + Send + Sync>(
         N_MLEM_THREADS
     };
     let job_size = measured_lors.len() / n_mlem_threads;
-    let backprojection = project_lors(projector, &*image, measured_lors, job_size, project_one_lor_mlem);
+    let backprojection = project_lors::<S,_>(projector, &*image, measured_lors, job_size, project_one_lor_mlem::<S>);
 
     // -------- Correct for attenuation and detector sensitivity ------------
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
