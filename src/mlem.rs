@@ -4,10 +4,8 @@
 //!
 //! + OSEM: Ordered-Subset Expectation Maximization
 
-// TODO Transfer Copy + Send from SystemMatrix to SystemMatrix::Data where possible
-
 /// Create an infinite iterator of reconstructed images
-pub fn mlem<'a, S: SystemMatrix + Copy + Send + Sync + 'a>(
+pub fn mlem<'a, S: SystemMatrix + 'a>(
     projector    : S,
     fov          : FOV,
     measured_lors: &'a [LOR],
@@ -35,7 +33,7 @@ where
     })
 }
 
-fn one_iteration<S: SystemMatrix + Copy + Send + Sync>(
+fn one_iteration<S: SystemMatrix>(
     projector    : S::Data,
     image        : &mut Image,
     measured_lors: &[LOR],

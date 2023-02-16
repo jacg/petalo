@@ -105,7 +105,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 /// Create sensitivity image by backprojecting all possible LORs
-pub fn sensitivity_image<S: SystemMatrix + Copy + Send + Sync>(
+pub fn sensitivity_image<S: SystemMatrix>(
     projector  : S,
     attenuation: &Image,
     lors       : &[LOR],

@@ -36,7 +36,7 @@ pub fn project_lors<'l, 'i, S, F>(
     project_one_lor: F,
 ) -> ImageData
 where
-    S: SystemMatrix + Copy + Send + Sync,
+    S: SystemMatrix,
     S::Data: Send + Sync + Copy,
     F: Fn(Fs<'i, S::Data>, &'i LOR) -> Fs<'i, S::Data> + Sync + Send,
     'l: 'i,
