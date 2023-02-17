@@ -203,7 +203,8 @@ fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5L
     let &Reco::Discrete { radius, dr, dz, da } = d else {
         panic!("lor_from_discretized_vertices called with variant other than Reco::Discrete")
     };
-    let adjust = nearest_centre_of_box(mm_(radius), mm_(dr), mm_(dz), mm_(da));
+    use petalo::utils::Discretize;
+    let adjust = Discretize { r_min: radius, dr, dz, da }.centre_of_nearest_box_fn_f32();
     move |vertices| {
         let mut in_scint = vertices_in_scintillator(vertices);
 
@@ -237,23 +238,6 @@ fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5L
 // fn dist((x1,y1,z1): (f32,f32,f32), (x2,y2,z2): (f32,f32,f32)) -> f32 {
 //     (x2-x1).hypot(y2-y1).hypot(z2-z1)
 // }
-
-fn nearest_centre_of_box(r_min: f32, dr: f32, dz: f32, da: f32) -> impl Fn(f32, f32, f32) -> (f32, f32, f32) + Copy {
-    let inner_circumference = std::f32::consts::TAU * r_min;
-    let blocks_in_circle = (inner_circumference / da).round();
-    let da = inner_circumference / blocks_in_circle;
-    let r = r_min + (dr / 2.0);
-    let d_phi = da / r;
-    move |x,y,z| {
-        let phi = y.atan2(x);
-        let phi = (phi / d_phi).round() * d_phi;
-        let z   = (z   / dz   ).round() * dz;
-        let x = r * phi.cos();
-        let y = r * phi.sin();
-        (x, y, z)
-    }
-}
-
 // ----- Imports -----------------------------------------------------------------------------------------
 use std::path::{Path, PathBuf};
 use clap::Parser;
@@ -290,7 +274,6 @@ use units::{mm, mm_, ns, ns_, ratio};
 // ----- TESTS ------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod test_discretize {
-    use super::*;
     use rstest::rstest;
     use float_eq::assert_float_eq;
 
@@ -316,12 +299,15 @@ mod test_discretize {
     // Other cases are very fiddly to verify by hand, but we should add some, in principle
     fn test_nearest_centre_of_box(
         #[case] detector: (f32, f32, f32, f32),
-        #[case] vertex: (f32, f32, f32),
+        #[case] vertex  : (f32, f32, f32),
         #[case] expected: (f32, f32, f32),
     ) {
         let (rmin, dr, dz, da) = detector;
         let (x, y, z) = vertex;
-        let (x, y, z) = nearest_centre_of_box(rmin, dr, dz, da)(x,y,z);
+        let (x, y, z) = petalo::utils::Discretize
+            ::from_f32s_in_mm(rmin, dr, dz, da).
+            centre_of_nearest_box_fn_f32()
+            (x,y,z);
         assert_float_eq!((x,y,z), expected, abs <= (0.01, 0.01, 0.01));
     }
 }
