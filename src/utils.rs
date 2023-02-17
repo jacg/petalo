@@ -208,11 +208,11 @@ impl Discretize {
         let n_half_axial: u32 = (ratio_(half_length / dz)).round() as u32;
         let n_half_axial: i32 = n_half_axial as i32;
 
-        let     axial_indices = || -n_half_axial..=n_half_axial;
-        let azimuthal_indices = || 0..n_azimuthal;
+        let     axial_indices = -n_half_axial..=n_half_axial;
+        let azimuthal_indices =             0..n_azimuthal;
 
-        let     axial_positions = ||     axial_indices().map(move |n| n as f32 * dz);
-        let azimuthal_positions = || azimuthal_indices().map(move |n| {
+        let     axial_positions = ||     axial_indices.map(move |n| n as f32 * dz);
+        let azimuthal_positions = || azimuthal_indices.map(move |n| {
             let phi = d_azimuthal * n as f32;
             (r * phi.cos(), r * phi.sin())
         });
