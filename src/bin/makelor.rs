@@ -203,7 +203,7 @@ fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5L
     let &Reco::Discrete { radius, dr, dz, da } = d else {
         panic!("lor_from_discretized_vertices called with variant other than Reco::Discrete")
     };
-    use petalo::utils::Discretize;
+    use petalo::discrete::Discretize;
     let adjust = Discretize { r_min: radius, dr, dz, da }.centre_of_nearest_box_fn_f32();
     move |vertices| {
         let mut in_scint = vertices_in_scintillator(vertices);
@@ -304,7 +304,7 @@ mod test_discretize {
     ) {
         let (rmin, dr, dz, da) = detector;
         let (x, y, z) = vertex;
-        let (x, y, z) = petalo::utils::Discretize
+        let (x, y, z) = petalo::discrete::Discretize
             ::from_f32s_in_mm(rmin, dr, dz, da).
             centre_of_nearest_box_fn_f32()
             (x,y,z);
