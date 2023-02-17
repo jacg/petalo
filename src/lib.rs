@@ -16,3 +16,4 @@ pub mod fov;
 pub mod config;
 pub mod sensors;
 pub mod projector;
+pub mod discrete;

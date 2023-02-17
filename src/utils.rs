@@ -1,9 +1,13 @@
 use std::num::ParseFloatError;
 use std::ops::{Bound, Range};
 
-use units::{Ratio, todo::{Timef32, Lengthf32}};
+use units::{
+    mm, ns, ratio,
+    Ratio,
+    todo::{Timef32, Lengthf32},
+};
+
 use crate::{Point, BoundPair, LOR};
-use units::{mm, ns, ratio};
 
 pub fn parse_range<T: std::str::FromStr>(s: &str) -> Result<Range<T>, <T as std::str::FromStr>::Err> {
     let v = s.split("..").collect::<Vec<_>>();
@@ -132,3 +136,4 @@ pub mod timing {
         fn start_timer(&mut self) { self.previous = Instant::now() }
     }
 }
+
