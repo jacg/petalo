@@ -65,6 +65,5 @@ impl<'a> IntoIterator for &'a SystemMatrixRow {
 use units::todo::Weightf32;
 
 use crate::{
-    LOR, Index1_u,
-    fov::FOV,
+    FOV, LOR, Index1_u,
 };

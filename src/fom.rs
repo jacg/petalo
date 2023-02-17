@@ -4,8 +4,7 @@ use units::{
     todo::{Intensityf32, Ratiof32},
 };
 use crate::{
-    Point,
-    fov::FOV,
+    Point, FOV,
     image::{Image, ImageData},
     io::raw,
 };

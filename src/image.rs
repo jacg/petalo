@@ -2,8 +2,7 @@ use std::path::Path;
 use units::todo::Intensityf32;
 
 use crate::{
-    fov::FOV,
-    Index1_u, Index3_u,
+    FOV, Index1_u, Index3_u,
     index::index3_to_1,
     io,
 };

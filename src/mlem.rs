@@ -95,8 +95,7 @@ use ndarray::azip;
 use units::todo::{Lengthf32, Intensityf32};
 
 use crate::{
-    LOR,
-    fov::FOV,
+    FOV, LOR,
     image::{Image, ImageData},
     projector::{project_lors, project_one_lor_mlem},
     system_matrix::SystemMatrix

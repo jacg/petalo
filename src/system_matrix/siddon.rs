@@ -352,7 +352,7 @@ use geometry::Vector;
 use crate::{
     BoxDim_u, LOR, Point, Pointf32, RatioPoint, RatioVec,
     config::mlem::Tof,
-    fov::FOV,
+    FOV,
     gauss::{make_gauss_option, Gaussian},
     index::index3_to_1,
     system_matrix::{SystemMatrixRow, SystemMatrix},

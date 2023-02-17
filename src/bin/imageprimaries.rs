@@ -31,12 +31,17 @@ pub struct Cli {
 // --------------------------------------------------------------------------------
 
 use std::error::Error;
-use units::{Length, mm, mm_, todo::Lengthf32};
-use petalo::fov::FOV;
-use petalo::image::Image;
-use petalo::io::hdf5::mc::{read_primaries, Primary};
+use units::{
+    Length, mm, mm_,
+    todo::Lengthf32,
+    uom::si::length::millimeter,
+};
+use petalo::{
+    FOV,
+    image::Image,
+    io::hdf5::mc::{read_primaries, Primary},
+};
 type L = Lengthf32;
-use units::uom::si::length::millimeter;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();

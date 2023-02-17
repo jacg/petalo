@@ -1,5 +1,6 @@
 pub use crate::{
     index::{BoxDim_u, Index1_u, Index3_u, LengthI, LengthU},
+    fov::FOV,
     lor::LOR,
 };
 

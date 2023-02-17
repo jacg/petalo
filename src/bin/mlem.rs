@@ -36,7 +36,7 @@ use std::fs::create_dir_all;
 
 use units::{Length, mm_};
 use petalo::{
-    fov::FOV,
+    FOV,
     image::Image,
     io,
     mlem::Osem,
