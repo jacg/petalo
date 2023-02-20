@@ -66,7 +66,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time(&format!("Read density image {:?}", input));
 
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
-    let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
+    let lors = find_potential_lors::continuous(n_lors, density.fov, detector_length, detector_diameter);
+    //let lors = find_potential_lors::discrete(density.fov, detector_length, detector_diameter);
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
     let job_size = lors.len() / n_threads;
     // TOF should not be used as LOR attenuation is independent of decay point
@@ -83,7 +84,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Create sensitivity image by backprojecting all possible LORs
+/// Create sensitivity image by backprojecting `lors` through `attenuation`
+/// image.
 pub fn sensitivity_image<S: SystemMatrix>(
     parameters : S::Data,
     attenuation: &Image,
@@ -102,27 +104,42 @@ pub fn sensitivity_image<S: SystemMatrix>(
 }
 
 
-// TODO: need different versions for different projectors
-/// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
-/// with length and diameter specified in Cli and passing through the FOV
-/// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> Vec<LOR> {
-    let (l,r) = (detector_length, detector_diameter / 2.0);
-    let one_useful_random_lor = move |_lor_number| {
-        loop {
-            let p1 = random_point_on_cylinder(l, r);
-            let p2 = random_point_on_cylinder(l, r);
-            if fov.entry(p1, p2).is_some() {
-                return LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
-            }
-        }
-    };
+mod find_potential_lors {
 
-    use rayon::prelude::*;
-    (0..n_lors)
-        .into_par_iter()
-        .map(one_useful_random_lor)
-        .collect()
+    use super::*;
+
+    /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
+    /// with length and diameter specified in Cli and passing through the FOV
+    /// specified in Cli.
+    pub fn continuous(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> Vec<LOR> {
+        let (l,r) = (detector_length, detector_diameter / 2.0);
+        let one_useful_random_lor = move |_lor_number| {
+            loop {
+                let p1 = random_point_on_cylinder(l, r);
+                let p2 = random_point_on_cylinder(l, r);
+                if fov.entry(p1, p2).is_some() {
+                    return LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
+                }
+            }
+        };
+
+        use rayon::prelude::*;
+        (0..n_lors)
+            .into_par_iter()
+            .map(one_useful_random_lor)
+            .collect()
+    }
+
+    pub fn discrete(fov: FOV, detector_length: Length, detector_diameter: Length) -> Vec<LOR> {
+        // For prototyping purposes, hard-wire the scintillator element size
+        let dz = mm(3.0);
+        let dy = mm(3.0);
+        let dr = mm(30.0);
+        let (l,r) = (detector_length, detector_diameter / 2.0);
+
+        todo!()
+    }
+
 }
 
 fn random_point_on_cylinder(l: Length, r: Length) -> petalo::Point {
@@ -162,8 +179,7 @@ use std::{
 
 use petalo::{
     utils::group_digits,
-    LOR,
-    fov::FOV,
+    FOV, LOR,
     image::Image,
     projector::{project_lors, project_one_lor_sens},
     system_matrix::{SystemMatrix, Siddon},
