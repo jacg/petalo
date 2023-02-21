@@ -90,7 +90,7 @@ pub fn sensitivity_image<S: SystemMatrix>(
     lors       : &[LOR],
     job_size   : usize,
 ) -> Image {
-    let mut backprojection = project_lors::<S,_>(parameters, attenuation, lors, job_size, project_one_lor_sens::<S>);
+    let mut backprojection = project_lors::<S,_,_>(parameters, attenuation, lors, job_size, project_one_lor_sens::<S>);
 
     // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
     let size = lors.len() as f32;

@@ -28,17 +28,18 @@
 /// + `project_one_lor_mlem`
 ///
 /// + `project_one_lor_sens`
-pub fn project_lors<'l, 'i, S, F>(
+pub fn project_lors<'l, 'i, S, L, F>(
     projector_data : S::Data,
     image          : &'i Image,
-    lors           : &'l [LOR],
+    lors           : L,
     job_size       : usize,
     project_one_lor: F,
 ) -> ImageData
 where
     S: SystemMatrix,
-    F: Fn(Fs<'i, S>, &'i LOR) -> Fs<'i, S> + Sync + Send,
-    'l: 'i,
+    L: IntoParallelIterator<Item = &'l LOR>,
+    L::Iter: IndexedParallelIterator,
+    F: Fn(Fs<'i, S>, &'l LOR) -> Fs<'i, S> + Sync + Send,
 {
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
@@ -50,7 +51,7 @@ where
 
     // -------- Project all LORs forwards and backwards ---------------------
     let fold_result = lors
-        .par_iter()
+        .into_par_iter()
         // Rayon is too eager in spawning small jobs, each of which requires the
         // construction and subsequent combination of expensive accumulators
         // (whole `Image`s). So here we try to limit it to one job per thread.
