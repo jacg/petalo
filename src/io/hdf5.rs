@@ -51,8 +51,7 @@ where
     };
 
     lors.into_par_iter()
-        .with_min_len(job_size)
-        .fold  (empty_scattergram, lor_into_scattergram)
+        .fold_chunks(job_size, empty_scattergram, lor_into_scattergram)
         .reduce(empty_scattergram, add_scattergrams)
 
 }

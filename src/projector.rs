@@ -55,9 +55,7 @@ where
         // Rayon is too eager in spawning small jobs, each of which requires the
         // construction and subsequent combination of expensive accumulators
         // (whole `Image`s). So here we try to limit it to one job per thread.
-        .with_min_len(job_size)
-        .with_max_len(job_size)
-        .fold(initial_thread_state, project_one_lor);
+        .fold_chunks(job_size, initial_thread_state, project_one_lor);
 
     // -------- extract relevant information (backprojection) ---------------
     fold_result
