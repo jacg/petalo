@@ -28,17 +28,20 @@
 /// + `project_one_lor_mlem`
 ///
 /// + `project_one_lor_sens`
-pub fn project_lors<'l, 'i, S, F>(
+pub fn project_lors<'l, 'i, S, L, F>(
     projector_data : S::Data,
     image          : &'i Image,
-    lors           : &'l [LOR],
+    lors           : L,
     job_size       : usize,
     project_one_lor: F,
 ) -> ImageData
 where
     S: SystemMatrix,
+    L: IntoParallelIterator<Item = &'l LOR>,
+    L::Iter: IndexedParallelIterator,
     F: Fn(Fs<'i, S>, &'i LOR) -> Fs<'i, S> + Sync + Send,
     'l: 'i,
+    'i: 'l,
 {
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.

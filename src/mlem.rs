@@ -39,7 +39,7 @@ fn one_iteration<S: SystemMatrix>(
         N_MLEM_THREADS
     };
     let job_size = measured_lors.len() / n_mlem_threads;
-    let backprojection = project_lors::<S,_>(projector, &*image, measured_lors, job_size, project_one_lor_mlem::<S>);
+    let backprojection = project_lors::<S,_,_>(projector, &*image, measured_lors, job_size, project_one_lor_mlem::<S>);
 
     // -------- Correct for attenuation and detector sensitivity ------------
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
