@@ -50,7 +50,7 @@ where
 
     // -------- Project all LORs forwards and backwards ---------------------
     let fold_result = lors
-        .par_iter()
+        .into_par_iter()
         // Rayon is too eager in spawning small jobs, each of which requires the
         // construction and subsequent combination of expensive accumulators
         // (whole `Image`s). So here we try to limit it to one job per thread.

@@ -42,7 +42,7 @@ fn fill_scattergram(scattergram: Scattergram, lors: &[Hdf5Lor], nthreads: usize)
         scattergram
     };
 
-    lors.par_iter()
+    lors.into_par_iter()
         .with_min_len(lors.len() / nthreads)
         .fold  (empty_scattergram, lor_into_scattergram)
         .reduce(empty_scattergram, add_scattergrams)
