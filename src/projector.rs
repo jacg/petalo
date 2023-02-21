@@ -39,9 +39,7 @@ where
     S: SystemMatrix,
     L: IntoParallelIterator<Item = &'l LOR>,
     L::Iter: IndexedParallelIterator,
-    F: Fn(Fs<'i, S>, &'i LOR) -> Fs<'i, S> + Sync + Send,
-    'l: 'i,
-    'i: 'l,
+    F: Fn(Fs<'i, S>, &'l LOR) -> Fs<'i, S> + Sync + Send,
 {
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
