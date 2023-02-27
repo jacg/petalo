@@ -13,7 +13,7 @@ pub struct Vec<T> {
 }
 
 impl<LHS> Vec<LHS> {
-    pub fn dot<RHS, Out>(&self, other: Vec<RHS>) -> Out
+    pub fn dot<RHS, Out>(self, other: Vec<RHS>) -> Out
     where
         LHS: Mul<RHS, Output=Out> + Copy,
         Out: Add<Output=Out>,
