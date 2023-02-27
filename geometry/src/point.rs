@@ -14,7 +14,6 @@ pub type      Point = Pt<Length>;
 pub type RatioPoint = Pt<Ratio>;
 
 impl Point {
-    pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
     pub fn zero() -> Self { Self::new(mm(0.), mm(0.), mm(0.)) }
 
     pub fn map(&self, mut f: impl FnMut(Length) -> Length) -> Self {
@@ -35,9 +34,11 @@ impl Point {
     }
 }
 
-impl RatioPoint {
-    pub fn new(x: Ratio, y: Ratio, z: Ratio) -> Self { Self { x, y, z } }
+impl<T> Pt<T> {
+    pub fn new(x: T, y: T, z: T) -> Self { Self { x, y, z } }
+}
 
+impl RatioPoint {
     pub fn map(&self, mut f: impl FnMut(Ratio) -> Ratio) -> Self {
         let &Self {x, y, z} = self;
         Self {
