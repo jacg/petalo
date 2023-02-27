@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign, Index, Sub, IndexMut};
 use units::{Length, Ratio, mm};
-use crate::{Vector, RatioVec};
+use crate::{Vector, vector::Vect};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Pt<T> {
@@ -48,24 +48,14 @@ impl RatioPoint {
     }
 }
 
-impl Sub for Point {
-    type Output = Vector;
+impl<T: Sub<T, Output=T>> Sub for Pt<T> {
+    type Output = Vect<T>;
     fn sub(self, rhs: Self) -> Self::Output {
-        Vector {
+        Vect::<T> {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
             z: self.z - rhs.z,
-        }
-    }
-}
 
-impl Sub for RatioPoint {
-    type Output = RatioVec;
-    fn sub(self, rhs: Self) -> Self::Output {
-        RatioVec {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
         }
     }
 }
