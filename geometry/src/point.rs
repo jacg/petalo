@@ -60,17 +60,6 @@ impl<T: Sub<T, Output=T>> Sub for Pt<T> {
     }
 }
 
-impl Sub for &Point {
-    type Output = Vector;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Vector {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
-    }
-}
-
 impl Add<Vector> for Point {
     type Output = Point;
     fn add(self, delta: Vector) -> Self::Output {
