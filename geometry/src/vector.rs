@@ -77,8 +77,8 @@ impl Mul<Vector> for RatioVec {
     }
 }
 
-impl Index<usize> for Vector {
-    type Output = Length;
+impl<T> Index<usize> for Vec<T> {
+    type Output = T;
     fn index(&self, index: usize) -> &Self::Output {
         match index {
             0 => &self.x,
@@ -89,7 +89,7 @@ impl Index<usize> for Vector {
     }
 }
 
-impl IndexMut<usize> for Vector {
+impl<T> IndexMut<usize> for Vec<T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         match index {
             0 => &mut self.x,
