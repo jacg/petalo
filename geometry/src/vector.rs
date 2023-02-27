@@ -30,6 +30,17 @@ impl<LHS> Vect<LHS> {
         self.y * other.y +
         self.z * other.z
     }
+
+    pub fn elementwise_mul<RHS, Out>(self, other: Vect<RHS>) -> Vect<Out>
+    where
+        LHS: Mul<RHS, Output=Out> + Copy,
+    {
+        Vect::<Out> {
+            x: self.x * other.x,
+            y: self.y * other.y,
+            z: self.z * other.z,
+        }
+    }
 }
 
 impl<T: Sub<Output = T>> Sub for Vect<T> {
@@ -78,17 +89,6 @@ impl Mul<Vector> for Ratio {
 impl Mul<RatioVec> for Vector {
     type Output = Self;
     fn mul(self, rhs: RatioVec) -> Self::Output {
-        Vector {
-            x: self.x * rhs.x,
-            y: self.y * rhs.y,
-            z: self.z * rhs.z,
-        }
-    }
-}
-
-impl Mul<Vector> for RatioVec {
-    type Output = Vector;
-    fn mul(self, rhs: Vector) -> Self::Output {
         Vector {
             x: self.x * rhs.x,
             y: self.y * rhs.y,

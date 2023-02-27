@@ -170,7 +170,7 @@ fn first_boundaries(entry_point: RatioPoint, voxel_size: Vector) -> Vector {
     let frac_done: RatioVec = entry_point - entry_point.map(|x| x.floor::<ratio>());
     // Distances remaining to the nearest boundaries
     let one = units::ratio(1.0);
-    (RatioVec::new(one, one, one) - frac_done) * voxel_size
+    (RatioVec::new(one, one, one) - frac_done).elementwise_mul(voxel_size)
 }
 
 /// Voxel size expressed in LOR distance units: how far we must move along LOR
