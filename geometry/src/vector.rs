@@ -181,7 +181,7 @@ impl RatioVec{
 
 
 
-pub trait Dot<RHS = Self> {
+pub trait Dot<RHS> {
     type Output;
     fn dot(&self, other: RHS) -> Self::Output;
 }
