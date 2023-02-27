@@ -55,15 +55,15 @@ impl<T: Sub<Output = T>> Sub for Vect<T> {
     }
 }
 
-impl<T, RHS> Mul<RHS> for Vect<T>
+impl<T, RHS, Out> Mul<RHS> for Vect<T>
 where
-    T: Mul<RHS, Output = T>,
+    T: Mul<RHS, Output=Out>,
     RHS: Copy,
 {
-    type Output = Vect<<T as Mul<RHS>>::Output>;
+    type Output = Vect<Out>;
 
     fn mul(self, rhs: RHS) -> Self::Output {
-        Self {
+        Vect::<Out> {
             x: self.x * rhs,
             y: self.y * rhs,
             z: self.z * rhs,
