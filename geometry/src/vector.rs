@@ -1,5 +1,5 @@
 use std::ops::{Index, IndexMut, Add, Mul, Sub};
-use units::{Area, Length, Ratio};
+use units::{Area, Length, Ratio, in_base_unit};
 
 use units::{mm, ratio};
 
@@ -153,8 +153,8 @@ impl Vector {
         }
     }
 
-    pub fn norm        (self) -> Length { mm(NcVector::from(self).norm        ())           }
-    pub fn norm_squared(self) -> Area   { mm(NcVector::from(self).norm_squared()) * mm(1.0) }
+    pub fn norm        (self) -> Length { in_base_unit!(NcVector::from(self).norm        ()) }
+    pub fn norm_squared(self) -> Area   { in_base_unit!(NcVector::from(self).norm_squared()) }
 
     pub fn normalize(self) -> RatioVec {
         let n = NcVector::from(self).normalize();
