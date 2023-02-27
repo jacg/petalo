@@ -79,9 +79,9 @@ impl<T: AddAssign<T>> AddAssign<Vect<T>> for Pt<T> {
     }
 }
 
-impl Index<usize> for Point {
-    type Output = Length;
-    fn index(&self, index: usize) -> &Length {
+impl<T> Index<usize> for Pt<T> {
+    type Output = T;
+    fn index(&self, index: usize) -> &T {
         match index {
             0 => &self.x,
             1 => &self.y,
@@ -91,8 +91,8 @@ impl Index<usize> for Point {
     }
 }
 
-impl IndexMut<usize> for Point {
-    fn index_mut(&mut self, index: usize) -> &mut Length {
+impl<T> IndexMut<usize> for Pt<T> {
+    fn index_mut(&mut self, index: usize) -> &mut T {
         match index {
             0 => &mut self.x,
             1 => &mut self.y,
