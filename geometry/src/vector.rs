@@ -6,14 +6,14 @@ use units::{mm, ratio};
 type NcVector = ncollide3d::math::Vector::<f32>;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Vec<T> {
+pub struct Vect<T> {
     pub x: T,
     pub y: T,
     pub z: T,
 }
 
-impl<LHS> Vec<LHS> {
-    pub fn dot<RHS, Out>(self, other: Vec<RHS>) -> Out
+impl<LHS> Vect<LHS> {
+    pub fn dot<RHS, Out>(self, other: Vect<RHS>) -> Out
     where
         LHS: Mul<RHS, Output=Out> + Copy,
         Out: Add<Output=Out>,
@@ -24,8 +24,8 @@ impl<LHS> Vec<LHS> {
     }
 }
 
-impl<T: Sub<Output = T>> Sub for Vec<T> {
-    type Output = Vec<<T as Sub>::Output>;
+impl<T: Sub<Output = T>> Sub for Vect<T> {
+    type Output = Vect<<T as Sub>::Output>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self {
@@ -36,12 +36,12 @@ impl<T: Sub<Output = T>> Sub for Vec<T> {
     }
 }
 
-impl<T, RHS> Mul<RHS> for Vec<T>
+impl<T, RHS> Mul<RHS> for Vect<T>
 where
     T: Mul<RHS, Output = T>,
     RHS: Copy,
 {
-    type Output = Vec<<T as Mul<RHS>>::Output>;
+    type Output = Vect<<T as Mul<RHS>>::Output>;
 
     fn mul(self, rhs: RHS) -> Self::Output {
         Self {
@@ -52,9 +52,9 @@ where
     }
 }
 
-pub type   Vector = Vec<Length>;
-pub type RatioVec = Vec<Ratio>;
-pub type  AreaVec = Vec<Area>;
+pub type   Vector = Vect<Length>;
+pub type RatioVec = Vect<Ratio>;
+pub type  AreaVec = Vect<Area>;
 
 impl Mul<Vector> for Ratio {
     type Output = Vector;
@@ -89,7 +89,7 @@ impl Mul<Vector> for RatioVec {
     }
 }
 
-impl<T> Index<usize> for Vec<T> {
+impl<T> Index<usize> for Vect<T> {
     type Output = T;
     fn index(&self, index: usize) -> &Self::Output {
         match index {
@@ -101,7 +101,7 @@ impl<T> Index<usize> for Vec<T> {
     }
 }
 
-impl<T> IndexMut<usize> for Vec<T> {
+impl<T> IndexMut<usize> for Vect<T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         match index {
             0 => &mut self.x,
@@ -112,7 +112,7 @@ impl<T> IndexMut<usize> for Vec<T> {
     }
 }
 
-impl<T> Iterator for Vec<T> {
+impl<T> Iterator for Vect<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
