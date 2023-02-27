@@ -71,8 +71,8 @@ impl<T: Add<T, Output=T>> Add<Vect<T>> for Pt<T> {
     }
 }
 
-impl AddAssign<Vector> for Point {
-    fn add_assign(&mut self, delta: Vector) {
+impl<T: AddAssign<T>> AddAssign<Vect<T>> for Pt<T> {
+    fn add_assign(&mut self, delta: Vect<T>) {
         self.x += delta.x;
         self.y += delta.y;
         self.z += delta.z;
