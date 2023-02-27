@@ -12,6 +12,18 @@ pub struct Vec<T> {
     pub z: T,
 }
 
+impl<LHS> Vec<LHS> {
+    pub fn dot<RHS, Out>(&self, other: Vec<RHS>) -> Out
+    where
+        LHS: Mul<RHS, Output=Out> + Copy,
+        Out: Add<Output=Out>,
+    {
+        self.x * other.x +
+        self.y * other.y +
+        self.z * other.z
+    }
+}
+
 impl<T: Sub<Output = T>> Sub for Vec<T> {
     type Output = Vec<<T as Sub>::Output>;
 
@@ -180,27 +192,6 @@ impl RatioVec{
 }
 
 
-
-pub trait Dot<RHS> {
-    type Output;
-    fn dot(&self, other: RHS) -> Self::Output;
-}
-
-impl<LHS, RHS, Out> Dot<Vec<RHS>> for Vec<LHS>
-where
-    LHS: Mul<RHS, Output=Out> + Copy,
-    Out: Add<Output=Out>,
-{
-    type Output = Out;
-
-    fn dot(&self, other: Vec<RHS>) -> Self::Output
-    where
-    {
-        self.x * other.x +
-        self.y * other.y +
-        self.z * other.z
-    }
-}
 
 #[cfg(test)]
 mod tests {

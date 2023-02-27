@@ -1,6 +1,6 @@
 use units::{Area, Length, Length4, Ratio, ratio};
 use units::uom::typenum::P2;
-use crate::{Point, RatioVec, Dot};
+use crate::{Point, RatioVec};
 
 /// Compute the length of the intersection of the line passing through points
 /// `p1` and `p2` with a cylinder of radius `r` whose axis coincides with the
