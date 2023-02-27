@@ -42,13 +42,7 @@ where
 
 pub type   Vector = Vec<Length>;
 pub type RatioVec = Vec<Ratio>;
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct AreaVec {
-    pub x: Area,
-    pub y: Area,
-    pub z: Area,
-}
+pub type  AreaVec = Vec<Area>;
 
 impl Mul<Vector> for Ratio {
     type Output = Vector;
