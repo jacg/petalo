@@ -60,9 +60,9 @@ impl<T: Sub<T, Output=T>> Sub for Pt<T> {
     }
 }
 
-impl Add<Vector> for Point {
-    type Output = Point;
-    fn add(self, delta: Vector) -> Self::Output {
+impl<T: Add<T, Output=T>> Add<Vect<T>> for Pt<T> {
+    type Output = Self;
+    fn add(self, delta: Vect<T>) -> Self::Output {
         Self {
             x: self.x + delta.x,
             y: self.y + delta.y,
