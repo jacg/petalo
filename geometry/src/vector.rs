@@ -40,14 +40,8 @@ where
     }
 }
 
-pub type Vector = Vec<Length>;
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RatioVec {
-    pub x: Ratio,
-    pub y: Ratio,
-    pub z: Ratio,
-}
+pub type   Vector = Vec<Length>;
+pub type RatioVec = Vec<Ratio>;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct AreaVec {
@@ -191,17 +185,6 @@ impl RatioVec{
     }
 }
 
-
-impl Sub for RatioVec {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
-    }
-}
 
 
 pub trait Dot<RHS = Self> {
