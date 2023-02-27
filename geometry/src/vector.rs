@@ -6,11 +6,41 @@ use units::{mm, ratio};
 type NcVector = ncollide3d::math::Vector::<f32>;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Vector {
-    pub x: Length,
-    pub y: Length,
-    pub z: Length,
+pub struct Vec<T> {
+    pub x: T,
+    pub y: T,
+    pub z: T,
 }
+
+impl<T: Sub<Output = T>> Sub for Vec<T> {
+    type Output = Vec<<T as Sub>::Output>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
+impl<T, RHS> Mul<RHS> for Vec<T>
+where
+    T: Mul<RHS, Output = T>,
+    RHS: Copy,
+{
+    type Output = Vec<<T as Mul<RHS>>::Output>;
+
+    fn mul(self, rhs: RHS) -> Self::Output {
+        Self {
+            x: self.x * rhs,
+            y: self.y * rhs,
+            z: self.z * rhs,
+        }
+    }
+}
+
+pub type Vector = Vec<Length>;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RatioVec {
@@ -19,37 +49,11 @@ pub struct RatioVec {
     pub z: Ratio,
 }
 
-impl Sub for Vector {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Vector {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
-    }
-}
-
-impl Mul<f32> for Vector {
-    type Output = Self;
-    fn mul(self, rhs: f32) -> Self::Output {
-        Vector {
-            x: self.x * rhs,
-            y: self.y * rhs,
-            z: self.z * rhs,
-        }
-    }
-}
-
-impl Mul<Ratio> for Vector {
-    type Output = Vector;
-    fn mul(self, rhs: Ratio) -> Self::Output {
-        Vector {
-            x: self.x * rhs,
-            y: self.y * rhs,
-            z: self.z * rhs,
-        }
-    }
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AreaVec {
+    pub x: Area,
+    pub y: Area,
+    pub z: Area,
 }
 
 impl Mul<Vector> for Ratio {
