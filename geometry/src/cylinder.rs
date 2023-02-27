@@ -8,7 +8,8 @@ use crate::{Point, RatioVec};
 #[cfg(test)]
 pub fn cylinder_line_intersection_length(p1: Point, p2: Point, r: Length) -> Length {
     // TODO: explain implementation
-    let z = RatioVec::new(0., 0., 1.);
+    let (zero, one) = (ratio(0.0), ratio(1.0));
+    let z = RatioVec::new(zero, zero, one);
     let v = p2 - p1;
     let w = p1 - Point::zero();
     // Viète coefficients
@@ -38,7 +39,8 @@ fn hollow_cylinder_line_intersection_length_slow(p1: Point, p2: Point, r: Length
 
 // A (hopefully) more efficient implementation of the above. TODO: benchmark
 pub fn hollow_cylinder_line_intersection_length(p1: Point, p2: Point, r: Length, dr: Length) -> Length {
-    let z = RatioVec::new(0., 0., 1.);
+    let (zero, one) = (ratio(0.0), ratio(1.0));
+    let z = RatioVec::new(zero, zero, one);
     let v = p2 - p1;
     let w = p1 - Point::zero();
     // Viète coefficients

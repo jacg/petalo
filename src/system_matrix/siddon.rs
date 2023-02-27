@@ -169,7 +169,8 @@ fn first_boundaries(entry_point: RatioPoint, voxel_size: Vector) -> Vector {
     // How far have we penetrated into this voxel, along any axis
     let frac_done: RatioVec = entry_point - entry_point.map(|x| x.floor::<ratio>());
     // Distances remaining to the nearest boundaries
-    (RatioVec::new(1.0, 1.0, 1.0) - frac_done) * voxel_size
+    let one = units::ratio(1.0);
+    (RatioVec::new(one, one, one) - frac_done) * voxel_size
 }
 
 /// Voxel size expressed in LOR distance units: how far we must move along LOR

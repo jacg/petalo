@@ -1,7 +1,7 @@
 use std::ops::{Index, IndexMut, Add, Mul, Sub};
 use units::{Area, Length, Ratio, in_base_unit};
 
-use units::{mm, ratio};
+use units::ratio;
 
 type NcVector = ncollide3d::math::Vector::<f32>;
 
@@ -10,6 +10,14 @@ pub struct Vect<T> {
     pub x: T,
     pub y: T,
     pub z: T,
+}
+
+impl<T> Vect<T> {
+    pub fn new(x: T, y: T, z: T) -> Self { Self { x, y, z } }
+}
+
+impl<T: units::uom::num_traits::Zero + Copy> Vect<T> {
+    pub fn zero() -> Self { let zero = T::zero(); Self::new(zero, zero, zero) }
 }
 
 impl<LHS> Vect<LHS> {
@@ -122,10 +130,6 @@ impl<T> Iterator for Vect<T> {
 
 impl Vector {
 
-    pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
-
-    pub fn zero() -> Self { Self::new(mm(0.), mm(0.), mm(0.)) }
-
     pub fn xyz<T>(x: f32, y: f32, z: f32) -> Self
     where
         T: units::uom::Conversion<f32, T = f32> + units::uom::si::length::Unit,
@@ -179,18 +183,6 @@ impl Vector {
     }
 
 }
-
-
-impl RatioVec{
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self {
-            x: ratio(x),
-            y: ratio(y),
-            z: ratio(z)
-        }
-    }
-}
-
 
 
 #[cfg(test)]
