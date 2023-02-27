@@ -3,18 +3,15 @@ use units::{Length, Ratio, mm};
 use crate::{Vector, RatioVec};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Point {
-    pub x: Length,
-    pub y: Length,
-    pub z: Length,
+pub struct Pt<T> {
+    pub x: T,
+    pub y: T,
+    pub z: T,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RatioPoint {
-    pub x: Ratio,
-    pub y: Ratio,
-    pub z: Ratio,
-}
+
+pub type      Point = Pt<Length>;
+pub type RatioPoint = Pt<Ratio>;
 
 impl Point {
     pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
