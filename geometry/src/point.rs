@@ -1,20 +1,17 @@
 use std::ops::{Add, AddAssign, Index, Sub, IndexMut};
 use units::{Length, Ratio, mm};
-use crate::{Vector, RatioVec};
+use crate::{Vector, vector::Vect};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Point {
-    pub x: Length,
-    pub y: Length,
-    pub z: Length,
+pub struct Pt<T> {
+    pub x: T,
+    pub y: T,
+    pub z: T,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RatioPoint {
-    pub x: Ratio,
-    pub y: Ratio,
-    pub z: Ratio,
-}
+
+pub type      Point = Pt<Length>;
+pub type RatioPoint = Pt<Ratio>;
 
 impl Point {
     pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
@@ -51,42 +48,21 @@ impl RatioPoint {
     }
 }
 
-impl Sub for Point {
-    type Output = Vector;
+impl<T: Sub<T, Output=T>> Sub for Pt<T> {
+    type Output = Vect<T>;
     fn sub(self, rhs: Self) -> Self::Output {
-        Vector {
+        Vect::<T> {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
             z: self.z - rhs.z,
+
         }
     }
 }
 
-impl Sub for RatioPoint {
-    type Output = RatioVec;
-    fn sub(self, rhs: Self) -> Self::Output {
-        RatioVec {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
-    }
-}
-
-impl Sub for &Point {
-    type Output = Vector;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Vector {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
-    }
-}
-
-impl Add<Vector> for Point {
-    type Output = Point;
-    fn add(self, delta: Vector) -> Self::Output {
+impl<T: Add<T, Output=T>> Add<Vect<T>> for Pt<T> {
+    type Output = Self;
+    fn add(self, delta: Vect<T>) -> Self::Output {
         Self {
             x: self.x + delta.x,
             y: self.y + delta.y,
@@ -95,17 +71,17 @@ impl Add<Vector> for Point {
     }
 }
 
-impl AddAssign<Vector> for Point {
-    fn add_assign(&mut self, delta: Vector) {
+impl<T: AddAssign<T>> AddAssign<Vect<T>> for Pt<T> {
+    fn add_assign(&mut self, delta: Vect<T>) {
         self.x += delta.x;
         self.y += delta.y;
         self.z += delta.z;
     }
 }
 
-impl Index<usize> for Point {
-    type Output = Length;
-    fn index(&self, index: usize) -> &Length {
+impl<T> Index<usize> for Pt<T> {
+    type Output = T;
+    fn index(&self, index: usize) -> &T {
         match index {
             0 => &self.x,
             1 => &self.y,
@@ -115,8 +91,8 @@ impl Index<usize> for Point {
     }
 }
 
-impl IndexMut<usize> for Point {
-    fn index_mut(&mut self, index: usize) -> &mut Length {
+impl<T> IndexMut<usize> for Pt<T> {
+    fn index_mut(&mut self, index: usize) -> &mut T {
         match index {
             0 => &mut self.x,
             1 => &mut self.y,

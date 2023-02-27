@@ -1,28 +1,42 @@
-use std::ops::{Index, IndexMut, Mul, Sub};
-use units::{Area, Length, Ratio};
+use std::ops::{Index, IndexMut, Add, Mul, Sub};
+use units::{Area, Length, Ratio, in_base_unit};
 
-use units::{mm, ratio};
+use units::ratio;
 
 type NcVector = ncollide3d::math::Vector::<f32>;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Vector {
-    pub x: Length,
-    pub y: Length,
-    pub z: Length,
+pub struct Vect<T> {
+    pub x: T,
+    pub y: T,
+    pub z: T,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RatioVec {
-    pub x: Ratio,
-    pub y: Ratio,
-    pub z: Ratio,
+impl<T> Vect<T> {
+    pub fn new(x: T, y: T, z: T) -> Self { Self { x, y, z } }
 }
 
-impl Sub for Vector {
-    type Output = Self;
+impl<T: units::uom::num_traits::Zero + Copy> Vect<T> {
+    pub fn zero() -> Self { let zero = T::zero(); Self::new(zero, zero, zero) }
+}
+
+impl<LHS> Vect<LHS> {
+    pub fn dot<RHS, Out>(self, other: Vect<RHS>) -> Out
+    where
+        LHS: Mul<RHS, Output=Out> + Copy,
+        Out: Add<Output=Out>,
+    {
+        self.x * other.x +
+        self.y * other.y +
+        self.z * other.z
+    }
+}
+
+impl<T: Sub<Output = T>> Sub for Vect<T> {
+    type Output = Vect<<T as Sub>::Output>;
+
     fn sub(self, rhs: Self) -> Self::Output {
-        Vector {
+        Self {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
             z: self.z - rhs.z,
@@ -30,10 +44,15 @@ impl Sub for Vector {
     }
 }
 
-impl Mul<f32> for Vector {
-    type Output = Self;
-    fn mul(self, rhs: f32) -> Self::Output {
-        Vector {
+impl<T, RHS> Mul<RHS> for Vect<T>
+where
+    T: Mul<RHS, Output = T>,
+    RHS: Copy,
+{
+    type Output = Vect<<T as Mul<RHS>>::Output>;
+
+    fn mul(self, rhs: RHS) -> Self::Output {
+        Self {
             x: self.x * rhs,
             y: self.y * rhs,
             z: self.z * rhs,
@@ -41,16 +60,9 @@ impl Mul<f32> for Vector {
     }
 }
 
-impl Mul<Ratio> for Vector {
-    type Output = Vector;
-    fn mul(self, rhs: Ratio) -> Self::Output {
-        Vector {
-            x: self.x * rhs,
-            y: self.y * rhs,
-            z: self.z * rhs,
-        }
-    }
-}
+pub type   Vector = Vect<Length>;
+pub type RatioVec = Vect<Ratio>;
+pub type  AreaVec = Vect<Area>;
 
 impl Mul<Vector> for Ratio {
     type Output = Vector;
@@ -85,8 +97,8 @@ impl Mul<Vector> for RatioVec {
     }
 }
 
-impl Index<usize> for Vector {
-    type Output = Length;
+impl<T> Index<usize> for Vect<T> {
+    type Output = T;
     fn index(&self, index: usize) -> &Self::Output {
         match index {
             0 => &self.x,
@@ -97,7 +109,7 @@ impl Index<usize> for Vector {
     }
 }
 
-impl IndexMut<usize> for Vector {
+impl<T> IndexMut<usize> for Vect<T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         match index {
             0 => &mut self.x,
@@ -108,8 +120,8 @@ impl IndexMut<usize> for Vector {
     }
 }
 
-impl Iterator for Vector {
-    type Item = Length;
+impl<T> Iterator for Vect<T> {
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         todo!()
@@ -117,10 +129,6 @@ impl Iterator for Vector {
 }
 
 impl Vector {
-
-    pub fn new(x: Length, y: Length, z: Length) -> Self { Self { x, y, z } }
-
-    pub fn zero() -> Self { Self::new(mm(0.), mm(0.), mm(0.)) }
 
     pub fn xyz<T>(x: f32, y: f32, z: f32) -> Self
     where
@@ -149,8 +157,8 @@ impl Vector {
         }
     }
 
-    pub fn norm        (self) -> Length { mm(NcVector::from(self).norm        ())           }
-    pub fn norm_squared(self) -> Area   { mm(NcVector::from(self).norm_squared()) * mm(1.0) }
+    pub fn norm        (self) -> Length { in_base_unit!(NcVector::from(self).norm        ()) }
+    pub fn norm_squared(self) -> Area   { in_base_unit!(NcVector::from(self).norm_squared()) }
 
     pub fn normalize(self) -> RatioVec {
         let n = NcVector::from(self).normalize();
@@ -176,61 +184,6 @@ impl Vector {
 
 }
 
-
-impl RatioVec{
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self {
-            x: ratio(x),
-            y: ratio(y),
-            z: ratio(z)
-        }
-    }
-}
-
-
-impl Sub for RatioVec {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
-    }
-}
-
-
-pub trait Dot<RHS = Self> {
-    type Output;
-    fn dot(&self, other: RHS) -> Self::Output;
-}
-
-impl Dot for Vector {
-    type Output = Area;
-    fn dot(&self, other: Vector) -> Area {
-        self.x * other.x +
-        self.y * other.y +
-        self.z * other.z
-    }
-}
-
-impl Dot<RatioVec> for Vector {
-    type Output = Length;
-    fn dot(&self, other: RatioVec) -> Length {
-        self.x * other.x +
-        self.y * other.y +
-        self.z * other.z
-    }
-}
-
-impl Dot<Vector> for RatioVec {
-    type Output = Length;
-    fn dot(&self, other: Vector) -> Length {
-        self.x * other.x +
-        self.y * other.y +
-        self.z * other.z
-    }
-}
 
 #[cfg(test)]
 mod tests {

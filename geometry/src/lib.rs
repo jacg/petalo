@@ -2,7 +2,7 @@ mod point;
 mod vector;
 
 pub use point::{Point, RatioPoint};
-pub use vector::{Vector, RatioVec, Dot};
+pub use vector::{Vector, RatioVec};
 
 mod mix;
 mod cylinder;
