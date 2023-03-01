@@ -41,7 +41,7 @@ rand_distr = "0.4.3"
 clap = { version = "4.0.29", features = ["derive"] }
 
 [dev-dependencies]
-rstest = "0.13"
+rstest = "0.16"
 pretty_assertions = "1.2.1"
 proptest = "1.0.0"
 tempfile = "3.3.0"
