@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let parameters = Siddon::notof().data();
     // Convert from [density in kg/m^3] to [mu in mm^-1]
     let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
-    let sensitivity = pool.install(|| sensitivity_image::<Siddon>(parameters, &attenuation, &lors, job_size));
+    let sensitivity = pool.install(|| sensitivity_image::<Siddon, _>(parameters, &attenuation, &lors, job_size));
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
@@ -86,13 +86,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 /// Create sensitivity image by backprojecting `lors` through `attenuation`
 /// image.
-pub fn sensitivity_image<S: SystemMatrix>(
+pub fn sensitivity_image<'l, S, L>(
     parameters : S::Data,
     attenuation: &Image,
-    lors       : &[LOR],
+    lors       : L,
     job_size   : usize,
-) -> Image {
-    let mut backprojection = project_lors::<S,_,_>(parameters, attenuation, lors, job_size, project_one_lor_sens::<S>);
+) -> Image
+where
+    S: SystemMatrix,
+    L: IntoParallelIterator<Item = &'l LOR>,
+    L::Iter: IndexedParallelIterator + Clone,
+{
+    let lors = lors.into_par_iter();
+    let mut backprojection = project_lors::<S,_,_>(parameters, attenuation, lors.clone(), job_size, project_one_lor_sens::<S>);
 
     // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
     let size = lors.len() as f32;
