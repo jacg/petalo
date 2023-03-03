@@ -66,10 +66,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time(&format!("Read density image {:?}", input));
 
     pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
-    let lors = find_potential_lors::continuous(n_lors, density.fov, detector_length, detector_diameter);
-    //let lors = find_potential_lors::discrete(density.fov, detector_length, detector_diameter);
+    //let lors = find_potential_lors::continuous(n_lors, density.fov, detector_length, detector_diameter);
+    let lors = find_potential_lors::discrete(density.fov, detector_length, detector_diameter);
+    report_time(&format!("Generated {} lors", group_digits(lors.len())));
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
-    let job_size = lors.len() / n_threads;
+    let n_lors = lors.len();
+    let job_size = n_lors / n_threads;
     // TOF should not be used as LOR attenuation is independent of decay point
     let parameters = Siddon::notof().data();
     // Convert from [density in kg/m^3] to [mu in mm^-1]
@@ -112,6 +114,7 @@ where
 
 mod find_potential_lors {
 
+    use petalo::discrete::Discretize;
     use super::*;
 
     /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
@@ -136,14 +139,30 @@ mod find_potential_lors {
             .collect()
     }
 
+    /// Return a vector of all the LORs that can be made by connecting centres
+    /// of the discretized scintillator elements, and which interact with the `fov`.
     pub fn discrete(fov: FOV, detector_length: Length, detector_diameter: Length) -> Vec<LOR> {
+        dbg!(detector_length);
         // For prototyping purposes, hard-wire the scintillator element size
         let dz = mm(3.0);
-        let dy = mm(3.0);
+        let da = mm(3.0);
         let dr = mm(30.0);
-        let (l,r) = (detector_length, detector_diameter / 2.0);
+        let all_centres = Discretize::new(detector_diameter, dr, dz, da)
+            .all_element_centres(detector_length)
+            .collect::<Vec<_>>();
+        dbg!(group_digits(all_centres.len()));
 
-        todo!()
+        let origin = petalo::Point::new(mm(0.0), mm(0.0), mm(0.0));
+        all_centres
+            .par_iter()
+            .flat_map_iter(|p| all_centres.iter()
+                           .filter(move |&q| p != q)
+                           // Rough approximation to 'passes through FOV'
+                           //.filter(|&q| origin.distance_to_line(*p, *q) < fov.half_width.z)
+                           .filter(|&q| fov.entry(*p, *q).is_some())
+                           .map   (|&q| LOR::new(ns(0.0), ns(0.0), *p, q, ratio(1.0)))
+            )
+            .collect()
     }
 
 }
@@ -192,6 +211,8 @@ use petalo::{
 };
 
 use units::{
-    Length, Time, AreaPerMass, ratio, ratio_, kg, mm, todo::Lengthf32,
+    Length, Time, AreaPerMass, ratio, ratio_, kg, mm, ns, todo::Lengthf32,
     uom::ConstZero,
 };
+
+use rayon::prelude::*;

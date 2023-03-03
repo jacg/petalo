@@ -20,9 +20,13 @@ pub struct Discretize {
 
 impl Discretize {
 
+    pub fn new(r_min: Length, dr: Length, dz: Length, da: Length) -> Self {
+        Self { r_min, dr, dz, da }
+    }
+
     /// Construct from `f32`s which are interpreted as lengths in `mm`
     pub fn from_f32s_in_mm(r_min: f32, dr: f32, dz: f32, da: f32) -> Self {
-        Self { r_min: mm(r_min), dr: mm(dr), dz: mm(dz), da: mm(da) }
+        Self::new(mm(r_min), mm(dr), mm(dz), mm(da))
     }
 
     /// Return a function which will move an `xyz`-point to the centre of the
@@ -52,12 +56,15 @@ impl Discretize {
         }
     }
 
-    /// Generate all the possible LORs in a detector with axial length
-    /// `scintillator_length`.
-    pub fn all_lors(self, scintillator_length: Length) -> impl Iterator<Item = LOR> {
+    /// Generate all the possible pairs of `Point`s at the centres of the
+    /// scintillator elements in a detector with axial length `scintillator_length`.
+    /// NB: the number of LORs quickly becomes intractable with increasing detector size.
+    pub fn all_lors(self, scintillator_length: Length) -> impl Iterator<Item = (Point, Point)>
+    where
+    {
         let points = self.all_element_centres(scintillator_length);
         itertools::iproduct!(points.clone(), points)
-            .map(|(p1, p2)| LOR { p1, p2, dt: ns(0.0), additive_correction: ratio(1.0) })
+            .filter(|(p1,p2)| p1 != p2)
     }
 
     /// Generate all the points lying at the centres of the discretized elements
@@ -146,11 +153,9 @@ mod test_discretize {
 }
 
 // ----- Imports ------------------------------------------------------------------------------------------
-use crate::{
-    Point, LOR,
-};
+use crate::Point;
 
 use units::{
-    mm, mm_, ns, ratio, ratio_,
+    mm, mm_, ratio_,
     Angle, Length, TWOPI,
 };
