@@ -159,8 +159,11 @@ mod find_potential_lors {
             .flat_map_iter(|i| (i..all_centres.len())
                            // Rough approximation to 'passes through FOV'
                            //.filter(|&q| origin.distance_to_line(*p, *q) < fov.half_width.z)
-                           .filter(move |&j| fov.entry(all_centres[i], all_centres[j]).is_some())
-                           .map   (move | j| LOR::new(ns(0.0), ns(0.0), all_centres[i], all_centres[j], ratio(1.0)))
+                           .filter_map(move |j| {
+                               fov.entry(all_centres[i], all_centres[j]).map(|_| {
+                                   LOR::new(ns(0.0), ns(0.0), all_centres[i], all_centres[j], ratio(1.0))
+                               })
+                           })
             )
             .collect()
     }
