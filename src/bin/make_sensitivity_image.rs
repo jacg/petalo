@@ -153,14 +153,14 @@ mod find_potential_lors {
         dbg!(group_digits(all_centres.len()));
 
         let origin = petalo::Point::new(mm(0.0), mm(0.0), mm(0.0));
-        all_centres
-            .par_iter()
-            .flat_map_iter(|p| all_centres.iter()
-                           .filter(move |&q| p != q)
+        let all_centres = &all_centres; // Prevent capture by move in closures below
+        (0..all_centres.len())
+            .into_par_iter()
+            .flat_map_iter(|i| (i..all_centres.len())
                            // Rough approximation to 'passes through FOV'
                            //.filter(|&q| origin.distance_to_line(*p, *q) < fov.half_width.z)
-                           .filter(|&q| fov.entry(*p, *q).is_some())
-                           .map   (|&q| LOR::new(ns(0.0), ns(0.0), *p, q, ratio(1.0)))
+                           .filter(move |&j| fov.entry(all_centres[i], all_centres[j]).is_some())
+                           .map   (move | j| LOR::new(ns(0.0), ns(0.0), all_centres[i], all_centres[j], ratio(1.0)))
             )
             .collect()
     }
