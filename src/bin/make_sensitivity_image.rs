@@ -63,20 +63,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time("Startup");
 
     let density = Image::from_raw_file(&input)?;
+    let fov = density.fov;
     report_time(&format!("Read density image {:?}", input));
-
-    pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
-    //let lors = find_potential_lors::continuous(n_lors, density.fov, detector_length, detector_diameter);
-    let lors = find_potential_lors::discrete(density.fov, detector_length, detector_diameter);
-    report_time(&format!("Generated {} lors", group_digits(lors.len())));
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
-    let n_lors = lors.len();
-    let job_size = n_lors / n_threads;
-    // TOF should not be used as LOR attenuation is independent of decay point
-    let parameters = Siddon::notof().data();
     // Convert from [density in kg/m^3] to [mu in mm^-1]
     let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
-    let sensitivity = pool.install(|| sensitivity_image::<Siddon, _>(parameters, &attenuation, &lors, job_size));
+
+    // TOF should not be used as LOR attenuation is independent of decay point
+    let parameters = Siddon::notof().data();
+
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
+    let sensitivity = if false {
+        pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
+        let lors = find_potential_lors::continuous(n_lors, fov, detector_length, detector_diameter);
+        let job_size = lors.len() / n_threads;
+        pool.install(|| sensitivity_image::<Siddon, _>(parameters, &attenuation, &lors, job_size))
+    } else {
+        pool.install(|| petalo::projector::WIP::<Siddon>(detector_length, detector_diameter, parameters, &attenuation))
+    };
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();

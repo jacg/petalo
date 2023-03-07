@@ -51,12 +51,11 @@ where
 
     // -------- Project all LORs forwards and backwards ---------------------
     let fold_result = lors
-        .par_bridge() // TODO see if we can devise a better scheme
+        .into_par_iter()
         // Rayon is too eager in spawning small jobs, each of which requires the
         // construction and subsequent combination of expensive accumulators
         // (whole `Image`s). So here we try to limit it to one job per thread.
-        //.fold_chunks(job_size, initial_thread_state, project_one_lor);
-        .fold(initial_thread_state, project_one_lor);
+        .fold_chunks(job_size, initial_thread_state, project_one_lor);
 
     // -------- extract relevant information (backprojection) ---------------
     fold_result
@@ -168,3 +167,55 @@ use crate::{
     image::{ImageData, Image},
     system_matrix::{SystemMatrixRow, SystemMatrix},
 };
+
+
+// ----- WIP ----------------------------------------------------------------------------------------------
+use units::{
+    Length,
+    mm, ns, ratio
+};
+
+use crate::utils::group_digits;
+
+pub fn WIP<S>(
+    detector_length  : Length,
+    detector_diameter: Length,
+    projector_data   : S::Data,
+    image            : &Image,
+) -> Image
+where
+    S: SystemMatrix,
+{
+    dbg!(detector_length);
+    // For prototyping purposes, hard-wire the scintillator element size
+    let dz = mm(3.0);
+    let da = mm(3.0);
+    let dr = mm(30.0);
+    // Points at the centres of all elements
+    let points = crate::discrete::Discretize::new(detector_diameter, dr, dz, da)
+        .all_element_centres(detector_length)
+        .collect::<Vec<_>>();
+    dbg!(group_digits(points.len()));
+
+    // Closure preparing the state needed by `fold`: will be called by
+    // `fold` at the start of every thread that is launched.
+    let initial_thread_state = || {
+        let backprojection = Image::zeros_buffer(image.fov);
+        let system_matrix_row = S::buffers(image.fov);
+        Fs::<S> { backprojection, system_matrix_row, image, projector_data }
+    };
+
+    //let origin = Point::new(mm(0.0), mm(0.0), mm(0.0));
+    let points = &points; // Prevent capture by move in closures below
+    let image_data = (0..points.len())
+        .par_bridge()
+        .flat_map_iter(|i| (i..points.len()).zip(std::iter::repeat(i)))
+        .map   (move | (i,j)| (points[i], points[j]))
+        .filter(move |&(p,q)| image.fov.entry(p,q).is_some())
+        .map   (move | (p,q)| LOR::new(ns(0.0), ns(0.0), p, q, ratio(1.0)))
+        .fold(initial_thread_state, |s, l| project_one_lor_sens::<S>(s, &l))
+        .map(|state| state.backprojection)
+        .reduce(|| Image::zeros_buffer(image.fov), elementwise_add);
+
+    Image::new(image.fov, image_data)
+}
