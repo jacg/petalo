@@ -177,12 +177,10 @@ use units::{
 
 use crate::utils::group_digits;
 
-pub fn WIP<S>(
+fn WIP_make_points<S>(
     detector_length  : Length,
     detector_diameter: Length,
-    projector_data   : S::Data,
-    image            : &Image,
-) -> Image
+) -> Vec<crate::Point>
 where
     S: SystemMatrix,
 {
@@ -196,7 +194,26 @@ where
         .all_element_centres(detector_length)
         .collect::<Vec<_>>();
     dbg!(group_digits(points.len()));
+    points
+}
 
+fn WIP_make_lors_par_iter<S>(points: &[crate::Point], fov: crate::FOV) -> impl ParallelIterator<Item = LOR> + '_
+where
+    S: SystemMatrix,
+{
+    (0..points.len())
+        .par_bridge()
+        .flat_map_iter(|i| (i..points.len()).zip(std::iter::repeat(i)))
+        .map   (move | (i,j)| (points[i], points[j]))
+        .filter(move |&(p,q)| fov.entry(p,q).is_some())
+        .map   (move | (p,q)| LOR::new(ns(0.0), ns(0.0), p, q, ratio(1.0)))
+}
+
+fn WIP_project_lors<S: SystemMatrix>(
+    lors          : impl ParallelIterator<Item = LOR>,
+    projector_data: S::Data,
+    image         : &Image,
+) -> Image {
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
@@ -205,17 +222,25 @@ where
         Fs::<S> { backprojection, system_matrix_row, image, projector_data }
     };
 
-    //let origin = Point::new(mm(0.0), mm(0.0), mm(0.0));
-    let points = &points; // Prevent capture by move in closures below
-    let image_data = (0..points.len())
-        .par_bridge()
-        .flat_map_iter(|i| (i..points.len()).zip(std::iter::repeat(i)))
-        .map   (move | (i,j)| (points[i], points[j]))
-        .filter(move |&(p,q)| image.fov.entry(p,q).is_some())
-        .map   (move | (p,q)| LOR::new(ns(0.0), ns(0.0), p, q, ratio(1.0)))
+    let image_data = lors
         .fold(initial_thread_state, |s, l| project_one_lor_sens::<S>(s, &l))
         .map(|state| state.backprojection)
         .reduce(|| Image::zeros_buffer(image.fov), elementwise_add);
 
     Image::new(image.fov, image_data)
+}
+
+pub fn WIP<S>(
+    detector_length  : Length,
+    detector_diameter: Length,
+    projector_data   : S::Data,
+    image            : &Image,
+) -> Image
+where
+    S: SystemMatrix,
+{
+    let points = WIP_make_points       ::<S>(detector_length, detector_diameter);
+    let lors   = WIP_make_lors_par_iter::<S>(&points, image.fov);
+    let image  = WIP_project_lors      ::<S>(lors, projector_data, image);
+    image
 }
