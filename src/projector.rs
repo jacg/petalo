@@ -28,6 +28,33 @@
 /// + `project_one_lor_mlem`
 ///
 /// + `project_one_lor_sens`
+
+pub fn WIP_project_lors<'i, S, F>(
+    lors          : impl ParallelIterator<Item = LOR>,
+    projector_data: S::Data,
+    image         : &'i Image,
+    project_one_lor: F,
+) -> Image
+where
+    S: SystemMatrix,
+    F: Fn(Fs<'i, S>, &LOR) -> Fs<'i, S> + Sync + Send,
+{
+    // Closure preparing the state needed by `fold`: will be called by
+    // `fold` at the start of every thread that is launched.
+    let initial_thread_state = || {
+        let backprojection = Image::zeros_buffer(image.fov);
+        let system_matrix_row = S::buffers(image.fov);
+        Fs::<S> { backprojection, system_matrix_row, image, projector_data }
+    };
+
+    let image_data = lors
+        .fold(initial_thread_state, |s, l| project_one_lor(s, &l))
+        .map(|state| state.backprojection)
+        .reduce(|| Image::zeros_buffer(image.fov), elementwise_add);
+
+    Image::new(image.fov, image_data)
+}
+
 pub fn project_lors<'i, S, L, F>(
     projector_data : S::Data,
     image          : &'i Image,
@@ -209,27 +236,6 @@ where
         .map   (move | (p,q)| LOR::new(ns(0.0), ns(0.0), p, q, ratio(1.0)))
 }
 
-fn WIP_project_lors<S: SystemMatrix>(
-    lors          : impl ParallelIterator<Item = LOR>,
-    projector_data: S::Data,
-    image         : &Image,
-) -> Image {
-    // Closure preparing the state needed by `fold`: will be called by
-    // `fold` at the start of every thread that is launched.
-    let initial_thread_state = || {
-        let backprojection = Image::zeros_buffer(image.fov);
-        let system_matrix_row = S::buffers(image.fov);
-        Fs::<S> { backprojection, system_matrix_row, image, projector_data }
-    };
-
-    let image_data = lors
-        .fold(initial_thread_state, |s, l| project_one_lor_sens::<S>(s, &l))
-        .map(|state| state.backprojection)
-        .reduce(|| Image::zeros_buffer(image.fov), elementwise_add);
-
-    Image::new(image.fov, image_data)
-}
-
 pub fn WIP<S>(
     detector_length  : Length,
     detector_diameter: Length,
@@ -239,8 +245,8 @@ pub fn WIP<S>(
 where
     S: SystemMatrix,
 {
-    let points = WIP_make_points       ::<S>(detector_length, detector_diameter);
-    let lors   = WIP_make_lors_par_iter::<S>(&points, image.fov);
-    let image  = WIP_project_lors      ::<S>(lors, projector_data, image);
+    let points = WIP_make_points       ::<S  >(detector_length, detector_diameter);
+    let lors   = WIP_make_lors_par_iter::<S  >(&points, image.fov);
+    let image  = WIP_project_lors      ::<S,_>(lors, projector_data, image, project_one_lor_sens::<S>);
     image
 }
