@@ -35,7 +35,7 @@ pub fn WIP_project_lors<'i, S, L, F>(
     image         : &'i Image,
     lors          : impl ParallelIterator<Item = L>,
     project_one_lor: F,
-) -> Image
+) -> ImageData
 where
     S: SystemMatrix,
     L: Borrow<LOR>,
@@ -49,12 +49,10 @@ where
         Fs::<S> { backprojection, system_matrix_row, image, projector_data }
     };
 
-    let image_data = lors
+    lors
         .fold(initial_thread_state, project_one_lor)
         .map(|state| state.backprojection)
-        .reduce(|| Image::zeros_buffer(image.fov), elementwise_add);
-
-    Image::new(image.fov, image_data)
+        .reduce(|| Image::zeros_buffer(image.fov), elementwise_add)
 }
 
 pub fn project_lors<'i, S, L, F>(
@@ -247,8 +245,8 @@ pub fn WIP<S>(
 where
     S: SystemMatrix,
 {
-    let points = WIP_make_points       ::<S    >(detector_length, detector_diameter);
-    let lors   = WIP_make_lors_par_iter::<S    >(&points, image.fov);
-    let image  = WIP_project_lors      ::<S,_,_>(projector_data, image, lors, project_one_lor_sens::<S>);
-    image
+    let points     = WIP_make_points       ::<S    >(detector_length, detector_diameter);
+    let lors       = WIP_make_lors_par_iter::<S    >(&points, image.fov);
+    let image_data = WIP_project_lors      ::<S,_,_>(projector_data, image, lors, project_one_lor_sens::<S>);
+    Image::new(image.fov, image_data)
 }

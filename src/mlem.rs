@@ -39,8 +39,9 @@ fn one_iteration<S: SystemMatrix>(
         N_MLEM_THREADS
     };
     let job_size = measured_lors.len() / n_mlem_threads;
-    let backprojection = project_lors::<S,_,_>(projector, &*image, measured_lors, job_size, project_one_lor_mlem::<S>);
-
+    let parallel_lors = parallelize_lors(measured_lors, 10000);
+    let backprojection = WIP_project_lors::<S,_,_>(projector, &*image, parallel_lors, project_one_lor_mlem::<S>);
+    use crate::projector::WIP_project_lors;
     // -------- Correct for attenuation and detector sensitivity ------------
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
 }
@@ -52,6 +53,20 @@ fn apply_sensitivity_image(image: &mut ImageData, backprojection: &[Lengthf32], 
         if s > 0.0 { *voxel *= b * s }
         else       { *voxel  = 0.0   }
     })
+}
+
+// TODO filter measured LORs that don't pass through FOV!
+
+use rayon::prelude::{ParallelIterator, ParallelBridge};
+fn parallelize_lors(lors: &[LOR], chunk_size: usize) -> impl ParallelIterator<Item = &LOR> + '_ {
+    (0..lors.len())
+        .step_by(chunk_size)
+        .par_bridge()
+        .flat_map_iter(move |lo| {
+            let hi = lo + chunk_size;
+            //lors[lo..hi.min(lors.len())]
+            lors.get(lo..hi).unwrap_or(&lors[lo..]) // Seems to generate better ASM than previous line
+        })
 }
 
 /// Pseudo-iterator for keeping track of progress and identifying subsets in
