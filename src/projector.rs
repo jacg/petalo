@@ -30,7 +30,7 @@
 /// + `project_one_lor_sens`
 
 use std::borrow::Borrow;
-pub fn WIP_project_lors<'i, S, L, F>(
+pub fn project_lors<'i, S, L, F>(
     projector_data: S::Data,
     image         : &'i Image,
     lors          : impl ParallelIterator<Item = L>,
@@ -51,43 +51,8 @@ where
 
     lors
         .fold(initial_thread_state, project_one_lor)
-        .map(|state| state.backprojection)
-        .reduce(|| Image::zeros_buffer(image.fov), elementwise_add)
-}
-
-pub fn project_lors<'i, S, L, F>(
-    projector_data : S::Data,
-    image          : &'i Image,
-    lors           : L,
-    job_size       : usize,
-    project_one_lor: F,
-) -> ImageData
-where
-    S: SystemMatrix,
-    L: IntoParallelIterator,
-    L::Iter: IndexedParallelIterator,
-    F: Fn(Fs<'i, S>, L::Item) -> Fs<'i, S> + Sync + Send,
-{
-    // Closure preparing the state needed by `fold`: will be called by
-    // `fold` at the start of every thread that is launched.
-    let initial_thread_state = || {
-        let backprojection = Image::zeros_buffer(image.fov);
-        let system_matrix_row = S::buffers(image.fov);
-        Fs::<S> { backprojection, system_matrix_row, image, projector_data }
-    };
-
-    // -------- Project all LORs forwards and backwards ---------------------
-    let fold_result = lors
-        .into_par_iter()
-        // Rayon is too eager in spawning small jobs, each of which requires the
-        // construction and subsequent combination of expensive accumulators
-        // (whole `Image`s). So here we try to limit it to one job per thread.
-        .fold_chunks(job_size, initial_thread_state, project_one_lor);
-
-    // -------- extract relevant information (backprojection) ---------------
-    fold_result
         // Keep only the backprojection (ignore weights and indices)
-        .map(|tuple| tuple.backprojection)
+        .map(|state| state.backprojection)
         // Sum the backprojections calculated on each thread
         .reduce(|| Image::zeros_buffer(image.fov), elementwise_add)
 }
@@ -247,6 +212,6 @@ where
 {
     let points     = WIP_make_points       ::<S    >(detector_length, detector_diameter);
     let lors       = WIP_make_lors_par_iter::<S    >(&points, image.fov);
-    let image_data = WIP_project_lors      ::<S,_,_>(projector_data, image, lors, project_one_lor_sens::<S>);
+    let image_data =     project_lors      ::<S,_,_>(projector_data, image, lors, project_one_lor_sens::<S>);
     Image::new(image.fov, image_data)
 }

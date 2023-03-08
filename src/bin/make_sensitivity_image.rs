@@ -103,7 +103,7 @@ where
     L::Iter: IndexedParallelIterator + Clone,
 {
     let lors = lors.into_par_iter();
-    let mut backprojection = project_lors::<S,_,_>(parameters, attenuation, lors.clone(), job_size, project_one_lor_sens::<S>);
+    let mut backprojection = project_lors::<S,_,_>(parameters, attenuation, lors.clone(), project_one_lor_sens::<S>);
 
     // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
     let size = lors.len() as f32;

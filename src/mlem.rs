@@ -40,8 +40,7 @@ fn one_iteration<S: SystemMatrix>(
     };
     let job_size = measured_lors.len() / n_mlem_threads;
     let parallel_lors = parallelize_lors(measured_lors, 10000);
-    let backprojection = WIP_project_lors::<S,_,_>(projector, &*image, parallel_lors, project_one_lor_mlem::<S>);
-    use crate::projector::WIP_project_lors;
+    let backprojection = project_lors::<S,_,_>(projector, &*image, parallel_lors, project_one_lor_mlem::<S>);
     // -------- Correct for attenuation and detector sensitivity ------------
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
 }
