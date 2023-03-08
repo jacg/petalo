@@ -50,7 +50,7 @@ where
     };
 
     let image_data = lors
-        .fold(initial_thread_state, |s, l| project_one_lor(s, l))
+        .fold(initial_thread_state, project_one_lor)
         .map(|state| state.backprojection)
         .reduce(|| Image::zeros_buffer(image.fov), elementwise_add);
 
