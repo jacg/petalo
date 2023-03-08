@@ -75,8 +75,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let sensitivity = if false {
         pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
         let lors = find_potential_lors::continuous(n_lors, fov, detector_length, detector_diameter);
-        let job_size = lors.len() / n_threads;
-        pool.install(|| sensitivity_image::<Siddon, _>(parameters, &attenuation, &lors, job_size))
+        pool.install(|| sensitivity_image::<Siddon, _>(parameters, &attenuation, &lors))
     } else {
         pool.install(|| petalo::projector::WIP::<Siddon>(detector_length, detector_diameter, parameters, &attenuation))
     };
@@ -95,7 +94,6 @@ pub fn sensitivity_image<'l, S, L>(
     parameters : S::Data,
     attenuation: &Image,
     lors       : L,
-    job_size   : usize,
 ) -> Image
 where
     S: SystemMatrix,
