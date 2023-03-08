@@ -29,15 +29,17 @@
 ///
 /// + `project_one_lor_sens`
 
-pub fn WIP_project_lors<'i, S, F>(
-    lors          : impl ParallelIterator<Item = LOR>,
+use std::borrow::Borrow;
+pub fn WIP_project_lors<'i, S, L, F>(
     projector_data: S::Data,
     image         : &'i Image,
+    lors          : impl ParallelIterator<Item = L>,
     project_one_lor: F,
 ) -> Image
 where
     S: SystemMatrix,
-    F: Fn(Fs<'i, S>, &LOR) -> Fs<'i, S> + Sync + Send,
+    L: Borrow<LOR>,
+    F: Fn(Fs<'i, S>, L) -> Fs<'i, S> + Sync + Send,
 {
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
@@ -48,7 +50,7 @@ where
     };
 
     let image_data = lors
-        .fold(initial_thread_state, |s, l| project_one_lor(s, &l))
+        .fold(initial_thread_state, |s, l| project_one_lor(s, l))
         .map(|state| state.backprojection)
         .reduce(|| Image::zeros_buffer(image.fov), elementwise_add);
 
@@ -99,8 +101,8 @@ pub fn project_one_lor_mlem<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR
 }
 
 /// Adapts `project_lors` for sensitivity image generation
-pub fn project_one_lor_sens<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR) -> Fs<'i,S> {
-    project_one_lor::<S>(fold_state, lor, |projection, _lor| (-projection).exp())
+pub fn project_one_lor_sens<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: impl Borrow<LOR>) -> Fs<'i,S> {
+    project_one_lor::<S>(fold_state, lor.borrow(), |projection, _lor| (-projection).exp())
 }
 // ---------------------------------------------------------------------------------------------
 
@@ -245,8 +247,8 @@ pub fn WIP<S>(
 where
     S: SystemMatrix,
 {
-    let points = WIP_make_points       ::<S  >(detector_length, detector_diameter);
-    let lors   = WIP_make_lors_par_iter::<S  >(&points, image.fov);
-    let image  = WIP_project_lors      ::<S,_>(lors, projector_data, image, project_one_lor_sens::<S>);
+    let points = WIP_make_points       ::<S    >(detector_length, detector_diameter);
+    let lors   = WIP_make_lors_par_iter::<S    >(&points, image.fov);
+    let image  = WIP_project_lors      ::<S,_,_>(projector_data, image, lors, project_one_lor_sens::<S>);
     image
 }
