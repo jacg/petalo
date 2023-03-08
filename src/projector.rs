@@ -101,7 +101,7 @@ pub fn project_one_lor_mlem<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR
 }
 
 /// Adapts `project_lors` for sensitivity image generation
-pub fn project_one_lor_sens<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: impl Borrow<LOR>) -> Fs<'i,S> {
+pub fn project_one_lor_sens<S: SystemMatrix>(fold_state: Fs<S>, lor: impl Borrow<LOR>) -> Fs<S> {
     project_one_lor::<S>(fold_state, lor.borrow(), |projection, _lor| (-projection).exp())
 }
 // ---------------------------------------------------------------------------------------------
