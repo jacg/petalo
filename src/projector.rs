@@ -31,9 +31,9 @@
 
 use std::borrow::Borrow;
 pub fn project_lors<'i, S, L, F>(
+    lors          : impl IntoParallelIterator<Item = L>,
     projector_data: S::Data,
     image         : &'i Image,
-    lors          : impl ParallelIterator<Item = L>,
     project_one_lor: F,
 ) -> ImageData
 where
@@ -41,6 +41,7 @@ where
     L: Borrow<LOR>,
     F: Fn(Fs<'i, S>, L) -> Fs<'i, S> + Sync + Send,
 {
+    let lors = lors.into_par_iter();
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
@@ -159,59 +160,3 @@ use crate::{
     image::{ImageData, Image},
     system_matrix::{SystemMatrixRow, SystemMatrix},
 };
-
-
-// ----- WIP ----------------------------------------------------------------------------------------------
-use units::{
-    Length,
-    mm, ns, ratio
-};
-
-use crate::utils::group_digits;
-
-fn WIP_make_points<S>(
-    detector_length  : Length,
-    detector_diameter: Length,
-) -> Vec<crate::Point>
-where
-    S: SystemMatrix,
-{
-    dbg!(detector_length);
-    // For prototyping purposes, hard-wire the scintillator element size
-    let dz = mm(3.0);
-    let da = mm(3.0);
-    let dr = mm(30.0);
-    // Points at the centres of all elements
-    let points = crate::discrete::Discretize::new(detector_diameter, dr, dz, da)
-        .all_element_centres(detector_length)
-        .collect::<Vec<_>>();
-    dbg!(group_digits(points.len()));
-    points
-}
-
-fn WIP_make_lors_par_iter<S>(points: &[crate::Point], fov: crate::FOV) -> impl ParallelIterator<Item = LOR> + '_
-where
-    S: SystemMatrix,
-{
-    (0..points.len())
-        .par_bridge()
-        .flat_map_iter(|i| (i..points.len()).zip(std::iter::repeat(i)))
-        .map   (move | (i,j)| (points[i], points[j]))
-        .filter(move |&(p,q)| fov.entry(p,q).is_some())
-        .map   (move | (p,q)| LOR::new(ns(0.0), ns(0.0), p, q, ratio(1.0)))
-}
-
-pub fn WIP<S>(
-    detector_length  : Length,
-    detector_diameter: Length,
-    projector_data   : S::Data,
-    image            : &Image,
-) -> Image
-where
-    S: SystemMatrix,
-{
-    let points     = WIP_make_points       ::<S    >(detector_length, detector_diameter);
-    let lors       = WIP_make_lors_par_iter::<S    >(&points, image.fov);
-    let image_data =     project_lors      ::<S,_,_>(projector_data, image, lors, project_one_lor_sens::<S>);
-    Image::new(image.fov, image_data)
-}

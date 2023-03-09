@@ -63,7 +63,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     report_time("Startup");
 
     let density = Image::from_raw_file(&input)?;
-    let fov = density.fov;
     report_time(&format!("Read density image {:?}", input));
     // Convert from [density in kg/m^3] to [mu in mm^-1]
     let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
@@ -74,10 +73,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
     let sensitivity = if false {
         pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
-        let lors = find_potential_lors::continuous(n_lors, fov, detector_length, detector_diameter);
-        pool.install(|| sensitivity_image::<Siddon, _>(parameters, &attenuation, &lors))
+        pool.install(|| sensitivity_image_continuous::<Siddon>(
+            detector_length,
+            detector_diameter,
+            parameters,
+            &attenuation,
+            n_lors))
     } else {
-        pool.install(|| petalo::projector::WIP::<Siddon>(detector_length, detector_diameter, parameters, &attenuation))
+        pool.install(|| sensitivity_image_discrete::<Siddon>(
+            detector_length,
+            detector_diameter,
+            parameters,
+            &attenuation))
     };
     report_time("done");
 
@@ -88,34 +95,51 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Create sensitivity image by backprojecting `lors` through `attenuation`
-/// image.
-pub fn sensitivity_image<'l, S, L>(
-    parameters : S::Data,
-    attenuation: &Image,
-    lors       : L,
-) -> Image
-where
-    S: SystemMatrix,
-    L: IntoParallelIterator<Item = &'l LOR>,
-    L::Iter: IndexedParallelIterator + Clone,
-{
-    let lors = lors.into_par_iter();
-    let mut backprojection = project_lors::<S,_,_>(parameters, attenuation, lors.clone(), project_one_lor_sens::<S>);
+/// Create sensitivity image by backprojecting `n_lors` randomly-generated LORs
+/// through `attenuation` image.
+pub fn sensitivity_image_continuous<'l, S: SystemMatrix>(
+    detector_length  : Length,
+    detector_diameter: Length,
+    parameters       : S::Data,
+    attenuation      : &Image,
+    n_lors           : usize,
+) -> Image {
+    let lors = find_potential_lors::continuous(n_lors, attenuation.fov, detector_length, detector_diameter).
+        into_par_iter();
 
-    // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
-    let size = lors.len() as f32;
-    for e in backprojection.iter_mut() {
-        *e /= size
-    }
-
+    let mut backprojection = project_lors::<S,_,_>(lors.clone(), parameters, attenuation, project_one_lor_sens::<S>);
+    normalize(&mut backprojection, lors.len());
     Image::new(attenuation.fov, backprojection)
 }
 
+/// Create sensitivity image by backprojecting all possible LORs between pairs
+/// of detector elements.
+pub fn sensitivity_image_discrete<S>(
+    detector_length  : Length,
+    detector_diameter: Length,
+    projector_data   : S::Data,
+    attenuation      : &Image,
+) -> Image
+where
+    S: SystemMatrix,
+{
+    use find_potential_lors::{make_points, make_lors};
+    let points     = make_points::<S>(detector_length, detector_diameter);
+    let lors       = make_lors  ::<S>(&points, attenuation.fov);
+    let mut image_data = project_lors::<S,_,_>(lors, projector_data, attenuation, project_one_lor_sens::<S>);
+    let n_lors = { // TODO this is incorrect: it doesn't take the FOV filter into account
+        let n = points.len();
+        n * (n-1) / 2
+    };
+    normalize(&mut image_data, n_lors);
+    Image::new(attenuation.fov, image_data)
+}
+
+/// TODO Just trying an ugly hack for normalizing the image. Do something sensible instead!
+fn normalize(data: &mut ImageData, n: usize) { for e in data.iter_mut() { *e /= n as f32 } }
 
 mod find_potential_lors {
 
-    use petalo::discrete::Discretize;
     use super::*;
 
     /// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
@@ -140,33 +164,39 @@ mod find_potential_lors {
             .collect()
     }
 
-    /// Return a vector of all the LORs that can be made by connecting centres
-    /// of the discretized scintillator elements, and which interact with the `fov`.
-    pub fn discrete(fov: FOV, detector_length: Length, detector_diameter: Length) -> Vec<LOR> {
+    pub (crate) fn make_points<S>(
+        detector_length  : Length,
+        detector_diameter: Length,
+    ) -> Vec<Point>
+    where
+        S: SystemMatrix,
+    {
         dbg!(detector_length);
         // For prototyping purposes, hard-wire the scintillator element size
         let dz = mm(3.0);
         let da = mm(3.0);
         let dr = mm(30.0);
-        let all_centres = Discretize::new(detector_diameter, dr, dz, da)
+        // Points at the centres of all elements
+        let points = petalo::discrete::Discretize::new(detector_diameter, dr, dz, da)
             .all_element_centres(detector_length)
             .collect::<Vec<_>>();
-        dbg!(group_digits(all_centres.len()));
+        dbg!(group_digits(points.len()));
+        points
+    }
 
-        let origin = petalo::Point::new(mm(0.0), mm(0.0), mm(0.0));
-        let all_centres = &all_centres; // Prevent capture by move in closures below
-        (0..all_centres.len())
-            .into_par_iter()
-            .flat_map_iter(|i| (i..all_centres.len())
-                           // Rough approximation to 'passes through FOV'
-                           //.filter(|&q| origin.distance_to_line(*p, *q) < fov.half_width.z)
-                           .filter_map(move |j| {
-                               fov.entry(all_centres[i], all_centres[j]).map(|_| {
-                                   LOR::new(ns(0.0), ns(0.0), all_centres[i], all_centres[j], ratio(1.0))
-                               })
-                           })
-            )
-            .collect()
+    pub (crate) fn make_lors<S>(points: &[Point], fov: crate::FOV) -> impl ParallelIterator<Item = LOR> + '_
+    where
+        S: SystemMatrix,
+    {
+        // let origin = petalo::Point::new(mm(0.0), mm(0.0), mm(0.0));
+        (0..points.len())
+            .par_bridge()
+            .flat_map_iter(|i| (i..points.len()).zip(std::iter::repeat(i)))
+            .map   (move | (i,j)| (points[i], points[j]))
+            // Rough approximation to 'passes through FOV'
+            //.filter(|&q| origin.distance_to_line(*p, *q) < fov.half_width.z)
+            .filter(move |&(p,q)| fov.entry(p,q).is_some())
+            .map   (move | (p,q)| LOR::new(ns(0.0), ns(0.0), p, q, ratio(1.0)))
     }
 
 }
@@ -208,8 +238,8 @@ use std::{
 
 use petalo::{
     utils::group_digits,
-    FOV, LOR,
-    image::Image,
+    FOV, LOR, Point,
+    image::{Image, ImageData},
     projector::{project_lors, project_one_lor_sens},
     system_matrix::{SystemMatrix, Siddon},
 };

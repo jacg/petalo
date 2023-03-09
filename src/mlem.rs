@@ -34,12 +34,8 @@ fn one_iteration<S: SystemMatrix>(
     measured_lors: &[LOR],
     sensitivity  : &[Intensityf32],
 ) {
-    let n_mlem_threads = unsafe {
-        // SAFETY: modified only once, at the beginning of bin/mlem.rs::main()
-        N_MLEM_THREADS
-    };
     let parallel_lors = parallelize_lors(measured_lors, 10000);
-    let backprojection = project_lors::<S,_,_>(projector, &*image, parallel_lors, project_one_lor_mlem::<S>);
+    let backprojection = project_lors::<S,_,_>(parallel_lors, projector, &*image, project_one_lor_mlem::<S>);
     // -------- Correct for attenuation and detector sensitivity ------------
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
 }
