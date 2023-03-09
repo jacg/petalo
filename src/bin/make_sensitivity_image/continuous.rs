@@ -1,6 +1,6 @@
 /// Create sensitivity image by backprojecting `n_lors` randomly-generated LORs
 /// through `attenuation` image.
-pub fn sensitivity_image<'l, S: SystemMatrix>(
+pub fn sensitivity_image<S: SystemMatrix>(
     detector_length  : Length,
     detector_diameter: Length,
     parameters       : S::Data,
