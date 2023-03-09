@@ -19,10 +19,6 @@ pub struct Cli {
     #[clap(long, short='d', default_value = "710 mm")]
     pub detector_diameter: Length,
 
-    /// Number of random LORs to use in sensitivity image generation
-    #[clap(long, short='n', default_value = "5000000")]
-    pub n_lors: usize,
-
     /// Conversion from density to attenuation coefficient in cm^2 / g
     #[clap(long, default_value = "0.095")]
     pub rho_to_mu: Lengthf32,
@@ -31,11 +27,39 @@ pub struct Cli {
     #[clap(short = 'j', long, default_value = "30")]
     pub n_threads: usize,
 
+    #[clap(subcommand)]
+    detector_type: DetectorType,
+}
+
+#[derive(clap::Parser, Debug, Clone)]
+enum DetectorType {
+
+    /// Continuous scintillator
+    Continuous {
+        /// Number of randomly-generated LORs to use
+        n_lors: usize,
+    },
+
+    /// Discretize scintillator
+    Discrete {
+
+        /// Thickness of scintillator tube/ring
+        #[clap(long, short = 'r')]
+        dr: Length,
+
+        /// Axial width of scintillator elements
+        #[clap(long, short = 'z')]
+        dz: Length,
+
+        /// Azimuthal width of scintillator elements at `r_min + dr/2`?
+        #[clap(long, short = 'a')]
+        da: Length,
+    },
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let Cli { input, output, detector_length, detector_diameter, n_lors, rho_to_mu, n_threads } = Cli::parse();
+    let Cli { input, output, detector_length, detector_diameter, detector_type, rho_to_mu, n_threads } = Cli::parse();
 
     // Interpret rho_to_mu as converting from [rho in g/cm^3] to [mu in cm^-1]
     let rho_to_mu: AreaPerMass = {
@@ -71,20 +95,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     let parameters = Siddon::notof().data();
 
     let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
-    let sensitivity = if false {
-        pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
-        pool.install(|| continuous::sensitivity_image::<Siddon>(
-            detector_length,
-            detector_diameter,
-            parameters,
-            &attenuation,
-            n_lors))
-    } else {
-        pool.install(|| discrete::sensitivity_image::<Siddon>(
-            detector_length,
-            detector_diameter,
-            parameters,
-            &attenuation))
+    let sensitivity = match detector_type {
+        DetectorType::Continuous { n_lors } => {
+            pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
+            pool.install(|| continuous::sensitivity_image::<Siddon>(
+                detector_length,
+                detector_diameter,
+                parameters,
+                &attenuation,
+                n_lors))
+        },
+        DetectorType::Discrete { dr, dz, da } => {
+            let discretize = Discretize { dr, dz, da, r_min: detector_diameter / 2.0 };
+            pool.install(|| discrete::sensitivity_image::<Siddon>(
+                detector_length,
+                parameters,
+                &attenuation,
+                discretize,
+            ))
+        },
     };
     report_time("done");
 
@@ -131,7 +160,7 @@ use petalo::{
     utils::group_digits,
     FOV,
     image::{Image, ImageData},
-    system_matrix::{SystemMatrix, Siddon},
+    system_matrix::{SystemMatrix, Siddon}, discrete::Discretize,
 };
 
 use units::{

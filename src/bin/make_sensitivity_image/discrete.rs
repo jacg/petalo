@@ -2,14 +2,14 @@
 /// of detector elements.
 pub fn sensitivity_image<S>(
     detector_length  : Length,
-    detector_diameter: Length,
     projector_data   : S::Data,
     attenuation      : &Image,
+    discretize       : Discretize,
 ) -> Image
 where
     S: SystemMatrix,
 {
-    let points     = make_points::<S>(detector_length, detector_diameter);
+    let points     = make_points::<S>(detector_length, discretize);
     let lors       = make_lors  ::<S>(&points, attenuation.fov);
     let mut image_data = project_lors::<S,_,_>(lors, projector_data, attenuation, project_one_lor_sens::<S>);
     let n_lors = { // TODO this is incorrect: it doesn't take the FOV filter into account
@@ -22,18 +22,14 @@ where
 
 fn make_points<S>(
     detector_length  : Length,
-    detector_diameter: Length,
+    discretize       : Discretize,
 ) -> Vec<Point>
 where
     S: SystemMatrix,
 {
     dbg!(detector_length);
-    // For prototyping purposes, hard-wire the scintillator element size
-    let dz = mm(3.0);
-    let da = mm(3.0);
-    let dr = mm(30.0);
     // Points at the centres of all elements
-    let points = petalo::discrete::Discretize::new(detector_diameter, dr, dz, da)
+    let points = discretize
         .all_element_centres(detector_length)
         .collect::<Vec<_>>();
     dbg!(petalo::utils::group_digits(points.len()));
@@ -63,11 +59,12 @@ use petalo::{
     image::Image,
     projector::{project_lors, project_one_lor_sens},
     system_matrix::SystemMatrix,
+    discrete::Discretize,
 };
 
 use units::{
     Length,
-    mm, ns, ratio,
+    ns, ratio,
 };
 
 use super::normalize;
