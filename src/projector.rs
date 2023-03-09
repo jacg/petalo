@@ -28,19 +28,20 @@
 /// + `project_one_lor_mlem`
 ///
 /// + `project_one_lor_sens`
-pub fn project_lors<'l, 'i, S, L, F>(
-    projector_data : S::Data,
-    image          : &'i Image,
-    lors           : L,
-    job_size       : usize,
+
+use std::borrow::Borrow;
+pub fn project_lors<'i, S, L, F>(
+    lors          : impl IntoParallelIterator<Item = L>,
+    projector_data: S::Data,
+    image         : &'i Image,
     project_one_lor: F,
 ) -> ImageData
 where
     S: SystemMatrix,
-    L: IntoParallelIterator<Item = &'l LOR>,
-    L::Iter: IndexedParallelIterator,
-    F: Fn(Fs<'i, S>, &'l LOR) -> Fs<'i, S> + Sync + Send,
+    L: Borrow<LOR>,
+    F: Fn(Fs<'i, S>, L) -> Fs<'i, S> + Sync + Send,
 {
+    let lors = lors.into_par_iter();
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
@@ -49,18 +50,10 @@ where
         Fs::<S> { backprojection, system_matrix_row, image, projector_data }
     };
 
-    // -------- Project all LORs forwards and backwards ---------------------
-    let fold_result = lors
-        .into_par_iter()
-        // Rayon is too eager in spawning small jobs, each of which requires the
-        // construction and subsequent combination of expensive accumulators
-        // (whole `Image`s). So here we try to limit it to one job per thread.
-        .fold_chunks(job_size, initial_thread_state, project_one_lor);
-
-    // -------- extract relevant information (backprojection) ---------------
-    fold_result
+    lors
+        .fold(initial_thread_state, project_one_lor)
         // Keep only the backprojection (ignore weights and indices)
-        .map(|tuple| tuple.backprojection)
+        .map(|state| state.backprojection)
         // Sum the backprojections calculated on each thread
         .reduce(|| Image::zeros_buffer(image.fov), elementwise_add)
 }
@@ -72,8 +65,8 @@ pub fn project_one_lor_mlem<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR
 }
 
 /// Adapts `project_lors` for sensitivity image generation
-pub fn project_one_lor_sens<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR) -> Fs<'i,S> {
-    project_one_lor::<S>(fold_state, lor, |projection, _lor| (-projection).exp())
+pub fn project_one_lor_sens<S: SystemMatrix>(fold_state: Fs<S>, lor: impl Borrow<LOR>) -> Fs<S> {
+    project_one_lor::<S>(fold_state, lor.borrow(), |projection, _lor| (-projection).exp())
 }
 // ---------------------------------------------------------------------------------------------
 

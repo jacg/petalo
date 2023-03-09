@@ -19,10 +19,6 @@ pub struct Cli {
     #[clap(long, short='d', default_value = "710 mm")]
     pub detector_diameter: Length,
 
-    /// Number of random LORs to use in sensitivity image generation
-    #[clap(long, short='n', default_value = "5000000")]
-    pub n_lors: usize,
-
     /// Conversion from density to attenuation coefficient in cm^2 / g
     #[clap(long, default_value = "0.095")]
     pub rho_to_mu: Lengthf32,
@@ -31,11 +27,39 @@ pub struct Cli {
     #[clap(short = 'j', long, default_value = "30")]
     pub n_threads: usize,
 
+    #[clap(subcommand)]
+    detector_type: DetectorType,
+}
+
+#[derive(clap::Parser, Debug, Clone)]
+enum DetectorType {
+
+    /// Continuous scintillator
+    Continuous {
+        /// Number of randomly-generated LORs to use
+        n_lors: usize,
+    },
+
+    /// Discretize scintillator
+    Discrete {
+
+        /// Thickness of scintillator tube/ring
+        #[clap(long, short = 'r')]
+        dr: Length,
+
+        /// Axial width of scintillator elements
+        #[clap(long, short = 'z')]
+        dz: Length,
+
+        /// Azimuthal width of scintillator elements at `r_min + dr/2`?
+        #[clap(long, short = 'a')]
+        da: Length,
+    },
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let Cli { input, output, detector_length, detector_diameter, n_lors, rho_to_mu, n_threads } = Cli::parse();
+    let Cli { input, output, detector_length, detector_diameter, detector_type, rho_to_mu, n_threads } = Cli::parse();
 
     // Interpret rho_to_mu as converting from [rho in g/cm^3] to [mu in cm^-1]
     let rho_to_mu: AreaPerMass = {
@@ -64,16 +88,33 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let density = Image::from_raw_file(&input)?;
     report_time(&format!("Read density image {:?}", input));
-
-    pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
-    let lors = find_potential_lors(n_lors, density.fov, detector_length, detector_diameter);
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
-    let job_size = lors.len() / n_threads;
-    // TOF should not be used as LOR attenuation is independent of decay point
-    let parameters = Siddon::notof().data();
     // Convert from [density in kg/m^3] to [mu in mm^-1]
     let attenuation = density_image_into_attenuation_image(density, rho_to_mu);
-    let sensitivity = pool.install(|| sensitivity_image::<Siddon>(parameters, &attenuation, &lors, job_size));
+
+    // TOF should not be used as LOR attenuation is independent of decay point
+    let parameters = Siddon::notof().data();
+
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(n_threads).build().unwrap();
+    let sensitivity = match detector_type {
+        DetectorType::Continuous { n_lors } => {
+            pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
+            pool.install(|| continuous::sensitivity_image::<Siddon>(
+                detector_length,
+                detector_diameter,
+                parameters,
+                &attenuation,
+                n_lors))
+        },
+        DetectorType::Discrete { dr, dz, da } => {
+            let discretize = Discretize { dr, dz, da, r_min: detector_diameter / 2.0 };
+            pool.install(|| discrete::sensitivity_image::<Siddon>(
+                detector_length,
+                parameters,
+                &attenuation,
+                discretize,
+            ))
+        },
+    };
     report_time("done");
 
     let outfile = output.or_else(|| Some("sensitivity.raw".into())).unwrap();
@@ -83,57 +124,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Create sensitivity image by backprojecting all possible LORs
-pub fn sensitivity_image<S: SystemMatrix>(
-    parameters : S::Data,
-    attenuation: &Image,
-    lors       : &[LOR],
-    job_size   : usize,
-) -> Image {
-    let mut backprojection = project_lors::<S,_,_>(parameters, attenuation, lors, job_size, project_one_lor_sens::<S>);
-
-    // TODO: Just trying an ugly hack for normalizing the image. Do something sensible instead!
-    let size = lors.len() as f32;
-    for e in backprojection.iter_mut() {
-        *e /= size
-    }
-
-    Image::new(attenuation.fov, backprojection)
-}
-
-
-// TODO: need different versions for different projectors
-/// Return a vector (size specified in Cli) of LORs with endpoints on cilinder
-/// with length and diameter specified in Cli and passing through the FOV
-/// specified in Cli.
-fn find_potential_lors(n_lors: usize, fov: FOV, detector_length: Length, detector_diameter: Length) -> Vec<LOR> {
-    let (l,r) = (detector_length, detector_diameter / 2.0);
-    let one_useful_random_lor = move |_lor_number| {
-        loop {
-            let p1 = random_point_on_cylinder(l, r);
-            let p2 = random_point_on_cylinder(l, r);
-            if fov.entry(p1, p2).is_some() {
-                return LOR::new(Time::ZERO, Time::ZERO, p1, p2, ratio(1.0))
-            }
-        }
-    };
-
-    use rayon::prelude::*;
-    (0..n_lors)
-        .into_par_iter()
-        .map(one_useful_random_lor)
-        .collect()
-}
-
-fn random_point_on_cylinder(l: Length, r: Length) -> petalo::Point {
-    use std::f32::consts::TAU;
-    use rand::random;
-    let z     = l   * (random::<Lengthf32>() - 0.5);
-    let theta = TAU *  random::<Lengthf32>();
-    let x = r * theta.cos();
-    let y = r * theta.sin();
-    petalo::Point::new(x, y, z)
-}
+/// TODO Just trying an ugly hack for normalizing the image. Do something sensible instead!
+fn normalize(data: &mut ImageData, n: usize) { for e in data.iter_mut() { *e /= n as f32 } }
 
 /// Convert from [density in kg/m^3] to [mu in mm^-1]
 fn density_image_into_attenuation_image(density: Image, rho_to_mu: AreaPerMass) -> Image {
@@ -149,7 +141,11 @@ fn density_image_into_attenuation_image(density: Image, rho_to_mu: AreaPerMass) 
         *voxel *= rho_to_mu;
     }
     attenuation
+
 }
+
+mod discrete;
+mod continuous;
 
 // ----- Imports -----------------------------------------------------------------------------------------
 use clap::Parser;
@@ -162,14 +158,11 @@ use std::{
 
 use petalo::{
     utils::group_digits,
-    LOR,
-    fov::FOV,
-    image::Image,
-    projector::{project_lors, project_one_lor_sens},
-    system_matrix::{SystemMatrix, Siddon},
+    FOV,
+    image::{Image, ImageData},
+    system_matrix::{SystemMatrix, Siddon}, discrete::Discretize,
 };
 
 use units::{
-    Length, Time, AreaPerMass, ratio, ratio_, kg, mm, todo::Lengthf32,
-    uom::ConstZero,
+    Length, AreaPerMass, ratio_, kg, mm, todo::Lengthf32,
 };
