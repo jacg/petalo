@@ -120,7 +120,7 @@ fn main() -> hdf5::Result<()> {
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
                                      infile.display(), group_digits(lors.len()), group_digits(n_events),
                                      if n_events > 0 {100 * lors.len() / n_events} else {0}));
-        if let Ok(batch_of_new_lors) = makelors(&infile.clone()) {
+        if let Ok(batch_of_new_lors) = makelors(infile) {
             n_events += batch_of_new_lors.n_events_processed;
             lors.extend_from_slice(&batch_of_new_lors.lors);
         } else { failed_files.push(infile); }
