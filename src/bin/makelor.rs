@@ -104,6 +104,7 @@ fn main() -> hdf5::Result<()> {
     let files_pb = ProgressBar::new(args.infiles.len() as u64).with_message(args.infiles[0].display().to_string());
     files_pb.set_style(ProgressStyle::default_bar()
                        .template("Processing file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
+                       .unwrap()
         );
     files_pb.tick();
     // --- Process input files -------------------------------------------------------
