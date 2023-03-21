@@ -109,23 +109,30 @@ fn main() -> hdf5::Result<()> {
     files_pb.tick();
     // --- Process input files -------------------------------------------------------
     let xyzs = io::hdf5::sensors::read_sensor_map(&args.infiles[0])?;
-    let mut lors: Vec<Hdf5Lor> = vec![];
-    let mut n_events = 0;
-    let mut failed_files = vec![];
 
     let makelors = make_makelors_fn(&args, &xyzs);
 
-    for infile in args.infiles {
-        // TODO message doesn't appear until end of iteration
-        files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
-                                     infile.display(), group_digits(lors.len()), group_digits(n_events),
-                                     if n_events > 0 {100 * lors.len() / n_events} else {0}));
-        if let Ok(batch_of_new_lors) = makelors(&infile) {
-            n_events += batch_of_new_lors.n_events_processed;
-            lors.extend_from_slice(&batch_of_new_lors.lors);
-        } else { failed_files.push(infile); }
-        files_pb.inc(1);
+    #[derive(Default)]
+    struct Accumulator {
+        lors: Vec<Hdf5Lor>,
+        n_events: usize,
+        failed_files: Vec<PathBuf>,
     }
+
+    let Accumulator { lors, n_events, failed_files } = args.infiles
+        .into_iter()
+        .map(|file| makelors(&file))
+        .fold(Accumulator::default(), |mut acc, r| match r {
+            Ok(new_batch) => {
+                acc.n_events += new_batch.n_events_processed;
+                acc.lors.extend_from_slice(&new_batch.lors);
+                acc
+            },
+            Err(_) => {
+                //failed_files.push()
+                acc
+            },
+        });
 
     files_pb.finish_with_message("<finished processing files>");
     println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
