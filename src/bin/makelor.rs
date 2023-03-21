@@ -115,18 +115,18 @@ fn main() -> hdf5::Result<()> {
 
     let makelors = make_makelors_fn(&args, &xyzs);
 
-    for infile in &args.infiles {
+    for infile in args.infiles {
         // TODO message doesn't appear until end of iteration
         files_pb.set_message(format!("{}. Found {} LORs in {} events, so far ({}%).",
                                      infile.display(), group_digits(lors.len()), group_digits(n_events),
                                      if n_events > 0 {100 * lors.len() / n_events} else {0}));
-        if let Ok(batch_of_new_lors) = makelors(infile) {
+        if let Ok(batch_of_new_lors) = makelors(&infile) {
             n_events += batch_of_new_lors.n_events_processed;
             lors.extend_from_slice(&batch_of_new_lors.lors);
         } else { failed_files.push(infile); }
         files_pb.inc(1);
-
     }
+
     files_pb.finish_with_message("<finished processing files>");
     println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
              100 * lors.len() / n_events);
