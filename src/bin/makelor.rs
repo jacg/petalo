@@ -118,11 +118,22 @@ fn main() -> hdf5::Result<()> {
         n_events: usize,
         failed_files: Vec<PathBuf>,
     }
+    impl Accumulator {
+        fn join(self, Self { mut lors, mut n_events, mut failed_files }: Self) -> Self {
+            lors.extend_from_slice(&self.lors);
+            n_events += self.n_events;
+            failed_files.extend_from_slice(&self.failed_files);
+            Self { lors, n_events, failed_files }
+        }
+    }
+
+    use rayon::prelude::*;
 
     let Accumulator { lors, n_events, failed_files } = args.infiles
         .into_iter()
+        .par_bridge()
         .map(|file| makelors(&file))
-        .fold(Accumulator::default(), |mut acc, r| match r {
+        .fold(Accumulator::default, |mut acc, r| match r {
             Ok(new_batch) => {
                 acc.n_events += new_batch.n_events_processed;
                 acc.lors.extend_from_slice(&new_batch.lors);
@@ -132,7 +143,8 @@ fn main() -> hdf5::Result<()> {
                 //failed_files.push()
                 acc
             },
-        });
+        })
+        .reduce(Accumulator::default, Accumulator::join);
 
     files_pb.finish_with_message("<finished processing files>");
     println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
@@ -157,7 +169,7 @@ fn main() -> hdf5::Result<()> {
     Ok(())
 }
 
-type FilenameToLorsFunction<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a>;
+type FilenameToLorsFunction<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a + Sync>;
 
 fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLorsFunction<'xyzs> {
     match &args.reco {
