@@ -12,6 +12,10 @@ pub struct Cli {
     #[clap(short, long)]
     pub out: PathBuf,
 
+    /// Maximum number of rayon threads used by MLEM
+    #[clap(short = 'j', long, default_value = "4")]
+    pub threads: usize,
+
     #[clap(subcommand)]
     reco: Reco,
 
@@ -128,8 +132,10 @@ fn main() -> hdf5::Result<()> {
     }
 
     use rayon::prelude::*;
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(args.threads).build().unwrap();
 
-    let Accumulator { lors, n_events, failed_files } = args.infiles
+    let Accumulator { lors, n_events, failed_files } = pool.install (|| {
+        args.infiles
         .into_iter()
         .par_bridge()
         .map(|file| makelors(&file))
@@ -144,7 +150,7 @@ fn main() -> hdf5::Result<()> {
                 acc
             },
         })
-        .reduce(Accumulator::default, Accumulator::join);
+        .reduce(Accumulator::default, Accumulator::join)});
 
     files_pb.finish_with_message("<finished processing files>");
     println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
