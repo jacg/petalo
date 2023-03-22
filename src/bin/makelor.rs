@@ -116,7 +116,7 @@ fn main() -> hdf5::Result<()> {
     struct Accumulator {
         lors: Vec<Hdf5Lor>,
         n_events: usize,
-        failed_files: Vec<PathBuf>,
+        failed_files: Vec<hdf5::Error>,
     }
     impl Accumulator {
         fn join(self, Self { mut lors, mut n_events, mut failed_files }: Self) -> Self {
@@ -139,8 +139,8 @@ fn main() -> hdf5::Result<()> {
                 acc.lors.extend_from_slice(&new_batch.lors);
                 acc
             },
-            Err(_) => {
-                //failed_files.push()
+            Err(e) => {
+                acc.failed_files.push(e);
                 acc
             },
         })
@@ -158,9 +158,9 @@ fn main() -> hdf5::Result<()> {
         .create("lors")?;
     // --- Report any files that failed no be read -----------------------------------
     if !failed_files.is_empty() {
-        println!("Warning: failed to read the following files:");
-        for file in failed_files.iter() {
-            println!("  {}", file.display());
+        println!("Warning: the following were encountered when reading files input:");
+        for err in failed_files.iter() {
+            println!("  {err}");
         }
         let n = failed_files.len();
         let plural = if n == 1 { "" } else { "s" };
