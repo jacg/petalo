@@ -190,26 +190,6 @@ fn main() -> hdf5::Result<()> {
     Ok(())
 }
 
-fn yyy<T, E, G, M>(files: Vec<PathBuf>) -> Box<dyn FnOnce(E, G, M) -> Vec<Hdf5Lor>>
-where
-    E: Fn(&Path)  -> hdf5::Result<Vec<T>> + Send + Sync,
-    G: Fn(Vec<T>) -> Vec<Vec<T>>          + Send + Sync,
-    M: Fn(  &[T]) -> Option<Hdf5Lor>,
-{
-    Box::new(
-        move |extract_stuff_from_file: E,group_stuff: G, make_one_lor: M| {
-            files
-                .into_iter()
-                .map(move |file| extract_stuff_from_file(&file).unwrap_or_else(|e| -> Vec<T>{
-                    dbg!(e);
-                    vec![]
-                }))
-                .flat_map(move |stuff| group_stuff(stuff).into_iter())
-                .filter_map(|x| make_one_lor(&x))
-                .collect()
-        })
-}
-
 fn compose_steps<T, E, G, M>(
     files: Vec<PathBuf>,
     extract_stuff_from_file: E,
