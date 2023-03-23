@@ -14,7 +14,7 @@ pub (super) struct Cli {
     pub out: PathBuf,
 
     /// Maximum number of rayon threads used by MLEM
-    #[clap(short = 'j', long, default_value = "4")]
+    #[clap(short = 'j', long, default_value = "2")] // HDF reads seems to make > 2 pointless
     pub threads: usize,
 
     #[clap(subcommand)]
