@@ -113,17 +113,16 @@ fn main() -> hdf5::Result<()> {
     files_pb.tick();
     // --- Process input files -------------------------------------------------------
     let xyzs = io::hdf5::sensors::read_sensor_map(&args.infiles[0])?;
-
-
     let files = args.infiles.clone();
+    macro_rules! go { ($t1:expr, $t2:expr, $t3:expr) => { compose_steps(files, $t1, $t2, $t3) }; }
     let lors: Vec<_> = match &args.reco {
-        d@Reco::Discrete { .. } => xxx(files, read_vertices, group_vertices, lor_from_discretized_vertices(d)),
-        Reco::FirstVertex       => xxx(files, read_vertices, group_vertices, lor_from_first_vertices),
-        Reco::BaryVertex        => xxx(files, read_vertices, group_vertices, lor_from_barycentre_of_vertices),
-        &Reco::Half { q }       => xxx(files, read_qts     , group_qts(q) ,  lor_from_hits(&xyzs)),
+        d@Reco::Discrete { .. } => go!(read_vertices, group_vertices, lor_from_discretized_vertices(d)),
+        Reco::FirstVertex       => go!(read_vertices, group_vertices, lor_from_first_vertices),
+        Reco::BaryVertex        => go!(read_vertices, group_vertices, lor_from_barycentre_of_vertices),
+        &Reco::Half { q }       => go!(read_qts     , group_qts(q)  , lor_from_hits(&xyzs)),
         &Reco::Dbscan { q, min_count, max_distance } =>
-            xxx(files, read_qts, group_qts(q), lor_from_hits_dbscan_NEW(&xyzs, min_count, max_distance)),
-        Reco::SimpleRec { .. } => todo!(),
+            go!(read_qts, group_qts(q), lor_from_hits_dbscan(&xyzs, min_count, max_distance)),
+        Reco::SimpleRec { .. } => todo!(), // Complex process related to obsolete detector design
     };
 
     println!("Found {} lors", lors.len());
@@ -191,21 +190,37 @@ fn main() -> hdf5::Result<()> {
     Ok(())
 }
 
-pub fn yyy<T>(
-    events: &[Vec<T>],
-    mut one_lor: impl FnMut(&[T]) -> Option<Hdf5Lor>
-) -> Vec<Hdf5Lor> {
-    events.iter()
-        .flat_map(|data| one_lor(data))
-        .collect()
+fn yyy<T, E, G, M>(files: Vec<PathBuf>) -> Box<dyn FnOnce(E, G, M) -> Vec<Hdf5Lor>>
+where
+    E: Fn(&Path)  -> hdf5::Result<Vec<T>> + Send + Sync,
+    G: Fn(Vec<T>) -> Vec<Vec<T>>          + Send + Sync,
+    M: Fn(  &[T]) -> Option<Hdf5Lor>,
+{
+    Box::new(
+        move |extract_stuff_from_file: E,group_stuff: G, make_one_lor: M| {
+            files
+                .into_iter()
+                .map(move |file| extract_stuff_from_file(&file).unwrap_or_else(|e| -> Vec<T>{
+                    dbg!(e);
+                    vec![]
+                }))
+                .flat_map(move |stuff| group_stuff(stuff).into_iter())
+                .filter_map(|x| make_one_lor(&x))
+                .collect()
+        })
 }
 
-fn xxx<T>(
+fn compose_steps<T, E, G, M>(
     files: Vec<PathBuf>,
-    extract_stuff_from_file: impl Fn(&Path)  -> hdf5::Result<Vec<T>> + Send + Sync,
-    group_stuff            : impl Fn(Vec<T>) -> Vec<Vec<T>>          + Send + Sync,
-    make_one_lor           : impl Fn(  &[T]) -> Option<Hdf5Lor>,
-) -> Vec<Hdf5Lor> {
+    extract_stuff_from_file: E,
+    group_stuff            : G,
+    make_one_lor           : M,
+) -> Vec<Hdf5Lor>
+where
+    E: Fn(&Path)  -> hdf5::Result<Vec<T>> + Send + Sync,
+    G: Fn(Vec<T>) -> Vec<Vec<T>>          + Send + Sync,
+    M: Fn(  &[T]) -> Option<Hdf5Lor>,
+{
     files
         .into_iter()
         .map(move |file| extract_stuff_from_file(&file).unwrap_or_else(|e| -> Vec<T>{
@@ -482,7 +497,7 @@ mod test_n_clusters {
     }
 }
 
-fn lor_from_hits_dbscan_NEW(
+fn lor_from_hits_dbscan(
     xyzs: &SensorMap,
     min_points: usize,
     tolerance: Length
