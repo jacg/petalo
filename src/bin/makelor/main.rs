@@ -12,10 +12,11 @@ fn main() -> hdf5::Result<()> {
     // --- Progress bar --------------------------------------------------------------
     let progress = progress::Progress::new(&args.infiles);
     // --- Process input files -------------------------------------------------------
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(args.threads).build().unwrap();
     let xyzs = io::hdf5::sensors::read_sensor_map(&args.infiles[0])?;
     let files = args.infiles.clone();
     macro_rules! go { ($a:expr, $b:expr, $c:expr) => { compose_steps(files, &progress, $a, $b, $c) }; }
-    let lors: Vec<_> = match &args.reco {
+    let lors: Vec<_> = pool.install( || match &args.reco {
         d@Reco::Discrete { .. } => go!(read_vertices, group_vertices, lor_from_discretized_vertices(d)),
         Reco::FirstVertex       => go!(read_vertices, group_vertices, lor_from_first_vertices),
         Reco::BaryVertex        => go!(read_vertices, group_vertices, lor_from_barycentre_of_vertices),
@@ -23,7 +24,7 @@ fn main() -> hdf5::Result<()> {
         &Reco::Dbscan { q, min_count, max_distance } =>
             go!(read_qts, group_qts(q), lor_from_hits_dbscan(&xyzs, min_count, max_distance)),
         Reco::SimpleRec { .. } => todo!(), // Complex process related to obsolete detector design
-    };
+    });
 
     println!("Found {} lors", lors.len());
     todo!();
@@ -45,8 +46,6 @@ fn main() -> hdf5::Result<()> {
             Self { lors, n_events, failed_files }
         }
     }
-
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(args.threads).build().unwrap();
 
     let Accumulator { lors, n_events, failed_files } = pool.install (|| {
         args.infiles
