@@ -46,7 +46,6 @@ fn main() -> hdf5::Result<()> {
         }
     }
 
-    use rayon::prelude::*;
     let pool = rayon::ThreadPoolBuilder::new().num_threads(args.threads).build().unwrap();
 
     let Accumulator { lors, n_events, failed_files } = pool.install (|| {
@@ -95,12 +94,14 @@ fn compose_steps<T, E, G, M>(
     make_one_lor           : M,
 ) -> Vec<Hdf5Lor>
 where
+    T: Send,
     E: Fn(&Path)  -> hdf5::Result<Vec<T>> + Send + Sync,
     G: Fn(Vec<T>) -> Vec<Vec<T>>          + Send + Sync,
-    M: Fn(  &[T]) -> Option<Hdf5Lor>,
+    M: Fn(  &[T]) -> Option<Hdf5Lor>      + Send + Sync,
 {
     files
         .into_iter()                                    .inspect(|file|   stats.read_file_start(file))
+        .par_bridge()
         .map(|file| extract_rows_from_table(&file))     .inspect(|result| stats.read_file_done(result))
         .map(|stuff| stuff.unwrap_or_else(|_| vec![]))  .inspect(|_rows_from_table| {})
         .map(group_by_event)                            .inspect(|x| stats.grouped(x))
@@ -218,6 +219,7 @@ fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5L
 use std::path::{Path, PathBuf};
 use clap::Parser;
 use itertools::Itertools;
+use rayon::prelude::*;
 use units::{
     Length, Time, Ratio,
     todo::Energyf32, Area,
