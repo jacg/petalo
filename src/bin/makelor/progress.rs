@@ -33,7 +33,7 @@ impl Progress {
     pub (super) fn new(infiles: &[PathBuf]) -> Self {
         let bar = ProgressBar::new(infiles.len() as u64).with_message(infiles[0].display().to_string());
         bar.set_style(ProgressStyle::default_bar()
-                      .template("Processing file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
+                      .template("[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
                       .unwrap()
         );
         bar.tick();
