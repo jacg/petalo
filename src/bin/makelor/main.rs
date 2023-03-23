@@ -27,9 +27,7 @@ fn main() -> hdf5::Result<()> {
     });
 
     println!("Found {} lors", lors.len());
-    todo!();
 
-    progress.final_report();
     // --- write lors to hdf5 --------------------------------------------------------
     println!("Writing LORs to {}", args.out.display());
     hdf5::File::create(&args.out)?
@@ -38,15 +36,7 @@ fn main() -> hdf5::Result<()> {
         .with_data(&lors)
         .create("lors")?;
     // --- Report any files that failed no be read -----------------------------------
-    // if !failed_files.is_empty() {
-    //     println!("Warning: the following were encountered when reading files input:");
-    //     for err in failed_files.iter() {
-    //         println!("  {err}");
-    //     }
-    //     let n = failed_files.len();
-    //     let plural = if n == 1 { "" } else { "s" };
-    //     println!("Warning: failed to read {} file{}:", n, plural);
-    // }
+    progress.final_report();
     Ok(())
 }
 

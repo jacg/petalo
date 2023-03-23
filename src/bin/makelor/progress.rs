@@ -8,7 +8,7 @@ struct Inner {
     n_events_processed: u64,
     n_lors_made: u64,
     files_bar: ProgressBar,
-    failed_files: Vec<PathBuf>,
+    failed_files: Vec<hdf5::Error>,
 }
 
 impl Inner {
@@ -61,7 +61,7 @@ impl Progress {
         data.n_files_read += 1;
         match result {
             Ok(stuff) => data.n_events_read += stuff.len() as u64,
-            Err(e) => println!("ERROR: {e:?}"),
+            Err(e) => data.failed_files.push(e.clone()), // TODO: this should be a 'progress' bar
         }
         data.files_bar.inc(1);
         data.update();
@@ -79,8 +79,17 @@ impl Progress {
     // }
 
     pub (super) fn final_report(&self) {
-        todo!()
-        //self.files_bar.finish_with_message("<finished processing files>");
+        let data = self.0.lock().unwrap();
+        if !data.failed_files.is_empty() {
+            println!("Warning: the following errors were encountered when reading files input:");
+            for err in data.failed_files.iter() {
+                println!("  {err}");
+            }
+            let n = data.failed_files.len();
+            let plural = if n == 1 { "" } else { "s" };
+            println!("Warning: failed to read {} file{}:", n, plural);
+        }
+        // self.files_bar.finish_with_message("<finished processing files>");
         // println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
         //          100 * lors.len() / n_events);
     }
