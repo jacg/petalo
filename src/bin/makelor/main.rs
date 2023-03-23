@@ -1,100 +1,5 @@
-#[derive(clap::Parser, Debug, Clone)]
-#[clap(
-    name = "makelor",
-    about = "Create LORs from MC data",
-    subcommand_precedence_over_arg = true, // This can probably be removed in clap 4
-)]
-pub struct Cli {
-    /// HDF5 input files with waveform and charge tables
-    pub infiles: Vec<PathBuf>,
-
-    /// HDF5 output file for LORs found in input file
-    #[clap(short, long)]
-    pub out: PathBuf,
-
-    /// Maximum number of rayon threads used by MLEM
-    #[clap(short = 'j', long, default_value = "4")]
-    pub threads: usize,
-
-    #[clap(subcommand)]
-    reco: Reco,
-
-    // TODO allow using different group/dataset in output
-}
-
-#[derive(clap::Parser, Debug, Clone)]
-enum Reco {
-
-    /// Reconstruct LORs from first vertices in LXe
-    FirstVertex,
-
-    /// Reconstruct LORs from barycentre of vertices in LXe
-    BaryVertex,
-
-    /// Reconstruct LORs from clusters found by splitting cylinder in half
-    Half {
-        /// Ignore sensors with fewer hits
-        #[clap(short, long = "charge-threshold", default_value = "4")]
-        q: u32,
-    },
-
-    /// Reconstruct LORs from vertices adjusted to element centres
-    Discrete {
-        /// Inner radius of scintillator
-        #[clap(short, long)]
-        radius: Length,
-
-        /// Radial size of elements = thickness of scintillator
-        #[clap(short = 'd', long)]
-        dr: Length,
-
-        /// Axial size of elements
-        #[clap(short = 'z', long)]
-        dz: Length,
-
-        /// Azimuthal size of elements at inner radius
-        #[clap(short = 'a', long)]
-        da: Length,
-    },
-
-    /// Reconstruct LORs form DBSCAN clusters
-    Dbscan {
-        /// Ignore sensors with fewer hits
-        #[clap(short, long = "charge-threshold", default_value = "4")]
-        q: u32,
-
-        /// Minimum number of sensors in cluster
-        #[clap(short = 'n', long, default_value = "10")]
-        min_count: usize,
-
-        /// Maximum distance between neighbours in cluster
-        #[clap(short = 'd', long, default_value = "100 mm")]
-        max_distance: Length,
-    },
-
-    /// Reconstruct LORs from hits using barycentre of clusters.
-    SimpleRec {
-        /// Sensor PDE
-        #[structopt(short, long, default_value = "0.3")]
-        pde: f32,
-
-        /// Sensor time smearing sigma in nanoseconds.
-        #[structopt(short, long, default_value = "0.05")]
-        sigma_t: f32,
-
-        /// Charge threshold for individual sensors.
-        #[structopt(short, long, default_value = "2")]
-        threshold: f32,
-
-        /// Minimum number of sensors per cluster.
-        #[structopt(short, long, default_value = "2")]
-        nsensors: usize,
-
-        /// Charge range to accept sum in clusters.
-        #[structopt(short, long, value_parser = parse_bounds::<f32>, default_value = "1..5000")]
-        charge_limits: BoundPair<f32>,
-    }
-}
+mod cli;
+mod progress;
 
 fn main() -> hdf5::Result<()> {
     let args = Cli::parse();
@@ -105,16 +10,11 @@ fn main() -> hdf5::Result<()> {
     std::fs::create_dir_all(PathBuf::from(&args.out).parent().unwrap())
         .unwrap_or_else(|e| panic!("\n\nCan't write to \n\n   {}\n\n because \n\n   {e}\n\n", args.out.display()));
     // --- Progress bar --------------------------------------------------------------
-    let files_pb = ProgressBar::new(args.infiles.len() as u64).with_message(args.infiles[0].display().to_string());
-    files_pb.set_style(ProgressStyle::default_bar()
-                       .template("Processing file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
-                       .unwrap()
-        );
-    files_pb.tick();
+    let progress = progress::Progress::new(&args.infiles);
     // --- Process input files -------------------------------------------------------
     let xyzs = io::hdf5::sensors::read_sensor_map(&args.infiles[0])?;
     let files = args.infiles.clone();
-    macro_rules! go { ($t1:expr, $t2:expr, $t3:expr) => { compose_steps(files, $t1, $t2, $t3) }; }
+    macro_rules! go { ($a:expr, $b:expr, $c:expr) => { compose_steps(files, &progress, $a, $b, $c) }; }
     let lors: Vec<_> = match &args.reco {
         d@Reco::Discrete { .. } => go!(read_vertices, group_vertices, lor_from_discretized_vertices(d)),
         Reco::FirstVertex       => go!(read_vertices, group_vertices, lor_from_first_vertices),
@@ -157,7 +57,6 @@ fn main() -> hdf5::Result<()> {
         .fold(Accumulator::default, |mut acc, r| match r {
             Ok(new_batch) => {
                 acc.n_events += new_batch.n_events_processed;
-                acc.lors.extend_from_slice(&new_batch.lors);
                 acc
             },
             Err(e) => {
@@ -167,9 +66,7 @@ fn main() -> hdf5::Result<()> {
         })
         .reduce(Accumulator::default, Accumulator::join)});
 
-    files_pb.finish_with_message("<finished processing files>");
-    println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
-             100 * lors.len() / n_events);
+    progress.final_report();
     // --- write lors to hdf5 --------------------------------------------------------
     println!("Writing LORs to {}", args.out.display());
     hdf5::File::create(&args.out)?
@@ -192,8 +89,9 @@ fn main() -> hdf5::Result<()> {
 
 fn compose_steps<T, E, G, M>(
     files: Vec<PathBuf>,
-    extract_stuff_from_file: E,
-    group_stuff            : G,
+    stats: &Progress,
+    extract_rows_from_table: E,
+    group_by_event         : G,
     make_one_lor           : M,
 ) -> Vec<Hdf5Lor>
 where
@@ -202,13 +100,12 @@ where
     M: Fn(  &[T]) -> Option<Hdf5Lor>,
 {
     files
-        .into_iter()
-        .map(move |file| extract_stuff_from_file(&file).unwrap_or_else(|e| -> Vec<T>{
-            dbg!(e);
-            vec![]
-        }))
-        .flat_map(move |stuff| group_stuff(stuff).into_iter())
-        .filter_map(|x| make_one_lor(&x))
+        .into_iter()                                    .inspect(|file|   stats.read_file_start(file))
+        .map(|file| extract_rows_from_table(&file))     .inspect(|result| stats.read_file_done(result))
+        .map(|stuff| stuff.unwrap_or_else(|_| vec![]))  .inspect(|_rows_from_table| {})
+        .map(group_by_event)                            .inspect(|x| stats.grouped(x))
+        .flatten()
+        .filter_map(|x| make_one_lor(&x))             //.inspect(|x| stats.lor(x))
         .collect()
 }
 
@@ -321,14 +218,13 @@ fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5L
 use std::path::{Path, PathBuf};
 use clap::Parser;
 use itertools::Itertools;
-use indicatif::{ProgressBar, ProgressStyle};
 use units::{
     Length, Time, Ratio,
     todo::Energyf32, Area,
     uom::ConstZero
 };
 use petalo::{
-    Point, BoundPair,
+    Point,
     config::mlem::Bounds,
     io::{self,
          hdf5::{
@@ -338,9 +234,9 @@ use petalo::{
          }
     },
     sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction},
-    utils::{group_digits, parse_bounds},
 };
-
+use cli::{Cli, Reco};
+use progress::Progress;
 
 // TODO: try to remove the need for these
 use units::{mm, mm_, ns, ns_, ratio};
