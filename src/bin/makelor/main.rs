@@ -29,41 +29,6 @@ fn main() -> hdf5::Result<()> {
     println!("Found {} lors", lors.len());
     todo!();
 
-
-    let makelors = make_makelors_fn(&args, &xyzs);
-
-    #[derive(Default)]
-    struct Accumulator {
-        lors: Vec<Hdf5Lor>,
-        n_events: usize,
-        failed_files: Vec<hdf5::Error>,
-    }
-    impl Accumulator {
-        fn join(self, Self { mut lors, mut n_events, mut failed_files }: Self) -> Self {
-            lors.extend_from_slice(&self.lors);
-            n_events += self.n_events;
-            failed_files.extend_from_slice(&self.failed_files);
-            Self { lors, n_events, failed_files }
-        }
-    }
-
-    let Accumulator { lors, n_events, failed_files } = pool.install (|| {
-        args.infiles
-        .into_iter()
-        .par_bridge()
-        .map(|file| makelors(&file))
-        .fold(Accumulator::default, |mut acc, r| match r {
-            Ok(new_batch) => {
-                acc.n_events += new_batch.n_events_processed;
-                acc
-            },
-            Err(e) => {
-                acc.failed_files.push(e);
-                acc
-            },
-        })
-        .reduce(Accumulator::default, Accumulator::join)});
-
     progress.final_report();
     // --- write lors to hdf5 --------------------------------------------------------
     println!("Writing LORs to {}", args.out.display());
@@ -73,15 +38,15 @@ fn main() -> hdf5::Result<()> {
         .with_data(&lors)
         .create("lors")?;
     // --- Report any files that failed no be read -----------------------------------
-    if !failed_files.is_empty() {
-        println!("Warning: the following were encountered when reading files input:");
-        for err in failed_files.iter() {
-            println!("  {err}");
-        }
-        let n = failed_files.len();
-        let plural = if n == 1 { "" } else { "s" };
-        println!("Warning: failed to read {} file{}:", n, plural);
-    }
+    // if !failed_files.is_empty() {
+    //     println!("Warning: the following were encountered when reading files input:");
+    //     for err in failed_files.iter() {
+    //         println!("  {err}");
+    //     }
+    //     let n = failed_files.len();
+    //     let plural = if n == 1 { "" } else { "s" };
+    //     println!("Warning: failed to read {} file{}:", n, plural);
+    // }
     Ok(())
 }
 
@@ -102,10 +67,10 @@ where
         .into_iter()                                    .inspect(|file|   stats.read_file_start(file))
         .par_bridge()
         .map(|file| extract_rows_from_table(&file))     .inspect(|result| stats.read_file_done(result))
-        .map(|stuff| stuff.unwrap_or_else(|_| vec![]))  .inspect(|_rows_from_table| {})
+        .map(|rows| rows.unwrap_or_else(|_| vec![]))    .inspect(|_rows_from_table| {})
         .map(group_by_event)                            .inspect(|x| stats.grouped(x))
-        .flatten()
-        .filter_map(|x| make_one_lor(&x))             //.inspect(|x| stats.lor(x))
+        //.flatten()
+        .flat_map_iter(|x| x.into_iter().filter_map(|x| make_one_lor(&x)))             //.inspect(|x| stats.lor(x))
         .collect()
 }
 
@@ -124,54 +89,8 @@ fn group_qts(q: u32) -> impl Fn(Vec<QT>) -> Vec<Vec<QT>> {
     }
 }
 
-type FilenameToGroupsFunction<'a, T> = Box<dyn Fn(&PathBuf) -> hdf5::Result<Vec<Vec<T>>> + 'a + Sync>;
-type FilenameToLorsFunction  <'a>    = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch>    + 'a + Sync>;
-
-fn make_makelors_fn<'xyzs>(args: &Cli, xyzs: &'xyzs SensorMap) -> FilenameToLorsFunction<'xyzs> {
-    match &args.reco {
-        Reco::FirstVertex       => Box::new(from_vertices(lor_from_first_vertices)),
-        Reco::BaryVertex        => Box::new(from_vertices(lor_from_barycentre_of_vertices)),
-        d@Reco::Discrete { .. } => Box::new(from_vertices(lor_from_discretized_vertices(d))),
-
-        &Reco::Half{q} => Box::new(
-            move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let events = group_qts_OLD(q, infile)?;
-                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_OLD(evs, xyzs)), events.len()))
-            }),
-
-        &Reco::Dbscan { q, min_count, max_distance } => Box::new(
-            move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-                let events = group_qts_OLD(q, infile)?;
-                Ok(LorBatch::new(lors_from(&events, |evs| lor_from_hits_dbscan_OLD(evs, xyzs, min_count, max_distance)), events.len()))
-            }),
-
-        &Reco::SimpleRec { pde, sigma_t, threshold, nsensors, charge_limits }
-            => lor_reconstruction(xyzs, pde, 0.0, sigma_t, threshold, nsensors, charge_limits),
-    }
-}
-
-fn from_vertices(lor_from_vertices: impl Fn(&[Vertex]) -> Option<Hdf5Lor> + 'static + Copy) -> impl Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'static {
-    move |infile: &PathBuf| -> hdf5::Result<LorBatch> {
-        let events = group_vertices_OLD(infile)?;
-        Ok(LorBatch::new(lors_from(&events, lor_from_vertices), events.len()))
-    }
-}
-
 fn read_vertices(infile: &Path) -> hdf5::Result<Vec<Vertex>> { io::hdf5::mc::read_vertices(infile, Bounds::none()) }
 fn read_qts     (infile: &Path) -> hdf5::Result<Vec<  QT  >> { io::hdf5::sensors::read_qts(infile, Bounds::none()) }
-
-fn group_vertices_OLD(infile: &Path) -> hdf5::Result<Vec<Vec<Vertex>>> {
-    Ok(group_by(|v| v.event_id,
-                read_vertices(infile)?
-                .into_iter()))
-}
-
-fn group_qts_OLD(q: u32, infile: &Path) -> hdf5::Result<Vec<Vec<  QT  >>> {
-    Ok(group_by(|h| h.event_id,
-                read_qts(infile)?
-                .into_iter()
-                .filter(|h| h.q >= q)))
-}
 
 // NOTE only using first vertex, for now
 #[allow(nonstandard_style)]
@@ -234,7 +153,6 @@ use petalo::{
              mc::Vertex
          }
     },
-    sensors::lorreconstruction::{LorBatch, lors_from, lor_reconstruction},
 };
 use cli::{Cli, Reco};
 use progress::Progress;
@@ -340,21 +258,6 @@ fn lor_from_hits(xyzs: &SensorMap) -> impl Fn(&[QT]) -> Option<Hdf5Lor> + '_ {
     }
 }
 
-fn lor_from_hits_OLD(hits: &[QT], xyzs: &SensorMap) -> Option<Hdf5Lor> {
-    let (cluster_a, cluster_b) = group_into_clusters(hits, xyzs)?;
-    //println!("{} + {} = {} ", cluster_a.len(), cluster_b.len(), hits.len());
-    let (p1, t1) = cluster_xyzt(&cluster_a, xyzs)?;
-    let (p2, t2) = cluster_xyzt(&cluster_b, xyzs)?;
-    //println!("{:?} {:?}", xyzt_a, xyzt_b);
-    Some(Hdf5Lor {
-        dt: ns_(t2 - t1),
-        x1: mm_(p1.x), y1: mm_(p1.y), z1: mm_(p1.z),
-        x2: mm_(p2.x), y2: mm_(p2.y), z2: mm_(p2.z),
-        // TODO qs and Es missing
-        q1: f32::NAN, q2: f32::NAN,   E1: f32::NAN, E2: f32::NAN,
-    })
-}
-
 fn count_clusters(labels: &ndarray::Array1<Option<usize>>) -> usize {
     labels.iter()
         .flat_map(|l| *l)
@@ -416,44 +319,6 @@ fn lor_from_hits_dbscan(
             q1: f32::NAN, q2: f32::NAN,   E1: f32::NAN, E2: f32::NAN,
         })
     }
-}
-
-fn lor_from_hits_dbscan_OLD(hits: &[QT], xyzs: &SensorMap, min_points: usize, tolerance: Length) -> Option<Hdf5Lor> {
-    use linfa_clustering::AppxDbscan;
-    use linfa::traits::Transformer;
-    let active_sensor_positions: ndarray::Array2<f32> = hits.iter()
-        .flat_map(|QT { sensor_id, ..}| xyzs.get(sensor_id))
-        .map(|&(x,y,z)| [mm_(x), mm_(y), mm_(z)])
-        .collect::<Vec<_>>()
-        .into();
-    let params = AppxDbscan::params(min_points)
-        .tolerance(mm_(tolerance)); // > 7mm between sipm centres
-    let labels = params.transform(&active_sensor_positions).ok()?;
-    let n_clusters = count_clusters(&labels);
-    if n_clusters != 2 { return None }
-    let mut cluster: [Vec<f32>; 2] = [vec![], vec![]];
-    for (c, point) in labels.iter().zip(active_sensor_positions.outer_iter()) {
-        if let Some(c) = c {
-            cluster[*c].extend(point);
-        }
-    }
-    fn cluster_centroid(vec: Vec<f32>) -> Option<ndarray::Array1<f32>> {
-        let it = ndarray::Array2::from_shape_vec((vec.len()/3, 3), vec.clone()).unwrap()
-            .mean_axis(ndarray::Axis(0));
-        if it.is_none() {
-            println!("Failed to find centroid of cluster {:?}", vec);
-        }
-        it
-    }
-    let a = cluster_centroid(cluster[0].clone())?;
-    let b = cluster_centroid(cluster[1].clone())?;
-    Some(Hdf5Lor {
-        dt: 0.0, // TODO dt missing
-        x1: a[0], y1: a[1], z1: a[2],
-        x2: b[0], y2: b[1], z2: b[2],
-        // TODO qs and Es missing
-        q1: f32::NAN, q2: f32::NAN,   E1: f32::NAN, E2: f32::NAN,
-    })
 }
 
 fn cluster_xyzt(hits: &[QT], xyzs: &SensorMap) -> Option<(Point, Time)> {

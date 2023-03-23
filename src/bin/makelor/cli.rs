@@ -98,10 +98,7 @@ pub (super) enum Reco {
 }
 // ----- Imports -----------------------------------------------------------------------------------------
 use std::path::PathBuf;
-use clap::Parser;
-use units::{
-    Length,
-};
+use units::Length;
 use petalo::{
     BoundPair,
     utils::parse_bounds,
