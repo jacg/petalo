@@ -26,8 +26,8 @@ fn main() -> hdf5::Result<()> {
         Reco::SimpleRec { .. } => todo!(), // Complex process related to obsolete detector design
     });
 
-    println!("Found {} lors", lors.len());
-
+    // --- Report any files that failed no be read -----------------------------------
+    progress.final_report(&lors);
     // --- write lors to hdf5 --------------------------------------------------------
     println!("Writing LORs to {}", args.out.display());
     hdf5::File::create(&args.out)?
@@ -35,8 +35,6 @@ fn main() -> hdf5::Result<()> {
         .new_dataset_builder()
         .with_data(&lors)
         .create("lors")?;
-    // --- Report any files that failed no be read -----------------------------------
-    progress.final_report();
     Ok(())
 }
 
@@ -59,7 +57,6 @@ where
         .map(|file| extract_rows_from_table(&file))     .inspect(|result| stats.read_file_done(result))
         .map(|rows| rows.unwrap_or_else(|_| vec![]))    .inspect(|_rows_from_table| {})
         .map(group_by_event)                            .inspect(|x| stats.grouped(x))
-        //.flatten()
         .flat_map_iter(|x| x.into_iter().filter_map(|x| make_one_lor(&x)))             //.inspect(|x| stats.lor(x))
         .collect()
 }

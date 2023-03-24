@@ -59,9 +59,8 @@ impl Progress {
     pub (super) fn read_file_done<T>(&self, result: &Result<Vec<T>>) {
         let mut data = self.0.lock().unwrap();
         data.n_files_read += 1;
-        match result {
-            Ok(stuff) => data.n_events_read += stuff.len() as u64,
-            Err(e) => data.failed_files.push(e.clone()), // TODO: this should be a 'progress' bar
+        if let Err(e) = result {
+            data.failed_files.push(e.clone()) // TODO: this should be a 'progress' bar
         }
         data.files_bar.inc(1);
         data.update();
@@ -78,8 +77,12 @@ impl Progress {
     //     todo!()
     // }
 
-    pub (super) fn final_report(&self) {
+    pub (super) fn final_report(&self, lors: &Vec<petalo::io::hdf5::Hdf5Lor>) {
         let data = self.0.lock().unwrap();
+        let n_lors = lors.len();
+        let n_events = data.n_events_read;
+        let percent = (100 * n_lors) as f32 / n_events as f32;
+        println!("Found {} LORs in {} events ({percent:.1}%)", group_digits(n_lors), group_digits(n_events));
         if !data.failed_files.is_empty() {
             println!("Warning: the following errors were encountered when reading files input:");
             for err in data.failed_files.iter() {
@@ -103,3 +106,4 @@ use std::{
 };
 use hdf5::Result;
 use indicatif::{ProgressBar, ProgressStyle};
+use petalo::utils::group_digits;
