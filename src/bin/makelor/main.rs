@@ -27,7 +27,7 @@ fn main() -> hdf5::Result<()> {
     });
 
     // --- Report any files that failed no be read -----------------------------------
-    progress.final_report(&lors);
+    progress.final_report();
     // --- write lors to hdf5 --------------------------------------------------------
     println!("Writing LORs to {}", args.out.display());
     hdf5::File::create(&args.out)?
@@ -52,12 +52,13 @@ where
     M: Fn(  &[T]) -> Option<Hdf5Lor>      + Send + Sync,
 {
     files
-        .into_iter()                                    .inspect(|file|   stats.read_file_start(file))
-        .par_bridge()
-        .map(|file| extract_rows_from_table(&file))     .inspect(|result| stats.read_file_done(result))
-        .map(|rows| rows.unwrap_or_else(|_| vec![]))    .inspect(|_rows_from_table| {})
-        .map(group_by_event)                            .inspect(|x| stats.grouped(x))
-        .flat_map_iter(|x| x.into_iter().filter_map(|x| make_one_lor(&x)))             //.inspect(|x| stats.lor(x))
+        .into_iter()
+        .par_bridge() // With only 2 threads, locking on every LOR is cheap: reconsider if we ever overcome HDF5 global lock
+        .map(|file| extract_rows_from_table(&file))      .inspect(|result| stats.read_file_done(result))
+        .map(|rows| rows.unwrap_or_else(|_| vec![]))
+        .map(group_by_event)                             .inspect(|x| stats.grouped(x))
+        .flat_map_iter(|x| x.into_iter()
+                       .filter_map(|x| make_one_lor(&x))).inspect(|x| stats.lor(x))
         .collect()
 }
 
