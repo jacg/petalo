@@ -67,6 +67,8 @@ impl Progress {
     pub (super) fn final_report(&self) {
         let mut data = self.0.lock().unwrap();
         data.update();
+        data.files_bar.finish();
+        // self.files_bar.finish_with_message("<finished processing files>");
         if !data.failed_files.is_empty() {
             println!("Warning: the following errors were encountered when reading files input:");
             for err in data.failed_files.iter() {
@@ -76,9 +78,6 @@ impl Progress {
             let plural = if n == 1 { "" } else { "s" };
             println!("Warning: failed to read {} file{}:", n, plural);
         }
-        // self.files_bar.finish_with_message("<finished processing files>");
-        // println!("{} / {} ({}%) events produced LORs", group_digits(lors.len()), group_digits(n_events),
-        //          100 * lors.len() / n_events);
     }
 
 }
