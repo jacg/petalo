@@ -2,7 +2,6 @@
 pub (super) struct Progress(Mutex<Inner>);
 
 struct Inner {
-    n_files_given: u16,
     n_files_read: u16,
     n_events_read: u64,
     n_lors_made: u64,
@@ -32,7 +31,6 @@ impl Progress {
         Self (
             Mutex::new(
                 Inner {
-                    n_files_given: infiles.len() as u16,
                     n_files_read: 0,
                     n_events_read: 0,
                     n_lors_made: 0,
@@ -59,7 +57,7 @@ impl Progress {
         data.update();
     }
 
-    pub (super) fn lor(&self, lor: &Hdf5Lor) {
+    pub (super) fn lor(&self, _: &Hdf5Lor) {
         let mut data = self.0.lock().unwrap();
         data.n_lors_made += 1;
     }
@@ -85,7 +83,7 @@ impl Progress {
 // ----- Imports -----------------------------------------------------------------------------------------
 use std::{
     sync::Mutex,
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 use hdf5::Result;
 use indicatif::{ProgressBar, ProgressStyle};

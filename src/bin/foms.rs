@@ -161,7 +161,7 @@ fn nema7_foms(image: &Image) -> Result<(), Box<dyn Error>> {
 
     // For each z-slice divide mean within ROI, by 37mm background mean
     let bg_37 = bg_37.unwrap();
-    let aocs = (lo_index..=hi_index).into_iter()
+    let aocs = (lo_index..=hi_index)
         .map(|i| { fom::mean_in_region(ROI::DiscZ((mm(0.0), mm(0.0), pos_of(i)), mm(30.0/2.0)), &lung_voxels) })
         .map(|v| 100.0 * v / bg_37)
         .collect::<Vec<_>>();

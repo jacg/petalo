@@ -86,7 +86,7 @@ impl Osem {
         *self
     }
 
-    fn subset<'s, 'l>(&'s self, lors: &'l [LOR]) -> &'l [LOR] {
+    fn subset<'l>(&self, lors: &'l [LOR]) -> &'l [LOR] {
         let set_size = lors.len() / self.n_subsets; // TODO remainder LORs ignored
         let lo = (self.subset - 1) * set_size;
         let hi = lo + set_size;

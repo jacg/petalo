@@ -186,6 +186,7 @@ pub fn lor_reconstruction(
 }
 
 /// Depth Of Interaction (DOI) algorithms.
+#[allow(clippy::upper_case_acronyms)]
 enum DOI {
     /// Uses the RMS in Z to calculate interaction radius.
     Zrms,

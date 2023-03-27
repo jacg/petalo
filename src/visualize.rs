@@ -41,7 +41,7 @@ impl Scene {
 
         // Axis lines
         let bsize = Vectorf32::from(fov.half_width);
-        let (bdx, bdy, bdz) = (bsize.x as f32, bsize.y as f32, bsize.z as f32);
+        let (bdx, bdy, bdz) = (bsize.x, bsize.y, bsize.z);
         let x_axis_lo = Point3::new(-bdx,   0.0, 0.0) * 1.5;
         let x_axis_hi = Point3::new( bdx,   0.0, 0.0) * 1.5;
         let y_axis_lo = Point3::new(  0.0, -bdy, 0.0) * 1.5;
@@ -59,7 +59,7 @@ impl Scene {
 
         // FOV frame
         let w = Vectorf32::from(fov.half_width);
-        let (bwx, bwy, bwz) = (w.x as f32, w.y as f32, w.z as f32);
+        let (bwx, bwy, bwz) = (w.x, w.y, w.z);
         let box_000 = Point3::new(-bwx, -bwy, -bwz);
         let box_001 = Point3::new(-bwx, -bwy,  bwz);
         let box_010 = Point3::new(-bwx,  bwy, -bwz);
@@ -121,8 +121,8 @@ impl Scene {
 
         let vsize = Vectorf32::from(self.fov.voxel_size);
         let bsize = Vectorf32::from(self.fov.half_width);
-        let (bdx, bdy, bdz) = (bsize.x as f32, bsize.y as f32, bsize.z as f32);
-        let (vdx, vdy, vdz) = (vsize.x as f32, vsize.y as f32, vsize.z as f32);
+        let (bdx, bdy, bdz) = (bsize.x, bsize.y, bsize.z);
+        let (vdx, vdy, vdz) = (vsize.x, vsize.y, vsize.z);
         let mut voxels = Vec::with_capacity(self.fov.n[0] * self.fov.n[1]);
         let half_fov = Translation3::new(-bdx, -bdy, -bdz);
         let half_voxel = Translation3::new(vdx / 2.0,
@@ -133,7 +133,7 @@ impl Scene {
         let s = 0.99;
         for (i, weight) in active_voxels {
             let i = index1_to_3(i, self.fov.n);
-            let relative_weight = (weight / max_weight) as f32;
+            let relative_weight = weight / max_weight;
             let mut v = match shape {
                 Shape::Box  => self.window.add_cube(vdx * s, vdy * s, vdz * s),
                 Shape::Ball => self.window.add_sphere(vdx.min(vdy).min(vdz) * relative_weight * 0.5),
@@ -156,7 +156,7 @@ impl Scene {
     fn init_camera(fov: &FOV) -> ArcBall {
         // Fit image into FOV
         let half_width = Vectorf32::from(fov.half_width);
-        let biggest = half_width.x.max(half_width.y) as f32;
+        let biggest = half_width.x.max(half_width.y);
         let distance = 4.0 * biggest;
         let zfar  = distance * 2.0;
         let znear = 0.1; //distance / 2.0;

@@ -73,7 +73,7 @@ where
 
 pub type   Vector = Vect<Length>;
 pub type RatioVec = Vect<Ratio>;
-pub type  AreaVec = Vect<Area>;
+pub type _AreaVec = Vect<Area>;
 
 impl Mul<Vector> for Ratio {
     type Output = Vector;
