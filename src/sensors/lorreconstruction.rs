@@ -155,7 +155,7 @@ fn sipm_charge_barycentre(hits: &[SensorReadout]) -> Barycentre {
     Barycentre { x: xx / qs, y: yy / qs, z: zz / qs, t: tt, q: qs }
 }
 
-type FnPathToLorBatch<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a>;
+type FnPathToLorBatch<'a> = Box<dyn Fn(&PathBuf) -> hdf5::Result<LorBatch> + 'a + Sync>;
 
 pub fn lor_reconstruction(
     xyzs       : &SensorMap,
@@ -197,7 +197,7 @@ enum DOI {
     _Crms
 }
 
-type FnFindBarycentre = dyn Fn(Barycentre, &[SensorReadout]) -> Option<Barycentre>;
+type FnFindBarycentre = dyn Fn(Barycentre, &[SensorReadout]) -> Option<Barycentre> + Sync;
 
 // Function to correct for DOI
 // Takes into account the physical range for the setup.

@@ -53,6 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let progress = ProgressBar::new(args.input_files.len() as u64).with_message(args.input_files[0].display().to_string());
     progress.set_style(ProgressStyle::default_bar()
                        .template("Processing file: {msg}\n[{elapsed_precise}] {wide_bar} {pos}/{len} ({eta_precise})")
+                       .unwrap()
     );
     progress.tick();
     // --- Collect all events --------------------------------------------------------
