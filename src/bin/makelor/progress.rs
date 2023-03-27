@@ -54,7 +54,6 @@ impl Progress {
     pub (super) fn grouped<T>(&self, groups: &[T]) {
         let mut data = self.0.lock().unwrap();
         data.n_events_read += groups.len() as u64;
-        data.update();
     }
 
     pub (super) fn lor(&self, _: &Hdf5Lor) {
