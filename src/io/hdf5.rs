@@ -177,3 +177,91 @@ impl From<&Hdf5Lor> for LOR {
         }
     }
 }
+
+// ----- TESTS ------------------------------------------------------------------------------------------
+// Proof of concept: nested compound hdf5 types
+#[allow(nonstandard_style)]
+#[cfg(test)]
+mod test_nested_compound_hdf5 {
+
+    use super::*;
+
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct Inner {
+        pub a: u32,
+        pub b: f32,
+    }
+
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct Outer {
+        pub id: u32,
+        pub r#true: Inner,
+        pub   reco: Inner,
+    }
+
+    #[test]
+    fn roundtrip() -> Result<(), Box<dyn std::error::Error>> {
+        let test_data = vec![
+            Outer{ id:0, r#true:Inner{ a: 123, b: 4.56 }, reco:Inner{ a: 789, b: 0.12} },
+            Outer{ id:1, r#true:Inner{ a: 132, b: 45.6 }, reco:Inner{ a: 798, b: 10.2} },
+        ];
+
+        let dir = tempfile::tempdir()?;
+        let file_path = dir.path().join("nested-compound.h5");
+        let file_path = file_path.to_str().unwrap();
+
+        {
+            hdf5::File::create(file_path)?
+                .create_group("just-testing")?
+                .new_dataset_builder()
+                .with_data(&test_data)
+                .create("nested")?;
+        }
+        // read
+        let read_data = read_table::<Outer>(&file_path, "just-testing/nested", Bounds::none())?.to_vec();
+        assert_eq!(test_data, read_data);
+        println!("Test table written to {}", file_path);
+        Ok(())
+    }
+}
+
+// Proof of concept compound HDF5 containing array
+#[allow(nonstandard_style)]
+#[cfg(test)]
+mod test_hdf5_array {
+
+    #[derive(hdf5::H5Type, Clone, PartialEq, Debug)]
+    #[repr(C)]
+    pub struct Waveform {
+        pub event_id: u16,
+        pub charge: u8,
+        pub ts: [f32; 10],
+    }
+
+    impl Waveform {
+        fn new(event_id: u16, charge: u8, v: Vec<f32>) -> Self {
+            let mut ts: [f32; 10] = [f32::NAN; 10];
+            for (from, to) in v.iter().zip(ts.iter_mut()) {
+                *to = *from;
+            }
+            Self { event_id, charge, ts}
+        }
+    }
+
+    #[test]
+    fn testit() -> Result<(), Box<dyn std::error::Error>> {
+        let test_data = vec![
+            Waveform::new(0, 8, vec![1.2, 3.4]),
+            Waveform::new(9, 3, vec![5.6, 7.8, 9.0]),
+        ];
+        let filename = "just-testing.h5";
+        hdf5::File::create(filename)?
+            .create_group("foo")?
+            .new_dataset_builder()
+            .with_data(&test_data)
+            .create("bar")?;
+        Ok(())
+    }
+}
