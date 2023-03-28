@@ -123,6 +123,9 @@ struct HelpDiscretize {
     // `centre_of_nearest_box_fn*`.
 }
 
+/// Randomly shift `x` to `[x - 1/2, x + 1/2)`
+fn smear(x: f32) -> f32 { x - 0.5 + rand::random::<f32>() }
+
 #[cfg(test)]
 mod test_discretize {
     use super::*;
@@ -148,6 +151,23 @@ mod test_discretize {
                 let tol = 1e-3;
                 assert_float_eq!((a,b,c), (x,y,z), abs <= (tol, tol, tol));
             }
+        }
+    }
+
+    proptest!{
+        #[test]
+        fn smear_statistics(
+            x in -30.0..30.0_f32,
+        ) {
+            let n = 10000;
+            let sample = Vec::from_iter((0..n).map(|_| smear(x)));
+            let max = *sample.iter().max_by(|a,b| a.partial_cmp(b).unwrap()).unwrap();
+            let min = *sample.iter().min_by(|a,b| a.partial_cmp(b).unwrap()).unwrap();
+            let sum: f32 =  sample.iter().sum();
+            let spread = max - min;
+            let mean = sum / n as f32;
+            assert_float_eq!(spread, 1.0, abs <= 0.01);
+            assert_float_eq!(mean  , x  , abs <= 0.01);
         }
     }
 }
