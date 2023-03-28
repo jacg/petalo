@@ -30,48 +30,48 @@ impl Discretize {
     }
 
     /// Return a function which will move an `xyz`-point to the centre of the
-    /// nearest discrete element. Inputs and outputs are `uom` `Length`s. See
-    /// also `centre_of_nearest_box_fn_f32`.
-    pub fn centre_of_nearest_box_fn_uom(self) -> impl Fn(Length, Length, Length) -> (Length, Length, Length) + Copy {
-        let HelpDiscretize { r, d_azimuthal, .. } = self.help();
-        move |x:Length, y:Length, z:Length| {
+    /// nearest discrete element.
+    pub fn centre_of_box_fn(self) -> impl Fn(TripleLength) -> TripleLength + Copy {
+        let Discretize { dr, dz, .. } = self;
+        let HelpDiscretize { n_radial, d_azimuthal, .. } = self.help();
+        let r = n_radial * dr;
+        move |(x, y, z)| {
             let original_phi: Angle = y.atan2(x);
             let n = ratio_(original_phi / d_azimuthal).round();
             let adjusted_phi: Angle = n * d_azimuthal;
             let x = r * adjusted_phi.cos();
             let y = r * adjusted_phi.sin();
-            let z = (ratio_(z / self.dz)).round() * self.dz;
+            let z = (ratio_(z / dz)).round() * dz;
             (x, y, z)
         }
     }
 
-    /// Return a function which will move an `xyz`-point to the centre of the
-    /// nearest discrete element. Inputs and outputs are `f32`s interpreted as
-    /// lengths in `mm`. See also `centre_of_nearest_box_fn_uom`.
-    pub fn centre_of_nearest_box_fn_f32(self) -> impl Fn(f32, f32, f32) -> (f32, f32, f32) + Copy {
-        let adjust = self.centre_of_nearest_box_fn_uom();
-        move |x,y,z| {
-            let (x,y,z) = adjust(mm(x), mm(y), mm(z));
-            (mm_(x), mm_(y), mm_(z))
+    /// Return a function which will move an `xyz`-point to a random position
+    /// inside the nearest discrete element.
+    pub fn smeared_in_box_fn(self) -> impl Fn(TripleLength) -> TripleLength + Copy {
+        let Discretize { dr, dz, .. } = self;
+        let HelpDiscretize { n_radial, d_azimuthal, .. } = self.help();
+        move |(x, y, z)| {
+            let original_phi: Angle = y.atan2(x);
+            let n = smear(ratio_(original_phi / d_azimuthal).round());
+            let adjusted_phi: Angle = n * d_azimuthal;
+            let r = smear(ratio_(n_radial)) * dr;
+            let x = r * adjusted_phi.cos();
+            let y = r * adjusted_phi.sin();
+            let z = smear((ratio_(z / dz)).round()) * dz;
+            (x, y, z)
         }
     }
 
-    /// Generate all the possible pairs of `Point`s at the centres of the
-    /// scintillator elements in a detector with axial length `scintillator_length`.
-    /// NB: the number of LORs quickly becomes intractable with increasing detector size.
-    pub fn all_lors(self, scintillator_length: Length) -> impl Iterator<Item = (Point, Point)>
-    where
-    {
-        let points = self.all_element_centres(scintillator_length);
-        itertools::iproduct!(points.clone(), points)
-            .filter(|(p1,p2)| p1 != p2)
-    }
-
+    // NOTE this introduces a *systematic* random bias into the sensitivity
+    // image calculation. It's spread out among many elements so it might be OK,
+    // but it *is* a bit fishy! Inital trials do indeed give fishy sensitivity
+    // images.
     /// Generate all the points lying at the centres of the discretized elements
     /// of a detector with axial_length `scintillator_length`
-    pub fn all_element_centres(self, scintillator_length: Length) -> impl Iterator<Item = Point> + Clone {
-        let HelpDiscretize { r, n_azimuthal, d_azimuthal } = self.help();
-        let Discretize { dz, .. } = self;
+    pub fn smeared_all_elements(self, scintillator_length: Length) -> impl Iterator<Item = Point> + Clone {
+        let HelpDiscretize { n_radial, n_azimuthal, d_azimuthal } = self.help();
+        let Discretize { dz, dr, .. } = self;
 
         // Ensure that there is always an element at z=0, therefore n_axial must be odd
         let half_length: Length = scintillator_length / 2.0;
@@ -80,6 +80,32 @@ impl Discretize {
 
         let     axial_indices = -n_half_axial..=n_half_axial;
         let azimuthal_indices =             0.. n_azimuthal;
+
+        let     axial_positions = ||     axial_indices.map(move |n| n as f32 * dz);
+        let azimuthal_positions = || azimuthal_indices.map(move |n| {
+            let phi = d_azimuthal * n as f32;
+            let r = smear(ratio_(n_radial)) * dr;
+            (r * phi.cos(), r * phi.sin())
+        });
+
+        itertools::iproduct!(azimuthal_positions(), axial_positions())
+            .map(|((x1,y1), z1)| Point { x: x1, y: y1, z: z1 })
+    }
+
+    /// Generate all the points lying at the centres of the discretized elements
+    /// of a detector with axial_length `scintillator_length`
+    pub fn centre_all_elements(self, scintillator_length: Length) -> impl Iterator<Item = Point> + Clone {
+        let HelpDiscretize { n_radial, n_azimuthal, d_azimuthal } = self.help();
+        let Discretize { dz, dr, .. } = self;
+
+        let r = n_radial * dr;
+        // Ensure that there is always an element at z=0, therefore n_axial must be odd
+        let half_length: Length = scintillator_length / 2.0;
+        let n_half_axial: u32 = (ratio_(half_length / dz)).round() as u32;
+        let n_half_axial: i32 = n_half_axial as i32;
+
+        let     axial_indices = -n_half_axial..=n_half_axial;
+        let azimuthal_indices =              0..n_azimuthal;
 
         let     axial_positions = ||     axial_indices.map(move |n| n as f32 * dz);
         let azimuthal_positions = || azimuthal_indices.map(move |n| {
@@ -95,12 +121,13 @@ impl Discretize {
         let Discretize { r_min, dr, da, .. } = self;
         // Radius of centre of scintillator layer
         let r: Length = r_min + (dr / 2.0);
+        let n_radial: Ratio = r / dr;
         let mid_circumference: Length = std::f32::consts::TAU * r;
         //let n_azimuthal: f32 = ratio_((mid_circumference / da).round::<uom::si::ratio::ratio>());
         let n_azimuthal: f32 = (ratio_(mid_circumference / da)).round();
         let d_azimuthal: Angle = TWOPI / n_azimuthal;
         HelpDiscretize {
-            r,
+            n_radial,
             n_azimuthal: n_azimuthal as u32,
             d_azimuthal
         }
@@ -108,8 +135,8 @@ impl Discretize {
 }
 
 struct HelpDiscretize {
-    /// Radial position of centre of scintillator
-    r: Length,
+    /// Radial position of centre of scintillator in terms of its thickness
+    n_radial: Ratio,
 
     /// Number of elements that fit around circumference of ring/tube
     n_azimuthal: u32,
@@ -125,6 +152,17 @@ struct HelpDiscretize {
 
 /// Randomly shift `x` to `[x - 1/2, x + 1/2)`
 fn smear(x: f32) -> f32 { x - 0.5 + rand::random::<f32>() }
+
+type TripleLength = (Length, Length, Length);
+type TripleF32 = (f32, f32, f32);
+
+/// Adapt function manipulating `uom` `Length`s into one manipulating `f32`s interpreted as `mm`
+pub fn uom_mm_triplets_to_f32(f: impl Fn(TripleLength) -> TripleLength + Copy) -> impl Fn(TripleF32) -> TripleF32 + Copy {
+    move |(x,y,z)| {
+        let (x,y,z) = f((mm(x), mm(y), mm(z)));
+        (mm_(x), mm_(y), mm_(z))
+    }
+}
 
 #[cfg(test)]
 mod test_discretize {
@@ -143,10 +181,10 @@ mod test_discretize {
             l     in  30.0 .. (100.0 as Lengthf32),
         ) {
             let d = Discretize::from_f32s_in_mm(r_min, dr, dz, da);
-            let adjust = d.centre_of_nearest_box_fn_uom();
-            for Point { x, y, z } in d.all_element_centres(mm(l)) {
+            let adjust = d.centre_of_box_fn();
+            for Point { x, y, z } in d.centre_all_elements(mm(l)) {
                 let (a,b,c) = (mm_(x), mm_(y), mm_(z));
-                let (x,y,z) = adjust(x,y,z);
+                let (x,y,z) = adjust((x,y,z));
                 let (x,y,z) = (mm_(x), mm_(y), mm_(z));
                 let tol = 1e-3;
                 assert_float_eq!((a,b,c), (x,y,z), abs <= (tol, tol, tol));
@@ -177,5 +215,5 @@ use crate::Point;
 
 use units::{
     mm, mm_, ratio_,
-    Angle, Length, TWOPI,
+    Angle, Length, Ratio, TWOPI,
 };

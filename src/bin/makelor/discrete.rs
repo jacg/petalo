@@ -4,8 +4,8 @@ pub (crate) fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> 
     let &Reco::Discrete { r_min, dr, dz, da } = d else {
         panic!("lor_from_discretized_vertices called with variant other than Reco::Discrete")
     };
-    use petalo::discrete::Discretize;
-    let adjust = Discretize { r_min, dr, dz, da }.centre_of_nearest_box_fn_f32();
+    use petalo::discrete::{Discretize, uom_mm_triplets_to_f32};
+    let adjust = uom_mm_triplets_to_f32(Discretize { r_min, dr, dz, da }.centre_of_box_fn());
     move |vertices| {
         let mut in_scint = vertices_in_scintillator(vertices);
 
@@ -21,8 +21,8 @@ pub (crate) fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> 
         // let (E1, E2) = (b1 - a1, b2 - a2);
 
         // let (ox1, oy1, oz1, ox2, oy2, oz2) = (x1, y1, z1, x2, y2, z2);
-        let (x1, y1, z1) = adjust(x1, y1, z1);
-        let (x2, y2, z2) = adjust(x2, y2, z2);
+        let (x1, y1, z1) = adjust((x1, y1, z1));
+        let (x2, y2, z2) = adjust((x2, y2, z2));
 
         // println!();
         // let dp1 = dist((ox1, oy1, oz1), (x1, y1, z1));
@@ -71,12 +71,10 @@ mod test_discretize {
         #[case] vertex  : (f32, f32, f32),
         #[case] expected: (f32, f32, f32),
     ) {
+        use petalo::discrete::{Discretize, uom_mm_triplets_to_f32};
         let (rmin, dr, dz, da) = detector;
-        let (x, y, z) = vertex;
-        let (x, y, z) = petalo::discrete::Discretize
-            ::from_f32s_in_mm(rmin, dr, dz, da).
-            centre_of_nearest_box_fn_f32()
-            (x,y,z);
+        let move_to_centre_of_element = uom_mm_triplets_to_f32(Discretize::from_f32s_in_mm(rmin, dr, dz, da).centre_of_box_fn());
+        let (x, y, z) = move_to_centre_of_element(vertex);
         assert_float_eq!((x,y,z), expected, abs <= (0.01, 0.01, 0.01));
     }
 }

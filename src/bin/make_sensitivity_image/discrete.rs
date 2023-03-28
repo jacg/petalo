@@ -30,7 +30,8 @@ where
     dbg!(detector_length);
     // Points at the centres of all elements
     let points = discretize
-        .all_element_centres(detector_length)
+        .centre_all_elements(detector_length)
+        //.smeared_all_elements(detector_length)
         .collect::<Vec<_>>();
     dbg!(petalo::utils::group_digits(points.len()));
     points
