@@ -43,16 +43,16 @@ enum DetectorType {
     /// Discretize scintillator
     Discrete {
 
-        /// Thickness of scintillator tube/ring
-        #[clap(long, short = 'r')]
+        /// Radial size of elements = thickness of scintillator
+        #[clap(long)]
         dr: Length,
 
         /// Axial width of scintillator elements
-        #[clap(long, short = 'z')]
+        #[clap(long)]
         dz: Length,
 
         /// Azimuthal width of scintillator elements at `r_min + dr/2`?
-        #[clap(long, short = 'a')]
+        #[clap(long)]
         da: Length,
     },
 }

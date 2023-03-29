@@ -83,11 +83,11 @@ fn read_qts     (infile: &Path) -> hdf5::Result<Vec<  QT  >> { io::hdf5::sensors
 // NOTE only using first vertex, for now
 #[allow(nonstandard_style)]
 fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5Lor> + Copy {
-    let &Reco::Discrete { radius, dr, dz, da } = d else {
+    let &Reco::Discrete { r_min, dr, dz, da } = d else {
         panic!("lor_from_discretized_vertices called with variant other than Reco::Discrete")
     };
     use petalo::discrete::Discretize;
-    let adjust = Discretize { r_min: radius, dr, dz, da }.centre_of_nearest_box_fn_f32();
+    let adjust = Discretize { r_min, dr, dz, da }.centre_of_nearest_box_fn_f32();
     move |vertices| {
         let mut in_scint = vertices_in_scintillator(vertices);
 

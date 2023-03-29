@@ -43,18 +43,18 @@ pub (super) enum Reco {
     Discrete {
         /// Inner radius of scintillator
         #[clap(short, long)]
-        radius: Length,
+        r_min: Length,
 
         /// Radial size of elements = thickness of scintillator
-        #[clap(short = 'd', long)]
+        #[clap(long)]
         dr: Length,
 
         /// Axial size of elements
-        #[clap(short = 'z', long)]
+        #[clap(long)]
         dz: Length,
 
-        /// Azimuthal size of elements at inner radius
-        #[clap(short = 'a', long)]
+        /// Azimuthal width of scintillator elements at `r_min + dr/2`?
+        #[clap(long)]
         da: Length,
     },
 
