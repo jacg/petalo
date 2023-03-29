@@ -41,11 +41,17 @@ pub (crate) fn make_lors<S>(points: &[Point], fov: crate::FOV) -> impl ParallelI
 where
     S: SystemMatrix,
 {
+    let smear = unsafe { crate::DISCRETIZE }.unwrap().smeared_in_box_fn();
+    let smear = move |p: Point|  {
+        let (x,y,z) = smear((p.x, p.y, p.z));
+        Point { x, y, z }
+    };
     // let origin = petalo::Point::new(mm(0.0), mm(0.0), mm(0.0));
     (0..points.len())
         .par_bridge()
         .flat_map_iter(|i| (i..points.len()).zip(std::iter::repeat(i)))
         .map   (move | (i,j)| (points[i], points[j]))
+        .map   (move | (p,q)| ( smear(p),  smear(q)))
         // Rough approximation to 'passes through FOV'
         //.filter(|&q| origin.distance_to_line(*p, *q) < fov.half_width.z)
         .filter(move |&(p,q)| fov.entry(p,q).is_some())
