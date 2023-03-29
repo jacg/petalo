@@ -24,7 +24,9 @@ pub fn mlem<'a, S: SystemMatrix + 'a>(
     // each one made by performing one MLEM iteration on the previous one
     std::iter::from_fn(move || {
         one_iteration::<S>(parameters, &mut image, osem.subset(measured_lors), &sensitivity.data);
-        Some((image.clone(), osem.next())) // TODO see if we can sensibly avoid cloning
+        let image_id = osem;
+        osem.advance();
+        Some((image.clone(), image_id)) // TODO see if we can sensibly avoid cloning
     })
 }
 
@@ -77,13 +79,12 @@ impl Osem {
         Self { n_subsets, iteration: 1, subset: 1 }
     }
 
-    fn next(&mut self) -> Self {
+    fn advance(&mut self) {
         self.subset += 1;
         if self.subset > self.n_subsets {
             self.subset = 1;
             self.iteration += 1;
         }
-        *self
     }
 
     fn subset<'l>(&self, lors: &'l [LOR]) -> &'l [LOR] {
