@@ -12,12 +12,12 @@ pub struct Cli {
     pub output: Option<PathBuf>,
 
     /// Detector length for sensitivity image generation
-    #[clap(long, short='l', default_value = "1000 mm")]
+    #[clap(long, short='l')]
     pub detector_length: Length,
 
-    /// Detector diameter for sensitivity image generation
-    #[clap(long, short='d', default_value = "710 mm")]
-    pub detector_diameter: Length,
+    /// Inner radius of scintillator for sensitivity image generation
+    #[clap(long, short='r')]
+    pub r_min: Length,
 
     /// Conversion from density to attenuation coefficient in cm^2 / g
     #[clap(long, default_value = "0.095")]
@@ -59,7 +59,7 @@ enum DetectorType {
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let Cli { input, output, detector_length, detector_diameter, detector_type, rho_to_mu, n_threads } = Cli::parse();
+    let Cli { input, output, detector_length, r_min, detector_type, rho_to_mu, n_threads } = Cli::parse();
 
     // Interpret rho_to_mu as converting from [rho in g/cm^3] to [mu in cm^-1]
     let rho_to_mu: AreaPerMass = {
@@ -100,13 +100,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             pre_report(&format!("Creating sensitivity image, using {} LORs ... ", group_digits(n_lors)))?;
             pool.install(|| continuous::sensitivity_image::<Siddon>(
                 detector_length,
-                detector_diameter,
+                r_min * 2.0,
                 parameters,
                 &attenuation,
                 n_lors))
         },
         DetectorType::Discrete { dr, dz, da } => {
-            let discretize = Discretize { dr, dz, da, r_min: detector_diameter / 2.0 };
+            let discretize = Discretize { dr, dz, da, r_min };
             pool.install(|| discrete::sensitivity_image::<Siddon>(
                 detector_length,
                 parameters,
