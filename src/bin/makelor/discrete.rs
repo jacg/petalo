@@ -5,7 +5,7 @@ pub (crate) fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> 
         panic!("lor_from_discretized_vertices called with variant other than Reco::Discrete")
     };
     use petalo::discrete::{Discretize, uom_mm_triplets_to_f32};
-    let adjust = uom_mm_triplets_to_f32(Discretize { r_min, dr, dz, da }.centre_of_box_fn());
+    let adjust = uom_mm_triplets_to_f32(Discretize { r_min, dr, dz, da }.smeared_in_box_fn());
     move |vertices| {
         let mut in_scint = vertices_in_scintillator(vertices);
 
