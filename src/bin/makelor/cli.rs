@@ -60,6 +60,10 @@ pub (super) enum Reco {
         /// Azimuthal width of scintillator elements at `r_min + dr/2`?
         #[clap(long)]
         da: Length,
+
+        /// Place the ends of each LOR at a random position in the element
+        #[clap(long)]
+        smear: bool,
     },
 
     /// Reconstruct LORs form DBSCAN clusters

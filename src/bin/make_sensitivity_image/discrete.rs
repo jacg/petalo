@@ -41,7 +41,7 @@ pub (crate) fn make_lors<S>(points: &[Point], fov: crate::FOV) -> impl ParallelI
 where
     S: SystemMatrix,
 {
-    let smear = unsafe { crate::DISCRETIZE }.unwrap().smeared_in_box_fn();
+    let smear = unsafe { crate::DISCRETIZE }.unwrap().make_adjust_fn();
     let smear = move |p: Point|  {
         let (x,y,z) = smear((p.x, p.y, p.z));
         Point { x, y, z }

@@ -16,50 +16,53 @@ pub struct Discretize {
 
     /// Azimuthal width of scintillator elements at `r_min + dr/2`?
     pub da: Length,
+
+    /// Place the ends of each LOR at a random position in the element
+    pub smear: bool,
 }
 
 impl Discretize {
 
-    pub fn new(r_min: Length, dr: Length, dz: Length, da: Length) -> Self {
-        Self { r_min, dr, dz, da }
+    pub fn new(r_min: Length, dr: Length, dz: Length, da: Length, smear: bool) -> Self {
+        Self { r_min, dr, dz, da, smear }
     }
 
     /// Construct from `f32`s which are interpreted as lengths in `mm`
-    pub fn from_f32s_in_mm(r_min: f32, dr: f32, dz: f32, da: f32) -> Self {
-        Self::new(mm(r_min), mm(dr), mm(dz), mm(da))
+    pub fn from_f32s_in_mm(r_min: f32, dr: f32, dz: f32, da: f32, smear: bool) -> Self {
+        Self::new(mm(r_min), mm(dr), mm(dz), mm(da), smear)
     }
 
-    /// Return a function which will move an `xyz`-point to the centre of the
-    /// nearest discrete element.
-    pub fn centre_of_box_fn(self) -> impl Fn(TripleLength) -> TripleLength + Copy {
+    /// Return a function which will adjust the position of an `xyz`-point
+    /// within a scintillator element:
+    /// + to the centre of the element, if `self.smear` is `false`
+    /// + to a random point in the element, otherwise
+    pub fn make_adjust_fn(self) -> Arc<dyn Fn(TripleLength) -> TripleLength + Send + Sync> {
         let Discretize { dr, dz, .. } = self;
         let HelpDiscretize { n_radial, d_azimuthal, .. } = self.help();
-        let r = n_radial * dr;
-        move |(x, y, z)| {
-            let original_phi: Angle = y.atan2(x);
-            let n = ratio_(original_phi / d_azimuthal).round();
-            let adjusted_phi: Angle = n * d_azimuthal;
-            let x = r * adjusted_phi.cos();
-            let y = r * adjusted_phi.sin();
-            let z = (ratio_(z / dz)).round() * dz;
-            (x, y, z)
-        }
-    }
-
-    /// Return a function which will move an `xyz`-point to a random position
-    /// inside the nearest discrete element.
-    pub fn smeared_in_box_fn(self) -> impl Fn(TripleLength) -> TripleLength + Copy {
-        let Discretize { dr, dz, .. } = self;
-        let HelpDiscretize { n_radial, d_azimuthal, .. } = self.help();
-        move |(x, y, z)| {
-            let original_phi: Angle = y.atan2(x);
-            let n = smear(ratio_(original_phi / d_azimuthal).round());
-            let adjusted_phi: Angle = n * d_azimuthal;
-            let r = smear(ratio_(n_radial)) * dr;
-            let x = r * adjusted_phi.cos();
-            let y = r * adjusted_phi.sin();
-            let z = smear((ratio_(z / dz)).round()) * dz;
-            (x, y, z)
+        if self.smear {
+            // Move to random position in element
+            Arc::new(move |(x, y, z)| {
+                let original_phi: Angle = y.atan2(x);
+                let n = smear(ratio_(original_phi / d_azimuthal).round());
+                let adjusted_phi: Angle = n * d_azimuthal;
+                let r = smear(ratio_(n_radial)) * dr;
+                let x = r * adjusted_phi.cos();
+                let y = r * adjusted_phi.sin();
+                let z = smear((ratio_(z / dz)).round()) * dz;
+                (x, y, z)
+            })
+        } else {
+            // Move to centre of element
+            let r = n_radial * dr;
+            Arc::new(move |(x, y, z)| {
+                let original_phi: Angle = y.atan2(x);
+                let n = ratio_(original_phi / d_azimuthal).round();
+                let adjusted_phi: Angle = n * d_azimuthal;
+                let x = r * adjusted_phi.cos();
+                let y = r * adjusted_phi.sin();
+                let z = (ratio_(z / dz)).round() * dz;
+                (x, y, z)
+            })
         }
     }
 
@@ -157,11 +160,11 @@ type TripleLength = (Length, Length, Length);
 type TripleF32 = (f32, f32, f32);
 
 /// Adapt function manipulating `uom` `Length`s into one manipulating `f32`s interpreted as `mm`
-pub fn uom_mm_triplets_to_f32(f: impl Fn(TripleLength) -> TripleLength + Copy) -> impl Fn(TripleF32) -> TripleF32 + Copy {
-    move |(x,y,z)| {
+pub fn uom_mm_triplets_to_f32(f: Arc<dyn Fn(TripleLength) -> TripleLength + Sync + Send>) -> Arc<dyn Fn(TripleF32) -> TripleF32 + Sync + Send> {
+    Arc::new(move |(x,y,z)| {
         let (x,y,z) = f((mm(x), mm(y), mm(z)));
         (mm_(x), mm_(y), mm_(z))
-    }
+    })
 }
 
 #[cfg(test)]
@@ -180,8 +183,8 @@ mod test_discretize {
             da    in   1.0 .. (  5.0 as Lengthf32),
             l     in  30.0 .. (100.0 as Lengthf32),
         ) {
-            let d = Discretize::from_f32s_in_mm(r_min, dr, dz, da);
-            let adjust = d.centre_of_box_fn();
+            let d = Discretize::from_f32s_in_mm(r_min, dr, dz, da, false);
+            let adjust = d.make_adjust_fn();
             for Point { x, y, z } in d.centre_all_elements(mm(l)) {
                 let (a,b,c) = (mm_(x), mm_(y), mm_(z));
                 let (x,y,z) = adjust((x,y,z));
@@ -211,6 +214,8 @@ mod test_discretize {
 }
 
 // ----- Imports ------------------------------------------------------------------------------------------
+use std::sync::Arc;
+
 use crate::Point;
 
 use units::{

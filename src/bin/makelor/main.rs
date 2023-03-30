@@ -125,7 +125,10 @@ fn vertices_in_scintillator(vertices: &[Vertex]) -> impl Iterator<Item = Vertex>
 }
 
 // ----- Imports -----------------------------------------------------------------------------------------
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use clap::Parser;
 use itertools::Itertools;
 use rayon::prelude::*;

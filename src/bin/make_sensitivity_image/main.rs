@@ -54,8 +54,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 &attenuation,
                 n_lors))
         },
-        DetectorType::Discrete { dr, dz, da } => {
-            let discretize = Discretize { dr, dz, da, r_min };
+        DetectorType::Discrete { dr, dz, da, smear } => {
+            let discretize = Discretize { dr, dz, da, r_min, smear };
             // TODO stop using global to pass discretization parameters
             unsafe { DISCRETIZE = Some(discretize) }
             pool.install(|| discrete::sensitivity_image::<Siddon>(
