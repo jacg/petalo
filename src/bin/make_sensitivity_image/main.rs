@@ -3,9 +3,6 @@ mod continuous;
 mod cli;
 use cli::*;
 
-// TODO stop using global to pass discretization parameters
-static mut DISCRETIZE: Option<Discretize> = None;
-
 fn main() -> Result<(), Box<dyn Error>> {
 
     let Cli { input, output, detector_length, r_min, detector_type, rho_to_mu, n_threads } = Cli::parse();
@@ -56,8 +53,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
         DetectorType::Discrete { dr, dz, da, smear } => {
             let discretize = Discretize { dr, dz, da, r_min, smear };
-            // TODO stop using global to pass discretization parameters
-            unsafe { DISCRETIZE = Some(discretize) }
             pool.install(|| discrete::sensitivity_image::<Siddon>(
                 detector_length,
                 parameters,

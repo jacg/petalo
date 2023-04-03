@@ -10,7 +10,7 @@ where
     S: SystemMatrix,
 {
     let points     = make_points::<S>(detector_length, discretize);
-    let lors       = make_lors  ::<S>(&points, attenuation.fov);
+    let lors       = make_lors  ::<S>(&points, attenuation.fov, discretize);
     let mut image_data = project_lors::<S,_,_>(lors, projector_data, attenuation, project_one_lor_sens::<S>);
     let n_lors = { // TODO this is incorrect: it doesn't take the FOV filter into account
         let n = points.len();
@@ -31,20 +31,24 @@ where
     // Points at the centres of all elements
     let points = discretize
         .centre_all_elements(detector_length)
-        //.smeared_all_elements(detector_length)
         .collect::<Vec<_>>();
     dbg!(petalo::utils::group_digits(points.len()));
     points
 }
 
-pub (crate) fn make_lors<S>(points: &[Point], fov: crate::FOV) -> impl ParallelIterator<Item = LOR> + '_
+pub (crate) fn make_lors<S>(points: &[Point], fov: crate::FOV, discretize: Discretize) -> impl ParallelIterator<Item = LOR> + '_
 where
     S: SystemMatrix,
 {
-    let smear = unsafe { crate::DISCRETIZE }.unwrap().make_adjust_fn();
-    let smear = move |p: Point|  {
-        let (x,y,z) = smear((p.x, p.y, p.z));
-        Point { x, y, z }
+
+    let smear: Box<dyn Fn(Point) -> Point + Sync + Send> = if !discretize.smear {
+        Box::new(|p| p)
+    } else {
+        let smear = discretize.make_adjust_fn();
+        Box::new(move |p: Point|  {
+            let (x,y,z) = smear((p.x, p.y, p.z));
+            Point { x, y, z }
+        })
     };
     // let origin = petalo::Point::new(mm(0.0), mm(0.0), mm(0.0));
     (0..points.len())
