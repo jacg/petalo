@@ -120,6 +120,7 @@ fn group_by<T>(group_by: impl FnMut(&T) -> u32, qts: impl IntoIterator<Item = T>
 fn read_vertices(infile: &Path) -> hdf5::Result<Vec<Vertex>> { io::hdf5::mc::read_vertices(infile, Bounds::none()) }
 fn read_qts     (infile: &Path) -> hdf5::Result<Vec<  QT  >> { io::hdf5::sensors::read_qts(infile, Bounds::none()) }
 
+/// Filter vertices, keeping only those which occur in the scintillator volume
 fn vertices_in_scintillator(vertices: &[Vertex]) -> impl Iterator<Item = Vertex> + '_ {
     vertices.iter().cloned().filter(|v| v.volume_id == 0)
 }
