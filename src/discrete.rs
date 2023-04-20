@@ -32,6 +32,14 @@ impl Discretize {
         Self::new(mm(r_min), mm(dr), mm(dz), mm(da), smear)
     }
 
+    fn cell_indices(self, x: Length, y: Length, z: Length) -> (f32, f32) {
+        let HelpDiscretize { d_azimuthal, .. } = self.help();
+        let original_phi: Angle = y.atan2(x);
+        let n_phi = ratio_(original_phi / d_azimuthal).round();
+        let nz    = ratio_(z            / self.dz)    .round();
+        (n_phi, nz)
+    }
+
     /// Return a function which will adjust the position of an `xyz`-point
     /// within a scintillator element:
     /// + to the centre of the element, if `self.smear` is `false`
@@ -39,28 +47,28 @@ impl Discretize {
     pub fn make_adjust_fn(self) -> Arc<dyn Fn(TripleLength) -> TripleLength + Send + Sync> {
         let Discretize { dr, dz, .. } = self;
         let HelpDiscretize { n_radial, d_azimuthal, .. } = self.help();
+
         if self.smear {
             // Move to random position in element
+            let n_radial = ratio_(n_radial);
             Arc::new(move |(x, y, z)| {
-                let original_phi: Angle = y.atan2(x);
-                let n = smear(ratio_(original_phi / d_azimuthal).round());
-                let adjusted_phi: Angle = n * d_azimuthal;
-                let r = smear(ratio_(n_radial)) * dr;
+                let (n_phi, n_z) = self.cell_indices(x, y, z);
+                let z                   = smear(n_z)      * dz;
+                let adjusted_phi: Angle = smear(n_phi)    * d_azimuthal;
+                let r                   = smear(n_radial) * dr;
                 let x = r * adjusted_phi.cos();
                 let y = r * adjusted_phi.sin();
-                let z = smear((ratio_(z / dz)).round()) * dz;
                 (x, y, z)
             })
         } else {
             // Move to centre of element
             let r = n_radial * dr;
             Arc::new(move |(x, y, z)| {
-                let original_phi: Angle = y.atan2(x);
-                let n = ratio_(original_phi / d_azimuthal).round();
-                let adjusted_phi: Angle = n * d_azimuthal;
+                let (n_phi, n_z) = self.cell_indices(x, y, z);
+                let z                   = n_z   * dz;
+                let adjusted_phi: Angle = n_phi * d_azimuthal;
                 let x = r * adjusted_phi.cos();
                 let y = r * adjusted_phi.sin();
-                let z = (ratio_(z / dz)).round() * dz;
                 (x, y, z)
             })
         }
