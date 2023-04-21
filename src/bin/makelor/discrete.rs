@@ -16,8 +16,8 @@ pub (crate) fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> 
         // // Pessimistic version: picks vertex with highest dKE
         // use ordered_float::NotNan;
         // let in_scint = &mut vertices_in_scintillator(vertices); // Working around filter consuming the iterator
-        // let Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: b1, post_KE: a1, ..} = in_scint.filter(|v| v.track_id == 2).max_by_key(|v| NotNan::new(v.pre_KE - v.post_KE).unwrap())?;
-        // let Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: b2, post_KE: a2, ..} = in_scint.filter(|v| v.track_id == 2).max_by_key(|v| NotNan::new(v.pre_KE - v.post_KE).unwrap())?;
+        // let Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: b2, post_KE: a2, ..} = in_scint.filter(|v| v.track_id == 2).max_by_key(|v| NotNan::new(v.pre_KE - v.post_KE).unwrap())?;
+        // let Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: b1, post_KE: a1, ..} = in_scint.filter(|v| v.track_id == 1).max_by_key(|v| NotNan::new(v.pre_KE - v.post_KE).unwrap())?;
         // let (E1, E2) = (b1 - a1, b2 - a2);
 
         // let (ox1, oy1, oz1, ox2, oy2, oz2) = (x1, y1, z1, x2, y2, z2);
