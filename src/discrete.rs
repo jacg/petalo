@@ -32,12 +32,13 @@ impl Discretize {
         Self::new(mm(r_min), mm(dr), mm(dz), mm(da), smear)
     }
 
-    fn cell_indices(self, x: Length, y: Length, z: Length) -> (f32, f32) {
+    pub fn cell_indices(self, x: Length, y: Length, z: Length) -> Indices {
         let HelpDiscretize { d_azimuthal, .. } = self.help();
         let original_phi: Angle = y.atan2(x);
         let n_phi = ratio_(original_phi / d_azimuthal).round();
-        let nz    = ratio_(z            / self.dz)    .round();
-        (n_phi, nz)
+        let n_z   = ratio_(z            / self.dz)    .round();
+        dbg!(n_phi, n_z);
+        Indices {n_phi: n_phi as i32, n_z: n_z as i32}
     }
 
     /// Return a function which will adjust the position of an `xyz`-point
@@ -52,10 +53,10 @@ impl Discretize {
             // Move to random position in element
             let n_radial = ratio_(n_radial);
             Arc::new(move |(x, y, z)| {
-                let (n_phi, n_z) = self.cell_indices(x, y, z);
-                let z                   = smear(n_z)      * dz;
-                let adjusted_phi: Angle = smear(n_phi)    * d_azimuthal;
-                let r                   = smear(n_radial) * dr;
+                let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
+                let z                   = smear(n_z   as f32) * dz;
+                let adjusted_phi: Angle = smear(n_phi as f32) * d_azimuthal;
+                let r                   = smear(n_radial)     * dr;
                 let x = r * adjusted_phi.cos();
                 let y = r * adjusted_phi.sin();
                 (x, y, z)
@@ -64,9 +65,9 @@ impl Discretize {
             // Move to centre of element
             let r = n_radial * dr;
             Arc::new(move |(x, y, z)| {
-                let (n_phi, n_z) = self.cell_indices(x, y, z);
-                let z                   = n_z   * dz;
-                let adjusted_phi: Angle = n_phi * d_azimuthal;
+                let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
+                let z                   = n_z   as f32 * dz;
+                let adjusted_phi: Angle = n_phi as f32 * d_azimuthal;
                 let x = r * adjusted_phi.cos();
                 let y = r * adjusted_phi.sin();
                 (x, y, z)
@@ -159,6 +160,12 @@ struct HelpDiscretize {
     // width remains the same, but we adjust the total length, if one is
     // specified. It will be specified in `all_lors_through_fov`, but not in
     // `centre_of_nearest_box_fn*`.
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Indices {
+    n_z: i32,
+    n_phi: i32,
 }
 
 /// Randomly shift `x` to `[x - 1/2, x + 1/2)`
