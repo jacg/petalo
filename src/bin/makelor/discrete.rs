@@ -20,17 +20,8 @@ pub (crate) fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> 
         // let Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: b1, post_KE: a1, ..} = in_scint.filter(|v| v.track_id == 1).max_by_key(|v| NotNan::new(v.pre_KE - v.post_KE).unwrap())?;
         // let (E1, E2) = (b1 - a1, b2 - a2);
 
-        // let (ox1, oy1, oz1, ox2, oy2, oz2) = (x1, y1, z1, x2, y2, z2);
         let (x1, y1, z1) = adjust((x1, y1, z1));
         let (x2, y2, z2) = adjust((x2, y2, z2));
-
-        // println!();
-        // let dp1 = dist((ox1, oy1, oz1), (x1, y1, z1));
-        // let dp2 = dist((ox2, oy2, oz2), (x2, y2, z2));
-        // let mean_z = (z2+z1) / 2.0;
-        // if E1.min(E2) < 500.0 { return None }
-        // println!("{ox1:6.1} {oy1:6.1} {oz1:6.1}   {ox2:6.1} {oy2:6.1} {oz2:6.1}     {dp1:4.1}  {dp2:4.1}   {mean_z:6.1}");
-        // println!("{x1:6.1} {y1:6.1} {z1:6.1}   {x2:6.1} {y2:6.1} {z2:6.1}    {E1:5.1} {E2:5.1}");
 
         Some(Hdf5Lor { dt: t2 - t1, x1, y1, z1, x2, y2, z2, q1: f32::NAN, q2: f32::NAN, E1, E2 })
     }
