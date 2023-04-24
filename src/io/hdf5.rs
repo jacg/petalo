@@ -90,7 +90,6 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
     // Smear energy.
     if let Some(fwhm) = Some(ratio(0.15)) { smear_energies(&mut hdf5_lors, fwhm, &mut progress); }
 
-    histogram_energies(&hdf5_lors);
     smear_positions(&mut hdf5_lors, config, &mut progress);
 
     // Use LORs to gather statistics about spatial distribution of scatter probability
@@ -170,16 +169,6 @@ fn smear_positions(hdf5_lors: &mut [Hdf5Lor], config: &Config, progress: &mut Pr
         (*x2, *y2, *z2) = (mm_(x), mm_(y), mm_(z));
     }
     progress.done();
-}
-
-fn histogram_energies(hdf5_lors: &[Hdf5Lor]) {
-    use ndhistogram::{ndhistogram, Histogram, axis::Uniform};
-    let mut hist = ndhistogram!(Uniform::new(27, 330.0, 600.0));
-    for Hdf5Lor { E1, E2, .. } in hdf5_lors {
-        hist.fill(E1);
-        hist.fill(E2);
-    }
-    println!("{hist}");
 }
 
 // Include specific table readers and associated types
