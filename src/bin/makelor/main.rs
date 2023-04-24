@@ -49,6 +49,16 @@ fn main() -> hdf5::Result<()> {
 
     // --- Report any files that failed no be read -----------------------------------
     progress.final_report();
+
+    // --- Store discretization parameters in HDF5 -----------------------------------
+    if let &Reco::Discrete { r_min, dr, dz, da, .. } = &args.reco {
+        use units::mm_;
+        dataset.new_attr_builder().with_data(&[mm_(r_min)]).create("r_min")?;
+        dataset.new_attr_builder().with_data(&[mm_(dr   )]).create("dr")?;
+        dataset.new_attr_builder().with_data(&[mm_(da   )]).create("da")?;
+        dataset.new_attr_builder().with_data(&[mm_(dz   )]).create("dz")?;
+    }
+
     Ok(())
 }
 

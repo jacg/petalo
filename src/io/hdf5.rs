@@ -91,10 +91,7 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
     if let Some(fwhm) = Some(ratio(0.15)) { smear_energies(&mut hdf5_lors, fwhm, &mut progress); }
 
     histogram_energies(&hdf5_lors);
-
-    // Smear position. TODO hard-wiring discretization which should be stored by
-    // makelor in HDF5 and read in here
-    smear_positions(&mut hdf5_lors, &mut progress);
+    smear_positions(&mut hdf5_lors, config, &mut progress);
 
     // Use LORs to gather statistics about spatial distribution of scatter probability
     if let Some(sgram) = scattergram {
@@ -150,14 +147,18 @@ fn smear_energies(hdf5_lors: &mut [Hdf5Lor], fwhm: Ratio, progress: &mut Progres
     progress.done();
 }
 
-fn smear_positions(hdf5_lors: &mut [Hdf5Lor], progress: &mut Progress) {
-    // TODO discretization hard-wired for now, but it should be written into
-    // HDF5 by makelor, and read in here.
+fn smear_positions(hdf5_lors: &mut [Hdf5Lor], config: &Config, progress: &mut Progress) {
+    let file = hdf5::File::open(&config.input.file).unwrap();
+    let dataset = file.dataset("reco_info/lors").unwrap();
+    let get = |attr_name| mm(dataset.attr(attr_name).unwrap()
+        .read_1d::<f32>().unwrap()
+        .as_slice().unwrap()
+        [0]);
     let discretize = crate::discrete::Discretize {
-        r_min: mm(350.0),
-        dr: mm(10.0),
-        dz: mm(3.0),
-        da: mm(3.0),
+        r_min: get("r_min"),
+        dr: get("dr"),
+        dz: get("dz"),
+        da: get("da"),
         smear: true,
     };
     let smear_position = discretize.make_adjust_fn();
