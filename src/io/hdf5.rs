@@ -5,14 +5,15 @@ use std::path::Path;
 use crate::{
     LOR, Point,
     config::mlem::{Bounds, Config},
-    lorogram::{Scattergram, Prompt}
+    lorogram::{Scattergram, Prompt},
+    utils::timing::Progress
 };
 
 use rayon::prelude::*;
 
 use ndarray::{s, Array1};
 
-use units::{mm, ns, ratio};
+use units::{mm, mm_, ns, ratio, Ratio};
 
 
 pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, events: Bounds<usize>) -> hdf5::Result<Array1<T>> {
@@ -83,8 +84,17 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
 
     // Read LORs from file,
     progress.start("   Reading LORs");
-    let (hdf5_lors, cut) = read_hdf5_lors(config)?;
+    let (mut hdf5_lors, cut) = read_hdf5_lors(config)?;
     progress.done_with_message(&format!("loaded {}", g(hdf5_lors.len())));
+
+    // Smear energy.
+    if let Some(fwhm) = Some(ratio(0.15)) { smear_energies(&mut hdf5_lors, fwhm, &mut progress); }
+
+    histogram_energies(&hdf5_lors);
+
+    // Smear position. TODO hard-wiring discretization which should be stored by
+    // makelor in HDF5 and read in here
+    smear_positions(&mut hdf5_lors, &mut progress);
 
     // Use LORs to gather statistics about spatial distribution of scatter probability
     if let Some(sgram) = scattergram {
@@ -120,6 +130,55 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
     println!("   Using {} LORs (cut {}    kept {}%)",
                   g(used),      g(cut),   used_pct);
     Ok(lors)
+}
+
+fn smear_energies(hdf5_lors: &mut [Hdf5Lor], fwhm: Ratio, progress: &mut Progress) {
+    let smear_energy = |e| {
+        use rand_distr::{Normal, Distribution};
+        use units::ratio_;
+        let fwhm = ratio_(fwhm) * e;
+        let sigma = fwhm / 2.35;
+        let gauss = Normal::new(e, sigma).unwrap();
+        gauss.sample(&mut rand::thread_rng())
+    };
+
+    progress.start(&format!("   Smearing energy: {:.0?}% FWHM", fwhm * 100.0));
+    for Hdf5Lor { E1, E2, .. } in hdf5_lors.iter_mut() {
+        *E1 = smear_energy(*E1);
+        *E2 = smear_energy(*E2);
+    }
+    progress.done();
+}
+
+fn smear_positions(hdf5_lors: &mut [Hdf5Lor], progress: &mut Progress) {
+    // TODO discretization hard-wired for now, but it should be written into
+    // HDF5 by makelor, and read in here.
+    let discretize = crate::discrete::Discretize {
+        r_min: mm(350.0),
+        dr: mm(10.0),
+        dz: mm(3.0),
+        da: mm(3.0),
+        smear: true,
+    };
+    let smear_position = discretize.make_adjust_fn();
+    progress.start(&format!("   Smearing position: {discretize:.1?}"));
+    for Hdf5Lor { x1, y1, z1, x2, y2, z2, .. } in hdf5_lors.iter_mut() {
+        let (x,y,z) = smear_position((mm(*x1), mm(*y1), mm(*z1)));
+        (*x1, *y1, *z1) = (mm_(x), mm_(y), mm_(z));
+        let (x,y,z) = smear_position((mm(*x2), mm(*y2), mm(*z2)));
+        (*x2, *y2, *z2) = (mm_(x), mm_(y), mm_(z));
+    }
+    progress.done();
+}
+
+fn histogram_energies(hdf5_lors: &[Hdf5Lor]) {
+    use ndhistogram::{ndhistogram, Histogram, axis::Uniform};
+    let mut hist = ndhistogram!(Uniform::new(27, 330.0, 600.0));
+    for Hdf5Lor { E1, E2, .. } in hdf5_lors {
+        hist.fill(E1);
+        hist.fill(E2);
+    }
+    println!("{hist}");
 }
 
 // Include specific table readers and associated types

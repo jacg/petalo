@@ -37,8 +37,19 @@ impl Discretize {
         let original_phi: Angle = y.atan2(x);
         let n_phi = ratio_(original_phi / d_azimuthal).round();
         let n_z   = ratio_(z            / self.dz)    .round();
-        dbg!(n_phi, n_z);
         Indices {n_phi: n_phi as i32, n_z: n_z as i32}
+    }
+
+    pub fn indices_to_centre(self, Indices { n_z, n_phi }: Indices) -> TripleLength {
+        let Discretize { dr, dz, .. } = self;
+        let HelpDiscretize { d_azimuthal, n_radial, .. } = self.help();
+        let n_r = ratio_(n_radial);
+        let r                   = n_r          * dr;
+        let z                   = n_z   as f32 * dz;
+        let adjusted_phi: Angle = n_phi as f32 * d_azimuthal;
+        let x = r * adjusted_phi.cos();
+        let y = r * adjusted_phi.sin();
+        (x, y, z)
     }
 
     /// Return a function which will adjust the position of an `xyz`-point

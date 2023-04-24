@@ -1,17 +1,16 @@
-// NOTE only using first vertex, for now
 #[allow(nonstandard_style)]
 pub (crate) fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5Lor> + Send + Sync {
     let &Reco::Discrete { r_min, dr, dz, da, smear } = d else {
         panic!("lor_from_discretized_vertices called with variant other than Reco::Discrete")
     };
-    use petalo::discrete::{Discretize, uom_mm_triplets_to_f32};
-    let adjust = uom_mm_triplets_to_f32(Discretize { r_min, dr, dz, da, smear }.make_adjust_fn());
+    //let adjust = uom_mm_triplets_to_f32(Discretize { r_min, dr, dz, da, smear }.make_adjust_fn());
+    let discretize = Discretize { r_min, dr, dz, da, smear };
     move |vertices| {
-        let mut in_scint = vertices_in_scintillator(vertices);
+        let in_scint = vertices_in_scintillator(vertices);
 
-        // Optimistic version: grabs all remaining KE in first vertex
-        let Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_scint.find(|v| v.track_id == 2)?;
-        let Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_scint.find(|v| v.track_id == 1)?;
+        // // Optimistic version: grabs all remaining KE in first vertex
+        // let Vertex{x:x2, y:y2, z:z2, t:t2, pre_KE: E2, ..} = in_scint.find(|v| v.track_id == 2)?;
+        // let Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: E1, ..} = in_scint.find(|v| v.track_id == 1)?;
 
         // // Pessimistic version: picks vertex with highest dKE
         // use ordered_float::NotNan;
@@ -20,16 +19,47 @@ pub (crate) fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> 
         // let Vertex{x:x1, y:y1, z:z1, t:t1, pre_KE: b1, post_KE: a1, ..} = in_scint.filter(|v| v.track_id == 1).max_by_key(|v| NotNan::new(v.pre_KE - v.post_KE).unwrap())?;
         // let (E1, E2) = (b1 - a1, b2 - a2);
 
-        let (x1, y1, z1) = adjust((x1, y1, z1));
-        let (x2, y2, z2) = adjust((x2, y2, z2));
+        // // Smear positions
+        // let (x1, y1, z1) = adjust((x1, y1, z1));
+        // let (x2, y2, z2) = adjust((x2, y2, z2));
 
-        Some(Hdf5Lor { dt: t2 - t1, x1, y1, z1, x2, y2, z2, q1: f32::NAN, q2: f32::NAN, E1, E2 })
+        // Some(Hdf5Lor { dt: t2 - t1, x1, y1, z1, x2, y2, z2, q1: f32::NAN, q2: f32::NAN, E1, E2 })
+
+        let (vs1, vs2): (Vec<_>, _) = in_scint
+            .filter   (|v| v.track_id <  3)
+            .partition(|v| v.track_id == 1);
+
+        let (E1, (x1, y1, z1)) = centre_of_box_with_higest_total_energy(&vs1, discretize)?;
+        let (E2, (x2, y2, z2)) = centre_of_box_with_higest_total_energy(&vs2, discretize)?;
+
+        Some(Hdf5Lor { dt: 0.0, x1, y1, z1, x2, y2, z2, q1: f32::NAN, q2: f32::NAN, E1, E2 })
+
     }
 }
 
+fn centre_of_box_with_higest_total_energy(vertices: &[Vertex], discretize: Discretize) -> Option<(f32, (f32, f32, f32))> {
+    use itertools::Itertools;
+    vertices.iter()
+        .cloned()
+        .map(|Vertex { x, y, z, pre_KE, post_KE, .. }| ((x,y,z), pre_KE - post_KE))
+        .into_grouping_map_by(|&((x,y,z), _energy)| discretize.cell_indices(mm(x), mm(y), mm(z)))
+        .fold(0.0, |e_acc, _i, (_indices, e)| e_acc + e)
+        .into_iter()
+        .max_by(|(_, e1), (_, e2)| e1.partial_cmp(e2).unwrap())
+        .map(|(i, e)| {
+            let (x,y,z) = discretize.indices_to_centre(i);
+            (e, (mm_(x), mm_(y), mm_(z)))
+        })
+}
+
+
 // ----- Imports -----------------------------------------------------------------------------------------
 use crate::{Reco, vertices_in_scintillator};
-use petalo::io::hdf5::{Hdf5Lor, mc::Vertex};
+use petalo::{
+    discrete::Discretize,
+    io::hdf5::{Hdf5Lor, mc::Vertex},
+};
+use units::{mm, mm_};
 
 // ----- TESTS ------------------------------------------------------------------------------------------
 #[cfg(test)]

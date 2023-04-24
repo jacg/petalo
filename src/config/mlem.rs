@@ -92,6 +92,9 @@ pub struct Config {
     /// Sensitivity image to use in scatter correction
     pub attenuation_correction: Option<AttenuationCorrection>,
 
+    /// Smearing to apply to observed energy
+    pub smear_e_fwhm: Option<Ratio>,
+
     pub scatter_correction: Option<Scatter>,
 }
 
