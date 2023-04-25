@@ -93,7 +93,7 @@ pub struct Config {
     pub attenuation_correction: Option<AttenuationCorrection>,
 
     /// Smearing to apply to observed energy
-    pub smear_e_fwhm: Option<Ratio>,
+    pub smear_energy: Option<SmearEnergy>,
 
     pub scatter_correction: Option<Scatter>,
 }
@@ -227,6 +227,13 @@ pub struct BinsLength {
     pub bins: usize,
     #[serde(deserialize_with = "deserialize_uom")]
     pub length: Length,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(deny_unknown_fields)]
+pub struct SmearEnergy {
+    #[serde(deserialize_with = "deserialize_uom")]
+    pub fwhm: Ratio,
 }
 
 pub fn read_config_file(path: PathBuf) -> Config {
