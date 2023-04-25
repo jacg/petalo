@@ -71,7 +71,7 @@ mod units {
                     time    ::{nanosecond, picosecond},
                     mass    ::kilogram,
                     velocity::meter_per_second,
-                    ratio   ::ratio,
+                    ratio   ::{ratio, percent},
                     angle   ::{radian, revolution},
                     energy  ::kiloelectronvolt,
   };
@@ -105,6 +105,7 @@ wrap!(ps     ps_     Time           picosecond);
 wrap!(m_s    m_s_    Velocity meter_per_second);
 wrap!(kg     kg_     Mass             kilogram);
 wrap!(ratio  ratio_  Ratio               ratio);
+wrap!(pcnt   pcnt_   Ratio             percent);
 wrap!(radian radian_ Angle              radian);
 wrap!(turn   turn_   Angle          revolution);
 wrap!(keV    keV_    Energy   kiloelectronvolt);
