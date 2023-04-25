@@ -21,6 +21,10 @@ pub struct Cli {
     #[clap(short = 'j', long, default_value = "4")]
     pub mlem_threads: usize,
 
+    /// Smear energy with gaussian with given FWHM
+    #[clap(long)]
+    pub e_smear_fwhm: Ratio,
+
     // TODO: if we keep this, we need to come up with good names
     /// Rayon threads for filling scattergram [default: mlem-threads]
     #[clap(short = 'k', long)]
@@ -34,7 +38,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs::create_dir_all;
 
-use units::{Length, mm_};
+use units::{Ratio, Length, mm_};
 use petalo::{
     FOV,
     image::Image,
