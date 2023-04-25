@@ -65,7 +65,7 @@ pub type Length4     = Quantity<uom::si::ISQ<P4, Z0, Z0, Z0, Z0, Z0, Z0>   , mmp
 
 //use uom::fmt::DisplayStyle::Abbreviation;
 pub use uom::si::Quantity;
-pub use mmps::f32::{Angle, Area, TWOPI, Length, Time, Velocity, Ratio, Mass};
+pub use mmps::f32::{Angle, Area, TWOPI, Length, Time, Velocity, Ratio, Mass, Energy};
 mod units {
   pub use uom::si::{length  ::{nanometer, millimeter, centimeter},
                     time    ::{nanosecond, picosecond},
@@ -73,6 +73,7 @@ mod units {
                     velocity::meter_per_second,
                     ratio   ::ratio,
                     angle   ::{radian, revolution},
+                    energy  ::kiloelectronvolt,
   };
 }
 
@@ -89,7 +90,9 @@ mod units {
 /// of WRAP_NAME.
 macro_rules! wrap {
   ($wrap_name:ident $unwrap_name:ident $quantity:ident $unit:ident ) => {
+    #[allow(nonstandard_style)]
     pub fn   $wrap_name(x: f32) -> $quantity { $quantity::new::<units::$unit>(x) }
+    #[allow(nonstandard_style)]
     pub fn $unwrap_name(x: $quantity) -> f32 {          x.get::<units::$unit>( ) }
   };
 }
@@ -104,6 +107,7 @@ wrap!(kg     kg_     Mass             kilogram);
 wrap!(ratio  ratio_  Ratio               ratio);
 wrap!(radian radian_ Angle              radian);
 wrap!(turn   turn_   Angle          revolution);
+wrap!(keV    keV_    Energy   kiloelectronvolt);
 
 pub fn mm_ps (x: f32) -> Velocity { m_s (x / m_s(1.0).value) }
 pub fn mm_ps_(x: Velocity) -> f32 { m_s_(x * m_s(1.0).value) }
