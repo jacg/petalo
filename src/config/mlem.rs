@@ -95,6 +95,9 @@ pub struct Config {
     /// Smearing to apply to observed energy
     pub smear_energy: Option<SmearEnergy>,
 
+    /// Smearing to apply to observed energy
+    pub detector_full_axial_length: Option<DetectorLength>,
+
     pub scatter_correction: Option<Scatter>,
 }
 
@@ -229,11 +232,18 @@ pub struct BinsLength {
     pub length: Length,
 }
 
-#[derive(Deserialize, Debug, Clone, Default)]
+#[derive(Deserialize, Debug, Clone, Copy, Default)]
 #[serde(deny_unknown_fields)]
 pub struct SmearEnergy {
     #[serde(deserialize_with = "deserialize_uom")]
     pub fwhm: Ratio,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy, Default)]
+#[serde(deny_unknown_fields)]
+pub struct DetectorLength {
+    #[serde(deserialize_with = "deserialize_uom")]
+    pub dz: Length,
 }
 
 pub fn read_config_file(path: PathBuf) -> Config {

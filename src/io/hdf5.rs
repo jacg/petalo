@@ -62,14 +62,16 @@ where
 fn read_hdf5_lors(config: &Config) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Error>> {
     let mut cut = 0;
     let input = &config.input;
+    let z_max = config.detector_full_axial_length.map(|l| mm_(l.dz / 2.0));
     // Read LOR data from disk
     let hdf5_lors: Vec<Hdf5Lor> = {
         read_table::<Hdf5Lor>(&input.file, &input.dataset, input.events.clone())?
             .iter().cloned()
-            .filter(|&Hdf5Lor{E1, E2, q1, q2, ..}| {
+            .filter(|&Hdf5Lor{E1, E2, q1, q2, z1, z2, ..}| {
                 let eok = input.energy.contains(E1) && input.energy.contains(E2);
                 let qok = input.charge.contains(q1) && input.charge.contains(q2);
-                if eok && qok { true }
+                let lok = z_max.map_or(true, |z| z1.abs() < z && z2.abs() < z);
+                if eok && qok && lok { true }
                 else { cut += 1; false }
             })
             .collect()
