@@ -675,7 +675,11 @@ impl Display for Iterations {
 
 impl Display for Fov {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("nvoxels = {:?}\nsize = {:?}", self.nvoxels, self.size))
+        f.write_fmt(format_args!("nvoxels = {:?}\nsize = {:?}", self.nvoxels, self.size))?;
+        let (nx, ny, nz) = self.nvoxels;
+        let (dx, dy, dz) = self.size;
+        let voxel_size = (dx/nx as f32, dy/ny as f32, dz/nz as f32);
+        f.write_fmt(format_args!("    =>    voxel size =  {voxel_size:.2?}"))
     }
 }
 
