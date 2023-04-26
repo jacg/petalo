@@ -88,7 +88,7 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
     progress.done_with_message(&format!("loaded {}", g(hdf5_lors.len())));
 
     // Smear energy.
-    if let Some(smear_e) = config.input.e_smear_fwhm { smear_energies(&mut hdf5_lors, smear_e, &mut progress); }
+    if let Some(smear_e) = &config.smear_energy { smear_energies(&mut hdf5_lors, smear_e.fwhm, &mut progress); }
 
     smear_positions(&mut hdf5_lors, config, &mut progress);
 

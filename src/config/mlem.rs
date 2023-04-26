@@ -8,6 +8,7 @@ use serde::{Deserialize, Deserializer, de};
 
 use units::{Length, Ratio, Time};
 
+#[cfg(test)]
 fn deserialize_uom_opt<'d, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
     D: Deserializer<'d>,
@@ -91,6 +92,9 @@ pub struct Config {
     /// Sensitivity image to use in scatter correction
     pub attenuation_correction: Option<AttenuationCorrection>,
 
+    /// Smearing to apply to observed energy
+    pub smear_energy: Option<SmearEnergy>,
+
     pub scatter_correction: Option<Scatter>,
 }
 
@@ -114,9 +118,6 @@ pub struct Input {
 
     #[serde(default)]
     pub events: Bounds<usize>,
-
-    #[serde(default, deserialize_with = "deserialize_uom_opt")]
-    pub e_smear_fwhm: Option<Ratio>,
 
 }
 
@@ -226,6 +227,13 @@ pub struct BinsLength {
     pub bins: usize,
     #[serde(deserialize_with = "deserialize_uom")]
     pub length: Length,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(deny_unknown_fields)]
+pub struct SmearEnergy {
+    #[serde(deserialize_with = "deserialize_uom")]
+    pub fwhm: Ratio,
 }
 
 pub fn read_config_file(path: PathBuf) -> Config {
@@ -597,17 +605,16 @@ mod tests {
     fn toml_with_units_generic_deserialize() {
         #[derive(Deserialize, Debug)]
         struct X {
-            #[serde(default, deserialize_with = "deserialize_uom_opt")]
+            #[serde(default)]
+            #[serde(deserialize_with = "deserialize_uom_opt")]
             t: Option<Time>,
-            #[serde(default, deserialize_with = "deserialize_uom_opt")]
+            #[serde(default)]
+            #[serde(deserialize_with = "deserialize_uom_opt")]
             l: Option<Length>,
-            #[serde(default, deserialize_with = "deserialize_uom_opt")]
-            r: Option<Ratio>,
         }
         check!(X(r#"t = "2 ps""#).t = Some(ps(2.)));
         check!(X(r#"l = "3 mm""#).l = Some(mm(3.)));
         check!(X(r#"          "#).t = None        );
-        check!(X(r#"r = "25 %""#).r = Some(ratio(0.25)));
     }
 
 }
