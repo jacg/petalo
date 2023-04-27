@@ -29,26 +29,45 @@ pub (crate) fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> 
             .filter   (|v| v.track_id <  3)
             .partition(|v| v.track_id == 1);
 
-        let (E1, (x1, y1, z1)) = centre_of_box_with_higest_total_energy(&vs1, discretize)?;
-        let (E2, (x2, y2, z2)) = centre_of_box_with_higest_total_energy(&vs2, discretize)?;
+        let (E1, (x1, y1, z1)) = box_with_higest_total_energy_centre_doi(&vs1, discretize)?;
+        let (E2, (x2, y2, z2)) = box_with_higest_total_energy_centre_doi(&vs2, discretize)?;
 
         Some(Hdf5Lor { dt: 0.0, x1, y1, z1, x2, y2, z2, q1: f32::NAN, q2: f32::NAN, E1, E2 })
 
     }
 }
 
-fn centre_of_box_with_higest_total_energy(vertices: &[Vertex], discretize: Discretize) -> Option<(f32, (f32, f32, f32))> {
+/// Find the box with the highest deposited energy.
+///
+/// Return:
+/// + total energy deposited in that box
+/// + `(x, y, z)` coordinate of
+///   - centre of the box in `z` and `phi`
+///   - barycentre in `r` of vertices in box, weighted by deposited energy
+fn box_with_higest_total_energy_centre_doi(vertices: &[Vertex], discretize: Discretize) -> Option<(f32, (f32, f32, f32))> {
     use itertools::Itertools;
+    let zero_energy = keV(0.0);
+    let zero_energy_length = mm(0.0) * zero_energy;
     vertices.iter()
         .cloned()
-        .map(|Vertex { x, y, z, pre_KE, post_KE, .. }| ((x,y,z), pre_KE - post_KE))
-        .into_grouping_map_by(|&((x,y,z), _energy)| discretize.cell_indices(mm(x), mm(y), mm(z)))
-        .fold(0.0, |e_acc, _i, (_xyz, e)| e_acc + e)
+        .map(|Vertex { x, y, z, pre_KE, post_KE, .. }| ((mm(x),mm(y),mm(z)), keV(pre_KE - post_KE)))
+        .into_grouping_map_by(|&((x,y,z), _energy)| discretize.cell_indices(x, y, z))
+        .fold(
+            (zero_energy, zero_energy_length),   // Initialize accumulator
+            |(e_acc, re_acc), _i, ((x,y,_), e)|
+            ( e_acc + e             ,  // accumulate energy
+             re_acc + e * x.hypot(y))  // accumulate energy-weighted r
+        )
         .into_iter()
-        .max_by(|(_, e1), (_, e2)| e1.partial_cmp(e2).unwrap())
-        .map(|(i, e)| {
+        .max_by(|(_,(e1,_)), (_,(e2,_))| e1.partial_cmp(e2).unwrap())
+        .map(|(i, (e, re))| {
             let (x,y,z) = discretize.indices_to_centre(i);
-            (e, (mm_(x), mm_(y), mm_(z)))
+            let r_centre: Length = x.hypot(y);
+            let r_bary: Length = re / e;
+            let scale = r_bary / r_centre;
+            (keV_(e), (mm_(x*scale),
+                       mm_(y*scale),
+                       mm_(z      )))
         })
 }
 
@@ -59,7 +78,7 @@ use petalo::{
     discrete::Discretize,
     io::hdf5::{Hdf5Lor, mc::Vertex},
 };
-use units::{mm, mm_};
+use units::{mm, mm_, keV, keV_, Length};
 
 // ----- TESTS ------------------------------------------------------------------------------------------
 #[cfg(test)]
