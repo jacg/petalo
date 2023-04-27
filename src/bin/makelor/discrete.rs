@@ -43,7 +43,7 @@ fn centre_of_box_with_higest_total_energy(vertices: &[Vertex], discretize: Discr
         .cloned()
         .map(|Vertex { x, y, z, pre_KE, post_KE, .. }| ((x,y,z), pre_KE - post_KE))
         .into_grouping_map_by(|&((x,y,z), _energy)| discretize.cell_indices(mm(x), mm(y), mm(z)))
-        .fold(0.0, |e_acc, _i, (_indices, e)| e_acc + e)
+        .fold(0.0, |e_acc, _i, (_xyz, e)| e_acc + e)
         .into_iter()
         .max_by(|(_, e1), (_, e2)| e1.partial_cmp(e2).unwrap())
         .map(|(i, e)| {
