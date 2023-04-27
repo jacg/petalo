@@ -160,7 +160,7 @@ fn smear_positions(hdf5_lors: &mut [Hdf5Lor], config: &Config, progress: &mut Pr
         dr: get("dr"),
         dz: get("dz"),
         da: get("da"),
-        smear: true,
+        adjust: crate::discrete::Adjust::Random,
     };
     let smear_position = discretize.make_adjust_fn();
     progress.start(&format!("   Smearing position: {discretize:.1?}"));

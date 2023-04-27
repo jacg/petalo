@@ -40,16 +40,14 @@ pub (crate) fn make_lors<S>(points: &[Point], fov: crate::FOV, discretize: Discr
 where
     S: SystemMatrix,
 {
-
-    let smear: Box<dyn Fn(Point) -> Point + Sync + Send> = if !discretize.smear {
-        Box::new(|p| p)
-    } else {
-        let smear = discretize.make_adjust_fn();
+    let adjust = discretize.make_adjust_fn();
+    let smear: Box<dyn Fn(Point) -> Point + Sync + Send> = {
         Box::new(move |p: Point|  {
-            let (x,y,z) = smear((p.x, p.y, p.z));
+            let (x,y,z) = adjust((p.x, p.y, p.z));
             Point { x, y, z }
         })
     };
+
     // let origin = petalo::Point::new(mm(0.0), mm(0.0), mm(0.0));
     (0..points.len())
         .par_bridge()

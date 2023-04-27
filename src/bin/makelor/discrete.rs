@@ -1,10 +1,10 @@
 #[allow(nonstandard_style)]
 pub (crate) fn lor_from_discretized_vertices(d: &Reco) -> impl Fn(&[Vertex]) -> Option<Hdf5Lor> + Send + Sync {
-    let &Reco::Discrete { r_min, dr, dz, da, smear } = d else {
+    let &Reco::Discrete { r_min, dr, dz, da, adjust } = d else {
         panic!("lor_from_discretized_vertices called with variant other than Reco::Discrete")
     };
     //let adjust = uom_mm_triplets_to_f32(Discretize { r_min, dr, dz, da, smear }.make_adjust_fn());
-    let discretize = Discretize { r_min, dr, dz, da, smear };
+    let discretize = Discretize { r_min, dr, dz, da, adjust };
     move |vertices| {
         let in_scint = vertices_in_scintillator(vertices);
 
@@ -113,7 +113,9 @@ mod test_discretize {
     ) {
         use petalo::discrete::{Discretize, uom_mm_triplets_to_f32};
         let (rmin, dr, dz, da) = detector;
-        let move_to_centre_of_element = uom_mm_triplets_to_f32(Discretize::from_f32s_in_mm(rmin, dr, dz, da, false).make_adjust_fn());
+        let move_to_centre_of_element = uom_mm_triplets_to_f32(
+            Discretize::from_f32s_in_mm(rmin, dr, dz, da, petalo::discrete::Adjust::Centre)
+                .make_adjust_fn());
         let (x, y, z) = move_to_centre_of_element(vertex);
         assert_float_eq!((x,y,z), expected, abs <= (0.01, 0.01, 0.01));
     }

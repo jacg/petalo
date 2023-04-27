@@ -54,15 +54,16 @@ pub enum DetectorType {
         #[clap(long)]
         da: Length,
 
-        /// Place the ends of each LOR at a random position in the element
+        /// How to adjust the ends of the LORs in the element
         #[clap(long)]
-        smear: bool,
+        adjust: Adjust,
     },
 }
 
 // ----- Imports -----------------------------------------------------------------------------------------
 use std::path::PathBuf;
 
+use petalo::discrete::Adjust;
 use units::{
     Length, todo::Lengthf32,
 };

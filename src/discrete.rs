@@ -17,19 +17,32 @@ pub struct Discretize {
     /// Azimuthal width of scintillator elements at `r_min + dr/2`?
     pub da: Length,
 
-    /// Place the ends of each LOR at a random position in the element
-    pub smear: bool,
+    /// How do adjust the ends of the LOR
+    pub adjust: Adjust,
+}
+
+/// Different position-adjusting strategies in detector discretization
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+pub enum Adjust {
+    /// Do not adjust
+    No,
+    /// Move to centre of element
+    Centre,
+    /// Move to centre in `z` and `phi`, preserving `r
+    Doi,
+    /// Move to random point inside the element
+    Random,
 }
 
 impl Discretize {
 
-    pub fn new(r_min: Length, dr: Length, dz: Length, da: Length, smear: bool) -> Self {
-        Self { r_min, dr, dz, da, smear }
+    pub fn new(r_min: Length, dr: Length, dz: Length, da: Length, adjust: Adjust) -> Self {
+        Self { r_min, dr, dz, da, adjust }
     }
 
     /// Construct from `f32`s which are interpreted as lengths in `mm`
-    pub fn from_f32s_in_mm(r_min: f32, dr: f32, dz: f32, da: f32, smear: bool) -> Self {
-        Self::new(mm(r_min), mm(dr), mm(dz), mm(da), smear)
+    pub fn from_f32s_in_mm(r_min: f32, dr: f32, dz: f32, da: f32, adjust: Adjust) -> Self {
+        Self::new(mm(r_min), mm(dr), mm(dz), mm(da), adjust)
     }
 
     pub fn cell_indices(self, x: Length, y: Length, z: Length) -> Indices {
@@ -60,29 +73,32 @@ impl Discretize {
         let Discretize { dr, dz, .. } = self;
         let HelpDiscretize { n_radial, d_azimuthal, .. } = self.help();
 
-        if self.smear {
-            // Move to random position in element
-            let n_radial = ratio_(n_radial);
-            Arc::new(move |(x, y, z)| {
-                let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
-                let z                   = smear(n_z   as f32) * dz;
-                let adjusted_phi: Angle = smear(n_phi as f32) * d_azimuthal;
-                let r                   = smear(n_radial)     * dr;
-                let x = r * adjusted_phi.cos();
-                let y = r * adjusted_phi.sin();
-                (x, y, z)
-            })
-        } else {
-            // Move to centre of element
-            let r = n_radial * dr;
-            Arc::new(move |(x, y, z)| {
-                let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
-                let z                   = n_z   as f32 * dz;
-                let adjusted_phi: Angle = n_phi as f32 * d_azimuthal;
-                let x = r * adjusted_phi.cos();
-                let y = r * adjusted_phi.sin();
-                (x, y, z)
-            })
+        match self.adjust {
+            Adjust::Random => {
+                let n_radial = ratio_(n_radial);
+                Arc::new(move |(x, y, z)| {
+                    let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
+                    let z                   = smear(n_z   as f32) * dz;
+                    let adjusted_phi: Angle = smear(n_phi as f32) * d_azimuthal;
+                    let r                   = smear(n_radial)     * dr;
+                    let x = r * adjusted_phi.cos();
+                    let y = r * adjusted_phi.sin();
+                    (x, y, z)
+                })},
+            Adjust::Centre => {
+                // Move to centre of element
+                let r = n_radial * dr;
+                Arc::new(move |(x, y, z)| {
+                    let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
+                    let z                   = n_z   as f32 * dz;
+                    let adjusted_phi: Angle = n_phi as f32 * d_azimuthal;
+                    let x = r * adjusted_phi.cos();
+                    let y = r * adjusted_phi.sin();
+                    (x, y, z)
+                })
+            },
+            Adjust::Doi => todo!(),
+            Adjust::No => Arc::new(|(x,y,z)| (x,y,z)),
         }
     }
 
@@ -209,7 +225,7 @@ mod test_discretize {
             da    in   1.0 .. (  5.0 as Lengthf32),
             l     in  30.0 .. (100.0 as Lengthf32),
         ) {
-            let d = Discretize::from_f32s_in_mm(r_min, dr, dz, da, false);
+            let d = Discretize::from_f32s_in_mm(r_min, dr, dz, da, Adjust::No);
             let adjust = d.make_adjust_fn();
             for Point { x, y, z } in d.centre_all_elements(mm(l)) {
                 let (a,b,c) = (mm_(x), mm_(y), mm_(z));

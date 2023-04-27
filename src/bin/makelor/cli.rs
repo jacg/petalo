@@ -61,9 +61,9 @@ pub (super) enum Reco {
         #[clap(long)]
         da: Length,
 
-        /// Place the ends of each LOR at a random position in the element
+        /// How to adjust the ends of the LOR in the element
         #[clap(long)]
-        smear: bool,
+        adjust: Adjust,
     },
 
     /// Reconstruct LORs form DBSCAN clusters
@@ -109,5 +109,5 @@ use std::path::PathBuf;
 use units::Length;
 use petalo::{
     BoundPair,
-    utils::parse_bounds,
+    utils::parse_bounds, discrete::Adjust,
 };
