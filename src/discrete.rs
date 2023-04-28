@@ -85,32 +85,32 @@ impl Discretize {
                 let n_radial = ratio_(n_radial);
                 Arc::new(move |(x, y, z)| {
                     let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
-                    let z                   = smear(n_z   as f32) * dz;
-                    let adjusted_phi: Angle = smear(n_phi as f32) * d_azimuthal;
-                    let r                   = smear(n_radial)     * dr;
-                    let x = r * adjusted_phi.cos();
-                    let y = r * adjusted_phi.sin();
+                    let z          = smear(n_z   as f32) * dz;
+                    let phi: Angle = smear(n_phi as f32) * d_azimuthal;
+                    let r          = smear(n_radial)     * dr;
+                    let x = r * phi.cos();
+                    let y = r * phi.sin();
                     (x, y, z)
                 })},
             Adjust::Centre => { // Move to centre of element
                 let r = n_radial * dr;
                 Arc::new(move |(x, y, z)| {
                     let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
-                    let z                   = n_z   as f32 * dz;
-                    let adjusted_phi: Angle = n_phi as f32 * d_azimuthal;
-                    let x = r * adjusted_phi.cos();
-                    let y = r * adjusted_phi.sin();
+                    let z          = n_z   as f32 * dz;
+                    let phi: Angle = n_phi as f32 * d_azimuthal;
+                    let x = r * phi.cos();
+                    let y = r * phi.sin();
                     (x, y, z)
                 })
             },
             Adjust::RandomZPhi => { // Keep r, move z & phi to random position in box
                 Arc::new(move |(x, y, z)| {
                     let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
-                    let z                   = smear(n_z   as f32) * dz;
-                    let adjusted_phi: Angle = smear(n_phi as f32) * d_azimuthal;
-                    let r                   = x.hypot(y);
-                    let x = r * adjusted_phi.cos();
-                    let y = r * adjusted_phi.sin();
+                    let z          = smear(n_z   as f32) * dz;
+                    let phi: Angle = smear(n_phi as f32) * d_azimuthal;
+                    let r          = x.hypot(y);
+                    let x = r * phi.cos();
+                    let y = r * phi.sin();
                     (x, y, z)
                 })},
         }
