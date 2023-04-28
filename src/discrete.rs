@@ -26,12 +26,18 @@ pub struct Discretize {
 pub enum Adjust {
     /// Do not adjust
     No,
+
     /// Move to centre of element
     Centre,
-    /// Move to centre in `z` and `phi`, preserving `r
-    Doi,
+
     /// Move to random point inside the element
     Random,
+
+    // /// Move to centre in `z` and `phi`, preserving `r
+    // CentreZPhi,
+
+    /// Move to random `z` and `phi` inside element, preserving `r
+    RandomZPhi,
 }
 
 impl Discretize {
@@ -74,7 +80,8 @@ impl Discretize {
         let HelpDiscretize { n_radial, d_azimuthal, .. } = self.help();
 
         match self.adjust {
-            Adjust::Random => {
+            Adjust::No => Arc::new(|(x,y,z)| (x,y,z)),
+            Adjust::Random => { // Move to random position in box
                 let n_radial = ratio_(n_radial);
                 Arc::new(move |(x, y, z)| {
                     let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
@@ -85,8 +92,7 @@ impl Discretize {
                     let y = r * adjusted_phi.sin();
                     (x, y, z)
                 })},
-            Adjust::Centre => {
-                // Move to centre of element
+            Adjust::Centre => { // Move to centre of element
                 let r = n_radial * dr;
                 Arc::new(move |(x, y, z)| {
                     let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
@@ -97,8 +103,16 @@ impl Discretize {
                     (x, y, z)
                 })
             },
-            Adjust::Doi => todo!(),
-            Adjust::No => Arc::new(|(x,y,z)| (x,y,z)),
+            Adjust::RandomZPhi => { // Keep r, move z & phi to random position in box
+                Arc::new(move |(x, y, z)| {
+                    let Indices {n_phi, n_z} = self.cell_indices(x, y, z);
+                    let z                   = smear(n_z   as f32) * dz;
+                    let adjusted_phi: Angle = smear(n_phi as f32) * d_azimuthal;
+                    let r                   = x.hypot(y);
+                    let x = r * adjusted_phi.cos();
+                    let y = r * adjusted_phi.sin();
+                    (x, y, z)
+                })},
         }
     }
 
