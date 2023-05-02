@@ -12,10 +12,12 @@ Arguments:
 options:
     --show-plot=<bool>      Display the plot generated for the FOMs [default=False]
     --hide-output=<bool>    Don't print results to stdout [default=False]
+    --y-limit=<float>       Maximum value on y-axis [default=1.0]
 """
 
 import sys
 import re
+from math import ceil
 from pathlib import Path
 import subprocess
 from collections import namedtuple, defaultdict
@@ -125,8 +127,10 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
     ax_crc.plot()
     ax_snr = ax_crc.twinx()
     ax_crc.grid(axis='y')
-    ax_crc.set_yticks(np.linspace(0, 1,11))
-    ax_snr.set_yticks(np.linspace(0,10,11))
+    y_limit = get_y_limit(cli_args)
+    yticks = ceil(y_limit * 10) + 1
+    ax_crc.set_yticks(np.linspace(0,  1*y_limit, yticks))
+    ax_snr.set_yticks(np.linspace(0, 10*y_limit, yticks))
 
     # Show which linestyle corresponds to which FOM, in legend.
     c_style = '-'
@@ -159,8 +163,9 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
         ax_snr.plot(x, s, color=color, linestyle=s_style, marker=' ', linewidth=2.0, label=None)
         ax_crc.plot(x, b, color=color, linestyle=b_style, marker=' ', linewidth=2.0, label=None)
         #plt.errorbar(x,y,yerr=e,label=f'{d}mm',capsize=3)
-    ax_crc.set_ylim(bottom=0, top= 1); ax_crc.set_ylabel('CRC / bg-var')
-    ax_snr.set_ylim(bottom=0, top=10); ax_snr.set_ylabel('SNR')
+
+    ax_crc.set_ylim(bottom=0, top=y_limit   ); ax_crc.set_ylabel('CRC / bg-var')
+    ax_snr.set_ylim(bottom=0, top=y_limit*10); ax_snr.set_ylabel('SNR')
     ax_crc.legend()
 
     # Vertical lines separating OSEM iterations
@@ -169,7 +174,7 @@ def plot_from_fom(directory, sphere_diameters, cli_args):
         for n, (i, s) in enumerate(zip(iterations, subsets)):
             if n == 0: continue
             if s == 1:
-                ax_crc.plot([n, n], [0,1], color='gray', linewidth=0.5)
+                ax_crc.plot([n, n], [0,y_limit], color='gray', linewidth=0.5)
         ax_crc.set_xticks(tuple(n-1 for n in range(0, len(x)+1, 5)))
         title = 'CRCs and SNRs vs iteration:subset'
     else:
@@ -192,9 +197,15 @@ def get_plot_title(directory):
     if path.is_file():
         return path.read_text()
 
+def get_y_limit(cli_args):
+    thing = '--y-limit'
+    got = cli_args[thing]
+    return float(got) if got is not None else 1.0
+
 
 def main():
     cli_args = docopt(__doc__)
+    get_y_limit(cli_args)
     directory = cli_args['<DIR>']
     print(f'Calculating FOMs for images in {directory}')
     images = sorted(Path(directory).glob('*.raw'))
