@@ -17,6 +17,10 @@ pub (super) struct Cli {
     #[clap(short = 'j', long, default_value = "2")] // HDF reads seems to make > 2 pointless
     pub threads: usize,
 
+    /// Chunk size in output HDF5 file
+    #[clap(short = 'c', long, default_value = "1000000")]
+    pub chunk_size: usize,
+
     #[clap(subcommand)]
     pub (super) reco: Reco,
 
