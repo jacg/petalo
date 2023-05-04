@@ -16,7 +16,7 @@ use ndarray::{s, Array1};
 use units::{mm, mm_, ns, ratio, Ratio};
 
 
-pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, events: Bounds<usize>) -> hdf5::Result<Array1<T>> {
+pub fn read_dataset<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, events: Bounds<usize>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;
     let dataset = file.dataset(dataset)?;
     let Bounds { min, max } = events;
@@ -65,7 +65,7 @@ fn read_hdf5_lors(config: &Config) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Erro
     let z_max = config.detector_full_axial_length.map(|l| mm_(l.dz / 2.0));
     // Read LOR data from disk
     let hdf5_lors: Vec<Hdf5Lor> = {
-        read_table::<Hdf5Lor>(&input.file, &input.dataset, input.events.clone())?
+        read_dataset::<Hdf5Lor>(&input.file, &input.dataset, input.events.clone())?
             .iter().cloned()
             .filter(|&Hdf5Lor{E1, E2, q1, q2, z1, z2, ..}| {
                 let eok = input.energy.contains(E1) && input.energy.contains(E2);
@@ -271,7 +271,7 @@ mod test_nested_compound_hdf5 {
                 .create("nested")?;
         }
         // read
-        let read_data = read_table::<Outer>(&file_path, "just-testing/nested", Bounds::none())?.to_vec();
+        let read_data = read_dataset::<Outer>(&file_path, "just-testing/nested", Bounds::none())?.to_vec();
         assert_eq!(test_data, read_data);
         println!("Test table written to {}", file_path);
         Ok(())

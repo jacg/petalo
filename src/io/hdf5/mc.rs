@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::{
     config::mlem::Bounds,
-    io::hdf5::read_table,
+    io::hdf5::read_dataset,
 };
 
 // Use otherwise pointless module to allow nonstandard_style in constants
@@ -43,11 +43,11 @@ mod grr {
 }
 
 pub fn read_vertices(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<Vertex>> {
-    Ok(read_table::<Vertex>(&filename, "MC/vertices", range)?.to_vec())
+    Ok(read_dataset::<Vertex>(&filename, "MC/vertices", range)?.to_vec())
 }
 
 pub fn read_primaries(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<Primary>> {
-    Ok(read_table::<Primary>(&filename, "MC/primaries", range)?.to_vec())
+    Ok(read_dataset::<Primary>(&filename, "MC/primaries", range)?.to_vec())
 }
 
 // -------- Tests ------
