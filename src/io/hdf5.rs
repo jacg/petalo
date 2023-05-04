@@ -18,13 +18,13 @@ use units::{mm, mm_, ns, ratio, Ratio};
 
 pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, events: Bounds<usize>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;
-    let table = file.dataset(dataset)?;
+    let dataset = file.dataset(dataset)?;
     let Bounds { min, max } = events;
     let data = match (min, max) {
-        (None    , None    ) => table.read_slice_1d::<T,_>(s![  ..  ])?,
-        (Some(lo), None    ) => table.read_slice_1d::<T,_>(s![lo..  ])?,
-        (None    , Some(hi)) => table.read_slice_1d::<T,_>(s![  ..hi])?,
-        (Some(lo), Some(hi)) => table.read_slice_1d::<T,_>(s![lo..hi])?,
+        (None    , None    ) => dataset.read_slice_1d::<T,_>(s![  ..  ])?,
+        (Some(lo), None    ) => dataset.read_slice_1d::<T,_>(s![lo..  ])?,
+        (None    , Some(hi)) => dataset.read_slice_1d::<T,_>(s![  ..hi])?,
+        (Some(lo), Some(hi)) => dataset.read_slice_1d::<T,_>(s![lo..hi])?,
      };
     Ok(data)
 }
