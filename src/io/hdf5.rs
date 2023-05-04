@@ -29,7 +29,28 @@ pub fn read_dataset<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, 
     Ok(data)
 }
 
+// Plan
+// 1. Assume (panic) chunked dataset, iterate over all items in all chunks
+// 2. Cater for unchunked version
+// 3. Add bounds
+pub fn iter_dataset<T: hdf5::H5Type>(
+    filename: &dyn AsRef<Path>,
+    dataset: &str
+) -> hdf5::Result<Box<dyn Iterator<Item = T>>>
+{
+    let file = ::hdf5::File::open(filename)?;
+    let dataset = file.dataset(dataset)?;
 
+    let dataset_shape = dataset.shape();
+    assert_eq!(dataset_shape.len(), 1);              // Assuming 1-D dataset
+    let chunk_dimensions = dataset.chunk().unwrap(); // Assuming dataset is chunked, for now
+    assert_eq!(chunk_dimensions.len(), 1);           // Assuming 1-D chunks
+    let chunk_size = chunk_dimensions[0];
+    let dataset_size = dataset_shape[0];
+
+    Ok(Box::new((0..dataset_size).step_by(chunk_size)
+        .flat_map(move |n| dataset.read_slice_1d::<T, _>(s![n .. n + chunk_size]).into_iter().flatten())))
+}
 
 /// Fill `scattergram`, with spatial distribution of scatters probabilities
 /// gathered from `lors`
