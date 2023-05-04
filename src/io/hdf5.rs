@@ -30,12 +30,13 @@ pub fn read_dataset<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, 
 }
 
 // Plan
-// 1. Assume (panic) chunked dataset, iterate over all items in all chunks
-// 2. Cater for unchunked version
-// 3. Add bounds
+// 1. DONE Assume (panic) chunked dataset, iterate over all items in all chunks
+// 2. DONE Add bounds
+// 3. TODO Cater for unchunked version
 pub fn iter_dataset<T: hdf5::H5Type>(
     filename: &dyn AsRef<Path>,
-    dataset: &str
+    dataset: &str,
+    Bounds { min, max }: Bounds<usize>,
 ) -> hdf5::Result<Box<dyn Iterator<Item = T>>>
 {
     let file = ::hdf5::File::open(filename)?;
@@ -48,8 +49,21 @@ pub fn iter_dataset<T: hdf5::H5Type>(
     let chunk_size = chunk_dimensions[0];
     let dataset_size = dataset_shape[0];
 
-    Ok(Box::new((0..dataset_size).step_by(chunk_size)
-        .flat_map(move |n| dataset.read_slice_1d::<T, _>(s![n .. n + chunk_size]).into_iter().flatten())))
+    let start = min.map_or(0,            |lo| (lo / chunk_size    ) * chunk_size);
+    let skip  = min.map_or(0,            |lo| (lo % chunk_size    )             );
+    let stop  = max.map_or(dataset_size, |hi| (hi / chunk_size + 1) * chunk_size);
+    let take  = max.unwrap_or(dataset_size) - min.unwrap_or(0);
+
+    Ok(Box::new(
+        (start..stop)
+            .step_by(chunk_size)
+            .map(move |n| (n, n+chunk_size))
+            .flat_map(move |(b,e)| {
+                dataset.read_slice_1d::<T, _>(s![b..e]).into_iter().flatten()
+            })
+            .skip(skip)
+            .take(take)
+    ))
 }
 
 /// Fill `scattergram`, with spatial distribution of scatters probabilities
@@ -251,6 +265,75 @@ impl From<&Hdf5Lor> for LOR {
 }
 
 // ----- TESTS ------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod test_chunked {
+    use super::*;
+    use rstest::rstest;
+    use pretty_assertions::assert_eq;
+    use tempfile::tempdir;
+    use itertools::Itertools;
+
+    #[rstest(
+        case::front_back_none_back(12, 4, None   , None    , 0..12),
+        case::front_part_back_none(12, 4, Some(1), None    , 1..12),
+        case::front_full_back_none(12, 4, Some(4), None    , 4..12),
+        case::front_more_back_none(12, 4, Some(5), None    , 5..12),
+        case::front_none_back_part(12, 4, None   , Some(11), 0..11),
+        case::front_none_back_full(12, 4, None   , Some( 8), 0.. 8),
+        case::front_none_back_more(12, 4, None   , Some( 7), 0.. 7),
+        case::front_part_back_part(12, 4, Some(2), Some( 9), 2.. 9),
+        case::front_part_back_full(12, 4, Some(2), Some( 8), 2.. 8),
+        case::front_part_back_more(12, 4, Some(2), Some( 6), 2.. 6),
+        case::front_full_back_part(12, 4, Some(4), Some( 9), 4.. 9),
+        case::front_full_back_full(12, 4, Some(4), Some( 8), 4.. 8),
+        case::front_full_back_more(12, 4, Some(4), Some( 6), 4.. 6),
+        case::front_more_back_part(12, 4, Some(5), Some( 9), 5.. 9),
+        case::front_more_back_full(12, 4, Some(5), Some( 8), 5.. 8),
+        case::front_more_back_more(12, 4, Some(5), Some( 6), 5.. 6),
+    )]
+    fn test_name(
+        #[case] d: usize,
+        #[case] c: usize,
+        #[case] min: Option<usize>,
+        #[case] max: Option<usize>,
+        #[case] expected: std::ops::Range<usize>,
+    ) {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("chunking-test.h5");
+        let dataset = "stuff";
+        write_chunked(d, c, &file_path).unwrap();
+        let read = iter_dataset::<f32>(&file_path, dataset, Bounds { min, max })
+            .unwrap()
+            .collect_vec();
+        let expected = expected.map(|n| n as f32).collect_vec();
+        println!("{read:?}");
+        println!("{expected:?}");
+        assert_eq!(read, expected);
+    }
+
+    // Only used for testing, but maybe should be expanded to a more general tool
+    fn write_chunked(data_size: usize, chunk_size: usize, filename: impl AsRef<Path>) -> hdf5::Result<()> {
+        let file = hdf5::File::create(filename)?;
+
+        let ds = file
+            .new_dataset::<f32>()
+            .chunk(chunk_size)
+            .shape(0..)
+            .create("stuff")?;
+
+        let data = (0..data_size).map(|i| i as f32);
+        for chunk in &data.chunks(chunk_size) {
+            let chunk = chunk.collect_vec();
+            let old_size = ds.shape()[0];
+            ds.resize(old_size + chunk_size)?;
+            ds.write_slice(&chunk, old_size..)?
+        }
+
+        Ok(())
+    }
+
+}
+
 // Proof of concept: nested compound hdf5 types
 #[allow(nonstandard_style)]
 #[cfg(test)]
