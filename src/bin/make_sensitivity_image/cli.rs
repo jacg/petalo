@@ -53,12 +53,17 @@ pub enum DetectorType {
         /// Azimuthal width of scintillator elements at `r_min + dr/2`?
         #[clap(long)]
         da: Length,
+
+        /// How to adjust the ends of the LORs in the element
+        #[clap(long)]
+        adjust: Adjust,
     },
 }
 
 // ----- Imports -----------------------------------------------------------------------------------------
 use std::path::PathBuf;
 
+use petalo::discrete::Adjust;
 use units::{
     Length, todo::Lengthf32,
 };

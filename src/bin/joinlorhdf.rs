@@ -37,7 +37,7 @@ fn main() -> hdf5::Result<()> {
     for filename in args.inputs {
         println!("Reading data from {}", filename);
         let path = format!("{}/{}", args.group, args.dataset);
-        let data = io::hdf5::read_table::<Data>(&filename, &path, Bounds::none())?;
+        let data = io::hdf5::read_dataset::<Data>(&filename, &path, Bounds::none())?;
         joined.extend_from_slice(data.as_slice().unwrap());
     }
 

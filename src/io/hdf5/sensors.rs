@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::{
     config::mlem::Bounds,
-    io::hdf5::read_table,
+    io::hdf5::read_dataset,
 };
 
 use units::{Length, Time, mm, ns};
@@ -59,11 +59,11 @@ pub struct SensorReadout {
 }
 
 pub fn read_sensor_hits(filename: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<SensorHit>> {
-    Ok(read_table::<SensorHit>(&filename, "MC/waveform", range)?.to_vec())
+    Ok(read_dataset::<SensorHit>(&filename, "MC/waveform", range)?.to_vec())
 }
 
 pub fn read_sensor_xyz(filename: &Path) -> hdf5::Result<Vec<SensorXYZ>> {
-    Ok(read_table::<SensorXYZ>(&filename, "MC/sensor_xyz", Bounds::none())?.to_vec())
+    Ok(read_dataset::<SensorXYZ>(&filename, "MC/sensor_xyz", Bounds::none())?.to_vec())
 }
 
 pub type SensorMap = std::collections::HashMap<u32, (Length, Length, Length)>;
@@ -75,8 +75,8 @@ pub fn read_sensor_map(filename: &Path) -> hdf5::Result<SensorMap> {
 
 pub fn read_qts(infile: &Path, range: Bounds<usize>) -> hdf5::Result<Vec<QT>> {
     // Read charges and waveforms
-    let qs = read_table::<Qtot     >(&infile, "MC/total_charge", range.clone())?;
-    let ts = read_table::<SensorHit>(&infile, "MC/waveform"    , range        )?;
+    let qs = read_dataset::<Qtot     >(&infile, "MC/total_charge", range.clone())?;
+    let ts = read_dataset::<SensorHit>(&infile, "MC/waveform"    , range        )?;
     Ok(combine_tables(qs, ts))
 }
 

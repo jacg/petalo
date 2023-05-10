@@ -5,30 +5,66 @@ use std::path::Path;
 use crate::{
     LOR, Point,
     config::mlem::{Bounds, Config},
-    lorogram::{Scattergram, Prompt}
+    lorogram::{Scattergram, Prompt},
+    utils::timing::Progress
 };
 
 use rayon::prelude::*;
 
 use ndarray::{s, Array1};
 
-use units::{mm, ns, ratio};
+use units::{mm, mm_, ns, ratio, ratio_, Ratio};
 
 
-pub fn read_table<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, events: Bounds<usize>) -> hdf5::Result<Array1<T>> {
+pub fn read_dataset<T: hdf5::H5Type>(filename: &dyn AsRef<Path>, dataset: &str, events: Bounds<usize>) -> hdf5::Result<Array1<T>> {
     let file = ::hdf5::File::open(filename)?;
-    let table = file.dataset(dataset)?;
+    let dataset = file.dataset(dataset)?;
     let Bounds { min, max } = events;
     let data = match (min, max) {
-        (None    , None    ) => table.read_slice_1d::<T,_>(s![  ..  ])?,
-        (Some(lo), None    ) => table.read_slice_1d::<T,_>(s![lo..  ])?,
-        (None    , Some(hi)) => table.read_slice_1d::<T,_>(s![  ..hi])?,
-        (Some(lo), Some(hi)) => table.read_slice_1d::<T,_>(s![lo..hi])?,
+        (None    , None    ) => dataset.read_slice_1d::<T,_>(s![  ..  ])?,
+        (Some(lo), None    ) => dataset.read_slice_1d::<T,_>(s![lo..  ])?,
+        (None    , Some(hi)) => dataset.read_slice_1d::<T,_>(s![  ..hi])?,
+        (Some(lo), Some(hi)) => dataset.read_slice_1d::<T,_>(s![lo..hi])?,
      };
     Ok(data)
 }
 
+// Plan
+// 1. DONE Assume (panic) chunked dataset, iterate over all items in all chunks
+// 2. DONE Add bounds
+// 3. TODO Cater for unchunked version
+pub fn iter_dataset<T: hdf5::H5Type>(
+    filename: &dyn AsRef<Path>,
+    dataset: &str,
+    Bounds { min, max }: Bounds<usize>,
+) -> hdf5::Result<Box<dyn Iterator<Item = T>>>
+{
+    let file = ::hdf5::File::open(filename)?;
+    let dataset = file.dataset(dataset)?;
 
+    let dataset_shape = dataset.shape();
+    assert_eq!(dataset_shape.len(), 1);              // Assuming 1-D dataset
+    let chunk_dimensions = dataset.chunk().unwrap(); // Assuming dataset is chunked, for now
+    assert_eq!(chunk_dimensions.len(), 1);           // Assuming 1-D chunks
+    let chunk_size = chunk_dimensions[0];
+    let dataset_size = dataset_shape[0];
+
+    let start = min.map_or(0,            |lo| (lo / chunk_size    ) * chunk_size);
+    let skip  = min.map_or(0,            |lo| (lo % chunk_size    )             );
+    let stop  = max.map_or(dataset_size, |hi| (hi / chunk_size + 1) * chunk_size);
+    let take  = max.unwrap_or(dataset_size) - min.unwrap_or(0);
+
+    Ok(Box::new(
+        (start..stop)
+            .step_by(chunk_size)
+            .map(move |n| (n, n+chunk_size))
+            .flat_map(move |(b,e)| {
+                dataset.read_slice_1d::<T, _>(s![b..e]).into_iter().flatten()
+            })
+            .skip(skip)
+            .take(take)
+    ))
+}
 
 /// Fill `scattergram`, with spatial distribution of scatters probabilities
 /// gathered from `lors`
@@ -58,23 +94,93 @@ where
 
 /// Read HDF5 LORs from file, potentially filtering according to event, energy
 /// and charge ranges
-fn read_hdf5_lors(config: &Config) -> Result<(Vec<Hdf5Lor>, usize), Box<dyn Error>> {
-    let mut cut = 0;
+fn read_hdf5_lors(config: &Config) -> Result<Vec<Hdf5Lor>, Box<dyn Error>> {
     let input = &config.input;
+    let z_max = config.detector_full_axial_length.map(|l| mm_(l.dz / 2.0));
+    let total = ::hdf5::File::open(&config.input.file).unwrap()
+        .dataset(&config.input.dataset).unwrap()
+        .shape()[0];
+    let Bounds { min, max } = config.input.events;
+    let to_be_read = max.map_or(total, |max| max.min(total)) -
+                     min.map_or(0    , |min| min.max(0    ));
+
+    let smear_energy = make_smear_energy(config.smear_energy.unwrap().fwhm);
+    let pre_smearing_e_cut = 511.0 * (1.0 - 1.6 * ratio_(config.smear_energy.unwrap().fwhm));
+    println!("Applying pre-cut at {pre_smearing_e_cut} keV, final cut at {:?}", config.input.energy);
+
+    let progress = progress::Progress::new(to_be_read);
     // Read LOR data from disk
     let hdf5_lors: Vec<Hdf5Lor> = {
-        read_table::<Hdf5Lor>(&input.file, &input.dataset, input.events.clone())?
-            .iter().cloned()
-            .filter(|&Hdf5Lor{E1, E2, q1, q2, ..}| {
-                let eok = input.energy.contains(E1) && input.energy.contains(E2);
-                let qok = input.charge.contains(q1) && input.charge.contains(q2);
-                if eok && qok { true }
-                else { cut += 1; false }
+        iter_dataset::<Hdf5Lor>(&input.file, &input.dataset, input.events.clone())?
+            .inspect(|_|  { progress.read() })
+            .filter(|&Hdf5Lor{z1, z2, ..}| { z_max.map_or(true, |z| z1.abs() < z && z2.abs() < z) })
+            .filter(|&Hdf5Lor{q1, q2, ..}| { input.charge.contains(q1) && input.charge.contains(q2) })
+            .filter(|&Hdf5Lor{E1, E2, ..}| {  pre_smearing_e_cut < E1  &&  pre_smearing_e_cut < E2 })
+            .map(|mut l@Hdf5Lor { E1, E2, .. }| {
+                l.E1 = smear_energy(E1);
+                l.E2 = smear_energy(E2);
+                l
             })
+            .filter(|&Hdf5Lor{E1, E2, ..}| { input.energy.contains(E1) && input.energy.contains(E2) })
+            .inspect(|_|  { progress.selected() })
             .collect()
     };
-    Ok((hdf5_lors, cut))
+    progress.done();
+    Ok(hdf5_lors)
 }
+
+mod progress {
+    use std::sync::Mutex;
+    use indicatif::{ProgressBar, ProgressStyle};
+
+    use crate::utils::group_digits;
+
+    pub (super) struct Progress(Mutex<Inner>);
+
+    struct Inner {
+        read: u64,
+        selected: u64,
+        bar: ProgressBar,
+    }
+
+    impl Progress {
+
+        pub (super) fn new(total: usize) -> Self {
+            let bar = ProgressBar::new(total as u64).with_message("Reading and filtering LORs");
+            bar.set_style(
+                ProgressStyle::default_bar()
+                    .template("{msg}\n[{elapsed_precise}] {wide_bar} {human_pos} / {human_len} ({eta_precise})")
+                    .unwrap()
+            );
+            bar.tick();
+            Self(Mutex::new(Inner { read: 0, selected: 0, bar }))
+        }
+
+        pub (super) fn read(&self) {
+            let mut i = self.0.lock().unwrap(); i.read     += 1;
+            if i.read % 100000 == 0 {
+                i.bar.set_position(i.read);
+                     let percent = (100 * i.selected) as f32 / i.read as f32;
+                i.bar.set_message(format!(
+                    "Kept {} out of {} LORs ({percent:.1}%)", group_digits(i.selected), group_digits(i.read),
+                ));
+            }
+        }
+        pub (super) fn selected(&self) {
+            let mut i = self.0.lock().unwrap();
+            i.selected += 1;
+        }
+        pub (super) fn done(&self) {
+            let i = self.0.lock().unwrap();
+            let percent = (100 * i.selected) as f32 / i.read as f32;
+            i.bar.finish_with_message(format!(
+                "Kept {} out of {} LORs ({percent:.1}%)", group_digits(i.selected), group_digits(i.read),
+            ));
+            //i.bar.finish();
+        }
+    }
+}
+
 
 #[allow(nonstandard_style)]
 pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_threads: usize) -> Result<Vec<LOR>, Box<dyn Error>> {
@@ -83,8 +189,11 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
 
     // Read LORs from file,
     progress.start("   Reading LORs");
-    let (hdf5_lors, cut) = read_hdf5_lors(config)?;
+    let mut hdf5_lors = read_hdf5_lors(config)?;
+    use crate::utils::group_digits as g;
     progress.done_with_message(&format!("loaded {}", g(hdf5_lors.len())));
+
+    smear_positions(&mut hdf5_lors, config, &mut progress);
 
     // Use LORs to gather statistics about spatial distribution of scatter probability
     if let Some(sgram) = scattergram {
@@ -114,12 +223,43 @@ pub fn read_lors(config: &Config, mut scattergram: Option<Scattergram>, n_thread
         .collect();
     progress.done();
 
-    let used = lors.len();
-    let used_pct = 100 * used / (used + cut);
-    use crate::utils::group_digits as g;
-    println!("   Using {} LORs (cut {}    kept {}%)",
-                  g(used),      g(cut),   used_pct);
+
     Ok(lors)
+}
+
+fn make_smear_energy(fwhm: Ratio) -> impl Fn(f32) -> f32 {
+    move |e| {
+        use rand_distr::{Normal, Distribution};
+        let fwhm = ratio_(fwhm) * e;
+        let sigma = fwhm / 2.35;
+        let gauss = Normal::new(e, sigma).unwrap();
+        gauss.sample(&mut rand::thread_rng())
+    }
+}
+
+fn smear_positions(hdf5_lors: &mut [Hdf5Lor], config: &Config, progress: &mut Progress) {
+    let file = hdf5::File::open(&config.input.file).unwrap();
+    let dataset = file.dataset("reco_info/lors").unwrap();
+    let get = |attr_name| mm(dataset.attr(attr_name).unwrap()
+        .read_1d::<f32>().unwrap()
+        .as_slice().unwrap()
+        [0]);
+    let discretize = crate::discrete::Discretize {
+        r_min: get("r_min"),
+        dr: get("dr"),
+        dz: get("dz"),
+        da: get("da"),
+        adjust: crate::discrete::Adjust::RandomZPhi,
+    };
+    let smear_position = discretize.make_adjust_fn();
+    progress.start(&format!("   Smearing position: {discretize:.1?}"));
+    for Hdf5Lor { x1, y1, z1, x2, y2, z2, .. } in hdf5_lors.iter_mut() {
+        let (x,y,z) = smear_position((mm(*x1), mm(*y1), mm(*z1)));
+        (*x1, *y1, *z1) = (mm_(x), mm_(y), mm_(z));
+        let (x,y,z) = smear_position((mm(*x2), mm(*y2), mm(*z2)));
+        (*x2, *y2, *z2) = (mm_(x), mm_(y), mm_(z));
+    }
+    progress.done();
 }
 
 // Include specific table readers and associated types
@@ -179,6 +319,75 @@ impl From<&Hdf5Lor> for LOR {
 }
 
 // ----- TESTS ------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod test_chunked {
+    use super::*;
+    use rstest::rstest;
+    use pretty_assertions::assert_eq;
+    use tempfile::tempdir;
+    use itertools::Itertools;
+
+    #[rstest(
+        case::front_back_none_back(12, 4, None   , None    , 0..12),
+        case::front_part_back_none(12, 4, Some(1), None    , 1..12),
+        case::front_full_back_none(12, 4, Some(4), None    , 4..12),
+        case::front_more_back_none(12, 4, Some(5), None    , 5..12),
+        case::front_none_back_part(12, 4, None   , Some(11), 0..11),
+        case::front_none_back_full(12, 4, None   , Some( 8), 0.. 8),
+        case::front_none_back_more(12, 4, None   , Some( 7), 0.. 7),
+        case::front_part_back_part(12, 4, Some(2), Some( 9), 2.. 9),
+        case::front_part_back_full(12, 4, Some(2), Some( 8), 2.. 8),
+        case::front_part_back_more(12, 4, Some(2), Some( 6), 2.. 6),
+        case::front_full_back_part(12, 4, Some(4), Some( 9), 4.. 9),
+        case::front_full_back_full(12, 4, Some(4), Some( 8), 4.. 8),
+        case::front_full_back_more(12, 4, Some(4), Some( 6), 4.. 6),
+        case::front_more_back_part(12, 4, Some(5), Some( 9), 5.. 9),
+        case::front_more_back_full(12, 4, Some(5), Some( 8), 5.. 8),
+        case::front_more_back_more(12, 4, Some(5), Some( 6), 5.. 6),
+    )]
+    fn test_name(
+        #[case] d: usize,
+        #[case] c: usize,
+        #[case] min: Option<usize>,
+        #[case] max: Option<usize>,
+        #[case] expected: std::ops::Range<usize>,
+    ) {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("chunking-test.h5");
+        let dataset = "stuff";
+        write_chunked(d, c, &file_path).unwrap();
+        let read = iter_dataset::<f32>(&file_path, dataset, Bounds { min, max })
+            .unwrap()
+            .collect_vec();
+        let expected = expected.map(|n| n as f32).collect_vec();
+        println!("{read:?}");
+        println!("{expected:?}");
+        assert_eq!(read, expected);
+    }
+
+    // Only used for testing, but maybe should be expanded to a more general tool
+    fn write_chunked(data_size: usize, chunk_size: usize, filename: impl AsRef<Path>) -> hdf5::Result<()> {
+        let file = hdf5::File::create(filename)?;
+
+        let ds = file
+            .new_dataset::<f32>()
+            .chunk(chunk_size)
+            .shape(0..)
+            .create("stuff")?;
+
+        let data = (0..data_size).map(|i| i as f32);
+        for chunk in &data.chunks(chunk_size) {
+            let chunk = chunk.collect_vec();
+            let old_size = ds.shape()[0];
+            ds.resize(old_size + chunk_size)?;
+            ds.write_slice(&chunk, old_size..)?
+        }
+
+        Ok(())
+    }
+
+}
+
 // Proof of concept: nested compound hdf5 types
 #[allow(nonstandard_style)]
 #[cfg(test)]
@@ -220,7 +429,7 @@ mod test_nested_compound_hdf5 {
                 .create("nested")?;
         }
         // read
-        let read_data = read_table::<Outer>(&file_path, "just-testing/nested", Bounds::none())?.to_vec();
+        let read_data = read_dataset::<Outer>(&file_path, "just-testing/nested", Bounds::none())?.to_vec();
         assert_eq!(test_data, read_data);
         println!("Test table written to {}", file_path);
         Ok(())

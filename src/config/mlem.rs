@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Deserializer, de};
 
-use units::{Length, Ratio, Time};
+use units::{Length, Ratio, Time, pcnt_};
 
 #[cfg(test)]
 fn deserialize_uom_opt<'d, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
@@ -91,6 +91,12 @@ pub struct Config {
 
     /// Sensitivity image to use in scatter correction
     pub attenuation_correction: Option<AttenuationCorrection>,
+
+    /// Smearing to apply to observed energy
+    pub smear_energy: Option<SmearEnergy>,
+
+    /// Smearing to apply to observed energy
+    pub detector_full_axial_length: Option<DetectorLength>,
 
     pub scatter_correction: Option<Scatter>,
 }
@@ -224,6 +230,20 @@ pub struct BinsLength {
     pub bins: usize,
     #[serde(deserialize_with = "deserialize_uom")]
     pub length: Length,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy, Default)]
+#[serde(deny_unknown_fields)]
+pub struct SmearEnergy {
+    #[serde(deserialize_with = "deserialize_uom")]
+    pub fwhm: Ratio,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy, Default)]
+#[serde(deny_unknown_fields)]
+pub struct DetectorLength {
+    #[serde(deserialize_with = "deserialize_uom")]
+    pub dz: Length,
 }
 
 pub fn read_config_file(path: PathBuf) -> Config {
@@ -638,7 +658,23 @@ impl Display for Config {
         } else {
             f.write_str("OFF")?;
         }
+
+        f.write_str("\n[smear_energy]\n")?;
+        if let Some(smear) = &self.smear_energy {
+            f.write_fmt(format_args!("fwhm = {:.1} %" , pcnt_(smear.fwhm)))?;
+        } else {
+            f.write_str("OFF")?;
+        }
+
+        f.write_str("\n\n[detector_full_axial_length]\n")?;
+        if let Some(length_limit) = &self.detector_full_axial_length {
+            f.write_fmt(format_args!("dz = {:?} %" , length_limit.dz))?;
+        } else {
+            f.write_str("OFF")?;
+        }
+
         f.write_str("\n")
+
     }
 }
 

@@ -17,6 +17,10 @@ pub (super) struct Cli {
     #[clap(short = 'j', long, default_value = "2")] // HDF reads seems to make > 2 pointless
     pub threads: usize,
 
+    /// Chunk size in output HDF5 file
+    #[clap(short = 'c', long, default_value = "1000000")]
+    pub chunk_size: usize,
+
     #[clap(subcommand)]
     pub (super) reco: Reco,
 
@@ -56,6 +60,10 @@ pub (super) enum Reco {
         /// Azimuthal width of scintillator elements at `r_min + dr/2`?
         #[clap(long)]
         da: Length,
+
+        /// How to adjust the ends of the LOR in the element
+        #[clap(long)]
+        adjust: Adjust,
     },
 
     /// Reconstruct LORs form DBSCAN clusters
@@ -101,5 +109,5 @@ use std::path::PathBuf;
 use units::Length;
 use petalo::{
     BoundPair,
-    utils::parse_bounds,
+    utils::parse_bounds, discrete::Adjust,
 };
