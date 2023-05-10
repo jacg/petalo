@@ -253,12 +253,14 @@ fn smear_positions(hdf5_lors: &mut [Hdf5Lor], config: &Config, progress: &mut Pr
     };
     let smear_position = discretize.make_adjust_fn();
     progress.start(&format!("   Smearing position: {discretize:.1?}"));
-    for Hdf5Lor { x1, y1, z1, x2, y2, z2, .. } in hdf5_lors.iter_mut() {
+
+    hdf5_lors.par_iter_mut().for_each(|Hdf5Lor { x1, y1, z1, x2, y2, z2, .. }| {
         let (x,y,z) = smear_position((mm(*x1), mm(*y1), mm(*z1)));
         (*x1, *y1, *z1) = (mm_(x), mm_(y), mm_(z));
         let (x,y,z) = smear_position((mm(*x2), mm(*y2), mm(*z2)));
         (*x2, *y2, *z2) = (mm_(x), mm_(y), mm_(z));
-    }
+    });
+
     progress.done();
 }
 
