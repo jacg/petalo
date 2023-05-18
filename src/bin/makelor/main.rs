@@ -15,7 +15,7 @@ fn main() -> hdf5::Result<()> {
     // --- Progress bar --------------------------------------------------------------
     let progress = progress::Progress::new(&args.infiles);
     // --- Process input files -------------------------------------------------------
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(args.threads).build().unwrap();
+    let _pool = rayon::ThreadPoolBuilder::new().num_threads(args.threads).build().unwrap();
     let xyzs = io::hdf5::sensors::read_sensor_map(&args.infiles[0])?;
     let files = args.infiles.clone();
     macro_rules! go { ($a:expr, $b:expr, $c:expr) => { compose_steps(&files, &progress, $a, $b, $c) }; }
@@ -138,11 +138,9 @@ fn vertices_in_scintillator(vertices: &[Vertex]) -> impl Iterator<Item = Vertex>
 // ----- Imports -----------------------------------------------------------------------------------------
 use std::{
     path::{Path, PathBuf},
-    sync::Arc,
 };
 use clap::Parser;
 use itertools::Itertools;
-use rayon::prelude::*;
 use petalo::{
     config::mlem::Bounds,
     io::{self,
