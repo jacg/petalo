@@ -39,16 +39,32 @@ fn main() -> hdf5::Result<()> {
         .shape(0..)
         .create("lors")?;
 
+    let mut n_signal: u64 = 0;
+    let mut n_noise       = 0;
+    let sigma = units::ratio_(args.fwhm) / 2.35;
+    let cut = 511.0 * (1.0 - 3.0 * sigma);
+    let mut classify = |e: f32| {
+        match e {
+            e if e > 510.999 =>  n_signal += 1,
+            e if e >  cut    =>  n_noise  += 1,
+            _ => {},
+        }
+    };
+
     for chunk in &lors.chunks(chunk_size) {
         let chunk = chunk.collect_vec();
+        for lor in chunk.iter() {
+            classify(lor.E1);
+            classify(lor.E2);
+        }
         let old_size = dataset.shape()[0];
         dataset.resize(old_size + chunk_size.min(chunk.len()))?;
         dataset.write_slice(&chunk, old_size..)?
     }
 
-
     // --- Report any files that failed no be read -----------------------------------
     progress.final_report();
+    println!("SNR: {n_signal} / {n_noise} = {}", n_signal as f32 / n_noise as f32);
 
     // --- Store discretization parameters in HDF5 -----------------------------------
     if let &Reco::Discrete { r_min, dr, dz, da, .. } = &args.reco {
