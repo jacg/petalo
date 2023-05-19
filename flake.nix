@@ -86,7 +86,7 @@
 
           inherit (import "${crate2nix}/tools.nix" { inherit pkgs; }) generatedCargoNix;
 
-          # Create the cargo2nix project
+          # Create the crate2nix project
           project = import
             (generatedCargoNix {
               inherit name;
