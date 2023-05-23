@@ -10,12 +10,21 @@
 # NB, tilde expansion in filenames is not supported. TODO: consider whether it should be
 #
 [input]
-file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-H20body-steel-dz1m-LXe30mm-noQrz-Ecut409-first-vertex-860Mlors.h5"
+
+file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-vacbody-nosteel-dz2m-LYSO10mm-discrete-r350-dr10-dz6-da6-adjust-random-z-phi-1500Mevents.h5"
+
+
+#file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-H2Obody-nosteel-dz2m-LYSO10mm-discrete-r350-dr10-dz6-da6-adjust-random-z-phi-7500Mevents.h5"
+#file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-H2Obody-nosteel-dz2m-CsI20mm-discrete-r350-dr20-dz6-da6-adjust-random-z-phi-7500Mevents.h5"
+#file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-H2Obody-nosteel-dz2m-LXe40mm-discrete-r350-dr40-dz6-da6-adjust-random-z-phi-7500Mevents.h5"
+
 dataset = "reco_info/lors"
 
 # Optional: event filtering by energy
 #
-# energy.min = 434  # TODO "434 keV"
+#energy.min = 483  # for  5% FWHM
+energy.min = 429  # for 15% FWHM
+
 # energy.max = 600
 
 # Optional: event filtering by charge
@@ -41,41 +50,62 @@ subsets = 20
 # Mandatory section: Size of the Field of View (FOV)
 #
 [fov]
-nvoxels = [ 100      ,  100      ,    92        ]
-size    = ["234.4 mm", "234.4 mm",  "215.648 mm"]
 
+nvoxels = [ 78     ,  78     ,    72    ]
+size    = ["234 mm", "234 mm",  "216 mm"]
 
 # ================================================================================
 # Optional section: Enable use of Time of Flight (TOF) information
-#
-[tof]
-sigma = "200 ps"
-cutoff = 3       # Ignore voxels whose centre lies more than `cutoff` sigmas from TOF peak
+
+# [tof]
+# sigma = "200 ps"
+# cutoff = 3       # Ignore voxels whose centre lies more than `cutoff` sigmas from TOF peak
 
 
 # ================================================================================
 # Optional section: Enable annetuation correction
 #
 # NB: tilde-expansion in filename not supported!
-#
+
 [attenuation_correction]
-sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-100x100x92-2.344-mm-cubed-voxels/10-9-lors-0.095-cm2-per-g.raw"
+
+# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l300mm-rmin350mm-dr10mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l300mm-rmin350mm-dr20mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l300mm-rmin350mm-dr40mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l1000mm-rmin350mm-dr10mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l1000mm-rmin350mm-dr20mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l1000mm-rmin350mm-dr40mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l2000mm-rmin350mm-dr10mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l2000mm-rmin350mm-dr20mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l2000mm-rmin350mm-dr40mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
 
 # ================================================================================
 # Optional section: Enable scatter correction
+
+# [scatter_correction]
+
+# phi.bins =   40
+
+# r.bins  =    40
+# r.max   =  "120 mm"
+
+# # dt.bins =    10
+# # dt.max  =    "1 ns"
+
+# z.bins   =   30
+# z.length = "220 mm"
+
+# dz.bins =   80
+# dz.max  = "2000 mm"
+
+# ================================================================================
+# Optional section: Enable energy smearing
 #
-[scatter_correction]
+[smear_energy]
+fwhm = "15 %"
 
-phi.bins =   40
-
-r.bins  =    40
-r.max   =  "120 mm"
-
-dz.bins =    40
-dz.max  = "1000 mm"
-
-dt.bins =    10
-dt.max  =    "1 ns"
-
-z.bins   =   30
-z.length = "220 mm"
+# ================================================================================
+# Optional section: Ignore LORs that would not be detected by shorter detector
+#
+[detector_full_axial_length]
+dz = "2000 mm"
