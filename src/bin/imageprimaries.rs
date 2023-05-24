@@ -12,7 +12,7 @@ use petalo::utils::parse_triplet;
 pub struct Cli {
 
     /// Input file with MC/primaries dataset
-    #[clap(short = 'f', long)]
+    #[clap()]
     pub input_files: Vec<PathBuf>,
 
     /// Image output file
