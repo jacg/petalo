@@ -4,7 +4,7 @@
 + Bary-r
 + No TOF
 
-# 7500 million events, H₂O phantom
+# 7500 million events, H₂O phantom, smearing: YES
 ## Retention rates
 |         | LYSO | CsI  | LXe  |
 |---------|------|------|------|
@@ -34,6 +34,18 @@
 | 30 cm  | <img src="./foms/lyso-H2O-nosteel-bary-r-030-7500MEv-sensno-scatno.png" width="300">  52 M LORs | <img src="./foms/csi-H2O-nosteel-bary-r-030-7500MEv-sensno-scatno.png" width="300"> 18 M LORs | <img src="./foms/lxe-H2O-nosteel-bary-r-030-7500MEv-sensno-scatno.png" width="300"> 19 M LORs |
 | 100 cm | <img src="./foms/lyso-H2O-nosteel-bary-r-100-7500MEv-sensno-scatno.png" width="300"> 200 M LORs | <img src="./foms/csi-H2O-nosteel-bary-r-100-7500MEv-sensno-scatno.png" width="300"> 66 M LORs | <img src="./foms/lxe-H2O-nosteel-bary-r-100-7500MEv-sensno-scatno.png" width="300"> 72 M LORs |
 | 200 cm | <img src="./foms/lyso-H2O-nosteel-bary-r-200-7500MEv-sensno-scatno.png" width="300"> 279 M LORs | <img src="./foms/csi-H2O-nosteel-bary-r-200-7500MEv-sensno-scatno.png" width="300"> 92 M LORs | <img src="./foms/lxe-H2O-nosteel-bary-r-200-7500MEv-sensno-scatno.png" width="300"> 98 M LORs |
+
+# 7500 million events, H₂O phantom, smearing: NO
+## scatter correction: YES
+|        | LYSO                                                                                                     | CsI                                                                                                    | LXe                                                                                                    |
+|--------|----------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| 200 cm | <img src="./foms/smearno-lyso-H2O-nosteel-bary-r-200-7500MEv-sensno-scatyes.png" width="300"> 283 M LORs | <img src="./foms/smearno-csi-H2O-nosteel-bary-r-200-7500MEv-sensno-scatyes.png" width="300"> 93 M LORs | <img src="./foms/smearno-lxe-H2O-nosteel-bary-r-200-7500MEv-sensno-scatyes.png" width="300"> 99 M LORs |
+|        |                                                                                                          |                                                                                                        |                                                                                                        |
+
+## scatter correction: NO
+|        | LYSO                                                                                                    | CsI                                                                                                   | LXe                                                                                                   |
+|--------|---------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| 200 cm | <img src="./foms/smearno-lyso-H2O-nosteel-bary-r-200-7500MEv-sensno-scatno.png" width="300"> 283 M LORs | <img src="./foms/smearno-csi-H2O-nosteel-bary-r-200-7500MEv-sensno-scatno.png" width="300"> 93 M LORs | <img src="./foms/smearno-lxe-H2O-nosteel-bary-r-200-7500MEv-sensno-scatno.png" width="300"> 99 M LORs |
 
 # 1500 million events, vacuum phantom
 ## FOMs no sensitivity (including attenuation) correction, no scatter correction
