@@ -37,7 +37,7 @@ fn one_iteration<S: SystemMatrix>(
     sensitivity  : &[Intensityf32],
 ) {
     let parallel_lors = parallelize_lors(measured_lors, 10000);
-    let backprojection = project_lors::<S,_,_>(parallel_lors, projector, &*image, project_one_lor_mlem::<S>);
+    let backprojection = project_lors::<S,_,_>(parallel_lors, projector, &*image, None, project_one_lor_mlem::<S>);
     // -------- Correct for attenuation and detector sensitivity ------------
     apply_sensitivity_image(&mut image.data, &backprojection, sensitivity);
 }
