@@ -46,7 +46,7 @@ where
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
-        let backprojection = Image::zeros_buffer(image.fov);
+        let backprojection = Image::zeros_buffer(result_fov.unwrap_or(image.fov));
         let matrix_row_fwd =                S::buffers(image.fov);
         let matrix_row_bck = result_fov.map(S::buffers);
         Fs::<S> { backprojection, matrix_row_fwd, matrix_row_bck, image, projector_data }

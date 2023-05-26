@@ -18,7 +18,7 @@ where
         n * (n-1) / 2
     };
     normalize(&mut image_data, n_lors);
-    Image::new(attenuation.fov, image_data)
+    Image::new(backproj_fov.unwrap_or(attenuation.fov), image_data)
 }
 
 fn make_points<S>(

@@ -13,7 +13,7 @@ pub fn sensitivity_image<S: SystemMatrix>(
 
     let mut backprojection = project_lors::<S,_,_>(lors.clone(), parameters, attenuation, backproj_fov, project_one_lor_sens::<S,_>(backproj_fov));
     normalize(&mut backprojection, lors.len());
-    Image::new(attenuation.fov, backprojection)
+    Image::new(backproj_fov.unwrap_or(attenuation.fov), backprojection)
 }
 
 /// Return a vector of randomly-generated LORs with endpoints on cylinder, passing through the FOV.
