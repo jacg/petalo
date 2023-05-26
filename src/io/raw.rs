@@ -82,7 +82,7 @@ use binrw::{binrw, BinWrite, BinReaderExt};
 pub struct Image3D {
     pub pixels: [u16; 3],
     pub mm: [f32; 3],
-    #[br(count = pixels[0] as usize * pixels[1] as usize * pixels[2] as usize)]
+    #[br(count = pixels[0] * pixels[1] * pixels[2])]
     pub data: Vec<f32>,
 }
 

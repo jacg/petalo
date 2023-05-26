@@ -95,8 +95,8 @@ where
     //     .collect()
 
     Box::new(files
-        .into_iter()
-        .map(move |file| extract_rows_from_table(&file))   .inspect(|result| stats.read_file_done(result))
+        .iter()
+        .map(move |file| extract_rows_from_table(file))    .inspect(|result| stats.read_file_done(result))
         .map(     |rows| rows.unwrap_or_else(|_| vec![]))
         .map(group_by_event)                               .inspect(|x| stats.grouped(x))
         .flatten()

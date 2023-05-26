@@ -715,7 +715,7 @@ mod sensitivity_image {
         std::fs::create_dir_all(PathBuf::from(&directory)).unwrap();
         move |(image, Osem{iteration, subset, ..})| {
             let image_path = PathBuf::from(format!("{directory}/{iteration:02}-{subset:02}.raw"));
-            crate::io::raw::Image3D::from(&image).write_to_file(&image_path).unwrap();
+            crate::io::raw::Image3D::from(&image).write_to_file(image_path).unwrap();
         }
     }
 
