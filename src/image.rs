@@ -37,7 +37,7 @@ impl Image {
         let [x, y, z] = fov.n;
         if data.len() != x * y * z {
             // TODO change panic to Option or Result
-            panic!("Image data does not match dimensions {:?}", fov.n);
+            panic!("Image data length {} does not match dimensions {x}x{y}x{z} = {}", data.len(), x*y*z);
         };
         Image { fov, data }
     }
