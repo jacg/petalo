@@ -5,7 +5,7 @@ use cli::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let Cli { input, output, detector_length, r_min, detector_type, rho_to_mu, n_threads } = Cli::parse();
+    let Cli { input, output, detector_length, r_min, detector_type, rho_to_mu, n_threads, output_image_dims } = Cli::parse();
 
     // Interpret rho_to_mu as converting from [rho in g/cm^3] to [mu in cm^-1]
     let rho_to_mu: AreaPerMass = {
@@ -49,7 +49,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 r_min * 2.0,
                 parameters,
                 &attenuation,
-                n_lors))
+                n_lors,
+                output_image_dims,
+            ))
         },
         DetectorType::Discrete { dr, dz, da, adjust } => {
             let discretize = Discretize { dr, dz, da, r_min, adjust };
@@ -58,6 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 parameters,
                 &attenuation,
                 discretize,
+                output_image_dims,
             ))
         },
     };

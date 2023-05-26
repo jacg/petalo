@@ -6,11 +6,12 @@ pub fn sensitivity_image<S: SystemMatrix>(
     parameters       : S::Data,
     attenuation      : &Image,
     n_lors           : usize,
+    backproj_fov     : Option<FOV>,
 ) -> Image {
     let lors = find_lors(n_lors, attenuation.fov, detector_length, detector_diameter).
         into_par_iter();
 
-    let mut backprojection = project_lors::<S,_,_>(lors.clone(), parameters, attenuation, None, project_one_lor_sens::<S,_>(None));
+    let mut backprojection = project_lors::<S,_,_>(lors.clone(), parameters, attenuation, backproj_fov, project_one_lor_sens::<S,_>(backproj_fov));
     normalize(&mut backprojection, lors.len());
     Image::new(attenuation.fov, backprojection)
 }

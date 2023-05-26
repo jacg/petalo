@@ -5,13 +5,14 @@ pub fn sensitivity_image<S>(
     projector_data   : S::Data,
     attenuation      : &Image,
     discretize       : Discretize,
+    backproj_fov     : Option<FOV>,
 ) -> Image
 where
     S: SystemMatrix,
 {
     let points     = make_points::<S>(detector_length, discretize);
     let lors       = make_lors  ::<S>(&points, attenuation.fov, discretize);
-    let mut image_data = project_lors::<S,_,_>(lors, projector_data, attenuation, None, project_one_lor_sens::<S,_>(None));
+    let mut image_data = project_lors::<S,_,_>(lors, projector_data, attenuation, backproj_fov, project_one_lor_sens::<S,_>(backproj_fov));
     let n_lors = { // TODO this is incorrect: it doesn't take the FOV filter into account
         let n = points.len();
         n * (n-1) / 2
@@ -64,7 +65,7 @@ where
 // ----- Imports ------------------------------------------------------------------------------------------
 
 use petalo::{
-    LOR, Point,
+    FOV, LOR, Point,
     image::Image,
     projector::{project_lors, project_one_lor_sens},
     system_matrix::SystemMatrix,

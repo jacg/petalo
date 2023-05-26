@@ -1,3 +1,6 @@
+use std::str::FromStr;
+
+use itertools::Itertools;
 /// The size and granularity of the Field of View (FOV) in which images should
 /// be reconstructed
 
@@ -67,6 +70,24 @@ impl FOV {
             .map(Into::into)
     }
 
+}
+
+impl FromStr for FOV {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let w = |number, unit| format!("{number} {unit}").parse::<Length>().unwrap(); // TODO propagate error sensibly
+        let n = |n: &str| n.parse::<usize>().unwrap();
+        // format: '1 mm  2 mm  0.2 cm  100 100 100' (xyz full-widths, n-voxels in xyz)
+        let (dx, xu,
+             dy, yu,
+             dz, zu,
+             nx, ny, nz
+        ) = s.split_whitespace().collect_tuple().unwrap();
+        let (dx, dy, dz) = (w(dx, xu), w(dy, yu), w(dz, zu));
+        let (nx, ny, nz) = (n(nx    ), n(ny    ), n(nz    ));
+        Ok(FOV::new((dx, dy, dz), (nx, ny, nz)))
+    }
 }
 
 #[cfg(test)]

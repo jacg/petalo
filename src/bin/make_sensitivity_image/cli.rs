@@ -26,6 +26,10 @@ pub struct Cli {
     #[clap(short = 'j', long, default_value = "30")]
     pub n_threads: usize,
 
+    /// Output image dimensions, if different from input image (e.g. '10 cm  20 cm  255 mm  30 30 35')
+    #[clap(long, value_parser = clap::value_parser!(FOV))]
+    pub output_image_dims: Option<FOV>,
+
     #[clap(subcommand)]
     pub detector_type: DetectorType,
 }
@@ -63,7 +67,10 @@ pub enum DetectorType {
 // ----- Imports -----------------------------------------------------------------------------------------
 use std::path::PathBuf;
 
-use petalo::discrete::Adjust;
+use petalo::{
+    FOV,
+    discrete::Adjust,
+};
 use units::{
     Length, todo::Lengthf32,
 };
