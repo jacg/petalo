@@ -47,9 +47,9 @@ where
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
         let backprojection = Image::zeros_buffer(result_fov.unwrap_or(image.fov));
-        let matrix_row_fwd =                S::buffers(image.fov);
-        let matrix_row_bck = result_fov.map(S::buffers);
-        Fs::<S> { backprojection, matrix_row_fwd, matrix_row_bck, image, projector_data }
+        let matrix_row_fwd =                            S::buffers(image.fov);
+        let bck = result_fov.map(|fov| (fov, S::buffers(      fov)));
+        Fs::<S> { backprojection, matrix_row_fwd, bck, image, projector_data }
     };
 
     lors
@@ -63,7 +63,7 @@ where
 // ----- For injection into `project_lors` --------------------------------------------------
 /// Adapts `project_lors` for MLEM iterations
 pub fn project_one_lor_mlem<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR) -> Fs<'i,S> {
-    project_one_lor::<S>(None, fold_state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
+    project_one_lor::<S>(fold_state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
 }
 
 /// Adapts `project_lors` for sensitivity image generation
@@ -73,7 +73,7 @@ where
     BorLor: Borrow<LOR>
 {
     move |fold_state: Fs<S>, lor: BorLor| {
-        project_one_lor::<S>(backproj_fov, fold_state, lor.borrow(), |projection, _lor| (-projection).exp())
+        project_one_lor::<S>(fold_state, lor.borrow(), |projection, _lor| (-projection).exp())
     }
 }
 // ---------------------------------------------------------------------------------------------
@@ -87,23 +87,22 @@ where
 /// Different varieties of projection are made possible by injecting the
 /// `adapt_forward_projection` function.
 fn project_one_lor<'img, S: SystemMatrix>(
-    backproj_fov: Option<FOV>, // May differ from forward projection in attenuation correction calculations
     state: Fs<'img, S>,
     lor: &LOR,
     adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
 ) -> Fs<'img, S> {
-    let Fs::<S> { mut backprojection, mut matrix_row_fwd, mut matrix_row_bck, image, projector_data } = state;
+    let Fs::<S> { mut backprojection, mut matrix_row_fwd, mut bck, image, projector_data } = state;
     matrix_row_fwd.clear(); // Throw away previous LOR's values
     S::update_system_matrix_row(&mut matrix_row_fwd, lor, image.fov, &projector_data);
 
     // If forward- and back-projection geometries differ, calculate backprojection geometry matrix
-    if let (Some(fov), Some(matrix_row_bck)) = (backproj_fov, matrix_row_bck.as_mut()) {
+    if let Some((fov, matrix_row_bck)) = bck.as_mut() {
         matrix_row_bck.clear(); // Throw away previous LOR's values
-        S::update_system_matrix_row(matrix_row_bck, lor, fov, &projector_data);
+        S::update_system_matrix_row(matrix_row_bck, lor, *fov, &projector_data);
     };
     {
         // Does backprojection use same geometry matrix as forward projection?
-        let matrix_row_bck = matrix_row_bck.as_ref().unwrap_or(&matrix_row_fwd);
+        let matrix_row_bck = bck.as_ref().map_or(&matrix_row_fwd, |x| &x.1);
 
         // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
         let project_this_lor = 'safe_lor: {
@@ -111,7 +110,7 @@ fn project_one_lor<'img, S: SystemMatrix>(
                 if i >= backprojection.len() { break 'safe_lor false; }
             }
             // If bck/fwd projections differ, need a second check
-            if backproj_fov.is_some() {
+            if bck.is_some() {
                 for (i, _) in &matrix_row_fwd {
                     if i >= image.data.len() { break 'safe_lor false; }
                 }
@@ -133,7 +132,7 @@ fn project_one_lor<'img, S: SystemMatrix>(
         }
     }
     // Return values needed by next LOR's iteration
-    Fs::<S> { backprojection, matrix_row_fwd, matrix_row_bck, image, projector_data }
+    Fs::<S> { backprojection, matrix_row_fwd, bck, image, projector_data }
 }
 
 #[inline]
@@ -161,8 +160,8 @@ fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
 /// the next. Needs to work in conjunction with `rayon`'s `fold`s.
 pub struct FoldState<'img, T: ?Sized> {
     pub backprojection: ImageData,
-    pub matrix_row_fwd:        SystemMatrixRow,
-    pub matrix_row_bck: Option<SystemMatrixRow>,
+    pub matrix_row_fwd:   SystemMatrixRow,
+    pub bck: Option<(FOV, SystemMatrixRow)>,
     pub image: &'img Image,
     pub projector_data: T,
 }
