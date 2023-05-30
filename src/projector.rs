@@ -43,12 +43,14 @@ where
     F: Fn(Fs<'i, S>, L) -> Fs<'i, S> + Sync + Send,
 {
     let lors = lors.into_par_iter();
+    let fwd_fov = image.fov;
+    let bck_fov = result_fov.unwrap_or(fwd_fov);
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
-        let backprojection = Image::zeros_buffer(result_fov.unwrap_or(image.fov));
-        let matrix_row_fwd =                               S::buffers(image.fov);
-        let bck = result_fov.map(|fov|               (fov, S::buffers(      fov)));
+        let backprojection = Image::zeros_buffer(result_fov.unwrap_or(bck_fov));
+        let matrix_row_fwd =                               S::buffers(bck_fov);
+        let bck = result_fov.map(|fov|               (fov, S::buffers(fwd_fov)));
         Fs::<S> { backprojection, matrix_row_fwd, bck, image, projector_data }
     };
 
@@ -57,7 +59,7 @@ where
         // Keep only the backprojection (ignore weights and indices)
         .map(|state| state.backprojection)
         // Sum the backprojections calculated on each thread
-        .reduce(|| Image::zeros_buffer(image.fov), elementwise_add)
+        .reduce(|| Image::zeros_buffer(bck_fov), elementwise_add)
 }
 
 // ----- For injection into `project_lors` --------------------------------------------------
