@@ -12,7 +12,7 @@ where
 {
     let points     = make_points::<S>(detector_length, discretize);
     let lors       = make_lors  ::<S>(&points, attenuation.fov, discretize);
-    let mut image_data = project_lors::<S,_,_>(lors, projector_data, attenuation, backproj_fov, project_one_lor_sens::<S,_>(backproj_fov));
+    let mut image_data = project_lors::<S,_,_>(lors, projector_data, attenuation, backproj_fov, project_one_lor_sens::<S,>);
     let n_lors = { // TODO this is incorrect: it doesn't take the FOV filter into account
         let n = points.len();
         n * (n-1) / 2
