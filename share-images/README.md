@@ -4,6 +4,13 @@
 + Bary-r
 + No TOF
 
+# Tío gordo, 7500 million events, H₂O phantom, smearing: YES, 2m
+## sensitivity: yes
+| scatter | LYSO                                                             | CsI                                                             | LXe                                                             |
+|---------|------------------------------------------------------------------|-----------------------------------------------------------------|-----------------------------------------------------------------|
+| no      | <img src="./foms/lyso-gordo-scat-no.png" width="300"> 28 M LORs  | <img src="./foms/csi-gordo-scat-no.png" width="300"> 6.4 M LORs | <img src="./foms/lxe-gordo-scat-no.png" width="300"> 7.2 M LORs |
+| yes     | <img src="./foms/lyso-gordo-scatyes.png" width="300">  28 M LORs | <img src="./foms/csi-gordo-scatyes.png" width="300"> 6.4 M LORs | <img src="./foms/lxe-gordo-scatyes.png" width="300"> 7.2 M LORs |
+
 # 7500 million events, H₂O phantom, smearing: YES
 ## Retention rates
 |         | LYSO | CsI  | LXe  |
