@@ -2,7 +2,7 @@
 #[clap(name = "make_sensitivity_image", about = "Create sensitivity image from a density image")]
 pub struct Cli {
 
-    /// The density image of the FOV
+    /// The density image to use in the forward projection
     #[clap(short, long)]
     pub input: PathBuf,
 
