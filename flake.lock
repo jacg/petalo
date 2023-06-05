@@ -48,11 +48,28 @@
         "type": "github"
       }
     },
+    "oldpkgs": {
+      "locked": {
+        "lastModified": 1685758009,
+        "narHash": "sha256-IT4Z5WGhafrq+xbDTyuKrRPRQ1f+kVOtE+4JU1CHFeo=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "eaf03591711b46d21abc7082a8ebee4681f9dbeb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-22.11",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "crate2nix": "crate2nix",
         "flake-compat": "flake-compat",
         "nixpkgs": "nixpkgs",
+        "oldpkgs": "oldpkgs",
         "rust-overlay": "rust-overlay",
         "utils": "utils"
       }

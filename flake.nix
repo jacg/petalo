@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs         .url = "github:nixos/nixpkgs/nixos-23.05";
+    oldpkgs         .url = "github:nixos/nixpkgs/nixos-22.11";
     utils           .url = "github:numtide/flake-utils";
     rust-overlay = { url = "github:oxalica/rust-overlay"; inputs.nixpkgs    .follows = "nixpkgs";
                                                           inputs.flake-utils.follows = "utils"; };
@@ -10,7 +11,7 @@
     flake-compat = { url = "github:edolstra/flake-compat"; flake = false; };
   };
 
-  outputs = { self, nixpkgs, utils, rust-overlay, crate2nix, ... }:
+  outputs = { self, nixpkgs, oldpkgs, utils, rust-overlay, crate2nix, ... }:
     let
       # This name must match the name in Cargo.toml
       name = "petalo";
@@ -47,6 +48,9 @@
                   })
             ];
           };
+
+          # The Rust HDF5 crate doesn't support HDF 1.14.0 yet, which is what comes with nixpkgs 23.05.
+          old = import oldpkgs { inherit system; };
 
           # X11 support
           libPath = pkgs.lib.makeLibraryPath [
@@ -103,13 +107,13 @@
                 };
 
                 hdf5-sys = old-attributes: {
-                  HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
+                  HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ old.hdf5 old.hdf5.dev ]; };
                 };
               };
             };
 
           # non-Rust dependencies
-          buildInputs = [ pkgs.hdf5 ];
+          buildInputs = [ old.hdf5 ];
           nativeBuildInputs = [ pkgs.rustc pkgs.cargo ];
         in
         rec {
@@ -182,7 +186,7 @@
               pkgs.bacon
             ];
             RUST_SRC_PATH = "${pkgs.rustup.rust-src}/lib/rustlib/src/rust/library";
-            HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ pkgs.hdf5 pkgs.hdf5.dev ]; };
+            HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ old.hdf5 old.hdf5.dev ]; };
             LD_LIBRARY_PATH = libPath;
           };
         }
