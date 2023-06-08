@@ -32,7 +32,7 @@ mod tests {
         let py = gil.python();
         let version = get_python_version(py)?;
         println!("{version}");
-        assert!(version.contains("3.10.8"));
+        assert!(version.contains("3.11.3"));
         Ok(())
     }
 }

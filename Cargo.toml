@@ -6,6 +6,7 @@ name = "petalo"
 version = "0.1.0"
 authors = ["Jacek Generowicz <jacg@my-post-office.net>"]
 edition = "2021"
+include = ["src/**/*", "README.md", "!**/*_test.*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -20,37 +21,37 @@ ndarray = { version = "0.15.6", features = ["rayon"] }
 rayon = "1.7.0"
 serde = { version = "1.0", features = ["derive"] }
 rand = "0.8.5"
-parry3d = "0.13.0"
+parry3d = "0.13.4"
 nalgebra = "0.32.2"
 ncollide3d = "0.33.0"
 kiss3d = "0.35"
 num-traits = "0.2.15"
 hdf5 = "0.8.1"
 uom = "0.34.0"
-ordered-float = "3.4"
+ordered-float = "3.7"
 float_eq = "1.0.1"
-indicatif = "0.17.3"
+indicatif = "0.17.5"
 itertools = "0.10.5"
-binrw = "0.11.1"
+binrw = "0.11.2"
 linfa = "0.5.0"
 linfa-clustering = "0.5.1"
 numsep = "0.1.12"
-ndhistogram = "0.8.0"
+ndhistogram = "0.9.0"
 toml = "0.5.9"
 rand_distr = "0.4.3"
-clap = { version = "4.1.8", features = ["derive"] }
+clap = { version = "4.3.2", features = ["derive"] }
 
 [dev-dependencies]
 rstest = "0.16"
 pretty_assertions = "1.3.0"
-proptest = "1.1.0"
-tempfile = "3.4.0"
+proptest = "1.2.0"
+tempfile = "3.6.0"
 rand_isaac = "0.3.0"
 ndarray-rand = "0.14.0"
-rand_core = "0.6.3"
+rand_core = "0.6.4"
 
 [build-dependencies]
-bindgen = "0.64.0"
+bindgen = "0.65.1"
 
 [features]
 compile-error = []
