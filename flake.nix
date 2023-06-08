@@ -185,6 +185,7 @@
               #pkgs.rustup.rls pkgs.rustup.rust-analysis
               pkgs.bacon
             ];
+            PIP_DISABLE_PIP_VERSION_CHECK = 1;
             RUST_SRC_PATH = "${pkgs.rustup.rust-src}/lib/rustlib/src/rust/library";
             HDF5_DIR = pkgs.symlinkJoin { name = "hdf5"; paths = [ old.hdf5 old.hdf5.dev ]; };
             LD_LIBRARY_PATH = libPath;
