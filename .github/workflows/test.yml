@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-12]
+        os: [ubuntu-22.04] #, macos-12] macos broken by upgrade to nixos 23.05
         py: [310] # [310, 311] Python version injection currently missing from flake
         allow-fail: [false]
 
@@ -25,6 +25,11 @@ jobs:
         #   - os: macos-11
         #     py: 311
         #     allow-fail: true
+
+        include:
+          - os: macos-12
+            py: 310
+            allow-fail: true
 
     steps:
       - uses: actions/checkout@v3.5.2
