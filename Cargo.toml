@@ -6,6 +6,7 @@ name = "petalo"
 version = "0.1.0"
 authors = ["Jacek Generowicz <jacg@my-post-office.net>"]
 edition = "2021"
+include = ["src/**/*", "README.md", "!**/*_test.*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
