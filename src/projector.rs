@@ -34,6 +34,7 @@ pub fn project_lors<'i, S, L, F>(
     lors          : impl IntoParallelIterator<Item = L>,
     projector_data: S::Data,
     image         : &'i Image,
+    result_fov    : Option<FOV>, // if different from image
     project_one_lor: F,
 ) -> ImageData
 where
@@ -42,12 +43,15 @@ where
     F: Fn(Fs<'i, S>, L) -> Fs<'i, S> + Sync + Send,
 {
     let lors = lors.into_par_iter();
+    let fwd_fov = image.fov;
+    let bck_fov = result_fov.unwrap_or(fwd_fov);
     // Closure preparing the state needed by `fold`: will be called by
     // `fold` at the start of every thread that is launched.
     let initial_thread_state = || {
-        let backprojection = Image::zeros_buffer(image.fov);
-        let system_matrix_row = S::buffers(image.fov);
-        Fs::<S> { backprojection, system_matrix_row, image, projector_data }
+        let backprojection = Image::zeros_buffer(result_fov.unwrap_or(bck_fov));
+        let matrix_row_fwd =                               S::buffers(bck_fov);
+        let bck = result_fov.map(|fov|               (fov, S::buffers(fwd_fov)));
+        Fs::<S> { backprojection, matrix_row_fwd, bck, image, projector_data }
     };
 
     lors
@@ -55,7 +59,7 @@ where
         // Keep only the backprojection (ignore weights and indices)
         .map(|state| state.backprojection)
         // Sum the backprojections calculated on each thread
-        .reduce(|| Image::zeros_buffer(image.fov), elementwise_add)
+        .reduce(|| Image::zeros_buffer(bck_fov), elementwise_add)
 }
 
 // ----- For injection into `project_lors` --------------------------------------------------
@@ -83,34 +87,48 @@ fn project_one_lor<'img, S: SystemMatrix>(
     lor: &LOR,
     adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
 ) -> Fs<'img, S> {
-    let Fs::<S> { mut backprojection, mut system_matrix_row, image, projector_data } = state;
-    // Throw away previous LOR's values
-    system_matrix_row.clear();
+    let Fs::<S> { mut backprojection, mut matrix_row_fwd, mut bck, image, projector_data } = state;
+    matrix_row_fwd.clear(); // Throw away previous LOR's values
+    S::update_system_matrix_row(&mut matrix_row_fwd, lor, image.fov, &projector_data);
 
-    S::update_system_matrix_row(&mut system_matrix_row, lor, image.fov, &projector_data);
+    // If forward- and back-projection geometries differ, calculate backprojection geometry matrix
+    if let Some((fov, matrix_row_bck)) = bck.as_mut() {
+        matrix_row_bck.clear(); // Throw away previous LOR's values
+        S::update_system_matrix_row(matrix_row_bck, lor, *fov, &projector_data);
+    };
+    {
+        // Does backprojection use same geometry matrix as forward projection?
+        let matrix_row_bck = bck.as_ref().map_or(&matrix_row_fwd, |x| &x.1);
 
-    let project_this_lor = 'safe_lor: {
-            // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
-            for (i, _) in &system_matrix_row {
+        // Skip problematic LORs TODO: Is the cause more interesting than 'effiing floats'?
+        let project_this_lor = 'safe_lor: {
+            for (i, _) in matrix_row_bck {
                 if i >= backprojection.len() { break 'safe_lor false; }
+            }
+            // If bck/fwd projections differ, need a second check
+            if bck.is_some() {
+                for (i, _) in &matrix_row_fwd {
+                    if i >= image.data.len() { break 'safe_lor false; }
+                }
             }
             // This LOR looks safe: process it
             true
-    };
+        };
 
-    if project_this_lor {
-        // Sum product of relevant voxels' weights and activities
-        let projection = forward_project(&system_matrix_row, image);
+        if project_this_lor {
+            // Sum product of relevant voxels' weights and activities
+            let projection = forward_project(&matrix_row_fwd, image);
 
-        // ... the sum needs to be adapted for the use specific use case:
-        // MLEM or sensitivity image generation, are the only ones so far
-        let adapted_projection = adapt_forward_projection(projection, lor);
+            // ... the sum needs to be adapted for the use specific use case:
+            // MLEM or sensitivity image generation, are the only ones so far
+            let adapted_projection = adapt_forward_projection(projection, lor);
 
-        // Backprojection of LOR onto image
-        back_project(&mut backprojection, &system_matrix_row, adapted_projection);
+            // Backprojection of LOR onto image
+            back_project(&mut backprojection, matrix_row_bck, adapted_projection);
+        }
     }
     // Return values needed by next LOR's iteration
-    Fs::<S> { backprojection, system_matrix_row, image, projector_data }
+    Fs::<S> { backprojection, matrix_row_fwd, bck, image, projector_data }
 }
 
 #[inline]
@@ -138,7 +156,8 @@ fn elementwise_add(a: Vec<f32>, b: Vec<f32>) -> Vec<f32> {
 /// the next. Needs to work in conjunction with `rayon`'s `fold`s.
 pub struct FoldState<'img, T: ?Sized> {
     pub backprojection: ImageData,
-    pub system_matrix_row: SystemMatrixRow,
+    pub matrix_row_fwd:   SystemMatrixRow,
+    pub bck: Option<(FOV, SystemMatrixRow)>,
     pub image: &'img Image,
     pub projector_data: T,
 }
@@ -156,7 +175,7 @@ use units::{
 };
 
 use crate::{
-    LOR,
+    LOR, FOV,
     image::{ImageData, Image},
     system_matrix::{SystemMatrixRow, SystemMatrix},
 };

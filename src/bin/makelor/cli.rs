@@ -21,6 +21,9 @@ pub (super) struct Cli {
     #[clap(short = 'c', long, default_value = "1000000")]
     pub chunk_size: usize,
 
+    #[clap(long)]
+    pub fwhm: units::Ratio,
+
     #[clap(subcommand)]
     pub (super) reco: Reco,
 
