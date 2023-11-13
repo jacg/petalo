@@ -73,7 +73,6 @@ impl FomConfig {
 
 
 #[pyclass]
-#[pyo3(text_signature = "(initial_height)")]
 /// It's a Lift: it goes up and down
 struct Lift {
     #[pyo3(get)]
@@ -83,7 +82,7 @@ struct Lift {
 #[pymethods]
 impl Lift {
 
-    #[new] // Signature goes on the struct
+    #[new(text_signature = "(initial_height)")]
     fn new(initial_height: i32) -> Self { Self { height: initial_height }}
 
     fn up  (&mut self, n: usize) { self.height += n as i32 }
