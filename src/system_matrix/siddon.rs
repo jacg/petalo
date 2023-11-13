@@ -882,7 +882,7 @@ mod sensitivity_image {
 
         // Annotate each LOR with additive correction taken from scattergam
         if let Some(sgram) = sgram {
-            for mut lor in &mut lors {
+            for lor in &mut lors {
                 lor.additive_correction = sgram.value(lor);
             }
         }
