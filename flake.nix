@@ -2,7 +2,7 @@
   description = "Image Reconstruction for PET";
 
   inputs = {
-    nixpkgs         .url = "github:nixos/nixpkgs/nixos-23.05";
+    nixpkgs         .url = "github:nixos/nixpkgs/nixos-22.11";
     oldpkgs         .url = "github:nixos/nixpkgs/nixos-22.11";
     utils           .url = "github:numtide/flake-utils";
     rust-overlay = { url = "github:oxalica/rust-overlay"; inputs.nixpkgs    .follows = "nixpkgs";
@@ -75,7 +75,7 @@
           darwin-frameworks = pkgs.darwin.apple_sdk.frameworks;
 
           # ----- Python -------------------------------------------------------------------
-          python-version = "python311";
+          python-version = "python310";
 
           my-python-packages = pypkgs: [
             pypkgs.ipython
