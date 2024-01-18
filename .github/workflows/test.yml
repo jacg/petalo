@@ -39,7 +39,7 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
       - uses: Swatinem/rust-cache@v2.7.3
-      - uses: cachix/cachix-action@v12
+      - uses: cachix/cachix-action@v14
         with:
           name: rustpetalo # The name of the Cachix cache
           # If you chose signing key for write access
