@@ -2,7 +2,7 @@
   description = "Image Reconstruction for PET";
 
   inputs = {
-    nixpkgs         .url = "github:nixos/nixpkgs/nixos-22.11";
+    nixpkgs         .url = "github:nixos/nixpkgs/nixos-23.11";
     oldpkgs         .url = "github:nixos/nixpkgs/nixos-22.11";
     utils           .url = "github:numtide/flake-utils";
     rust-overlay = { url = "github:oxalica/rust-overlay"; inputs.nixpkgs    .follows = "nixpkgs";
@@ -43,13 +43,14 @@
                     rustup = rust-stable;
 
                     rustc = rustup.default;
-                    cargo = rustup.default;
+                    #cargo = rustup.default; # overriding cargo causes problems on 23.11, but we don't needed it?
                     rust-analyzer-preview = rust-analyzer-preview-on "2024-01-16";
                   })
             ];
           };
 
           # The Rust HDF5 crate doesn't support HDF 1.14.0 yet, which is what comes with nixpkgs 23.05.
+          # nixpkgs 23.11 has HDF5 1.14.3; use in the rust crate is blocked by https://github.com/aldanor/hdf5-rust/pull/243
           old = import oldpkgs { inherit system; };
 
           # X11 support
