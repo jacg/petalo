@@ -28,7 +28,7 @@ jobs:
 
         include:
           - os: macos-12
-            py: 310
+            py: 311
             allow-fail: true
 
     steps:

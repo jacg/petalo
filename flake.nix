@@ -76,7 +76,7 @@
           darwin-frameworks = pkgs.darwin.apple_sdk.frameworks;
 
           # ----- Python -------------------------------------------------------------------
-          python-version = "python310";
+          python-version = "python311";
 
           my-python-packages = pypkgs: [
             pypkgs.ipython
