@@ -51,7 +51,7 @@ ndarray-rand = "0.14.0"
 rand_core = "0.6.4"
 
 [build-dependencies]
-bindgen = "0.65.1"
+bindgen = "0.69.2"
 
 [features]
 compile-error = []
