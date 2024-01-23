@@ -22,7 +22,7 @@ rayon = "1.8.1"
 serde = { version = "1.0", features = ["derive"] }
 rand = "0.8.5"
 parry3d = "0.13.5"
-nalgebra = "0.32.2"
+nalgebra = "0.32.3"
 ncollide3d = "0.33.0"
 kiss3d = "0.35"
 num-traits = "0.2.17"
