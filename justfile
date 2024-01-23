@@ -1,17 +1,21 @@
 # -*-Makefile-*-
 
-test: test-rust test-python
+test colours='':
+	#!/usr/bin/env sh
+	FAILED=0
+	just test-rust   {{colours}} || FAILED=1
+	just test-python {{colours}} || FAILED=2
+	exit $FAILED
 
 test-rust colours='':
-	just test-rust-pure {{colours}}
-
-test-rust-pure colours='':
-	cargo nextest run {{colours}} --workspace --exclude bindings
-
+	cargo nextest run {{colours}} --workspace
 
 test-python colours='': python-build-bindings
-	pytest -v {{colours}} src bindings
-
+	#!/usr/bin/env sh
+	FAILED=0
+	just test-python-pure     {{colours}} || FAILED=1
+	just test-python-bindings {{colours}} || FAILED=2
+	exit $FAILED
 
 test-python-pure colours='':
 	pytest -v {{colours}} src

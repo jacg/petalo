@@ -2,7 +2,7 @@
   description = "Image Reconstruction for PET";
 
   inputs = {
-    nixpkgs         .url = "github:nixos/nixpkgs/nixos-22.11";
+    nixpkgs         .url = "github:nixos/nixpkgs/nixos-23.11";
     oldpkgs         .url = "github:nixos/nixpkgs/nixos-22.11";
     utils           .url = "github:numtide/flake-utils";
     rust-overlay = { url = "github:oxalica/rust-overlay"; inputs.nixpkgs    .follows = "nixpkgs";
@@ -31,8 +31,8 @@
                   rust-tcfile  = final.rust-bin.fromRustupToolchainFile ./rust-toolchain;
                   rust-latest  = final.rust-bin.stable .latest      ;
                   rust-beta    = final.rust-bin.beta   .latest      ;
-                  rust-nightly = final.rust-bin.nightly."2023-11-12";
-                  rust-stable  = final.rust-bin.stable ."1.73.0"    ; # nix flake lock --update-input rust-overlay
+                  rust-nightly = final.rust-bin.nightly."2024-01-16";
+                  rust-stable  = final.rust-bin.stable ."1.75.0"    ; # nix flake lock --update-input rust-overlay
                   rust-analyzer-preview-on = date:
                     final.rust-bin.nightly.${date}.default.override
                       { extensions = [ "rust-analyzer-preview" ]; };
@@ -43,13 +43,14 @@
                     rustup = rust-stable;
 
                     rustc = rustup.default;
-                    cargo = rustup.default;
-                    rust-analyzer-preview = rust-analyzer-preview-on "2023-11-12";
+                    #cargo = rustup.default; # overriding cargo causes problems on 23.11, but we don't needed it?
+                    rust-analyzer-preview = rust-analyzer-preview-on "2024-01-16";
                   })
             ];
           };
 
           # The Rust HDF5 crate doesn't support HDF 1.14.0 yet, which is what comes with nixpkgs 23.05.
+          # nixpkgs 23.11 has HDF5 1.14.3; use in the rust crate is blocked by https://github.com/aldanor/hdf5-rust/pull/243
           old = import oldpkgs { inherit system; };
 
           # X11 support
@@ -75,7 +76,7 @@
           darwin-frameworks = pkgs.darwin.apple_sdk.frameworks;
 
           # ----- Python -------------------------------------------------------------------
-          python-version = "python310";
+          python-version = "python311";
 
           my-python-packages = pypkgs: [
             pypkgs.ipython

@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04] #, macos-12] macos broken by upgrade to nixos 23.05
+        os: [ubuntu-22.04, macos-12]
         py: [311] # [311, 312] Python version injection currently missing from flake
         allow-fail: [false]
 
@@ -26,20 +26,15 @@ jobs:
         #     py: 311
         #     allow-fail: true
 
-        include:
-          - os: macos-12
-            py: 310
-            allow-fail: true
-
     steps:
       - uses: actions/checkout@v3.5.2
-      - uses: cachix/install-nix-action@v21
+      - uses: cachix/install-nix-action@v25
         with:
           nix_path: nixpkgs=channel:nixos-22.11
           extra_nix_config: |
             experimental-features = nix-command flakes
-      - uses: Swatinem/rust-cache@v2.4.0
-      - uses: cachix/cachix-action@v12
+      - uses: Swatinem/rust-cache@v2.7.3
+      - uses: cachix/cachix-action@v14
         with:
           name: rustpetalo # The name of the Cachix cache
           # If you chose signing key for write access
@@ -72,8 +67,8 @@ jobs:
           nix shell -c viewraw.py -h
           # nix shell -c foms.py -h    TODO
 
-      - name: Test Pure Rust in `nix develop`
-        run: nix develop -c just test-rust-pure --color=always
+      - name: Test Rust in `nix develop`
+        run: nix develop -c just test-rust --color=always
 
       - name: Test Pure Python in `nix develop`
         run: nix develop -c just test-python-pure --color=yes
