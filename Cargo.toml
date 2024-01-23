@@ -1,5 +1,5 @@
 [workspace]
-members = ["geometry", "bindings", "units", "try-cpython", "simset"]
+members = ["geometry", "bindings", "units", "simset"]
 
 [package]
 name = "petalo"
