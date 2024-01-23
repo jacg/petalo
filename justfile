@@ -8,11 +8,7 @@ test colours='':
 	exit $FAILED
 
 test-rust colours='':
-	just test-rust-pure {{colours}}
-
-test-rust-pure colours='':
-	cargo nextest run {{colours}} --workspace --exclude bindings
-
+	cargo nextest run {{colours}} --workspace
 
 test-python colours='': python-build-bindings
 	#!/usr/bin/env sh
