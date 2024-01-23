@@ -198,12 +198,12 @@ dependencies = [
 
 [[package]]
 name = "binrw"
-version = "0.11.2"
+version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab81d22cbd2d745852348b2138f3db2103afa8ce043117a374581926a523e267"
+checksum = "173901312e9850391d4d7c1318c4e099fdc037d61870fca427429830efdb4e5f"
 dependencies = [
  "array-init",
- "binrw_derive 0.11.2",
+ "binrw_derive 0.13.3",
  "bytemuck",
 ]
 
@@ -222,9 +222,9 @@ dependencies = [
 
 [[package]]
 name = "binrw_derive"
-version = "0.11.2"
+version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6b019a3efebe7f453612083202887b6f1ace59e20d010672e336eea4ed5be97"
+checksum = "cb515fdd6f8d3a357c8e19b8ec59ef53880807864329b1cb1cba5c53bf76557e"
 dependencies = [
  "either",
  "owo-colors",
@@ -2174,7 +2174,7 @@ name = "petalo"
 version = "0.1.0"
 dependencies = [
  "bindgen",
- "binrw 0.11.2",
+ "binrw 0.13.3",
  "clap",
  "float_eq",
  "geometry",
