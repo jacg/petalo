@@ -35,8 +35,8 @@ def show_image(image, *, axis, slice_, extent, shape, ax=plt):
 
 
 def read_raw(filename, header_only=False, end='>'):
-    buffer = open(filename, 'rb').read()
     metadata_length = 18
+    buffer = open(filename, 'rb').read(metadata_length if header_only else -1)
     metadata = buffer[: metadata_length  ]
     data     = buffer[  metadata_length :]
     pixels = struct.unpack_from('>HHH', metadata[:6])
