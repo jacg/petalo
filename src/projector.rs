@@ -119,8 +119,8 @@ fn project_one_lor<'img, S: SystemMatrix>(
             // Sum product of relevant voxels' weights and activities
             let projection = forward_project(&matrix_row_fwd, image);
 
-            // ... the sum needs to be adapted for the use specific use case:
-            // MLEM or sensitivity image generation, are the only ones so far
+            // ... the sum needs to be adapted for the specific use case: MLEM
+            // or sensitivity image generation, are the only ones so far
             let adapted_projection = adapt_forward_projection(projection, lor);
 
             // Backprojection of LOR onto image
