@@ -177,5 +177,5 @@ use units::{
 use crate::{
     LOR, FOV,
     image::{ImageData, Image},
-    system_matrix::{SystemMatrixRow, SystemMatrix},
+    projectors::{SystemMatrixRow, SystemMatrix},
 };

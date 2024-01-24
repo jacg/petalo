@@ -68,7 +68,7 @@ use petalo::{
     FOV, LOR, Point,
     image::Image,
     projector::{project_lors, project_one_lor_sens},
-    system_matrix::SystemMatrix,
+    projectors::SystemMatrix,
     discrete::Discretize,
 };
 

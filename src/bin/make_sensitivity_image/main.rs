@@ -104,7 +104,7 @@ use petalo::{
     utils::group_digits,
     FOV,
     image::{Image, ImageData},
-    system_matrix::{SystemMatrix, Siddon}, discrete::Discretize,
+    projectors::{SystemMatrix, Siddon}, discrete::Discretize,
 };
 
 use units::{

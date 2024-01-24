@@ -108,5 +108,5 @@ use crate::{
     FOV, LOR,
     image::{Image, ImageData},
     projector::{project_lors, project_one_lor_mlem},
-    system_matrix::SystemMatrix
+    projectors::SystemMatrix
 };

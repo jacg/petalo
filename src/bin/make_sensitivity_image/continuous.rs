@@ -52,7 +52,7 @@ use petalo::{
     FOV, LOR,
     image::Image,
     projector::{project_lors, project_one_lor_sens},
-    system_matrix::SystemMatrix,
+    projectors::SystemMatrix,
 };
 
 use units::{
