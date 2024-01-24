@@ -8,7 +8,7 @@ pub fn sensitivity_image<S>(
     backproj_fov     : Option<FOV>,
 ) -> Image
 where
-    S: SystemMatrix,
+    S: Projector,
 {
     let points     = make_points::<S>(detector_length, discretize);
     let lors       = make_lors  ::<S>(&points, attenuation.fov, discretize);
@@ -26,7 +26,7 @@ fn make_points<S>(
     discretize       : Discretize,
 ) -> Vec<Point>
 where
-    S: SystemMatrix,
+    S: Projector,
 {
     dbg!(detector_length);
     // Points at the centres of all elements
@@ -39,7 +39,7 @@ where
 
 pub (crate) fn make_lors<S>(points: &[Point], fov: crate::FOV, discretize: Discretize) -> impl ParallelIterator<Item = LOR> + '_
 where
-    S: SystemMatrix,
+    S: Projector,
 {
     let adjust = discretize.make_adjust_fn();
     let smear: Box<dyn Fn(Point) -> Point + Sync + Send> = {
@@ -68,7 +68,7 @@ use petalo::{
     FOV, LOR, Point,
     image::Image,
     projector::{project_lors, project_one_lor_sens},
-    system_matrix::SystemMatrix,
+    projectors::Projector,
     discrete::Discretize,
 };
 

@@ -7,7 +7,7 @@
 //! + `project_one_lor`
 //!
 //! are abstracted over different algorithms for calculating system matrix
-//! elements, via the `SystemMatrix` trait.
+//! elements, via the `Projector` trait.
 //!
 //! Projections adapted for different use cases can be created by passing
 //! adapter functions into `project_lors` and `project_one_lor`. Two varieties
@@ -20,7 +20,7 @@
 /// Performs forward and backward projections over a collection of LORs.
 ///
 /// Abstracted over different algorithms for calculating system matrix elements,
-/// via the `SystemMatrix` trait.
+/// via the `Projector` trait.
 ///
 /// Different varieties of projection are made possible by injecting the
 /// `project_one_lor` function, for which two implementations are provided:
@@ -38,7 +38,7 @@ pub fn project_lors<'i, S, L, F>(
     project_one_lor: F,
 ) -> ImageData
 where
-    S: SystemMatrix,
+    S: Projector,
     L: Borrow<LOR>,
     F: Fn(Fs<'i, S>, L) -> Fs<'i, S> + Sync + Send,
 {
@@ -64,12 +64,12 @@ where
 
 // ----- For injection into `project_lors` --------------------------------------------------
 /// Adapts `project_lors` for MLEM iterations
-pub fn project_one_lor_mlem<'i, S: SystemMatrix>(fold_state: Fs<'i,S>, lor: &LOR) -> Fs<'i,S> {
+pub fn project_one_lor_mlem<'i, S: Projector>(fold_state: Fs<'i,S>, lor: &LOR) -> Fs<'i,S> {
     project_one_lor::<S>(fold_state, lor, |projection, lor| ratio_(projection * lor.additive_correction))
 }
 
 /// Adapts `project_lors` for sensitivity image generation
-pub fn project_one_lor_sens<S: SystemMatrix>(fold_state: Fs<S>, lor: impl Borrow<LOR>) -> Fs<S> {
+pub fn project_one_lor_sens<S: Projector>(fold_state: Fs<S>, lor: impl Borrow<LOR>) -> Fs<S> {
     project_one_lor::<S>(fold_state, lor.borrow(), |projection, _lor| (-projection).exp())
 }
 // ---------------------------------------------------------------------------------------------
@@ -78,11 +78,11 @@ pub fn project_one_lor_sens<S: SystemMatrix>(fold_state: Fs<S>, lor: impl Borrow
 /// single LOR.
 ///
 /// Abstracted over different algorithms for calculating system matrix elements,
-/// via the `SystemMatrix` trait.
+/// via the `Projector` trait.
 ///
 /// Different varieties of projection are made possible by injecting the
 /// `adapt_forward_projection` function.
-fn project_one_lor<'img, S: SystemMatrix>(
+fn project_one_lor<'img, S: Projector>(
     state: Fs<'img, S>,
     lor: &LOR,
     adapt_forward_projection: impl Fn(f32, &LOR) -> f32,
@@ -164,7 +164,7 @@ pub struct FoldState<'img, T: ?Sized> {
 
 /// Helper for `FoldState`: removes the need to repeat `::Data` at points of
 /// use.
-pub type Fs<'i, S> = FoldState<'i, <S as SystemMatrix>::Data>;
+pub type Fs<'i, S> = FoldState<'i, <S as Projector>::Data>;
 
 // ----- Imports ------------------------------------------------------------------------------------------
 use rayon::prelude::*;
@@ -177,5 +177,5 @@ use units::{
 use crate::{
     LOR, FOV,
     image::{ImageData, Image},
-    system_matrix::{SystemMatrixRow, SystemMatrix},
+    projectors::{SystemMatrixRow, Projector},
 };

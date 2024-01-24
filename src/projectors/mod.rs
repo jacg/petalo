@@ -4,7 +4,7 @@
 // ----- The trait --------------------------------------------------------------------
 
 /// Interface for calculation of (geometrical components of?) system matrix elements
-pub trait SystemMatrix {
+pub trait Projector {
 
     /// Algorithm-specific information needed to be communicated efficiently
     /// between iterations over LORs.

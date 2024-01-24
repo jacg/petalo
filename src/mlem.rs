@@ -5,7 +5,7 @@
 //! + OSEM: Ordered-Subset Expectation Maximization
 
 /// Create an infinite iterator of reconstructed images
-pub fn mlem<'a, S: SystemMatrix + 'a>(
+pub fn mlem<'a, S: Projector + 'a>(
     parameters   : S::Data,
     fov          : FOV,
     measured_lors: &'a [LOR],
@@ -30,7 +30,7 @@ pub fn mlem<'a, S: SystemMatrix + 'a>(
     })
 }
 
-fn one_iteration<S: SystemMatrix>(
+fn one_iteration<S: Projector>(
     projector    : S::Data,
     image        : &mut Image,
     measured_lors: &[LOR],
@@ -108,5 +108,5 @@ use crate::{
     FOV, LOR,
     image::{Image, ImageData},
     projector::{project_lors, project_one_lor_mlem},
-    system_matrix::SystemMatrix
+    projectors::Projector
 };

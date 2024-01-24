@@ -1,6 +1,6 @@
 use petalo::{
     config::mlem::AttenuationCorrection as AC,
-    system_matrix::{SystemMatrix, Siddon},
+    projectors::{Projector, Siddon},
 };
 // ----------------------------------- CLI -----------------------------------
 use clap::Parser;

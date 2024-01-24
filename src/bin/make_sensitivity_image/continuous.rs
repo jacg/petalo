@@ -1,6 +1,6 @@
 /// Create sensitivity image by backprojecting `n_lors` randomly-generated LORs
 /// through `attenuation` image.
-pub fn sensitivity_image<S: SystemMatrix>(
+pub fn sensitivity_image<S: Projector>(
     detector_length  : Length,
     detector_diameter: Length,
     parameters       : S::Data,
@@ -52,7 +52,7 @@ use petalo::{
     FOV, LOR,
     image::Image,
     projector::{project_lors, project_one_lor_sens},
-    system_matrix::SystemMatrix,
+    projectors::Projector,
 };
 
 use units::{

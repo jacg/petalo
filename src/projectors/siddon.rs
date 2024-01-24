@@ -20,7 +20,7 @@ pub struct Siddon {
     tof: Option<Gaussian>,
 }
 
-impl SystemMatrix for Siddon {
+impl Projector for Siddon {
 
     type Data = Self;
 
@@ -355,7 +355,7 @@ use crate::{
     FOV,
     gauss::{make_gauss_option, Gaussian},
     index::index3_to_1,
-    system_matrix::{SystemMatrixRow, SystemMatrix},
+    projectors::{SystemMatrixRow, Projector},
 };
 
 // ------------------------------ TESTS ------------------------------
@@ -855,7 +855,7 @@ mod sensitivity_image {
         (trues, noise)
     }
 
-    use crate::{lorogram::{BuildScattergram as Sc, Prompt}, system_matrix::Siddon, mlem::Osem};
+    use crate::{lorogram::{BuildScattergram as Sc, Prompt}, projectors::Siddon, mlem::Osem};
 
     #[rstest(/**/ name        , correction,
              case("corr-none" , Sc::new()                                        ),
