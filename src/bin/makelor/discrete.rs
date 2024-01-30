@@ -65,7 +65,8 @@ fn box_with_higest_total_energy_centre_doi(vertices: &[Vertex], discretize: Disc
             let r_centre: Length = x.hypot(y);
             let r_bary: Length = re / e;
             let scale = r_bary / r_centre;
-            (keV_(e), (mm_(x*scale),
+            let scale = units::ratio(1.0);
+            (keV_(keV(511.0)), (mm_(x*scale),
                        mm_(y*scale),
                        mm_(z      )))
         })

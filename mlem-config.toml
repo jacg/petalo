@@ -11,9 +11,9 @@
 #
 [input]
 
-file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-vacbody-nosteel-dz2m-LYSO10mm-discrete-r350-dr10-dz6-da6-adjust-random-z-phi-1500Mevents.h5"
+file = "/home/jacek/rust/petalo/junk.h5"
 
-
+#file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-vacbody-nosteel-dz2m-LYSO10mm-discrete-r350-dr10-dz6-da6-adjust-random-z-phi-1500Mevents.h5"
 #file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-H2Obody-nosteel-dz2m-LYSO10mm-discrete-r350-dr10-dz6-da6-adjust-random-z-phi-7500Mevents.h5"
 #file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-H2Obody-nosteel-dz2m-CsI20mm-discrete-r350-dr20-dz6-da6-adjust-random-z-phi-7500Mevents.h5"
 #file = "/home/jacek/data/jaszczak/lors/6-udlx-s4r4b1-H2Obody-nosteel-dz2m-LXe40mm-discrete-r350-dr40-dz6-da6-adjust-random-z-phi-7500Mevents.h5"
@@ -23,7 +23,7 @@ dataset = "reco_info/lors"
 # Optional: event filtering by energy
 #
 #energy.min = 483  # for  5% FWHM
-energy.min = 429  # for 15% FWHM
+#energy.min = 429  # for 15% FWHM
 
 # energy.max = 600
 
@@ -67,17 +67,17 @@ size    = ["234 mm", "234 mm",  "216 mm"]
 #
 # NB: tilde-expansion in filename not supported!
 
-[attenuation_correction]
+# [attenuation_correction]
 
-# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l300mm-rmin350mm-dr10mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
-# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l300mm-rmin350mm-dr20mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
-# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l300mm-rmin350mm-dr40mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
-# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l1000mm-rmin350mm-dr10mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
-# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l1000mm-rmin350mm-dr20mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
-# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l1000mm-rmin350mm-dr40mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
-# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l2000mm-rmin350mm-dr10mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
-sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l2000mm-rmin350mm-dr20mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
-# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l2000mm-rmin350mm-dr40mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# # sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l300mm-rmin350mm-dr10mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# # sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l300mm-rmin350mm-dr20mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# # sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l300mm-rmin350mm-dr40mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# # sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l1000mm-rmin350mm-dr10mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# # sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l1000mm-rmin350mm-dr20mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# # sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l1000mm-rmin350mm-dr40mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# # sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l2000mm-rmin350mm-dr10mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l2000mm-rmin350mm-dr20mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
+# # sensitivity_image = "/home/jacek/data/jaszczak/corr/sensitivity-78x78x72-3-mm-cubed-voxels/discrete-adjust-random-siddon-l2000mm-rmin350mm-dr40mm-dz6mm-da6mm-0.095-cm2-per-g.raw"
 
 # ================================================================================
 # Optional section: Enable scatter correction
